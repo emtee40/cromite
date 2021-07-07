@@ -1,3 +1,24 @@
+# 91.0.4472.146
+* removed flags for device motion/orientation (fixes https://github.com/bromite/bromite/issues/1204)
+* prevent crash on download on API level 21 (fixes https://github.com/bromite/bromite/issues/1184)
+* fix crash reporting garbled UI for small screens (thanks to @uazo, https://github.com/bromite/bromite/pull/1236)
+* add flag to enable/disable vibration API (fixes https://github.com/bromite/bromite/issues/1045)
+
+# 91.0.4472.143
+* add support for ISupportHelpAndFeedback
+* JIT-less toggle (fixes https://github.com/bromite/bromite/issues/1235)
+* enable crash reporting UI (thanks to @uazo, fixes https://github.com/bromite/bromite/issues/944)
+
+# 91.0.4472.102
+* fix opening new tabs from links in always-incognito mode (thanks to @uazo, fixes https://github.com/bromite/bromite/issues/1154)
+* allow saving pages in incognito mode (thanks to @uazo, fixes https://github.com/bromite/bromite/issues/1182)
+
+# 91.0.4472.97
+* add flag for omnibox autocomplete filtering (fixes https://github.com/bromite/bromite/issues/1152)
+* enable IntentBlockExternalFormRedirectsNoGesture by default
+* add flag to disable external intent requests
+* fix for tab collection temporary/non-exportable (thanks to @uazo, fixes https://github.com/bromite/bromite/issues/1138)
+
 # 91.0.4472.50
 * unexpire tab group flags `#enable-tab-groups` and `#enable-tab-groups-ui-improvements`
 * replace known good hostname used for DoH test (fixes https://github.com/bromite/bromite/issues/1148)
