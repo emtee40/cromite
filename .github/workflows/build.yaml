@@ -36,15 +36,22 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
+        with:
+          path: bromite
+    
+      - name: Get current chromium version
+        shell: bash
+        run: |
+          export VERSION=$( cat ./bromite/build/RELEASE )
 
       - name: Check build deps image
         uses: uazo/bromite-buildtools/images/build-deps@master
         with:
-          version: 91.0.4472.146
+          version: ${{ env.VERSION }}
         
       - name: Check chromium image
         uses: uazo/bromite-buildtools/images/chr-source@master
         with:
-          version: 91.0.4472.146
+          version: ${{ env.VERSION }}
 
           
