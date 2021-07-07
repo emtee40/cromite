@@ -15,29 +15,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  check_images:
     runs-on: self-hosted
-
-    services:
-      redis:
-        image: redis
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    
-#    container:
-#      image: uazo/chromium:91.0.4472.146
-#      options: "--privileged"
-#      volumes:
-#        - /storage/bromite/91.0.4472.146:/home/lg/working_dir/artifacs
       
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
         with:
           path: bromite
+          fetch-depth: 1
 
       - name: Get current chromium version
         shell: bash
@@ -56,4 +42,27 @@ jobs:
         with:
           version: ${{ env.VERSION }}
 
+      - name: Check bromite image
+        uses: uazo/bromite-buildtools/images/bromite-source@master
+        with:
+          version: ${{ env.VERSION }}
+          sha: ${{ GITHUB_SHA }}
           
+  build:
+    runs-on: self-hosted
+    needs: check_images
+
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+#    container:
+#      image: uazo/chromium:91.0.4472.146
+#      options: "--privileged"
+#      volumes:
+#        - /storage/bromite/91.0.4472.146:/home/lg/working_dir/artifacs
