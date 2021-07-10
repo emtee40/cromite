@@ -58,21 +58,24 @@ jobs:
     needs: check_images
     if: success()
 
-#    services:
-#      redis:
-#        image: redis
-#        options: >-
-#          --health-cmd "redis-cli ping"
-#          --health-interval 10s
-#          --health-timeout 5s
-#          --health-retries 5    
-#      gomaserver:
-#        image: uazo/goma-server
-#        ports: 
-#          - 5050:5050
-#        volumes: 
-#          - /tmp/proxy:/tmp/proxy
-
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5    
+      gomaserver:
+        image: uazo/goma-server
+        ports: 
+          - 5050:5050
+        volumes: 
+          - /tmp/proxy:/tmp/proxy
+        env:
+          REDISHOST: localhost
+          REMOTEEXEC_ADDR: ${{ secrets.REMOTEEXEC_ADDR }}
+          
     container:
       image: uazo/bromite-build:9109417e415f9f0aa204dc3e1391138fa5e13bf8 #${{ github.sha }}
       volumes:
