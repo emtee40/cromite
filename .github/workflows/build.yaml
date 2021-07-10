@@ -73,14 +73,17 @@ jobs:
         volumes: 
           - /tmp/proxy:/tmp/proxy
         env:
-          REDISHOST: localhost
+          REDISHOST: redis
           REMOTEEXEC_ADDR: ${{ secrets.REMOTEEXEC_ADDR }}
           
     container:
       image: uazo/bromite-build:9109417e415f9f0aa204dc3e1391138fa5e13bf8 #${{ github.sha }}
+      env:
+        SERVER_HOST_GOMA: gomaserver
       volumes:
         - /storage/bromite/${{ github.sha }}:/home/lg/working_dir/artifacs
         - /tmp/proxy:/tmp/proxy
+
 
     steps:
       - name: Build Bromite
