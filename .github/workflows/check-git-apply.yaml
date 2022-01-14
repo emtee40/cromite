@@ -30,6 +30,9 @@ jobs:
           unzip pup_v0.4.0_linux_amd64.zip
           rm pup_v0.4.0_linux_amd64.zip
 
+          BRANCH=$(curl https://github.com/uazo/bromite/branch_commits/$RTAG | ../pup -p li.branch a text{})
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+
       - name: Download bromite sources
         run: |
           mkdir bromite && cd bromite
@@ -37,6 +40,7 @@ jobs:
           git remote add origin https://github.com/uazo/bromite
           git fetch origin $RTAG
           git reset --hard FETCH_HEAD
+          git branch -m $BRANCH
           cd ..
 
       - name: Download chromium sources
@@ -82,9 +86,6 @@ jobs:
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
           
           if [[ CHANGES -eq 1 ]]; then
-              BRANCH=$(curl https://github.com/uazo/bromite/branch_commits/$RTAG | ../pup -p li.branch a text{})
-              echo "BRANCH=$BRANCH" >> $GITHUB_ENV
-              
               git add .
           fi
           
