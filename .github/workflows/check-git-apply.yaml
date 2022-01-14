@@ -18,13 +18,17 @@ jobs:
       - name: Prepare container
         run: |
           sudo apt update
-          sudo apt install -y wget unzip tar sed dos2unix patchutils wiggle
+          sudo apt install -y wget unzip tar sed dos2unix patchutils wiggle curl
           
           wget https://github.com/uazo/superpatch/releases/latest/download/SuperPatchUtils.tar.gz
           tar xfz SuperPatchUtils.tar.gz
           rm SuperPatchUtils.tar.gz
           
           git clone https://github.com/uazo/bromite-buildtools
+          
+          wget https://github.com/ericchiang/pup/releases/download/v0.4.0/pup_v0.4.0_linux_amd64.zip
+          unzip pup_v0.4.0_linux_amd64.zip
+          rm pup_v0.4.0_linux_amd64.zip
 
       - name: Download bromite sources
         run: |
@@ -78,14 +82,18 @@ jobs:
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
           
           if [[ CHANGES -eq 1 ]]; then
+              BRANCH=$(curl https://github.com/uazo/bromite/branch_commits/$RTAG | ../pup -p li.branch a text{})
+              echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+              
               git add .
           fi
           
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3.10.1
+        uses: peter-evans/create-pull-request@v3.12.0
         if: env.CHANGES == '1'
         with:
           path: bromite
+          branch: ${{ env.BRANCH }}
           add-paths: |
             build/patches/*.patch
           commit-message: Check git apply result
