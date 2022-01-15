@@ -33,15 +33,23 @@ jobs:
           BRANCH=$(curl https://github.com/uazo/bromite/branch_commits/$RTAG | ./pup -p li.branch a text{})
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
-      - name: Download bromite sources
-        run: |
-          mkdir bromite && cd bromite
-          git init
-          git remote add origin https://github.com/uazo/bromite
-          git fetch origin $RTAG
-          git reset --hard FETCH_HEAD
-          git branch -m $BRANCH
-          cd ..
+      - name: Checkout 'uazo/bromite'
+        uses: actions/checkout@v2
+        with:
+            repository: 'uazo/bromite'
+            ref: ${{ github.event.inputs.rtag }}
+            path: 'bromite'
+            fetch-depth: 1
+      
+#      - name: Download bromite sources
+#        run: |
+#          mkdir bromite && cd bromite
+#          git init
+#          git remote add origin https://github.com/uazo/bromite
+#          git fetch origin $RTAG
+#          git reset --hard FETCH_HEAD
+#          git branch -m $BRANCH
+#          cd ..
 
       - name: Download chromium sources
         run: |
