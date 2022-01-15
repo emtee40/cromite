@@ -105,7 +105,9 @@ jobs:
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
           
           if [[ CHANGES -eq 1 ]]; then
-              git add .
+              git add build/patches/*.patch
+              MESSAGE=$(git diff --name-only --staged)
+              echo "MESSAGE=$MESSAGE" >> $GITHUB_ENV
           fi
           
       - name: Create Pull Request
@@ -117,7 +119,7 @@ jobs:
           #push-to-fork: uazo/bromite
           add-paths: |
             build/patches/*.patch
-          commit-message: Check git apply result
-          title: Check git apply result
+          commit-message: ${{ env.MESSAGE }}
+          title: Git apply result for ${{ env.BRANCH }} branch
           delete-branch: true
           branch-suffix: short-commit-hash
