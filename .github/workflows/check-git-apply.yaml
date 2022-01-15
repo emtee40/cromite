@@ -44,7 +44,7 @@ jobs:
           BRANCH=$(curl https://github.com/uazo/bromite/branch_commits/$RTAG | ./pup -p li.branch a text{})
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
-      - name: Checkout 'uazo/bromite' ${{ github.event.inputs.rtag }}
+      - name: Checkout 'uazo/bromite' ${{ env.BRANCH }}
         uses: actions/checkout@v2
         with:
             repository: 'uazo/bromite'
@@ -69,7 +69,7 @@ jobs:
           git tag -a $VERSION -m $VERSION
           cd ../..
 
-      - name: Apply patches
+      - name: Apply patches ${{ github.event.inputs.rtag }}
         run: |
           export HOME=$(pwd)
           cd ~/chromium/src
@@ -92,7 +92,7 @@ jobs:
           mv build/patches-new/* build/patches
           rm -rf build/patches-new/
           
-      - name: Check differences
+      - name: Check differences CHANGES=${{ env.CHANGES }}
         run: |
           cd bromite
           CHANGES=0 && git diff --quiet || CHANGES=1
