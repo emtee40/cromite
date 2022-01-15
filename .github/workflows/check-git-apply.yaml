@@ -44,25 +44,20 @@ jobs:
           BRANCH=$(curl https://github.com/uazo/bromite/branch_commits/$RTAG | ./pup -p li.branch a text{})
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
-      - name: Checkout 'uazo/bromite'
+      - name: Checkout 'uazo/bromite' ${{ github.event.inputs.rtag }}
         uses: actions/checkout@v2
         with:
             repository: 'uazo/bromite'
             ref: ${{ github.event.inputs.rtag }}
             path: 'bromite'
             fetch-depth: 1
-      
-#      - name: Download bromite sources
-#        run: |
-#          mkdir bromite && cd bromite
-#          git init
-#          git remote add origin https://github.com/uazo/bromite
-#          git fetch origin $RTAG
-#          git reset --hard FETCH_HEAD
-#          git branch -m $BRANCH
-#          cd ..
 
-      - name: Download chromium sources
+      - name: Check chromium version
+        run: |
+          VERSION=$(cat bromite/build/RELEASE)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Download chromium ${{ env.VERSION }} sources
         run: |
           ./bin/SuperPatchUtils bromite $RTAG chromium/src
           cd chromium/src
@@ -70,7 +65,6 @@ jobs:
           git config user.email "you@example.com"
           git config user.name "Your Name"
           git add .
-          VERSION=$(cat ../../bromite/build/RELEASE)
           git commit -m $VERSION
           git tag -a $VERSION -m $VERSION
           cd ../..
@@ -98,7 +92,7 @@ jobs:
           mv build/patches-new/* build/patches
           rm -rf build/patches-new/
           
-      - name: Export patches
+      - name: Check differences
         run: |
           cd bromite
           CHANGES=0 && git diff --quiet || CHANGES=1
