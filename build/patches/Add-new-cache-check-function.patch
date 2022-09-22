@@ -26,29 +26,21 @@ Cr-Commit-Position: refs/heads/main@{#1033779}
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- components/favicon/core/favicon_database.cc   | 27 +++++++++
- components/favicon/core/favicon_database.h    | 20 ++++++-
- .../favicon/core/favicon_database_unittest.cc | 60 +++++++++++++++++++
- 3 files changed, 104 insertions(+), 3 deletions(-)
+ components/favicon/core/favicon_database.cc   | 26 ++++++++
+ components/favicon/core/favicon_database.h    | 10 ++++
+ .../favicon/core/favicon_database_unittest.cc | 59 +++++++++++++++++++
+ 3 files changed, 95 insertions(+)
 
 diff --git a/components/favicon/core/favicon_database.cc b/components/favicon/core/favicon_database.cc
 --- a/components/favicon/core/favicon_database.cc
 +++ b/components/favicon/core/favicon_database.cc
-@@ -29,6 +29,7 @@
- #include "sql/statement.h"
- #include "sql/transaction.h"
- #include "third_party/sqlite/sqlite3.h"
-+#include "url/origin.h"
- 
- #if BUILDFLAG(IS_APPLE)
- #include "base/mac/backup_util.h"
-@@ -666,6 +667,32 @@ bool FaviconDatabase::GetFaviconLastUpdatedTime(favicon_base::FaviconID icon_id,
-   return true;
+@@ -693,6 +693,32 @@ favicon_base::FaviconID FaviconDatabase::GetFaviconIDForFaviconURL(
+   return 0;
  }
  
 +favicon_base::FaviconID FaviconDatabase::GetFaviconIDForFaviconURL(
 +    const GURL& icon_url,
-+    favicon_base::IconType icon_type,
++    favicon_base::IconType icon_type) {
 +    const url::Origin& page_origin) {
 +  // Look to see if there even is any relevant cached entry.
 +  auto const icon_id = GetFaviconIDForFaviconURL(icon_url, icon_type);
@@ -78,56 +70,30 @@ diff --git a/components/favicon/core/favicon_database.cc b/components/favicon/co
 diff --git a/components/favicon/core/favicon_database.h b/components/favicon/core/favicon_database.h
 --- a/components/favicon/core/favicon_database.h
 +++ b/components/favicon/core/favicon_database.h
-@@ -22,6 +22,10 @@ class RefCountedMemory;
- class Time;
- }  // namespace base
+@@ -158,6 +158,16 @@ class FaviconDatabase {
+       favicon_base::IconType icon_type,
+       const url::Origin& page_origin);
  
-+namespace url {
-+class Origin;
-+}  // namespace url
-+
- namespace favicon {
- 
- // The minimum number of days after which last_requested field gets updated.
-@@ -146,9 +150,19 @@ class FaviconDatabase {
-   // Returns true if successful.
-   bool TouchOnDemandFavicon(const GURL& icon_url, base::Time time);
- 
--  // Returns the id of the entry in the favicon database with the specified url
--  // and icon type.
--  // Returns 0 if no entry exists for the specified url.
-+  // Returns the id of the entry in the favicon database with the specified
-+  // `icon_url` and `icon_type` that has an existing mapping to `page_origin`
-+  // (and 0 if no entry exists). See crbug.com/1300214 for more context.
-+  favicon_base::FaviconID GetFaviconIDForFaviconURL(
-+      const GURL& icon_url,
-+      favicon_base::IconType icon_type,
-+      const url::Origin& page_origin);
-+
 +  // Returns the id of the entry in the favicon database with the specified
 +  // `icon_url` and `icon_type` (and 0 if no entry exists). This function does
 +  // not respect cross-origin partitioning and returns an entry from the cache
 +  // without verifying it was stored for the origin requesting it. This can leak
 +  // navigation history, see crbug.com/1300214 for more context.
-   favicon_base::FaviconID GetFaviconIDForFaviconURL(
-       const GURL& icon_url,
-       favicon_base::IconType icon_type);
++  favicon_base::FaviconID GetFaviconIDForFaviconURL(
++      const GURL& icon_url,
++      favicon_base::IconType icon_type,
++      const url::Origin& page_origin);
++
+   // Returns the id of the entry in the favicon database with the specified
+   // `icon_url` and `icon_type` (and 0 if no entry exists). This function does
+   // not respect cross-origin partitioning and returns an entry from the cache
 diff --git a/components/favicon/core/favicon_database_unittest.cc b/components/favicon/core/favicon_database_unittest.cc
 --- a/components/favicon/core/favicon_database_unittest.cc
 +++ b/components/favicon/core/favicon_database_unittest.cc
-@@ -25,6 +25,7 @@
- #include "testing/gtest/include/gtest/gtest.h"
- #include "third_party/sqlite/sqlite3.h"
- #include "url/gurl.h"
-+#include "url/origin.h"
- 
- using testing::AllOf;
- using testing::ElementsAre;
-@@ -1447,4 +1448,63 @@ TEST_F(FaviconDatabaseTest, SetFaviconsOutOfDateBetween) {
-   EXPECT_EQ(base::Time(), GetLastUpdated(&db, icon3));
+@@ -1508,3 +1508,62 @@ TEST_F(FaviconDatabaseTest, GetFaviconIDForFaviconURLOriginFilter) {
  }
  
-+// Test that GetFaviconIDForFaviconURL can filter by origin.
+ }  // namespace favicon
 +TEST_F(FaviconDatabaseTest, GetFaviconIDForFaviconURLOriginFilter) {
 +  // Setup DB with `kPageUrl1` mapped to `kIconUrl1`.
 +  FaviconDatabase db;
@@ -186,6 +152,6 @@ diff --git a/components/favicon/core/favicon_database_unittest.cc b/components/f
 +  ASSERT_EQ(0, icon_id_found);
 +}
 +
- }  // namespace favicon
++}  // namespace favicon
 --
 2.25.1
