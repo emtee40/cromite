@@ -16,7 +16,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../res/xml/site_settings_preferences.xml     |   4 +
  .../java/res/xml/website_preferences.xml      |   9 +
  .../ContentSettingsResources.java             |  35 +++-
- .../site_settings/SingleCategorySettings.java |  77 ++++++-
+ .../site_settings/SingleCategorySettings.java |  78 ++++++-
  .../site_settings/SingleWebsiteSettings.java  |   8 +-
  .../site_settings/SiteSettings.java           |   2 +-
  .../site_settings/SiteSettingsCategory.java   |   9 +-
@@ -44,7 +44,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/content_settings_agent_impl.cc   |  83 ++++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 35 files changed, 701 insertions(+), 15 deletions(-)
+ 35 files changed, 702 insertions(+), 15 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -353,41 +353,42 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
  
      // Keys for Allowed/Blocked preference groups/headers.
      private static final String ALLOWED_GROUP = "allowed_group";
-@@ -231,7 +237,10 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -231,7 +237,11 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          Integer contentSetting = website.site().getContentSetting(
                  browserContextHandle, mCategory.getContentSettingsType());
          if (contentSetting != null) {
 -            return ContentSettingValues.BLOCK == contentSetting;
-+            if (i == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE)
-+                    return ContentSettingValues.ALLOW != contentSetting;
-+                else
-+                    return ContentSettingValues.BLOCK == contentSetting;
++            if (mCategory.getContentSettingsType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
++                return ContentSettingValues.ALLOW != contentSetting;
++            } else {
++                return ContentSettingValues.BLOCK == contentSetting;
++            }
          }
          return false;
      }
-@@ -401,7 +410,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -401,7 +411,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              if (queryHasChanged) getInfoForOrigins();
          });
  
 -        if (getSiteSettingsDelegate().isHelpAndFeedbackEnabled()) {
 +        if (getSiteSettingsDelegate().isHelpAndFeedbackEnabled() ||
-+            mCategory.showSites(SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) ) {
++                mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
              MenuItem help = menu.add(
                      Menu.NONE, R.id.menu_id_site_settings_help, Menu.NONE, R.string.menu_help);
              help.setIcon(VectorDrawableCompat.create(
-@@ -412,7 +422,10 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -412,7 +423,10 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
      @Override
      public boolean onOptionsItemSelected(MenuItem item) {
          if (item.getItemId() == R.id.menu_id_site_settings_help) {
 -            if (mCategory.getType() == SiteSettingsCategory.Type.PROTECTED_MEDIA) {
-+            if (mCategory.showSites(SiteSettingsCategory.Type.TIMEZONE_OVERRIDE)) {
++            if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
 +                getSiteSettingsDelegate()
 +                        .launchTimeZoneOverrideHelpAndFeedbackActivity(getActivity());
 +            } else if (mCategory.getType() == SiteSettingsCategory.Type.PROTECTED_MEDIA) {
                  getSiteSettingsDelegate().launchProtectedContentHelpAndFeedbackActivity(
                          getActivity());
              } else {
-@@ -507,6 +520,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -507,6 +521,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              WebsitePreferenceBridge.setDefaultContentSetting(
                      browserContextHandle, mCategory.getContentSettingsType(), setting);
              getInfoForOrigins();
@@ -400,16 +401,16 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          } else if (FOUR_STATE_COOKIE_TOGGLE_KEY.equals(preference.getKey())) {
              setCookieSettingsPreference((CookieSettingsState) newValue);
              getInfoForOrigins();
-@@ -613,6 +632,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -613,6 +633,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
                                 browserContextHandle, ContentSettingsType.FEDERATED_IDENTITY_API)
                      ? R.string.website_settings_add_site_description_federated_identity_block
                      : R.string.website_settings_add_site_description_federated_identity_allow;
-+        } else if (mCategory.showSites(SiteSettingsCategory.Type.TIMEZONE_OVERRIDE)) {
++        } else if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
 +            resource = R.string.website_settings_category_timezone_override_allowed;
          }
          assert resource > 0;
          return getString(resource);
-@@ -653,6 +674,13 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -653,6 +675,13 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          if (mCategory.getType() == SiteSettingsCategory.Type.COOKIES && mRequiresFourStateSetting) {
              setting = cookieSettingsExceptionShouldBlock() ? ContentSettingValues.BLOCK
                                                             : ContentSettingValues.ALLOW;
@@ -423,16 +424,16 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          } else {
              setting = (WebsitePreferenceBridge.isCategoryEnabled(
                                browserContextHandle, mCategory.getContentSettingsType()))
-@@ -711,6 +739,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -711,6 +740,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              allowSpecifyingExceptions = true;
          } else if (mCategory.getType() == SiteSettingsCategory.Type.FEDERATED_IDENTITY_API) {
              allowSpecifyingExceptions = true;
-+        } else if (mCategory.showSites(SiteSettingsCategory.Type.TIMEZONE_OVERRIDE)) {
++        } else if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
 +            allowSpecifyingExceptions = true;
          }
          if (allowSpecifyingExceptions) {
              getPreferenceScreen().addPreference(new AddExceptionPreference(getStyledContext(),
-@@ -882,7 +912,14 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -882,7 +913,14 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              TriStateSiteSettingsPreference triStateToggle =
                      (TriStateSiteSettingsPreference) getPreferenceScreen().findPreference(
                              TRI_STATE_TOGGLE_KEY);
@@ -448,7 +449,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          } else if (mRequiresFourStateSetting) {
              FourStateCookieSettingsPreference fourStateCookieToggle =
                      (FourStateCookieSettingsPreference) getPreferenceScreen().findPreference(
-@@ -911,6 +948,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -911,6 +949,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
                  (FourStateCookieSettingsPreference) screen.findPreference(
                          FOUR_STATE_COOKIE_TOGGLE_KEY);
          // TODO(crbug.com/1104836): Remove the old third-party cookie blocking UI
@@ -458,12 +459,12 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          Preference notificationsVibrate = screen.findPreference(NOTIFICATIONS_VIBRATE_TOGGLE_KEY);
          mNotificationsQuietUiPref = screen.findPreference(NOTIFICATIONS_QUIET_UI_TOGGLE_KEY);
          mDesktopSitePeripheralPref = screen.findPreference(DESKTOP_SITE_PERIPHERAL_TOGGLE_KEY);
-@@ -924,20 +964,32 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -924,20 +965,32 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          if (mRequiresTriStateSetting) {
              screen.removePreference(binaryToggle);
              screen.removePreference(fourStateCookieToggle);
 -            configureTriStateToggle(triStateToggle, contentType);
-+            if (mCategory.showSites(SiteSettingsCategory.Type.TIMEZONE_OVERRIDE)) {
++            if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
 +              screen.removePreference(triStateToggle);
 +              configureTimeOverrideStateToggle(timeOverrideStatePreference);
 +            }
@@ -486,13 +487,13 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          if (mCategory.getType() != SiteSettingsCategory.Type.COOKIES) {
              screen.removePreference(screen.findPreference(COOKIE_INFO_TEXT_KEY));
          }
-+        if (!(mCategory.showSites(SiteSettingsCategory.Type.TIMEZONE_OVERRIDE))) {
++        if (mCategory.getType() != SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
 +            screen.removePreference(screen.findPreference(TIMEOVERRIDE_INFO_TEXT));
 +        }
  
          if (permissionBlockedByOs) {
              maybeShowOsWarning(screen);
-@@ -1067,6 +1119,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1067,6 +1120,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          triStateToggle.initialize(setting, descriptionIds);
      }
  
@@ -508,7 +509,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      private void configureBinaryToggle(ChromeSwitchPreference binaryToggle, int contentType) {
          binaryToggle.setOnPreferenceChangeListener(this);
          binaryToggle.setTitle(ContentSettingsResources.getTitle(contentType));
-@@ -1168,9 +1229,11 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1168,9 +1230,11 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
  
          CharSequence[] descriptions = new String[2];
          descriptions[0] =
@@ -1046,7 +1047,7 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
 +           ValidSettings(CONTENT_SETTING_ALLOW,   // use system time
 +                         CONTENT_SETTING_ASK,     // custom timezone, default UTC
 +                         CONTENT_SETTING_BLOCK),  // random
-+           WebsiteSettingsInfo::SINGLE_ORIGIN_WITH_EMBEDDED_EXCEPTIONS_SCOPE,
++           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
 +           WebsiteSettingsRegistry::PLATFORM_ANDROID,
 +           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
 +           ContentSettingsInfo::PERSISTENT,

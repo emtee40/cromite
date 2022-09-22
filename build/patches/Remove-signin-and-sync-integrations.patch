@@ -53,7 +53,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../identity_disc/IdentityDiscController.java | 104 +-------
  .../init/ChromeBrowserInitializer.java        |   2 -
  .../init/ProcessInitializationHandler.java    |   9 -
- .../chrome/browser/ntp/RecentTabsManager.java |  81 +-----
+ .../chrome/browser/ntp/RecentTabsManager.java | 109 +--------
  .../browser/ntp/RecentTabsRowAdapter.java     |  30 +--
  .../browser/ntp/search/SearchBoxMediator.java |   1 -
  .../browser/omaha/RequestGenerator.java       |   3 -
@@ -90,7 +90,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/search_resumption/BUILD.gn     |   4 -
  .../SearchResumptionModuleMediator.java       |  37 +--
  .../SearchResumptionModuleUtils.java          |  12 -
- .../ManageAccountDevicesLinkView.java         |  24 +-
+ .../ManageAccountDevicesLinkView.java         |  26 +-
  .../SendTabToSelfCoordinator.java             | 151 ------------
  .../account_consistency_mode_manager.cc       |   7 +-
  .../signin/identity_manager_factory.cc        |   5 -
@@ -107,7 +107,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ui/signin/SyncConsentFragmentBase.java    |  53 +---
  .../WebSigninAccountPickerDelegate.java       |  23 --
  .../ui/signin/fre/SigninFirstRunMediator.java |  71 +-----
- .../strings/android_chrome_strings.grd        |  18 --
+ .../strings/android_chrome_strings.grd        |   3 -
  .../core/browser/leak_detection_delegate.cc   |   2 +-
  .../core/browser/password_form_manager.cc     |  34 +--
  .../browser/password_manager_client_helper.cc |  43 +---
@@ -119,7 +119,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ProfileOAuth2TokenServiceDelegate.java    |  52 ----
  .../net/HttpNegotiateAuthenticator.java       |  88 +------
  .../chromoting/base/OAuthTokenFetcher.java    |   2 -
- 100 files changed, 92 insertions(+), 2526 deletions(-)
+ 100 files changed, 91 insertions(+), 2542 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
@@ -2413,10 +2413,17 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
      }
  
      /**
-@@ -425,42 +387,16 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+@@ -418,80 +380,12 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+         return mPrefs.getSyncPromoCollapsed();
      }
  
-     private @SyncPromoState int calculatePromoState() {
+-    /** Returns the current promo state. */
+-    @SyncPromoState
+-    int getPromoState() {
+-        return mPromoState;
+-    }
+-
+-    private @SyncPromoState int calculatePromoState() {
 -        if (!mSignInManager.getIdentityManager().hasPrimaryAccount(ConsentLevel.SYNC)) {
 -            if (!mSignInManager.isSyncOptInAllowed()) {
 -                return SyncPromoState.NO_PROMO;
@@ -2431,10 +2438,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
 -            return SyncPromoState.NO_PROMO;
 -        }
 -        return SyncPromoState.PROMO_FOR_SYNC_TURNED_OFF_STATE;
-+        return SyncPromoState.NO_PROMO;
-     }
- 
-     private void updatePromoState() {
+-    }
+-
+-    private void updatePromoState() {
 -        final @SyncPromoState int newState = calculatePromoState();
 -        if (newState == mPromoState) return;
 -
@@ -2447,17 +2453,29 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
 -            mSyncPromoController.increasePromoShowCount();
 -        }
 -        mPromoState = newState;
-     }
- 
-     /**
-      * Sets up the sync promo view.
-      */
-     void setUpSyncPromoView(PersonalizedSigninPromoView view) {
+-    }
+-
+-    /**
+-     * Sets up the sync promo view.
+-     */
+-    void setUpSyncPromoView(PersonalizedSigninPromoView view) {
 -        mSyncPromoController.setUpSyncPromoView(mProfileDataCache, view, null);
-     }
- 
-     // SignInStateObserver implementation.
-@@ -480,18 +416,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+-    }
+-
+-    // SignInStateObserver implementation.
+-    @Override
+-    public void onSignedIn() {
+-        update();
+-    }
+-
+-    @Override
+-    public void onSignedOut() {
+-        update();
+-    }
+-
+     // AccountsChangeObserver implementation.
+     @Override
+     public void onAccountsChanged() {
          update();
      }
  
@@ -2476,7 +2494,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
      private void onUpdateDone() {
          if (mUpdatedCallback != null) {
              mUpdatedCallback.onUpdated();
-@@ -499,7 +423,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+@@ -499,7 +393,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
      }
  
      private void update() {
@@ -3913,7 +3931,7 @@ diff --git a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/s
  import org.chromium.components.browser_ui.widget.RoundedCornerImageView;
  import org.chromium.components.embedder_support.util.UrlConstants;
  import org.chromium.components.signin.base.AccountInfo;
-@@ -73,25 +72,11 @@ public class ManageAccountDevicesLinkView extends LinearLayout {
+@@ -73,32 +72,16 @@ public class ManageAccountDevicesLinkView extends LinearLayout {
          LayoutInflater.from(getContext())
                  .inflate(R.layout.send_tab_to_self_manage_devices_link, this);
  
@@ -3940,7 +3958,14 @@ diff --git a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/s
                      new SpanApplier.SpanInfo("<link>", "</link>",
                              new NoUnderlineClickableSpan(
                                      getContext(), this::openManageDevicesPageInNewTab)));
-@@ -116,11 +101,4 @@ public class ManageAccountDevicesLinkView extends LinearLayout {
+             linkView.setText(linkText);
+             linkView.setMovementMethod(LinkMovementMethod.getInstance());
+-        } else {
+-            linkView.setText(account.getEmail());
+         }
+     }
+ 
+@@ -116,11 +99,4 @@ public class ManageAccountDevicesLinkView extends LinearLayout {
          IntentUtils.addTrustedIntentExtras(intent);
          getContext().startActivity(intent);
      }
@@ -4722,28 +4747,6 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
        <message name="IDS_SIGNIN_PREF_SUMMARY" desc="Summary for the entry in Settings to sign in to Chrome, explaining benefits of signing in.">
          Sync and personalize across devices
        </message>
-@@ -396,21 +393,6 @@ CHAR_LIMIT guidelines:
-       <message name="IDS_PRELOAD_PAGES_EXTENDED_PRELOADING_BULLET_FOUR" desc="Fourth bullet point under the Preload Pages extended preloading mode. Informs the user about what the extended preloading setting does.">
-         Because the preloaded pages are encrypted, Google will not learn anything about the preloaded page content. Google servers will learn which sites are privately preloaded. This information is only used to preload the pages, and is not linked to other information from your Google Account.
-       </message>
--      <message name="IDS_URL_KEYED_ANONYMIZED_DATA_TITLE" desc="Title for a checkbox in Settings that controls non-personalized URL collection and informs the user about the data shared by this feature.">
--        Make searches and browsing better
--      </message>
--      <message name="IDS_URL_KEYED_ANONYMIZED_DATA_SUMMARY" desc="Summary for a checkbox in Settings that controls non-personalized URL collection and informs the user about the data shared by this feature.">
--        Sends URLs of pages you visit to Google
--      </message>
--      <message name="IDS_PRIVACY_SYNC_AND_SERVICES_LINK_LEGACY" desc="The text for Privacy preferences that is shown after all preference rows.">
--        For more settings that relate to privacy, security, and data collection, see <ph name="BEGIN_LINK">&lt;link&gt;</ph>Sync and Google services<ph name="END_LINK">&lt;/link&gt;</ph>
--      </message>
--      <message name="IDS_PRIVACY_SYNC_AND_SERVICES_LINK_SYNC_ON" desc="The text for Privacy preferences that is shown after all preference rows. This version of the text is shown if Sync has been turned on.">
--        For more settings that relate to privacy, security, and data collection, see <ph name="BEGIN_LINK1">&lt;link1&gt;</ph>Sync<ph name="END_LINK1">&lt;/link1&gt;</ph> and <ph name="BEGIN_LINK2">&lt;link2&gt;</ph>Google services<ph name="END_LINK2">&lt;/link2&gt;</ph>
--      </message>
--      <message name="IDS_PRIVACY_SYNC_AND_SERVICES_LINK_SYNC_OFF" desc="The text for Privacy preferences that is shown after all preference rows. This version of the text is shown if Sync hasn't been turned on.">
--        For more settings that relate to privacy, security, and data collection, see <ph name="BEGIN_LINK">&lt;link&gt;</ph>Google services<ph name="END_LINK">&lt;/link&gt;</ph>
--      </message>
- 
-       <!-- Metrics settings -->
-       <message name="IDS_PREFS_METRICS_SETTINGS" desc="Title for the page that allows the user to control how much usage data Chrome uploads. [CHAR_LIMIT=32]">
 diff --git a/components/password_manager/core/browser/leak_detection_delegate.cc b/components/password_manager/core/browser/leak_detection_delegate.cc
 --- a/components/password_manager/core/browser/leak_detection_delegate.cc
 +++ b/components/password_manager/core/browser/leak_detection_delegate.cc

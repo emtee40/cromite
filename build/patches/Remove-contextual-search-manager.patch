@@ -31,15 +31,16 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../privacy/settings/PrivacySettings.java     |  9 --
  .../chrome/browser/tab/TabHelpers.java        |  2 -
  .../tabbed_mode/TabbedRootUiCoordinator.java  |  5 +-
- .../chrome/browser/ui/RootUiCoordinator.java  | 28 +-----
+ .../chrome/browser/ui/RootUiCoordinator.java  | 27 +-----
  chrome/browser/BUILD.gn                       | 17 ----
  chrome/browser/about_flags.cc                 | 25 ------
+ .../flags/android/chrome_feature_list.cc      |  1 -
  ...nfiguration_policy_handler_list_factory.cc |  6 +-
  .../strings/android_chrome_strings.grd        | 59 -------------
  content/browser/browser_interface_binders.cc  |  1 -
  third_party/blink/public/mojom/BUILD.gn       |  2 +-
  third_party/blink/public/public_features.gni  |  2 +-
- 35 files changed, 17 insertions(+), 535 deletions(-)
+ 36 files changed, 17 insertions(+), 535 deletions(-)
  delete mode 100644 chrome/android/java/res/layout/contextual_search_caption_view.xml
  delete mode 100644 chrome/android/java/res/layout/contextual_search_card_icon_view.xml
  delete mode 100644 chrome/android/java/res/layout/contextual_search_context_view.xml
@@ -941,15 +942,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
          mActionModeControllerCallback = new ToolbarActionModeCallback();
  
          mTabModelSelectorSupplier = tabModelSelectorSupplier;
-@@ -593,7 +590,6 @@ public class RootUiCoordinator
-         if (mBottomSheetController != null) {
-             if (mBottomSheetObserver != null) {
-                 mBottomSheetController.removeObserver(mBottomSheetObserver);
--            }
-             BottomSheetControllerFactory.detach(mBottomSheetController);
-             mBottomSheetController.destroy();
-         }
-@@ -997,15 +993,6 @@ public class RootUiCoordinator
+@@ -997,15 +994,6 @@ public class RootUiCoordinator
  
      @Override
      public boolean canShowAppMenu() {
@@ -965,7 +958,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
          // Do not show the menu if we are in find in page view.
          if (mFindToolbarManager != null && mFindToolbarManager.isShowing()
                  && !DeviceFormFactor.isNonMultiDisplayContextOnTablet(mActivity)) {
-@@ -1221,10 +1208,6 @@ public class RootUiCoordinator
+@@ -1221,10 +1209,6 @@ public class RootUiCoordinator
              public void onStartedShowing(int layoutType, boolean showToolbar) {
                  if (layoutType != LayoutType.BROWSING
                          && layoutType != LayoutType.SIMPLE_ANIMATION) {
@@ -976,7 +969,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
                  }
  
                  if (layoutType == LayoutType.TAB_SWITCHER) {
-@@ -1350,10 +1333,6 @@ public class RootUiCoordinator
+@@ -1350,10 +1334,6 @@ public class RootUiCoordinator
       * cross-feature interaction, e.g. hide other features when this feature is shown.
       */
      protected void onFindToolbarShown() {
@@ -987,7 +980,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
      }
  
      /**
-@@ -1498,9 +1477,6 @@ public class RootUiCoordinator
+@@ -1498,9 +1478,6 @@ public class RootUiCoordinator
                      case SheetState.FULL:
                          if (!mOpened) {
                              mOpened = true;
@@ -997,7 +990,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
                          }
  
                          // On visible bottom sheet, hide page zoom dialog
-@@ -1508,8 +1484,6 @@ public class RootUiCoordinator
+@@ -1508,8 +1485,6 @@ public class RootUiCoordinator
                          break;
                      case SheetState.HIDDEN:
                          mOpened = false;
@@ -1096,6 +1089,17 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
      {"explore-sites", flag_descriptions::kExploreSitesName,
       flag_descriptions::kExploreSitesDescription, kOsAndroid,
       FEATURE_WITH_PARAMS_VALUE_TYPE(chrome::android::kExploreSites,
+diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
+--- a/chrome/browser/flags/android/chrome_feature_list.cc
++++ b/chrome/browser/flags/android/chrome_feature_list.cc
+@@ -221,7 +221,6 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+     &kContextMenuSearchAndShopWithGoogleLens,
+     &kContextMenuTranslateWithGoogleLens,
+     &kContextMenuPopupStyle,
+-    &kContextualSearchDebug,
+     &kContextualSearchDelayedIntelligence,
+     &kContextualSearchDisableOnlineDetection,
+     &kContextualSearchForceCaption,
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
@@ -1122,7 +1126,7 @@ diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc 
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -806,33 +806,6 @@ CHAR_LIMIT guidelines:
+@@ -809,33 +809,6 @@ CHAR_LIMIT guidelines:
        <message name="IDS_PREFS_PRIVACY_SECURITY" desc="Title for the Privacy and Security preferences. [CHAR_LIMIT=32]">
          Privacy and security
        </message>
@@ -1156,7 +1160,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
        <message name="IDS_DO_NOT_TRACK_TITLE" desc="Title for 'Do Not Track' preference">
          “Do Not Track”
        </message>
-@@ -4032,38 +4005,6 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -4035,38 +4008,6 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
          Tabs
        </message>
  

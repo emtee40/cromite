@@ -58,11 +58,11 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/history/history_tab_helper.h   |  10 +-
  .../android/offline_page_bridge.cc            |  13 +-
  .../android/offline_page_model_factory.cc     |  21 ++-
- .../android/request_coordinator_factory.cc    |  17 ++
+ .../android/request_coordinator_factory.cc    |  21 ++-
  .../offline_page_model_factory.h              |   1 +
  .../offline_pages/recent_tab_helper.cc        |  19 ++-
  .../browser/offline_pages/recent_tab_helper.h |   3 +
- .../request_coordinator_factory.h             |   2 +
+ .../request_coordinator_factory.h             |   4 +-
  chrome/browser/prefs/browser_prefs.cc         |   5 +
  .../browser/ui/android/native_page/BUILD.gn   |   2 +
  .../browser/ui/native_page/NativePage.java    |  12 +-
@@ -82,7 +82,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../omnibox/browser/base_search_provider.cc   |   2 +-
  components/omnibox/browser/search_provider.cc |   4 +-
  .../host_content_settings_map_factory.cc      |   1 +
- 63 files changed, 676 insertions(+), 72 deletions(-)
+ 63 files changed, 680 insertions(+), 74 deletions(-)
  create mode 100644 chrome/android/java/res/xml/incognito_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/AlwaysIncognitoLinkInterceptor.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java
@@ -1413,7 +1413,15 @@ diff --git a/chrome/browser/offline_pages/android/offline_page_model_factory.cc 
 diff --git a/chrome/browser/offline_pages/android/request_coordinator_factory.cc b/chrome/browser/offline_pages/android/request_coordinator_factory.cc
 --- a/chrome/browser/offline_pages/android/request_coordinator_factory.cc
 +++ b/chrome/browser/offline_pages/android/request_coordinator_factory.cc
-@@ -28,6 +28,11 @@
+@@ -19,6 +19,7 @@
+ #include "chrome/browser/ui/android/tab_model/tab_model.h"
+ #include "chrome/browser/ui/android/tab_model/tab_model_list.h"
+ #include "chrome/common/chrome_constants.h"
++#include "components/keyed_service/content/browser_context_dependency_manager.h"
+ #include "components/offline_pages/core/background/offliner.h"
+ #include "components/offline_pages/core/background/offliner_policy.h"
+ #include "components/offline_pages/core/background/request_coordinator.h"
+@@ -28,6 +29,11 @@
  #include "components/offline_pages/core/offline_page_feature.h"
  #include "content/public/browser/web_contents.h"
  
@@ -1425,7 +1433,17 @@ diff --git a/chrome/browser/offline_pages/android/request_coordinator_factory.cc
  namespace network {
  class NetworkQualityTracker;
  }
-@@ -111,4 +116,16 @@ KeyedService* RequestCoordinatorFactory::BuildServiceInstanceFor(
+@@ -61,7 +67,8 @@ class ActiveTabInfo : public RequestCoordinator::ActiveTabInfo {
+ };
+ 
+ RequestCoordinatorFactory::RequestCoordinatorFactory()
+-    : ProfileKeyedServiceFactory("OfflineRequestCoordinator") {
++    : BrowserContextKeyedServiceFactory("OfflineRequestCoordinator",
++                      BrowserContextDependencyManager::GetInstance()) {
+   // Depends on OfflinePageModelFactory in SimpleDependencyManager.
+ }
+ 
+@@ -111,4 +118,16 @@ KeyedService* RequestCoordinatorFactory::BuildServiceInstanceFor(
    return request_coordinator;
  }
  
@@ -1512,6 +1530,15 @@ diff --git a/chrome/browser/offline_pages/recent_tab_helper.h b/chrome/browser/o
 diff --git a/chrome/browser/offline_pages/request_coordinator_factory.h b/chrome/browser/offline_pages/request_coordinator_factory.h
 --- a/chrome/browser/offline_pages/request_coordinator_factory.h
 +++ b/chrome/browser/offline_pages/request_coordinator_factory.h
+@@ -18,7 +18,7 @@ namespace offline_pages {
+ class RequestCoordinator;
+ 
+ // A factory to create one unique RequestCoordinator.
+-class RequestCoordinatorFactory : public ProfileKeyedServiceFactory {
++class RequestCoordinatorFactory : public BrowserContextKeyedServiceFactory {
+  public:
+   static RequestCoordinatorFactory* GetInstance();
+   static RequestCoordinator* GetForBrowserContext(
 @@ -36,6 +36,8 @@ class RequestCoordinatorFactory : public ProfileKeyedServiceFactory {
  
    KeyedService* BuildServiceInstanceFor(
@@ -1606,7 +1633,7 @@ diff --git a/chrome/browser/ui/android/native_page/java/src/org/chromium/chrome/
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1168,6 +1168,37 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1171,6 +1171,37 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_CLEAR_BROWSING_HISTORY_SUMMARY_SYNCED_NO_LINK" desc="A text for the basic tab explaining browsing history for users with history sync. This version is shown when the link to MyActivity is displayed separately.">
          Clears history from all synced devices.
        </message>

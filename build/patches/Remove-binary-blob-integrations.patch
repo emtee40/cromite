@@ -47,7 +47,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../language/settings/LanguageSettings.java   |   6 -
  .../prefetch/prefetch_service_factory.cc      |  16 -
  .../browser/password_manager/android/BUILD.gn |   4 -
- .../PasswordManagerAndroidBackendUtil.java    |  31 +-
+ .../PasswordManagerAndroidBackendUtil.java    |  40 +-
  .../PasswordSettingsUpdaterBridge.java        |  11 -
  ...swordSyncControllerDelegateBridgeImpl.java |   7 -
  .../push_messaging_service_factory.cc         |   8 +-
@@ -95,7 +95,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/signin/public/android/BUILD.gn     |   3 -
  .../signin/AccountRenameChecker.java          |  16 -
  components/webauthn/android/BUILD.gn          |  10 -
- .../webauthn/AuthenticatorImpl.java           |  24 -
+ .../webauthn/AuthenticatorImpl.java           |  43 +-
  .../webauthn/Fido2ApiCallHelper.java          |  23 +-
  .../push_messaging/push_messaging_manager.cc  |   2 +-
  content/public/android/BUILD.gn               |   4 -
@@ -109,7 +109,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  third_party/android_deps/BUILD.gn             | 539 +-----------------
  .../preconditions/javatests/BUILD.gn          |   1 -
  .../gms/ChromiumPlayServicesAvailability.java |  10 +-
- 85 files changed, 86 insertions(+), 1984 deletions(-)
+ 85 files changed, 88 insertions(+), 2010 deletions(-)
 
 diff --git a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected b/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
 --- a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
@@ -1089,17 +1089,18 @@ diff --git a/chrome/browser/password_manager/android/BUILD.gn b/chrome/browser/p
 diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerAndroidBackendUtil.java b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerAndroidBackendUtil.java
 --- a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerAndroidBackendUtil.java
 +++ b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerAndroidBackendUtil.java
-@@ -10,9 +10,6 @@ import android.app.PendingIntent;
+@@ -9,10 +9,6 @@ import android.app.PendingIntent;
+ 
  import androidx.annotation.Nullable;
  
- import com.google.android.gms.common.ConnectionResult;
+-import com.google.android.gms.common.ConnectionResult;
 -import com.google.android.gms.common.api.ApiException;
 -import com.google.android.gms.common.api.ResolvableApiException;
 -
  import org.chromium.base.Log;
  import org.chromium.chrome.browser.password_manager.CredentialManagerLauncher.CredentialManagerError;
  
-@@ -29,9 +26,6 @@ class PasswordManagerAndroidBackendUtil {
+@@ -29,9 +25,6 @@ class PasswordManagerAndroidBackendUtil {
          if (exception instanceof PasswordStoreAndroidBackend.BackendException) {
              return ((PasswordStoreAndroidBackend.BackendException) exception).errorCode;
          }
@@ -1109,7 +1110,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
          return AndroidBackendErrorType.UNCATEGORIZED;
      }
  
-@@ -40,17 +34,11 @@ class PasswordManagerAndroidBackendUtil {
+@@ -40,44 +33,15 @@ class PasswordManagerAndroidBackendUtil {
              return ((PasswordCheckupClientHelper.PasswordCheckBackendException) exception)
                      .errorCode;
          }
@@ -1128,10 +1129,15 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
      }
  
      @Nullable
-@@ -63,21 +51,4 @@ class PasswordManagerAndroidBackendUtil {
- 
-         return connectionResult.getErrorCode();
-     }
+     static Integer getConnectionResultCode(Exception exception) {
+-        if (!(exception instanceof ApiException)) return null;
+-
+-        ConnectionResult connectionResult =
+-                ((ApiException) exception).getStatus().getConnectionResult();
+-        if (connectionResult == null) return null;
+-
+-        return connectionResult.getErrorCode();
+-    }
 -
 -    static void handleResolvableApiException(ResolvableApiException exception) {
 -        if (!usesUnifiedPasswordManagerUI()) return;
@@ -1148,7 +1154,8 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
 -        } catch (PendingIntent.CanceledException e) {
 -            Log.e(TAG, "Can not launch error resolution intent", e);
 -        }
--    }
++        return null;
+     }
  }
 diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordSettingsUpdaterBridge.java b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordSettingsUpdaterBridge.java
 --- a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordSettingsUpdaterBridge.java
@@ -3324,7 +3331,35 @@ diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/
 diff --git a/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java b/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
 --- a/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
 +++ b/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
-@@ -136,15 +136,7 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -67,8 +67,6 @@ public final class AuthenticatorImpl implements Authenticator {
+     private Queue<org.chromium.mojo.bindings.Callbacks.Callback1<Boolean>>
+             mIsUserVerifyingPlatformAuthenticatorAvailableCallbackQueue = new LinkedList<>();
+ 
+-    private static Fido2CredentialRequest sFido2CredentialRequestOverrideForTesting;
+-
+     /**
+      * Builds the Authenticator service implementation.
+      *
+@@ -97,18 +95,6 @@ public final class AuthenticatorImpl implements Authenticator {
+         mGmsCorePackageVersion = PackageUtils.getPackageVersion(context, GMSCORE_PACKAGE_NAME);
+     }
+ 
+-    public static void overrideFido2CredentialRequestForTesting(Fido2CredentialRequest request) {
+-        sFido2CredentialRequestOverrideForTesting = request;
+-    }
+-
+-    private Fido2CredentialRequest getFido2CredentialRequest() {
+-        if (sFido2CredentialRequestOverrideForTesting != null) {
+-            return sFido2CredentialRequestOverrideForTesting;
+-        }
+-
+-        return new Fido2CredentialRequest(mIntentSender, mSupportLevel);
+-    }
+-
+     /**
+      * Called by InternalAuthenticatorAndroid, which facilitates WebAuthn for processes that
+      * originate from the browser process. Since the request is from the browser process, the
+@@ -136,15 +122,7 @@ public final class AuthenticatorImpl implements Authenticator {
  
          mMakeCredentialCallback = callback;
          mIsOperationPending = true;
@@ -3340,7 +3375,7 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
      }
  
      @Override
-@@ -157,15 +149,7 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -157,15 +135,7 @@ public final class AuthenticatorImpl implements Authenticator {
  
          mGetAssertionCallback = callback;
          mIsOperationPending = true;
@@ -3356,7 +3391,7 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
      }
  
      @Override
-@@ -178,15 +162,7 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -178,15 +148,7 @@ public final class AuthenticatorImpl implements Authenticator {
              callback.call(isUvpaa);
          };
  
@@ -3369,6 +3404,18 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
 -        getFido2CredentialRequest().handleIsUserVerifyingPlatformAuthenticatorAvailableRequest(
 -                mRenderFrameHost,
 -                isUvpaa -> onIsUserVerifyingPlatformAuthenticatorAvailableResponse(isUvpaa));
+     }
+ 
+     @Override
+@@ -202,10 +164,7 @@ public final class AuthenticatorImpl implements Authenticator {
+         // reason, this method will return true but chrome will ignore conditional requests.
+         // Android surfaces only platform credentials on conditional requests, use IsUVPAA as a
+         // proxy for availability.
+-        mIsUserVerifyingPlatformAuthenticatorAvailableCallbackQueue.add(callback);
+-        getFido2CredentialRequest().handleIsUserVerifyingPlatformAuthenticatorAvailableRequest(
+-                mRenderFrameHost,
+-                isUvpaa -> onIsUserVerifyingPlatformAuthenticatorAvailableResponse(isUvpaa));
++        callback.call(false);
      }
  
      @Override
