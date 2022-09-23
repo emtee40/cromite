@@ -1,0 +1,69 @@
+From: Your Name <you@example.com>
+Date: Mon, 12 Sep 2022 12:18:55 +0000
+Subject: Experimental user scripts support (fixup)
+
+---
+ .../renderer/user_scripts_renderer_client.cc         | 12 ++++++------
+ .../renderer/user_scripts_renderer_client.h          |  1 -
+ 2 files changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/components/user_scripts/renderer/user_scripts_renderer_client.cc b/components/user_scripts/renderer/user_scripts_renderer_client.cc
+--- a/components/user_scripts/renderer/user_scripts_renderer_client.cc
++++ b/components/user_scripts/renderer/user_scripts_renderer_client.cc
+@@ -62,15 +62,15 @@ void UserScriptsRendererClient::RenderFrameCreated(
+   enabled_ = params.allow_userscript;
+   if (!enabled_) return;
+ 
+-  if (loaded_ == false) {
+-    loaded_ = true;
++  ExtensionFrameHelper* frame_helper = ExtensionFrameHelper::Get(render_frame);
++  if (!frame_helper) {
+     new user_scripts::ExtensionFrameHelper(render_frame);
+     dispatcher_->OnRenderFrameCreated(render_frame);
+   }
+ }
+ 
+ void UserScriptsRendererClient::RunScriptsAtDocumentStart(content::RenderFrame* render_frame) {
+-  if (!enabled_ || !loaded_) return;
++  if (!enabled_) return;
+ 
+   ExtensionFrameHelper* frame_helper = ExtensionFrameHelper::Get(render_frame);
+   if (!frame_helper)
+@@ -81,7 +81,7 @@ void UserScriptsRendererClient::RunScriptsAtDocumentStart(content::RenderFrame*
+ }
+ 
+ void UserScriptsRendererClient::RunScriptsAtDocumentEnd(content::RenderFrame* render_frame) {
+-  if (!enabled_ || !loaded_) return;
++  if (!enabled_) return;
+ 
+   ExtensionFrameHelper* frame_helper = ExtensionFrameHelper::Get(render_frame);
+   if (!frame_helper)
+@@ -92,7 +92,7 @@ void UserScriptsRendererClient::RunScriptsAtDocumentEnd(content::RenderFrame* re
+ }
+ 
+ void UserScriptsRendererClient::RunScriptsAtDocumentIdle(content::RenderFrame* render_frame) {
+-  if (!enabled_ || !loaded_) return;
++  if (!enabled_) return;
+ 
+   ExtensionFrameHelper* frame_helper = ExtensionFrameHelper::Get(render_frame);
+   if (!frame_helper)
+@@ -102,4 +102,4 @@ void UserScriptsRendererClient::RunScriptsAtDocumentIdle(content::RenderFrame* r
+   // |frame_helper| and |render_frame| might be dead by now.
+ }
+ 
+-}
+\ No newline at end of file
++}
+diff --git a/components/user_scripts/renderer/user_scripts_renderer_client.h b/components/user_scripts/renderer/user_scripts_renderer_client.h
+--- a/components/user_scripts/renderer/user_scripts_renderer_client.h
++++ b/components/user_scripts/renderer/user_scripts_renderer_client.h
+@@ -29,7 +29,6 @@ class UserScriptsRendererClient {
+  private:
+   std::unique_ptr<UserScriptsDispatcher> dispatcher_;
+   bool enabled_ = false;
+-  bool loaded_ = false;
+ };
+ 
+ }
+--
+2.25.1
