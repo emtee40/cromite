@@ -1,0 +1,84 @@
+From: Your Name <you@example.com>
+Date: Wed, 28 Sep 2022 12:49:17 +0000
+Subject: Experimental user scripts support (fixup) 2
+
+---
+ .../user_scripts/renderer/script_context.cc   | 26 +------------------
+ .../user_scripts/renderer/user_script_set.cc  | 12 ++++++---
+ 2 files changed, 9 insertions(+), 29 deletions(-)
+
+diff --git a/components/user_scripts/renderer/script_context.cc b/components/user_scripts/renderer/script_context.cc
+--- a/components/user_scripts/renderer/script_context.cc
++++ b/components/user_scripts/renderer/script_context.cc
+@@ -167,36 +167,12 @@ GURL GetEffectiveDocumentURL(
+   return parent_url;
+ }
+ 
+-using FrameToDocumentLoader =
+-    base::flat_map<blink::WebLocalFrame*, blink::WebDocumentLoader*>;
+-
+-FrameToDocumentLoader& FrameDocumentLoaderMap() {
+-  static base::NoDestructor<FrameToDocumentLoader> map;
+-  return *map;
+-}
+-
+-blink::WebDocumentLoader* CurrentDocumentLoader(
+-    const blink::WebLocalFrame* frame) {
+-  auto& map = FrameDocumentLoaderMap();
+-  auto it = map.find(frame);
+-  return it == map.end() ? frame->GetDocumentLoader() : it->second;
+-}
+-
+ }  // namespace
+ 
+ // static
+ GURL ScriptContext::GetDocumentLoaderURLForFrame(
+     const blink::WebLocalFrame* frame) {
+-  // Normally we would use frame->document().url() to determine the document's
+-  // URL, but to decide whether to inject a content script, we use the URL from
+-  // the data source. This "quirk" helps prevents content scripts from
+-  // inadvertently adding DOM elements to the compose iframe in Gmail because
+-  // the compose iframe's dataSource URL is about:blank, but the document URL
+-  // changes to match the parent document after Gmail document.writes into
+-  // it to create the editor.
+-  // http://code.google.com/p/chromium/issues/detail?id=86742
+-  blink::WebDocumentLoader* document_loader = CurrentDocumentLoader(frame);
+-  return document_loader ? GURL(document_loader->GetUrl()) : GURL();
++  return GURL(frame->GetDocument().Url());
+ }
+ 
+ // static
+diff --git a/components/user_scripts/renderer/user_script_set.cc b/components/user_scripts/renderer/user_script_set.cc
+--- a/components/user_scripts/renderer/user_script_set.cc
++++ b/components/user_scripts/renderer/user_script_set.cc
+@@ -218,6 +218,14 @@ std::unique_ptr<ScriptInjection> UserScriptSet::GetInjectionForScript(
+ 
+ blink::WebString UserScriptSet::GetJsSource(const UserScript::File& file,
+                                             bool emulate_greasemonkey) {
++  if (base::FeatureList::IsEnabled(features::kEnableLoggingUserScripts)) {
++    if (emulate_greasemonkey) {
++      LOG(INFO) << "UserScripts: Injecting w/greasemonkey " << file.url();
++    } else {
++      LOG(INFO) << "UserScripts: Injecting " << file.url();
++    }
++  }
++
+   const GURL& url = file.url();
+   auto iter = script_sources_.find(url);
+   if (iter != script_sources_.end()) {
+@@ -233,13 +241,9 @@ blink::WebString UserScriptSet::GetJsSource(const UserScript::File& file,
+     std::string content =
+         base::StrCat({kUserScriptHead, script_content, kUserScriptTail});
+     source = blink::WebString::FromUTF8(content);
+-    if (base::FeatureList::IsEnabled(features::kEnableLoggingUserScripts))
+-      LOG(INFO) << "UserScripts: Injecting w/greasemonkey " << file.url();
+   } else {
+     source = blink::WebString::FromUTF8(script_content.data(),
+                                         script_content.length());
+-    if (base::FeatureList::IsEnabled(features::kEnableLoggingUserScripts))
+-      LOG(INFO) << "UserScripts: Injecting " << file.url();
+   }
+   script_sources_[url] = source;
+   return source;
+--
+2.25.1
