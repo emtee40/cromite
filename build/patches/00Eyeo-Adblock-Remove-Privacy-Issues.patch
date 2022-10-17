@@ -4,8 +4,8 @@ Subject: Eyeo Adblock Remove
 
 ---
  .../android/java/res/xml/main_preferences.xml |    2 +-
- chrome/browser/BUILD.gn                       |    3 -
- .../adblock/adblock_content_browser_client.cc |   26 -
+ chrome/browser/BUILD.gn                       |    2 -
+ .../adblock/adblock_content_browser_client.cc |   23 -
  .../adblock_telemetry_service_factory.cc      |   91 -
  .../adblock_telemetry_service_factory.h       |   50 -
  .../adblock/subscription_updater_factory.cc   |    2 +-
@@ -15,12 +15,11 @@ Subject: Eyeo Adblock Remove
  ...ences.xml => eyeo_adblock_preferences.xml} |    0
  .../settings/AdblockFilterListsAdapter.java   |    3 +
  .../settings/AdblockSettingsFragment.java     |    2 +-
- components/adblock/content/BUILD.gn           |    2 -
  components/adblock/content/common/BUILD.gn    |    7 -
  .../common/adblock_url_loader_factory.cc      |   22 +-
- .../adblock_url_loader_factory_for_test.cc    |  196 --
+ .../adblock_url_loader_factory_for_test.cc    |  194 -
  .../adblock_url_loader_factory_for_test.h     |   73 -
- components/adblock/core/BUILD.gn              |   74 -
+ components/adblock/core/BUILD.gn              |   49 -
  .../activeping_telemetry_topic_provider.cc    |  206 --
  .../activeping_telemetry_topic_provider.h     |   72 -
  .../adblock/core/adblock_controller_impl.cc   |    8 +-
@@ -31,7 +30,6 @@ Subject: Eyeo Adblock Remove
  .../adblock/core/common/adblock_prefs.cc      |   42 +-
  .../adblock/core/common/adblock_utils.cc      |   23 -
  components/adblock/core/converter/metadata.cc |    6 +-
- components/adblock/core/features.gni          |   46 -
  .../adblock/core/sitekey_storage_impl.cc      |    6 +
  .../ongoing_subscription_request_impl.cc      |   15 +-
  .../preloaded_subscription_provider_impl.cc   |    4 +-
@@ -42,14 +40,15 @@ Subject: Eyeo Adblock Remove
  .../subscription/subscription_service_impl.cc |   15 +-
  .../subscription/subscription_service_impl.h  |    1 -
  .../subscription/subscription_updater_impl.cc |   27 +-
- .../subscription_validator_impl.cc            |    8 +-
+ .../subscription_validator_impl.cc            |    4 +-
+ components/adblock/features.gni               |   44 -
  components/resources/BUILD.gn                 |    1 -
  components/resources/adblock_resources.grdp   |    3 -
  components/resources/adblocking/.gitignore    |    2 +-
  components/resources/adblocking/BUILD.gn      |   25 +-
  .../snippets/dist/isolated-first.jst          |   62 +
  .../snippets/dist/isolated-first.source.jst   | 3126 +++++++++++++++++
- 46 files changed, 3271 insertions(+), 1340 deletions(-)
+ 45 files changed, 3270 insertions(+), 1302 deletions(-)
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.cc
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.h
  rename components/adblock/android/java/res/xml/{adblock_preferences.xml => eyeo_adblock_preferences.xml} (100%)
@@ -59,14 +58,14 @@ Subject: Eyeo Adblock Remove
  delete mode 100644 components/adblock/core/activeping_telemetry_topic_provider.h
  delete mode 100644 components/adblock/core/adblock_telemetry_service.cc
  delete mode 100644 components/adblock/core/adblock_telemetry_service.h
- delete mode 100644 components/adblock/core/features.gni
+ delete mode 100644 components/adblock/features.gni
  create mode 100755 components/resources/adblocking/snippets/dist/isolated-first.jst
  create mode 100755 components/resources/adblocking/snippets/dist/isolated-first.source.jst
 
 diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
 --- a/chrome/android/java/res/xml/main_preferences.xml
 +++ b/chrome/android/java/res/xml/main_preferences.xml
-@@ -82,7 +82,7 @@
+@@ -90,7 +90,7 @@ found in the LICENSE file.
          android:title="@string/prefs_accessibility"/>
      <Preference
          android:fragment="org.chromium.components.adblock.settings.AdblockSettingsFragment"
@@ -78,15 +77,7 @@ diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/j
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -18,7 +18,6 @@ import("//chrome/browser/buildflags.gni")
- import("//chrome/browser/downgrade/buildflags.gni")
- import("//chrome/common/features.gni")
- import("//chromeos/ash/components/assistant/assistant.gni")
--import("//components/adblock/core/features.gni")
- import("//components/captive_portal/core/features.gni")
- import("//components/exo/buildflags.gni")
- import("//components/feed/features.gni")
-@@ -159,8 +158,6 @@ static_library("browser") {
+@@ -158,8 +158,6 @@ static_library("browser") {
      "adblock/adblock_controller_factory.h",
      "adblock/adblock_mojo_interface_impl.cc",
      "adblock/adblock_mojo_interface_impl.h",
@@ -98,21 +89,11 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/adblock/adblock_content_browser_client.cc b/chrome/browser/adblock/adblock_content_browser_client.cc
 --- a/chrome/browser/adblock/adblock_content_browser_client.cc
 +++ b/chrome/browser/adblock/adblock_content_browser_client.cc
-@@ -26,9 +26,6 @@
- #include "chrome/browser/ui/browser_navigator_params.h"
- #include "components/adblock/content/browser/resource_classification_runner.h"
- #include "components/adblock/content/common/adblock_url_loader_factory.h"
--#ifndef NDEBUG
--#include "components/adblock/content/common/adblock_url_loader_factory_for_test.h"
--#endif
- #include "components/adblock/content/common/mojom/adblock.mojom.h"
- #include "components/adblock/core/common/adblock_prefs.h"
- #include "components/adblock/core/subscription/subscription_service.h"
-@@ -79,29 +76,6 @@ class AdblockContextData : public base::SupportsUserData::Data {
+@@ -84,29 +84,6 @@ class AdblockContextData : public base::SupportsUserData::Data {
        self = new AdblockContextData();
        profile->SetUserData(kAdblockContextUserDataKey, base::WrapUnique(self));
      }
--#ifndef NDEBUG
+-#ifdef EYEO_INTERCEPT_DEBUG_URL
 -    content::WebContents* wc = content::WebContents::FromRenderFrameHost(frame);
 -    bool is_adblock_test_url =
 -        (type ==
@@ -312,7 +293,7 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  #include "chrome/browser/adblock/resource_classification_runner_factory.h"
  #include "chrome/browser/adblock/session_stats_factory.h"
  #include "chrome/browser/adblock/sitekey_storage_factory.h"
-@@ -391,7 +390,6 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -394,7 +393,6 @@ void ChromeBrowserMainExtraPartsProfiles::
    ExitTypeServiceFactory::GetInstance();
  #endif
    adblock::AdblockControllerFactory::GetInstance();
@@ -384,26 +365,14 @@ diff --git a/components/adblock/android/java/src/org/chromium/components/adblock
          bindPreferences();
          synchronizePreferences();
      }
-diff --git a/components/adblock/content/BUILD.gn b/components/adblock/content/BUILD.gn
---- a/components/adblock/content/BUILD.gn
-+++ b/components/adblock/content/BUILD.gn
-@@ -16,8 +16,6 @@
- 
- assert(!is_ios)
- 
--import("//components/adblock/core/features.gni")
--
- # External targets should depend on this
- group("browser") {
-   public_deps = [ "//components/adblock/content/browser:browser_impl" ]
 diff --git a/components/adblock/content/common/BUILD.gn b/components/adblock/content/common/BUILD.gn
 --- a/components/adblock/content/common/BUILD.gn
 +++ b/components/adblock/content/common/BUILD.gn
-@@ -24,13 +24,6 @@ source_set("common_impl") {
+@@ -35,13 +35,6 @@ source_set("common_impl") {
      "adblock_url_loader_factory.h",
    ]
  
--  if (is_debug) {
+-  if (eyeo_intercept_debug_url) {
 -    sources += [
 -      "adblock_url_loader_factory_for_test.cc",
 -      "adblock_url_loader_factory_for_test.h",
@@ -432,7 +401,7 @@ diff --git a/components/adblock/content/common/adblock_url_loader_factory.cc b/c
    void OnTransferSizeUpdated(int32_t transfer_size_diff) override;
    void OnComplete(const ::network::URLLoaderCompletionStatus& status) override;
  
-@@ -91,7 +91,6 @@ class AdblockURLLoaderFactory::InProgressRequest
+@@ -94,7 +94,6 @@ class AdblockURLLoaderFactory::InProgressRequest
    void OnProcessHeadersResult(
        ::network::mojom::URLResponseHeadPtr head,
        ::mojo::ScopedDataPipeConsumerHandle body,
@@ -440,7 +409,7 @@ diff --git a/components/adblock/content/common/adblock_url_loader_factory.cc b/c
        adblock::mojom::FilterMatchResult result,
        network::mojom::ParsedHeadersPtr parsed_headers);
    void OnRequestError(int error_code);
-@@ -182,15 +181,13 @@ void AdblockURLLoaderFactory::InProgressRequest::OnReceiveEarlyHints(
+@@ -187,15 +186,13 @@ void AdblockURLLoaderFactory::InProgressRequest::OnReceiveEarlyHints(
  
  void AdblockURLLoaderFactory::InProgressRequest::OnReceiveResponse(
      network::mojom::URLResponseHeadPtr head,
@@ -458,7 +427,7 @@ diff --git a/components/adblock/content/common/adblock_url_loader_factory.cc b/c
      return;
    }
  
-@@ -201,13 +198,12 @@ void AdblockURLLoaderFactory::InProgressRequest::OnReceiveResponse(
+@@ -206,13 +203,12 @@ void AdblockURLLoaderFactory::InProgressRequest::OnReceiveResponse(
        request_url_, factory_->frame_tree_node_id_, headers, user_agent_string_,
        base::BindOnce(&InProgressRequest::OnProcessHeadersResult,
                       weak_factory_.GetWeakPtr(), std::move(head),
@@ -473,7 +442,7 @@ diff --git a/components/adblock/content/common/adblock_url_loader_factory.cc b/c
      adblock::mojom::FilterMatchResult result,
      network::mojom::ParsedHeadersPtr parsed_headers) {
    if (result == adblock::mojom::FilterMatchResult::kBlockRule) {
-@@ -222,8 +218,7 @@ void AdblockURLLoaderFactory::InProgressRequest::OnProcessHeadersResult(
+@@ -227,8 +223,7 @@ void AdblockURLLoaderFactory::InProgressRequest::OnProcessHeadersResult(
      head->parsed_headers = std::move(parsed_headers);
    }
  
@@ -483,7 +452,7 @@ diff --git a/components/adblock/content/common/adblock_url_loader_factory.cc b/c
    client_receiver_.Resume();
  }
  
-@@ -248,6 +243,11 @@ void AdblockURLLoaderFactory::InProgressRequest::OnUploadProgress(
+@@ -274,6 +269,11 @@ void AdblockURLLoaderFactory::InProgressRequest::OnUploadProgress(
                                     std::move(callback));
  }
  
@@ -499,7 +468,7 @@ diff --git a/components/adblock/content/common/adblock_url_loader_factory_for_te
 deleted file mode 100644
 --- a/components/adblock/content/common/adblock_url_loader_factory_for_test.cc
 +++ /dev/null
-@@ -1,196 +0,0 @@
+@@ -1,194 +0,0 @@
 -/*
 - * This file is part of eyeo Chromium SDK,
 - * Copyright (C) 2006-present eyeo GmbH
@@ -521,7 +490,7 @@ deleted file mode 100644
 -
 -#include "base/strings/string_split.h"
 -#include "base/strings/string_util.h"
--#include "base/strings/utf_string_conversions.cc"
+-#include "base/strings/utf_string_conversions.h"
 -#include "net/http/http_status_code.h"
 -#include "net/http/http_util.h"
 -#include "services/network/public/cpp/resource_request.h"
@@ -640,9 +609,7 @@ deleted file mode 100644
 -  producer->WriteData(response_body.c_str(), &write_size,
 -                      MOJO_WRITE_DATA_FLAG_NONE);
 -  client_remote->OnReceiveResponse(std::move(response_head),
--//                                   std::move(consumer), absl::nullopt);
--// UAZO
--                                     std::move(consumer));
+-                                   std::move(consumer), absl::nullopt);
 -  network::URLLoaderCompletionStatus status;
 -  status.error_code = net::OK;
 -  status.decoded_body_length = write_size;
@@ -781,11 +748,11 @@ diff --git a/components/adblock/core/BUILD.gn b/components/adblock/core/BUILD.gn
  # You should have received a copy of the GNU General Public License
  # along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
  
--import("//components/adblock/core/features.gni")
+-import("//components/adblock/features.gni")
  import("//third_party/flatbuffers/flatbuffer.gni")
  
  flatbuffer("schema") {
-@@ -61,81 +60,14 @@ generate_sha256_header("schema_hash") {
+@@ -61,56 +60,14 @@ generate_sha256_header("schema_hash") {
    files_to_hash = [ "${target_gen_dir}/schema/filter_list_schema_generated.h" ]
  }
  
@@ -796,20 +763,10 @@ diff --git a/components/adblock/core/BUILD.gn b/components/adblock/core/BUILD.gn
 -    # Expicitly setting Telemetry server URL, used for testing with a test
 -    # server.
 -    defines += [ "EYEO_TELEMETRY_SERVER_URL=\"$eyeo_telemetry_server_url\"" ]
--  } else if (abp_telemetry_server_url != "") {
--    print("WARNING! abp_telemetry_server_url is deprecated, " +
--          "use eyeo_telemetry_server_url instead.")
--    eyeo_telemetry_server_url = abp_telemetry_server_url
--    defines += [ "EYEO_TELEMETRY_SERVER_URL=\"$eyeo_telemetry_server_url\"" ]
 -  } else {
 -    # Implicitly setting production Telemetry server URL based on
 -    # eyeo_telemetry_client_id (or a default client id as a fallback).
 -    if (eyeo_telemetry_client_id != "") {
--      defines += [ "EYEO_TELEMETRY_CLIENT_ID=\"$eyeo_telemetry_client_id\"" ]
--    } else if (abp_telemetry_client_id != "") {
--      print("WARNING! abp_telemetry_client_id is deprecated, " +
--            "use eyeo_telemetry_client_id instead.")
--      eyeo_telemetry_client_id = abp_telemetry_client_id
 -      defines += [ "EYEO_TELEMETRY_CLIENT_ID=\"$eyeo_telemetry_client_id\"" ]
 -    } else {
 -      print("WARNING! gn arg eyeo_telemetry_client_id is not set. " +
@@ -823,11 +780,6 @@ diff --git a/components/adblock/core/BUILD.gn b/components/adblock/core/BUILD.gn
 -
 -  if (eyeo_telemetry_activeping_auth_token != "") {
 -    defines += [ "EYEO_TELEMETRY_ACTIVEPING_AUTH_TOKEN=\"$eyeo_telemetry_activeping_auth_token\"" ]
--  } else if (abp_telemetry_activeping_auth_token != "") {
--    print("WARNING! abp_telemetry_activeping_auth_token is deprecated, " +
--          "use eyeo_telemetry_activeping_auth_token instead.")
--    eyeo_telemetry_activeping_auth_token = abp_telemetry_activeping_auth_token
--    defines += [ "EYEO_TELEMETRY_ACTIVEPING_AUTH_TOKEN=\"$eyeo_telemetry_activeping_auth_token\"" ]
 -  } else {
 -    print("WARNING! gn arg eyeo_telemetry_activeping_auth_token is not set. " +
 -          "Users will not be counted correctly by eyeo.")
@@ -835,19 +787,9 @@ diff --git a/components/adblock/core/BUILD.gn b/components/adblock/core/BUILD.gn
 -
 -  if (eyeo_application_name != "") {
 -    defines += [ "EYEO_APPLICATION_NAME=\"$eyeo_application_name\"" ]
--  } else if (abp_application_name != "") {
--    print("WARNING! abp_application_name is deprecated, " +
--          "use eyeo_application_name instead.")
--    eyeo_application_name = abp_application_name
--    defines += [ "EYEO_APPLICATION_NAME=\"$eyeo_application_name\"" ]
 -  }
 -
 -  if (eyeo_application_version != "") {
--    defines += [ "EYEO_APPLICATION_VERSION=\"$eyeo_application_version\"" ]
--  } else if (abp_application_version != "") {
--    print("WARNING! abp_application_version is deprecated, " +
--          "use eyeo_application_version instead.")
--    eyeo_application_version = abp_application_version
 -    defines += [ "EYEO_APPLICATION_VERSION=\"$eyeo_application_version\"" ]
 -  }
 -}
@@ -867,7 +809,7 @@ diff --git a/components/adblock/core/BUILD.gn b/components/adblock/core/BUILD.gn
      "features.cc",
      "features.h",
      "sitekey_storage.h",
-@@ -155,8 +87,6 @@ source_set("core") {
+@@ -130,8 +87,6 @@ source_set("core") {
      "//components/adblock/core/subscription",
      "//components/pref_registry:pref_registry",
    ]
@@ -876,7 +818,7 @@ diff --git a/components/adblock/core/BUILD.gn b/components/adblock/core/BUILD.gn
  }
  
  source_set("test_support") {
-@@ -185,10 +115,6 @@ source_set("unit_tests") {
+@@ -160,10 +115,6 @@ source_set("unit_tests") {
      "test/sitekey_storage_impl_test.cc",
    ]
  
@@ -1511,7 +1453,7 @@ deleted file mode 100644
 -  void AddTopicProvider(std::unique_ptr<TopicProvider> topic_provider);
 -
 -  // Starts periodic Telemetry requests, provided ad-blocking is enabled.
--  // If prefs::kAdblockEnabled is false, the schedule will instead start when
+-  // If prefs::kEnableAdblock is false, the schedule will instead start when
 -  // the pref becomes true.
 -  void Start();
 -
@@ -1686,57 +1628,6 @@ diff --git a/components/adblock/core/converter/metadata.cc b/components/adblock/
                 << ". Will use default value of "
                 << kDefaultExpirationInterval.InDays() << " days.";
      return;
-diff --git a/components/adblock/core/features.gni b/components/adblock/core/features.gni
-deleted file mode 100644
---- a/components/adblock/core/features.gni
-+++ /dev/null
-@@ -1,46 +0,0 @@
--#
--# This file is part of eyeo Chromium SDK,
--# Copyright (C) 2006-present eyeo GmbH
--#
--# eyeo Chromium SDK is free software: you can redistribute it and/or modify
--# it under the terms of the GNU General Public License version 3 as
--# published by the Free Software Foundation.
--#
--# eyeo Chromium SDK is distributed in the hope that it will be useful,
--# but WITHOUT ANY WARRANTY; without even the implied warranty of
--# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--# GNU General Public License for more details.
--#
--# You should have received a copy of the GNU General Public License
--# along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
--
--declare_args() {
--  # eyeo Chromium SDK telemetry client id, provided on per-partner basis by eyeo. Used to
--  # attribute usage reports to specific browsers.
--  eyeo_telemetry_client_id = ""
--
--  # eyeo Chromium SDK telemetry server address, by default evaluated to
--  # "https://${eyeo_telemetry_client_id}.telemetry.eyeo.com/".
--  # Override only for testing.
--  eyeo_telemetry_server_url = ""
--
--  # eyeo Chromium SDK telemetry authentication token, provided on per-partner basis by eyeo.
--  eyeo_telemetry_activeping_auth_token = ""
--
--  # eyeo Chromium SDK application name to be used in telemetry and
--  # filter list download requests. If not set the value returned by
--  # version_info::GetProductName() will be used instead.
--  eyeo_application_name = ""
--
--  # eyeo Chromium SDK application version to be used in telemetry and
--  # filter list download requests. If not set the value returned by
--  # version_info::GetVersionNumber() will be used instead.
--  eyeo_application_version = ""
--
--  # Deprecated telemetry gn args, will be removed in eyeo Chromium SDK version 107.
--  abp_telemetry_client_id = ""
--  abp_telemetry_server_url = ""
--  abp_telemetry_activeping_auth_token = ""
--  abp_application_name = ""
--  abp_application_version = ""
--}
 diff --git a/components/adblock/core/sitekey_storage_impl.cc b/components/adblock/core/sitekey_storage_impl.cc
 --- a/components/adblock/core/sitekey_storage_impl.cc
 +++ b/components/adblock/core/sitekey_storage_impl.cc
@@ -2092,18 +1983,7 @@ diff --git a/components/adblock/core/subscription/subscription_updater_impl.cc b
 diff --git a/components/adblock/core/subscription/subscription_validator_impl.cc b/components/adblock/core/subscription/subscription_validator_impl.cc
 --- a/components/adblock/core/subscription/subscription_validator_impl.cc
 +++ b/components/adblock/core/subscription/subscription_validator_impl.cc
-@@ -65,9 +65,7 @@ SubscriptionValidatorImpl::SubscriptionValidatorImpl(
-       main_thread_task_runner_(std::move(main_thread_task_runner)) {
-   ClearSignaturesIfSchemaVersionChanged(pref_service_, current_schema_version);
-   initial_subscription_signatures_ =
--      pref_service_->GetDict(prefs::kSubscriptionSignatures).Clone();
--  initial_subscription_signatures_ =
--      pref_service_->GetDict(prefs::kSubscriptionSignatures).Clone();
-+      pref_service_->GetValueDict(prefs::kSubscriptionSignatures).Clone();
- }
- 
- SubscriptionValidatorImpl::~SubscriptionValidatorImpl() = default;
-@@ -78,11 +76,11 @@ bool SubscriptionValidatorImpl::IsSignatureValid(
+@@ -76,11 +76,11 @@ bool SubscriptionValidatorImpl::IsSignatureValid(
    const auto* expected_hash = initial_subscription_signatures_.FindString(
        path.BaseName().AsUTF8Unsafe());
    if (!expected_hash) {
@@ -2117,6 +1997,55 @@ diff --git a/components/adblock/core/subscription/subscription_validator_impl.cc
      return false;
    }
    return true;
+diff --git a/components/adblock/features.gni b/components/adblock/features.gni
+deleted file mode 100644
+--- a/components/adblock/features.gni
++++ /dev/null
+@@ -1,44 +0,0 @@
+-#
+-# This file is part of eyeo Chromium SDK,
+-# Copyright (C) 2006-present eyeo GmbH
+-#
+-# eyeo Chromium SDK is free software: you can redistribute it and/or modify
+-# it under the terms of the GNU General Public License version 3 as
+-# published by the Free Software Foundation.
+-#
+-# eyeo Chromium SDK is distributed in the hope that it will be useful,
+-# but WITHOUT ANY WARRANTY; without even the implied warranty of
+-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-# GNU General Public License for more details.
+-#
+-# You should have received a copy of the GNU General Public License
+-# along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
+-
+-declare_args() {
+-  # eyeo Chromium SDK telemetry client id, provided on per-partner basis by eyeo. Used to
+-  # attribute usage reports to specific browsers.
+-  eyeo_telemetry_client_id = ""
+-
+-  # eyeo Chromium SDK telemetry server address, by default evaluated to
+-  # "https://${eyeo_telemetry_client_id}.telemetry.eyeo.com/".
+-  # Override only for testing.
+-  eyeo_telemetry_server_url = ""
+-
+-  # eyeo Chromium SDK telemetry authentication token, provided on per-partner basis by eyeo.
+-  eyeo_telemetry_activeping_auth_token = ""
+-
+-  # eyeo Chromium SDK application name to be used in telemetry and
+-  # filter list download requests. If not set the value returned by
+-  # version_info::GetProductName() will be used instead.
+-  eyeo_application_name = ""
+-
+-  # eyeo Chromium SDK application version to be used in telemetry and
+-  # filter list download requests. If not set the value returned by
+-  # version_info::GetVersionNumber() will be used instead.
+-  eyeo_application_version = ""
+-
+-  # If true then requests to "adblock.test.data" domain will be intercepted
+-  # in order to allow installing/removing/listing filter lists via navigating to
+-  # special URLs. This is used for internal automated testing (see DPD-1407).
+-  eyeo_intercept_debug_url = false
+-}
 diff --git a/components/resources/BUILD.gn b/components/resources/BUILD.gn
 --- a/components/resources/BUILD.gn
 +++ b/components/resources/BUILD.gn

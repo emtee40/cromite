@@ -12,7 +12,7 @@ Subject: Disable safe browsing (win fixup)
  .../browser/download/download_item_model.cc   |   2 +
  .../analysis/content_analysis_delegate.cc     | 163 +-----------------
  .../analysis/content_analysis_delegate.h      |   7 -
- .../analysis/request_handler_base.cc          |  13 --
+ .../analysis/request_handler_base.cc          |  15 --
  .../reporting/realtime_reporting_client.cc    |   2 +-
  chrome/browser/extensions/BUILD.gn            |   5 -
  .../safe_browsing_private_api.cc              |   3 +-
@@ -48,14 +48,14 @@ Subject: Disable safe browsing (win fixup)
  .../browser/mojo_safe_browsing_impl.cc        |   1 +
  .../core/common/safe_browsing_prefs.cc        |   2 +-
  .../tracked_persistent_pref_store_factory.cc  |  10 +-
- 45 files changed, 48 insertions(+), 466 deletions(-)
+ 45 files changed, 48 insertions(+), 468 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1918,10 +1918,6 @@ static_library("browser") {
+@@ -1930,10 +1930,6 @@ static_library("browser") {
+     "//chrome/browser/share",
      "//chrome/browser/ui",
-     "//chrome/browser/ui/webui/bluetooth_internals",
      "//chrome/browser/storage_access_api:permissions",
 -    "//chrome/browser/safe_browsing",
 -    "//chrome/browser/safe_browsing:verdict_cache_manager_factory",
@@ -64,7 +64,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
  
      # TODO(crbug.com/1030821): Eliminate usages of browser.h from Media Router.
      "//chrome/browser/media/router",
-@@ -2011,10 +2007,7 @@ static_library("browser") {
+@@ -2029,10 +2025,7 @@ static_library("browser") {
      "//chrome/browser/push_messaging:budget_proto",
      "//chrome/browser/resource_coordinator:mojo_bindings",
      "//chrome/browser/resource_coordinator:tab_manager_features",
@@ -76,7 +76,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/share",
      "//chrome/browser/sharing:buildflags",
      "//chrome/browser/sharing/proto",
-@@ -3723,10 +3716,6 @@ static_library("browser") {
+@@ -3754,10 +3747,6 @@ static_library("browser") {
        "enterprise/connectors/analysis/content_analysis_dialog.h",
        "enterprise/connectors/analysis/content_analysis_downloads_delegate.cc",
        "enterprise/connectors/analysis/content_analysis_downloads_delegate.h",
@@ -87,7 +87,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "enterprise/connectors/analysis/request_handler_base.cc",
        "enterprise/connectors/analysis/request_handler_base.h",
        "enterprise/connectors/common.cc",
-@@ -8121,7 +8110,6 @@ static_library("test_support") {
+@@ -8166,7 +8155,6 @@ static_library("test_support") {
    public_deps = [
      ":browser",
      "//chrome/browser/profiles:profile",
@@ -118,7 +118,7 @@ diff --git a/chrome/browser/accuracy_tips/accuracy_service_factory.cc b/chrome/b
 diff --git a/chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.cc b/chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.cc
 --- a/chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.cc
 +++ b/chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.cc
-@@ -653,8 +653,6 @@ void ChromeBrowsingDataRemoverDelegate::RemoveEmbedderData(
+@@ -656,8 +656,6 @@ void ChromeBrowsingDataRemoverDelegate::RemoveEmbedderData(
            base::BindOnce(
                &ChromeBrowsingDataRemoverDelegate::CreateTaskCompletionClosure,
                base::Unretained(this), TracingDataType::kCookies));
@@ -160,7 +160,7 @@ diff --git a/chrome/browser/download/bubble/download_bubble_controller.cc b/chro
 diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrome/browser/download/chrome_download_manager_delegate.cc
 --- a/chrome/browser/download/chrome_download_manager_delegate.cc
 +++ b/chrome/browser/download/chrome_download_manager_delegate.cc
-@@ -1717,8 +1717,8 @@ void ChromeDownloadManagerDelegate::CheckSavePackageAllowed(
+@@ -1704,8 +1704,8 @@ void ChromeDownloadManagerDelegate::CheckSavePackageAllowed(
    DCHECK(download_item);
    DCHECK(download_item->IsSavePackageDownload());
  
@@ -174,7 +174,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
 diff --git a/chrome/browser/download/download_item_model.cc b/chrome/browser/download/download_item_model.cc
 --- a/chrome/browser/download/download_item_model.cc
 +++ b/chrome/browser/download/download_item_model.cc
-@@ -885,6 +885,7 @@ void DownloadItemModel::ExecuteCommand(DownloadCommands* download_commands,
+@@ -879,6 +879,7 @@ void DownloadItemModel::ExecuteCommand(DownloadCommands* download_commands,
        DownloadUIModel::ExecuteCommand(download_commands, command);
        break;
      case DownloadCommands::DEEP_SCAN:
@@ -182,7 +182,7 @@ diff --git a/chrome/browser/download/download_item_model.cc b/chrome/browser/dow
        safe_browsing::SafeBrowsingService* sb_service =
            g_browser_process->safe_browsing_service();
        if (!sb_service)
-@@ -917,6 +918,7 @@ void DownloadItemModel::ExecuteCommand(DownloadCommands* download_commands,
+@@ -911,6 +912,7 @@ void DownloadItemModel::ExecuteCommand(DownloadCommands* download_commands,
            safe_browsing::DeepScanningRequest::DeepScanTrigger::
                TRIGGER_APP_PROMPT,
            safe_browsing::DownloadCheckResult::UNKNOWN, std::move(settings));
@@ -245,7 +245,7 @@ diff --git a/chrome/browser/enterprise/connectors/analysis/content_analysis_dele
 -      content_size += entry.size();
 -
 -    ReportAnalysisConnectorWarningBypass(
--        profile_, url_, "Text data", std::string(), "text/plain",
+-        profile_, url_, "", "", "Text data", std::string(), "text/plain",
 -        extensions::SafeBrowsingPrivateEventRouter::kTriggerWebContentUpload,
 -        access_point_, content_size, text_response_, user_justification);
    }
@@ -257,7 +257,7 @@ diff --git a/chrome/browser/enterprise/connectors/analysis/content_analysis_dele
      result_.page_result = true;
 -
 -    ReportAnalysisConnectorWarningBypass(
--        profile_, url_, title_, /*sha256*/ std::string(),
+-        profile_, url_, "", "", title_, /*sha256*/ std::string(),
 -        /*mime_type*/ std::string(),
 -        extensions::SafeBrowsingPrivateEventRouter::kTriggerPagePrint,
 -        access_point_, /*content_size*/ -1, page_response_, user_justification);
@@ -308,7 +308,7 @@ diff --git a/chrome/browser/enterprise/connectors/analysis/content_analysis_dele
              text_complies);
  
 -  MaybeReportDeepScanningVerdict(
--      profile_, url_, "Text data", std::string(), "text/plain",
+-      profile_, url_, "", "", "Text data", std::string(), "text/plain",
 -      extensions::SafeBrowsingPrivateEventRouter::kTriggerWebContentUpload,
 -      access_point_, content_size, result, response,
 -      CalculateEventResult(data_.settings, text_complies, should_warn));
@@ -332,7 +332,7 @@ diff --git a/chrome/browser/enterprise/connectors/analysis/content_analysis_dele
                       FinalContentAnalysisResult::WARNING;
  
 -  MaybeReportDeepScanningVerdict(
--      profile_, url_, title_, /*sha256*/ std::string(),
+-      profile_, url_, "", "", title_, /*sha256*/ std::string(),
 -      /*mime_type*/ std::string(),
 -      extensions::SafeBrowsingPrivateEventRouter::kTriggerPagePrint,
 -      access_point_, /*content_size*/ -1, result, response,
@@ -349,8 +349,8 @@ diff --git a/chrome/browser/enterprise/connectors/analysis/content_analysis_dele
 -    // Passing the settings using a reference is safe here, because
 -    // MultiFileRequestHandler is owned by this class.
 -    files_request_handler_ = FilesRequestHandler::Create(
--        GetBinaryUploadService(), profile_, data_.settings, url_, access_point_,
--        data_.paths,
+-        GetBinaryUploadService(), profile_, data_.settings, url_, "", "",
+-        access_point_, data_.paths,
 -        base::BindOnce(&ContentAnalysisDelegate::FilesRequestCallback,
 -                       GetWeakPtr()));
 -    files_request_complete_ = !files_request_handler_->UploadData();
@@ -492,7 +492,7 @@ diff --git a/chrome/browser/enterprise/connectors/analysis/content_analysis_dele
 diff --git a/chrome/browser/enterprise/connectors/analysis/request_handler_base.cc b/chrome/browser/enterprise/connectors/analysis/request_handler_base.cc
 --- a/chrome/browser/enterprise/connectors/analysis/request_handler_base.cc
 +++ b/chrome/browser/enterprise/connectors/analysis/request_handler_base.cc
-@@ -37,19 +37,6 @@ void RequestHandlerBase::AppendRequestTokensTo(
+@@ -41,21 +41,6 @@ void RequestHandlerBase::AppendRequestTokensTo(
  void RequestHandlerBase::PrepareRequest(
      enterprise_connectors::AnalysisConnector connector,
      safe_browsing::BinaryUploadService::Request* request) {
@@ -503,6 +503,8 @@ diff --git a/chrome/browser/enterprise/connectors/analysis/request_handler_base.
 -  request->set_analysis_connector(connector);
 -  request->set_email(safe_browsing::GetProfileEmail(profile_));
 -  request->set_url(url_.spec());
+-  request->set_source(source_);
+-  request->set_destination(destination_);
 -  request->set_tab_url(url_);
 -  request->set_per_profile_request(analysis_settings_.per_profile);
 -  for (const auto& tag : analysis_settings_.tags)
@@ -515,7 +517,7 @@ diff --git a/chrome/browser/enterprise/connectors/analysis/request_handler_base.
 diff --git a/chrome/browser/enterprise/connectors/reporting/realtime_reporting_client.cc b/chrome/browser/enterprise/connectors/reporting/realtime_reporting_client.cc
 --- a/chrome/browser/enterprise/connectors/reporting/realtime_reporting_client.cc
 +++ b/chrome/browser/enterprise/connectors/reporting/realtime_reporting_client.cc
-@@ -383,7 +383,7 @@ void RealtimeReportingClient::ReportRealtimeEvent(
+@@ -399,7 +399,7 @@ void RealtimeReportingClient::ReportRealtimeEvent(
  }
  
  std::string RealtimeReportingClient::GetProfileUserName() const {
@@ -537,7 +539,7 @@ diff --git a/chrome/browser/extensions/BUILD.gn b/chrome/browser/extensions/BUIL
    ]
  
    # Since browser and browser_extensions actually depend on each other,
-@@ -797,8 +794,6 @@ static_library("extensions") {
+@@ -798,8 +795,6 @@ static_library("extensions") {
      "//chrome/browser/profiles:profile",
      "//chrome/browser/resource_coordinator:intervention_policy_database_proto",
      "//chrome/browser/resource_coordinator:mojo_bindings",
@@ -562,7 +564,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
 diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_private_event_router.cc b/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_private_event_router.cc
 --- a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_private_event_router.cc
 +++ b/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_private_event_router.cc
-@@ -300,10 +300,7 @@ void SafeBrowsingPrivateEventRouter::OnPolicySpecifiedPasswordReuseDetected(
+@@ -304,10 +304,7 @@ void SafeBrowsingPrivateEventRouter::OnPolicySpecifiedPasswordReuseDetected(
    event.Set(kKeyUserName, params.user_name);
    event.Set(kKeyIsPhishingUrl, params.is_phishing_url);
    event.Set(kKeyProfileUserName, GetProfileUserName());
@@ -574,7 +576,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
  
    reporting_client_->ReportRealtimeEvent(
        kKeyPasswordReuseEvent, std::move(settings.value()), std::move(event));
-@@ -382,8 +379,7 @@ void SafeBrowsingPrivateEventRouter::OnDangerousDownloadOpened(
+@@ -386,8 +383,7 @@ void SafeBrowsingPrivateEventRouter::OnDangerousDownloadOpened(
    if (content_size >= 0)
      event.Set(kKeyContentSize, base::Int64ToValue(content_size));
    event.Set(kKeyTrigger, kTriggerFileDownload);
@@ -584,7 +586,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
    event.Set(kKeyClickedThrough, true);
    event.Set(kKeyThreatType, DangerTypeToThreatType(danger_type));
    // The scan ID can be empty when the reported dangerous download is from a
-@@ -428,22 +424,6 @@ void SafeBrowsingPrivateEventRouter::OnSecurityInterstitialShown(
+@@ -431,22 +427,6 @@ void SafeBrowsingPrivateEventRouter::OnSecurityInterstitialShown(
        settings->enabled_event_names.count(kKeyInterstitialEvent) == 0) {
      return;
    }
@@ -607,7 +609,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
  }
  
  void SafeBrowsingPrivateEventRouter::OnSecurityInterstitialProceeded(
-@@ -484,8 +464,7 @@ void SafeBrowsingPrivateEventRouter::OnSecurityInterstitialProceeded(
+@@ -486,8 +466,7 @@ void SafeBrowsingPrivateEventRouter::OnSecurityInterstitialProceeded(
    event.Set(kKeyNetErrorCode, net_error_code);
    event.Set(kKeyProfileUserName, params.user_name);
    event.Set(kKeyClickedThrough, true);
@@ -617,7 +619,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
  
    reporting_client_->ReportRealtimeEvent(
        kKeyInterstitialEvent, std::move(settings.value()), std::move(event));
-@@ -548,7 +527,7 @@ void SafeBrowsingPrivateEventRouter::OnDangerousDeepScanningResult(
+@@ -563,7 +542,7 @@ void SafeBrowsingPrivateEventRouter::OnDangerousDeepScanningResult(
      event.Set(kKeyContentSize, base::Int64ToValue(content_size));
    }
    event.Set(kKeyTrigger, trigger);
@@ -626,7 +628,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
    event.Set(kKeyClickedThrough,
              event_result == safe_browsing::EventResult::BYPASSED);
    if (!malware_family.empty()) {
-@@ -600,7 +579,7 @@ void SafeBrowsingPrivateEventRouter::OnSensitiveDataEvent(
+@@ -625,7 +604,7 @@ void SafeBrowsingPrivateEventRouter::OnSensitiveDataEvent(
      event.Set(kKeyContentSize, base::Int64ToValue(content_size));
    }
    event.Set(kKeyTrigger, trigger);
@@ -635,7 +637,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
    event.Set(kKeyClickedThrough,
              event_result == safe_browsing::EventResult::BYPASSED);
    if (!result.evidence_locker_filepath().empty()) {
-@@ -644,8 +623,7 @@ void SafeBrowsingPrivateEventRouter::OnAnalysisConnectorWarningBypassed(
+@@ -679,8 +658,7 @@ void SafeBrowsingPrivateEventRouter::OnAnalysisConnectorWarningBypassed(
      event.Set(kKeyContentSize, base::Int64ToValue(content_size));
    }
    event.Set(kKeyTrigger, trigger);
@@ -645,7 +647,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
    event.Set(kKeyClickedThrough, true);
    if (!result.evidence_locker_filepath().empty()) {
      event.Set(kKeyEvidenceLockerFilePath, result.evidence_locker_filepath());
-@@ -691,7 +669,7 @@ void SafeBrowsingPrivateEventRouter::OnUnscannedFileEvent(
+@@ -736,7 +714,7 @@ void SafeBrowsingPrivateEventRouter::OnUnscannedFileEvent(
      event.Set(kKeyContentSize, base::Int64ToValue(content_size));
    }
    event.Set(kKeyTrigger, trigger);
@@ -654,7 +656,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
    event.Set(kKeyClickedThrough,
              event_result == safe_browsing::EventResult::BYPASSED);
  
-@@ -743,7 +721,7 @@ void SafeBrowsingPrivateEventRouter::OnDangerousDownloadEvent(
+@@ -788,7 +766,7 @@ void SafeBrowsingPrivateEventRouter::OnDangerousDownloadEvent(
      event.Set(kKeyContentSize, base::Int64ToValue(content_size));
    }
    event.Set(kKeyTrigger, kTriggerFileDownload);
@@ -663,7 +665,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
  
    // The scan ID can be empty when the reported dangerous download is from a
    // Safe Browsing verdict.
-@@ -798,8 +776,7 @@ void SafeBrowsingPrivateEventRouter::OnDangerousDownloadWarningBypassed(
+@@ -843,8 +821,7 @@ void SafeBrowsingPrivateEventRouter::OnDangerousDownloadWarningBypassed(
      event.Set(kKeyContentSize, base::Int64ToValue(content_size));
    }
    event.Set(kKeyTrigger, kTriggerFileDownload);
@@ -673,7 +675,7 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
    // The scan ID can be empty when the reported dangerous download is from a
    // Safe Browsing verdict.
    if (!scan_id.empty()) {
-@@ -889,7 +866,7 @@ void SafeBrowsingPrivateEventRouter::SetIdentityManagerForTesting(
+@@ -934,7 +911,7 @@ void SafeBrowsingPrivateEventRouter::SetIdentityManagerForTesting(
  }
  
  std::string SafeBrowsingPrivateEventRouter::GetProfileUserName() const {
@@ -740,7 +742,7 @@ diff --git a/chrome/browser/extensions/blocklist_state_fetcher.cc b/chrome/brows
 diff --git a/chrome/browser/extensions/chrome_extensions_browser_client.cc b/chrome/browser/extensions/chrome_extensions_browser_client.cc
 --- a/chrome/browser/extensions/chrome_extensions_browser_client.cc
 +++ b/chrome/browser/extensions/chrome_extensions_browser_client.cc
-@@ -623,26 +623,11 @@ void ChromeExtensionsBrowserClient::NotifyExtensionApiTabExecuteScript(
+@@ -658,26 +658,11 @@ void ChromeExtensionsBrowserClient::NotifyExtensionApiTabExecuteScript(
      content::BrowserContext* context,
      const ExtensionId& extension_id,
      const std::string& code) const {
@@ -768,7 +770,7 @@ diff --git a/chrome/browser/extensions/chrome_extensions_browser_client.cc b/chr
  }
  
  bool ChromeExtensionsBrowserClient::
-@@ -658,17 +643,6 @@ void ChromeExtensionsBrowserClient::NotifyExtensionRemoteHostContacted(
+@@ -693,17 +678,6 @@ void ChromeExtensionsBrowserClient::NotifyExtensionRemoteHostContacted(
    if (!url.SchemeIsHTTPOrHTTPS()) {
      return;
    }
@@ -808,7 +810,7 @@ diff --git a/chrome/browser/extensions/extension_allowlist.cc b/chrome/browser/e
 diff --git a/chrome/browser/media/webrtc/display_media_access_handler.cc b/chrome/browser/media/webrtc/display_media_access_handler.cc
 --- a/chrome/browser/media/webrtc/display_media_access_handler.cc
 +++ b/chrome/browser/media/webrtc/display_media_access_handler.cc
-@@ -121,7 +121,6 @@ void DisplayMediaAccessHandler::HandleRequest(
+@@ -130,7 +130,6 @@ void DisplayMediaAccessHandler::HandleRequest(
          blink::mojom::StreamDevicesSet(),
          blink::mojom::MediaStreamRequestResult::PERMISSION_DENIED,
          /*ui=*/nullptr);
@@ -871,7 +873,7 @@ diff --git a/chrome/browser/notifications/notification_display_service_impl.cc b
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
-@@ -1851,13 +1851,6 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
+@@ -1876,13 +1876,6 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
            prefs::kSafeBrowsingEnterpriseRealTimeUrlCheckMode,
            prefs::kSafeBrowsingEnterpriseRealTimeUrlCheckScope, chrome_schema));
  
@@ -888,7 +890,7 @@ diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc 
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1542,8 +1542,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+@@ -1572,8 +1572,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
    component_updater::RegisterProfilePrefsForSwReporter(registry);
    FontPrewarmerTabHelper::RegisterProfilePrefs(registry);
    NetworkProfileBubble::RegisterProfilePrefs(registry);
@@ -947,7 +949,7 @@ diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsin
    if (false) {
    sources = [
      "chrome_controller_client.cc",
-@@ -419,7 +419,7 @@ static_library("safe_browsing") {
+@@ -424,7 +424,7 @@ static_library("safe_browsing") {
    }
  }
  
@@ -956,7 +958,7 @@ diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsin
    sources = [
      "verdict_cache_manager_factory.cc",
      "verdict_cache_manager_factory.h",
-@@ -440,7 +440,7 @@ source_set("verdict_cache_manager_factory") {
+@@ -445,7 +445,7 @@ source_set("verdict_cache_manager_factory") {
    ]
  }
  
@@ -965,7 +967,7 @@ diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsin
    sources = [
      "advanced_protection_status_manager.cc",
      "advanced_protection_status_manager.h",
-@@ -460,7 +460,7 @@ static_library("advanced_protection") {
+@@ -465,7 +465,7 @@ static_library("advanced_protection") {
    ]
  }
  
@@ -1090,7 +1092,7 @@ diff --git a/chrome/browser/ssl/chrome_security_blocking_page_factory.cc b/chrom
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -419,7 +419,6 @@ static_library("ui") {
+@@ -420,7 +420,6 @@ static_library("ui") {
      "//chrome/browser/resources/net_internals:resources",
      "//chrome/browser/resources/omnibox:resources",
      "//chrome/browser/resources/usb_internals:resources",
@@ -1098,7 +1100,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
      "//chrome/browser/share",
      "//chrome/browser/ui/webui:configs",
      "//chrome/browser/ui/webui/bluetooth_internals",
-@@ -668,7 +667,6 @@ static_library("ui") {
+@@ -669,7 +668,6 @@ static_library("ui") {
      # TODO(crbug.com/1158905): Remove this circular dependency.
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -1106,7 +1108,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
      "//chrome/browser/ui/webui/bluetooth_internals",
      "//chrome/browser/profiling_host",
      "//chrome/browser/ui/webui:configs",
-@@ -1768,8 +1766,6 @@ static_library("ui") {
+@@ -1785,8 +1783,6 @@ static_library("ui") {
        "//chrome/browser/resource_coordinator/tab_ranker",
        "//chrome/browser/resources/identity_internals:resources",
        "//chrome/browser/resources/support_tool:resources",
@@ -1115,7 +1117,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
        "//chrome/browser/support_tool:support_tool_proto",
        "//chrome/browser/ui/color:color_headers",
        "//chrome/browser/ui/color:mixers",
-@@ -3507,8 +3503,6 @@ static_library("ui") {
+@@ -3546,8 +3542,6 @@ static_library("ui") {
        "views/profiles/profile_picker_force_signin_dialog_host.h",
        "views/profiles/profile_picker_signed_in_flow_controller.cc",
        "views/profiles/profile_picker_signed_in_flow_controller.h",
@@ -1138,7 +1140,7 @@ diff --git a/chrome/browser/ui/javascript_dialogs/javascript_tab_modal_dialog_ma
 diff --git a/chrome/browser/ui/page_info/chrome_page_info_delegate.cc b/chrome/browser/ui/page_info/chrome_page_info_delegate.cc
 --- a/chrome/browser/ui/page_info/chrome_page_info_delegate.cc
 +++ b/chrome/browser/ui/page_info/chrome_page_info_delegate.cc
-@@ -216,7 +216,6 @@ void ChromePageInfoDelegate::OpenConnectionHelpCenterPage(
+@@ -240,7 +240,6 @@ void ChromePageInfoDelegate::OpenConnectionHelpCenterPage(
  }
  
  void ChromePageInfoDelegate::OpenSafetyTipHelpCenterPage() {
@@ -1354,7 +1356,7 @@ diff --git a/chrome/services/file_util/public/cpp/sandboxed_zip_analyzer.h b/chr
 diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 --- a/chrome/test/BUILD.gn
 +++ b/chrome/test/BUILD.gn
-@@ -226,7 +226,6 @@ static_library("test_support") {
+@@ -229,7 +229,6 @@ static_library("test_support") {
      "//chrome:strings",
      "//chrome/browser:browser_process",
      "//chrome/browser:test_support",
@@ -1362,7 +1364,7 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
      "//chrome/child",
      "//chrome/common:non_code_constants",
      "//chrome/common:test_support",
-@@ -1247,7 +1246,6 @@ if (!is_android) {
+@@ -1243,7 +1242,6 @@ if (!is_android) {
        "//chrome/browser/profiling_host:profiling_browsertests",
        "//chrome/browser/resource_coordinator:tab_manager_features",
        "//chrome/browser/resource_coordinator:tab_metrics_event_proto",
@@ -1370,7 +1372,7 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
        "//chrome/browser/segmentation_platform:test_utils",
        "//chrome/browser/sharing/proto",
        "//chrome/browser/ui/color:color_headers",
-@@ -5692,9 +5690,6 @@ test("unit_tests") {
+@@ -5749,9 +5747,6 @@ test("unit_tests") {
      "//chrome/browser/profile_resetter:profile_reset_report_proto",
      "//chrome/browser/profiling_host",
      "//chrome/browser/push_messaging:budget_proto",
