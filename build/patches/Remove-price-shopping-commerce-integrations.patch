@@ -28,7 +28,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../bookmarks/BookmarkItemsAdapter.java       |  23 ---
  .../browser/bookmarks/BookmarkManager.java    |  11 --
  .../BookmarkSaveFlowCoordinator.java          |  37 +---
- .../bookmarks/BookmarkSaveFlowMediator.java   |  45 +----
+ .../bookmarks/BookmarkSaveFlowMediator.java   |  68 +------
  .../browser/bookmarks/BookmarkUtils.java      |  12 +-
  .../init/ProcessInitializationHandler.java    |   5 -
  .../chrome/browser/tab/TabHelpers.java        |   9 -
@@ -43,7 +43,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../CommerceSubscriptionsService.java         |  36 +---
  .../SubscriptionsManagerImpl.java             |  26 +--
  chrome/browser/persisted_state_db/BUILD.gn    |   1 -
- 39 files changed, 22 insertions(+), 953 deletions(-)
+ 39 files changed, 23 insertions(+), 975 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
@@ -1581,6 +1581,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  import org.chromium.components.bookmarks.BookmarkId;
  import org.chromium.components.feature_engagement.EventConstants;
  import org.chromium.components.power_bookmarks.PowerBookmarkMeta;
+@@ -30,7 +27,7 @@ import java.util.List;
+ 
+ /** Controls the bookmarks save-flow. */
+ public class BookmarkSaveFlowMediator
+-        extends BookmarkModelObserver implements SubscriptionsManager.SubscriptionObserver {
++        extends BookmarkModelObserver {
+     private final Context mContext;
+     private final Runnable mCloseRunnable;
+ 
 @@ -40,9 +37,6 @@ public class BookmarkSaveFlowMediator
      private BookmarkId mBookmarkId;
      private PowerBookmarkMeta mPowerBookmarkMeta;
@@ -1591,7 +1600,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      private String mFolderName;
  
      /**
-@@ -51,19 +45,15 @@ public class BookmarkSaveFlowMediator
+@@ -51,22 +45,15 @@ public class BookmarkSaveFlowMediator
       *         model.
       * @param context The {@link Context} associated with this mediator.
       * @param closeRunnable A {@link Runnable} which closes the bookmark save flow.
@@ -1609,10 +1618,13 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          mCloseRunnable = closeRunnable;
 -
 -        mSubscriptionsManager = subscriptionsManager;
-         if (mSubscriptionsManager != null) {
-             mSubscriptionsManager.addObserver(this);
-         }
-@@ -101,9 +91,6 @@ public class BookmarkSaveFlowMediator
+-        if (mSubscriptionsManager != null) {
+-            mSubscriptionsManager.addObserver(this);
+-        }
+     }
+ 
+     /**
+@@ -101,9 +88,6 @@ public class BookmarkSaveFlowMediator
              mCloseRunnable.run();
          });
  
@@ -1622,7 +1634,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          bindBookmarkProperties(mBookmarkId, mPowerBookmarkMeta, mWasBookmarkMoved);
          bindPowerBookmarkProperties(mBookmarkId, mPowerBookmarkMeta, fromExplicitTrackUi);
      }
-@@ -129,39 +116,9 @@ public class BookmarkSaveFlowMediator
+@@ -129,39 +113,9 @@ public class BookmarkSaveFlowMediator
      private void bindPowerBookmarkProperties(
              BookmarkId bookmarkId, @Nullable PowerBookmarkMeta meta, boolean fromExplicitTrackUi) {
          if (meta == null) return;
@@ -1662,6 +1674,43 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      }
  
      void setPriceTrackingNotificationUiEnabled(boolean enabled) {
+@@ -180,9 +134,6 @@ public class BookmarkSaveFlowMediator
+ 
+     void destroy() {
+         mBookmarkModel.removeObserver(this);
+-        if (mSubscriptionsManager != null) {
+-            mSubscriptionsManager.removeObserver(this);
+-        }
+ 
+         mBookmarkModel = null;
+         mPropertyModel = null;
+@@ -203,10 +154,6 @@ public class BookmarkSaveFlowMediator
+                 this::handleNotificationSwitchToggle);
+     }
+ 
+-    void setSubscriptionForTesting(CommerceSubscription subscription) {
+-        mSubscription = subscription;
+-    }
+-
+     // BookmarkModelObserver implementation
+ 
+     @Override
+@@ -218,15 +165,4 @@ public class BookmarkSaveFlowMediator
+         }
+         bindBookmarkProperties(mBookmarkId, mPowerBookmarkMeta, mWasBookmarkMoved);
+     }
+-
+-    // SubscriptionsManager.SubscriptionObserver implementation
+-    @Override
+-    public void onSubscribe(List<CommerceSubscription> subscriptions) {
+-        setPriceTrackingToggleVisualsOnly(subscriptions.contains(mSubscription));
+-    }
+-
+-    @Override
+-    public void onUnsubscribe(List<CommerceSubscription> subscriptions) {
+-        setPriceTrackingToggleVisualsOnly(!subscriptions.contains(mSubscription));
+-    }
+ }
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java

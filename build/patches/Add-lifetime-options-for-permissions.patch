@@ -65,9 +65,6 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/content_settings/android/BUILD.gn  |  1 +
  .../core/browser/content_settings_utils.cc    | 29 +++++++
  .../core/browser/content_settings_utils.h     |  6 ++
- .../core/browser/host_content_settings_map.cc |  2 +-
- .../core/common/content_settings.cc           |  7 +-
- .../core/common/content_settings.h            |  4 +-
  .../common/content_settings_constraints.h     | 11 +++
  .../page_info/PageInfoController.java         |  4 +-
  .../PermissionParamsListBuilder.java          | 13 ++-
@@ -90,7 +87,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/permissions/permission_request.h   | 17 +++-
  .../permissions/permission_request_manager.cc | 37 ++++++---
  .../permissions/permission_request_manager.h  | 11 ++-
- 38 files changed, 481 insertions(+), 60 deletions(-)
+ 35 files changed, 472 insertions(+), 56 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -332,7 +329,7 @@ diff --git a/components/browser_ui/site_settings/android/website_preference_brid
      insertionFunc(env, static_cast<int>(content_type), list,
                    ConvertOriginToJavaString(env, origin), jembedder,
 -                  /*is_embargoed=*/false);
-+                  /*is_embargoed=*/false, static_cast<int>(settings_it.session_model));
++                  /*is_embargoed=*/false, static_cast<int>(settings_it.metadata.session_model));
    }
  
    // Add any origins which have a default content setting value (thus skipped
@@ -392,13 +389,13 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 +
 +bool IsConstraintSessionExpiration(const ContentSettingPatternSource& source,
 +                                   LifetimeMode lifetime_mode) {
-+  if (source.session_model != content_settings::SessionModel::UserSession)
++  if (source.metadata.session_model != content_settings::SessionModel::UserSession)
 +    return false;
 +
 +  LifetimeMode type;
-+  if (source.expiration == base::Time()) {
++  if (source.metadata.expiration == base::Time()) {
 +    type = LifetimeMode::UntilBrowserClosed;
-+  } else if (source.expiration == (base::Time() + base::Hours(1))) {
++  } else if (source.metadata.expiration == (base::Time() + base::Hours(1))) {
 +    type = LifetimeMode::OnlyThisTime;
 +  } else {
 +    type = LifetimeMode::UntilOriginClosed;
@@ -426,68 +423,6 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.h b
  // Get a timestamp with week-precision.
  base::Time GetCoarseTime(base::Time time);
  
-diff --git a/components/content_settings/core/browser/host_content_settings_map.cc b/components/content_settings/core/browser/host_content_settings_map.cc
---- a/components/content_settings/core/browser/host_content_settings_map.cc
-+++ b/components/content_settings/core/browser/host_content_settings_map.cc
-@@ -824,7 +824,7 @@ void HostContentSettingsMap::AddSettingsForOneType(
-     settings->emplace_back(rule.primary_pattern, rule.secondary_pattern,
-                            std::move(value),
-                            kProviderNamesSourceMap[provider_type].provider_name,
--                           incognito, rule.metadata);
-+                           incognito, rule.metadata, rule.session_model);
-   }
- }
- 
-diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
---- a/components/content_settings/core/common/content_settings.cc
-+++ b/components/content_settings/core/common/content_settings.cc
-@@ -159,13 +159,15 @@ ContentSettingPatternSource::ContentSettingPatternSource(
-     base::Value setting_value,
-     const std::string& source,
-     bool incognito,
--    content_settings::RuleMetaData metadata)
-+    content_settings::RuleMetaData metadata,
-+    content_settings::SessionModel session_model)
-     : primary_pattern(primary_pattern),
-       secondary_pattern(secondary_pattern),
-       setting_value(std::move(setting_value)),
-       metadata(metadata),
-       source(source),
--      incognito(incognito) {}
-+      incognito(incognito),
-+      session_model(session_model) {}
- 
- ContentSettingPatternSource::ContentSettingPatternSource() : incognito(false) {}
- 
-@@ -182,6 +184,7 @@ ContentSettingPatternSource& ContentSettingPatternSource::operator=(
-   metadata = other.metadata;
-   source = other.source;
-   incognito = other.incognito;
-+  session_model = other.session_model;
-   return *this;
- }
- 
-diff --git a/components/content_settings/core/common/content_settings.h b/components/content_settings/core/common/content_settings.h
---- a/components/content_settings/core/common/content_settings.h
-+++ b/components/content_settings/core/common/content_settings.h
-@@ -50,7 +50,8 @@ struct ContentSettingPatternSource {
-                               base::Value setting_value,
-                               const std::string& source,
-                               bool incognito,
--                              content_settings::RuleMetaData metadata = {});
-+                              content_settings::RuleMetaData metadata = {},
-+                              content_settings::SessionModel session_model = content_settings::SessionModel::Durable);
-   ContentSettingPatternSource(const ContentSettingPatternSource& other);
-   ContentSettingPatternSource();
-   ContentSettingPatternSource& operator=(
-@@ -65,6 +66,7 @@ struct ContentSettingPatternSource {
-   content_settings::RuleMetaData metadata;
-   std::string source;
-   bool incognito;
-+  content_settings::SessionModel session_model;
- };
- 
- typedef std::vector<ContentSettingPatternSource> ContentSettingsForOneType;
 diff --git a/components/content_settings/core/common/content_settings_constraints.h b/components/content_settings/core/common/content_settings_constraints.h
 --- a/components/content_settings/core/common/content_settings_constraints.h
 +++ b/components/content_settings/core/common/content_settings_constraints.h
@@ -623,7 +558,7 @@ diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.
      permission_info.is_one_time = (info.metadata.session_model ==
                                     content_settings::SessionModel::OneTime);
 +    permission_info.is_user_session =
-+        (info.session_model == content_settings::SessionModel::UserSession);
++        (info.metadata.session_model == content_settings::SessionModel::UserSession);
  
      if (info.primary_pattern == ContentSettingsPattern::Wildcard() &&
          info.secondary_pattern == ContentSettingsPattern::Wildcard()) {

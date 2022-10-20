@@ -6,17 +6,18 @@ Subject: Add flag to disable IPv6 probes (win fixup)
  chrome/browser/about_flags.cc                              | 2 +-
  components/subresource_filter/tools/BUILD.gn               | 6 ------
  components/url_formatter/spoof_checks/top_domains/BUILD.gn | 3 +--
+ net/BUILD.gn                                               | 1 +
  net/base/features.cc                                       | 3 +++
  net/base/features.h                                        | 3 +++
  net/dns/host_resolver_manager.cc                           | 2 +-
  services/network/public/cpp/features.cc                    | 4 ----
  services/network/public/cpp/features.h                     | 2 --
- 8 files changed, 9 insertions(+), 16 deletions(-)
+ 9 files changed, 10 insertions(+), 16 deletions(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -5935,7 +5935,7 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -5915,7 +5915,7 @@ const FeatureEntry kFeatureEntries[] = {
      {"ipv6-probing",
       flag_descriptions::kIPv6ProbingName,
       flag_descriptions::kIPv6ProbingDescription, kOsAll,
@@ -68,6 +69,17 @@ diff --git a/components/url_formatter/spoof_checks/top_domains/BUILD.gn b/compon
    ]
    if (is_ios) {
      frameworks = [ "UIKit.framework" ]
+diff --git a/net/BUILD.gn b/net/BUILD.gn
+--- a/net/BUILD.gn
++++ b/net/BUILD.gn
+@@ -1062,6 +1062,7 @@ component("net") {
+     "//build:chromeos_buildflags",
+     "//net/data/ssl/ev_roots:gen_ev_root_store_inc",
+     "//net/http:transport_security_state_generated_files",
++    "//components/network_session_configurator/common"
+   ]
+ 
+   public_deps = [
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
@@ -97,7 +109,7 @@ diff --git a/net/base/features.h b/net/base/features.h
 diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
 --- a/net/dns/host_resolver_manager.cc
 +++ b/net/dns/host_resolver_manager.cc
-@@ -4099,7 +4099,7 @@ bool HostResolverManager::IsIPv6Reachable(const NetLogWithSource& net_log) {
+@@ -4087,7 +4087,7 @@ bool HostResolverManager::IsIPv6Reachable(const NetLogWithSource& net_log) {
        (tick_clock_->NowTicks() - last_ipv6_probe_time_).InMilliseconds() >
            kIPv6ProbePeriodMs) {
  

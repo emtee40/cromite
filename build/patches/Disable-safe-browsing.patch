@@ -53,6 +53,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../permission_revocation_request.cc          |  6 ++
  ...quiet_notification_permission_ui_config.cc |  4 +-
  chrome/browser/prefs/browser_prefs.cc         |  3 +
+ chrome/browser/privacy_guide/android/BUILD.gn |  1 -
+ .../privacy_guide/PrivacyGuideFragment.java   |  3 -
+ .../PrivacyGuidePagerAdapter.java             |  8 +-
+ .../privacy_guide/StepDisplayHandlerImpl.java |  2 +-
  ...hrome_browser_main_extra_parts_profiles.cc |  4 +-
  chrome/browser/profiles/profile_impl.cc       |  4 +-
  chrome/browser/safe_browsing/BUILD.gn         |  4 +-
@@ -91,7 +95,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../file_system_access_permission_context.h   |  6 --
  weblayer/BUILD.gn                             |  4 -
  weblayer/test/BUILD.gn                        |  1 -
- 82 files changed, 210 insertions(+), 708 deletions(-)
+ 86 files changed, 212 insertions(+), 720 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/google_services_preferences.xml b/chrome/android/java/res/xml/google_services_preferences.xml
 --- a/chrome/android/java/res/xml/google_services_preferences.xml
@@ -2024,6 +2028,78 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
    safe_browsing::RegisterProfilePrefs(registry);
    SearchPrefetchService::RegisterProfilePrefs(registry);
    blocked_content::SafeBrowsingTriggeredPopupBlocker::RegisterProfilePrefs(
+diff --git a/chrome/browser/privacy_guide/android/BUILD.gn b/chrome/browser/privacy_guide/android/BUILD.gn
+--- a/chrome/browser/privacy_guide/android/BUILD.gn
++++ b/chrome/browser/privacy_guide/android/BUILD.gn
+@@ -13,7 +13,6 @@ android_library("java") {
+     "java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideExplanationItem.java",
+     "java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideFragment.java",
+     "java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuidePagerAdapter.java",
+-    "java/src/org/chromium/chrome/browser/privacy_guide/SafeBrowsingFragment.java",
+     "java/src/org/chromium/chrome/browser/privacy_guide/StepDisplayHandler.java",
+     "java/src/org/chromium/chrome/browser/privacy_guide/StepDisplayHandlerImpl.java",
+     "java/src/org/chromium/chrome/browser/privacy_guide/SyncFragment.java",
+diff --git a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideFragment.java b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideFragment.java
+--- a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideFragment.java
++++ b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideFragment.java
+@@ -122,9 +122,6 @@ public class PrivacyGuideFragment extends Fragment {
+ 
+     @Override
+     public void onAttachFragment(@NonNull Fragment childFragment) {
+-        if (childFragment instanceof SafeBrowsingFragment) {
+-            ((SafeBrowsingFragment) childFragment).setBottomSheetController(mBottomSheetController);
+-        }
+     }
+ 
+     @Override
+diff --git a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuidePagerAdapter.java b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuidePagerAdapter.java
+--- a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuidePagerAdapter.java
++++ b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuidePagerAdapter.java
+@@ -21,12 +21,11 @@ public class PrivacyGuidePagerAdapter extends FragmentStateAdapter {
+      * The types of fragments supported. Each fragment corresponds to a step in the privacy guide.
+      */
+     @Retention(RetentionPolicy.SOURCE)
+-    @IntDef({FragmentType.COOKIES, FragmentType.MSBB, FragmentType.SAFE_BROWSING,
++    @IntDef({FragmentType.COOKIES, FragmentType.MSBB,
+             FragmentType.SYNC})
+     private @interface FragmentType {
+         int MSBB = 0;
+         int SYNC = 1;
+-        int SAFE_BROWSING = 2;
+         int COOKIES = 3;
+     }
+ 
+@@ -39,9 +38,6 @@ public class PrivacyGuidePagerAdapter extends FragmentStateAdapter {
+         if (displayHandler.shouldDisplaySync()) {
+             mFragmentTypeList.add(FragmentType.SYNC);
+         }
+-        if (displayHandler.shouldDisplaySafeBrowsing()) {
+-            mFragmentTypeList.add(FragmentType.SAFE_BROWSING);
+-        }
+         if (displayHandler.shouldDisplayCookies()) {
+             mFragmentTypeList.add(FragmentType.COOKIES);
+         }
+@@ -56,8 +52,6 @@ public class PrivacyGuidePagerAdapter extends FragmentStateAdapter {
+                 return new MSBBFragment();
+             case FragmentType.SYNC:
+                 return new SyncFragment();
+-            case FragmentType.SAFE_BROWSING:
+-                return new SafeBrowsingFragment();
+             case FragmentType.COOKIES:
+                 return new CookiesFragment();
+         }
+diff --git a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/StepDisplayHandlerImpl.java b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/StepDisplayHandlerImpl.java
+--- a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/StepDisplayHandlerImpl.java
++++ b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/StepDisplayHandlerImpl.java
+@@ -19,7 +19,7 @@ class StepDisplayHandlerImpl implements StepDisplayHandler {
+ 
+     @Override
+     public boolean shouldDisplaySafeBrowsing() {
+-        return SafeBrowsingBridge.getSafeBrowsingState() != SafeBrowsingState.NO_SAFE_BROWSING;
++        return false;
+     }
+ 
+     @Override
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc

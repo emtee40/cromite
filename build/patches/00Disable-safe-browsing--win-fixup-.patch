@@ -9,7 +9,7 @@ Subject: Disable safe browsing (win fixup)
  chrome/browser/chrome_browser_main_win.cc     |   6 -
  .../bubble/download_bubble_controller.cc      |   2 +
  .../chrome_download_manager_delegate.cc       |   4 +-
- .../browser/download/download_item_model.cc   |   2 +
+ .../browser/download/download_item_model.cc   |  68 +-------
  .../analysis/content_analysis_delegate.cc     | 163 +-----------------
  .../analysis/content_analysis_delegate.h      |   7 -
  .../analysis/request_handler_base.cc          |  15 --
@@ -48,7 +48,7 @@ Subject: Disable safe browsing (win fixup)
  .../browser/mojo_safe_browsing_impl.cc        |   1 +
  .../core/common/safe_browsing_prefs.cc        |   2 +-
  .../tracked_persistent_pref_store_factory.cc  |  10 +-
- 45 files changed, 48 insertions(+), 468 deletions(-)
+ 45 files changed, 48 insertions(+), 534 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
@@ -182,7 +182,7 @@ diff --git a/chrome/browser/download/download_item_model.cc b/chrome/browser/dow
        safe_browsing::SafeBrowsingService* sb_service =
            g_browser_process->safe_browsing_service();
        if (!sb_service)
-@@ -911,6 +912,7 @@ void DownloadItemModel::ExecuteCommand(DownloadCommands* download_commands,
+@@ -911,82 +912,17 @@ void DownloadItemModel::ExecuteCommand(DownloadCommands* download_commands,
            safe_browsing::DeepScanningRequest::DeepScanTrigger::
                TRIGGER_APP_PROMPT,
            safe_browsing::DownloadCheckResult::UNKNOWN, std::move(settings));
@@ -190,6 +190,82 @@ diff --git a/chrome/browser/download/download_item_model.cc b/chrome/browser/dow
        break;
    }
  }
+ 
+ DownloadItemModel::BubbleUIInfo
+ DownloadItemModel::GetBubbleUIInfoForTailoredWarning() const {
+-  download::DownloadDangerType danger_type = GetDangerType();
+-  TailoredVerdict tailored_verdict = safe_browsing::DownloadProtectionService::
+-      GetDownloadProtectionTailoredVerdict(download_);
+-
+-  // Suspicious archives
+-  if (danger_type == download::DOWNLOAD_DANGER_TYPE_UNCOMMON_CONTENT &&
+-      tailored_verdict.tailored_verdict_type() ==
+-          TailoredVerdict::SUSPICIOUS_ARCHIVE) {
+-    return DownloadUIModel::BubbleUIInfo(
+-               l10n_util::GetStringUTF16(
+-                   IDS_DOWNLOAD_BUBBLE_SUBPAGE_SUMMARY_SUSPICIOUS_ARCHIVE))
+-        .AddIconAndColor(views::kInfoIcon, ui::kColorAlertMediumSeverity)
+-        .AddPrimaryButton(DownloadCommands::Command::DISCARD)
+-        .AddSubpageButton(l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_DELETE),
+-                          DownloadCommands::Command::DISCARD,
+-                          /*is_prominent=*/true)
+-        .AddSubpageButton(
+-            l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_CONTINUE),
+-            DownloadCommands::Command::KEEP,
+-            /*is_prominent=*/false);
+-  }
+-
+-  // Cookie theft
+-  if (danger_type ==
+-          download::DOWNLOAD_DANGER_TYPE_DANGEROUS_ACCOUNT_COMPROMISE &&
+-      tailored_verdict.tailored_verdict_type() ==
+-          TailoredVerdict::COOKIE_THEFT) {
+-    // TODO(crbug.com/1351925): Check the adjustments field and add the account
+-    // information in the subpage summary.
+-    return DownloadUIModel::BubbleUIInfo(
+-               l10n_util::GetStringUTF16(
+-                   IDS_DOWNLOAD_BUBBLE_SUBPAGE_SUMMARY_COOKIE_THEFT))
+-        .AddIconAndColor(vector_icons::kNotSecureWarningIcon,
+-                         ui::kColorAlertHighSeverity)
+-        .AddPrimaryButton(DownloadCommands::Command::DISCARD)
+-        .AddSubpageButton(l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_DELETE),
+-                          DownloadCommands::Command::DISCARD,
+-                          /*is_prominent=*/true);
+-  }
+-
+-  NOTREACHED();
+   return DownloadUIModel::BubbleUIInfo();
+ }
+ 
+ bool DownloadItemModel::ShouldShowTailoredWarning() const {
+-  if (!IsBubbleV2Enabled() ||
+-      !base::FeatureList::IsEnabled(safe_browsing::kDownloadTailoredWarnings)) {
+-    return false;
+-  }
+-
+-  static const struct ValidCombination {
+-    download::DownloadDangerType danger_type;
+-    TailoredVerdict::TailoredVerdictType tailored_verdict_type;
+-  } kValidTailoredWarningCombinations[]{
+-      {download::DOWNLOAD_DANGER_TYPE_UNCOMMON_CONTENT,
+-       TailoredVerdict::SUSPICIOUS_ARCHIVE},
+-      {download::DOWNLOAD_DANGER_TYPE_DANGEROUS_ACCOUNT_COMPROMISE,
+-       TailoredVerdict::COOKIE_THEFT}};
+-
+-  download::DownloadDangerType danger_type = GetDangerType();
+-  TailoredVerdict tailored_verdict = safe_browsing::DownloadProtectionService::
+-      GetDownloadProtectionTailoredVerdict(download_);
+-  for (const auto& combination : kValidTailoredWarningCombinations) {
+-    if (danger_type == combination.danger_type &&
+-        tailored_verdict.tailored_verdict_type() ==
+-            combination.tailored_verdict_type) {
+-      return true;
+-    }
+-  }
+-
+   return false;
+ }
+ 
 diff --git a/chrome/browser/enterprise/connectors/analysis/content_analysis_delegate.cc b/chrome/browser/enterprise/connectors/analysis/content_analysis_delegate.cc
 --- a/chrome/browser/enterprise/connectors/analysis/content_analysis_delegate.cc
 +++ b/chrome/browser/enterprise/connectors/analysis/content_analysis_delegate.cc
@@ -1356,7 +1432,7 @@ diff --git a/chrome/services/file_util/public/cpp/sandboxed_zip_analyzer.h b/chr
 diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 --- a/chrome/test/BUILD.gn
 +++ b/chrome/test/BUILD.gn
-@@ -229,7 +229,6 @@ static_library("test_support") {
+@@ -228,7 +228,6 @@ static_library("test_support") {
      "//chrome:strings",
      "//chrome/browser:browser_process",
      "//chrome/browser:test_support",
@@ -1364,7 +1440,7 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
      "//chrome/child",
      "//chrome/common:non_code_constants",
      "//chrome/common:test_support",
-@@ -1243,7 +1242,6 @@ if (!is_android) {
+@@ -1242,7 +1241,6 @@ if (!is_android) {
        "//chrome/browser/profiling_host:profiling_browsertests",
        "//chrome/browser/resource_coordinator:tab_manager_features",
        "//chrome/browser/resource_coordinator:tab_metrics_event_proto",
@@ -1372,7 +1448,7 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
        "//chrome/browser/segmentation_platform:test_utils",
        "//chrome/browser/sharing/proto",
        "//chrome/browser/ui/color:color_headers",
-@@ -5749,9 +5747,6 @@ test("unit_tests") {
+@@ -5748,9 +5746,6 @@ test("unit_tests") {
      "//chrome/browser/profile_resetter:profile_reset_report_proto",
      "//chrome/browser/profiling_host",
      "//chrome/browser/push_messaging:budget_proto",
