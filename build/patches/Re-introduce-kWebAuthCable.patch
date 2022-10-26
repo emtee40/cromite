@@ -11,11 +11,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../authenticator_dialog_view_browsertest.cc      |  7 +++++++
  .../webauthn/authenticator_dialog_browsertest.cc  |  7 +++++++
  .../webauthn/chrome_webauthn_browsertest.cc       |  2 ++
- content/browser/webauth/authenticator_common.cc   |  4 +++-
  .../webauth/authenticator_impl_unittest.cc        | 15 +++++++++++++--
  content/public/common/content_features.cc         |  6 ++++++
  content/public/common/content_features.h          |  1 +
- 7 files changed, 39 insertions(+), 3 deletions(-)
+ 6 files changed, 36 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/browser/ui/views/webauthn/authenticator_dialog_view_browsertest.cc b/chrome/browser/ui/views/webauthn/authenticator_dialog_view_browsertest.cc
 --- a/chrome/browser/ui/views/webauthn/authenticator_dialog_view_browsertest.cc
@@ -84,20 +83,6 @@ diff --git a/chrome/browser/webauthn/chrome_webauthn_browsertest.cc b/chrome/bro
    std::ostringstream trace_;
    AuthenticatorRequestDialogModel* model_ = nullptr;
  };
-diff --git a/content/browser/webauth/authenticator_common.cc b/content/browser/webauth/authenticator_common.cc
---- a/content/browser/webauth/authenticator_common.cc
-+++ b/content/browser/webauth/authenticator_common.cc
-@@ -293,7 +293,9 @@ base::flat_set<device::FidoTransportProtocol> GetWebAuthnTransports(
-     transports.insert(device::FidoTransportProtocol::kInternal);
-   }
- 
--  transports.insert(device::FidoTransportProtocol::kHybrid);
-+  if (base::FeatureList::IsEnabled(features::kWebAuthCable)) {
-+    transports.insert(device::FidoTransportProtocol::kHybrid);
-+  }
- 
-   // kAndroidAccessory doesn't work on Windows because of USB stack issues.
-   // Note: even if this value were inserted it wouldn't take effect on Windows
 diff --git a/content/browser/webauth/authenticator_impl_unittest.cc b/content/browser/webauth/authenticator_impl_unittest.cc
 --- a/content/browser/webauth/authenticator_impl_unittest.cc
 +++ b/content/browser/webauth/authenticator_impl_unittest.cc
