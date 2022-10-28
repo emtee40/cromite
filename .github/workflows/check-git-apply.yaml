@@ -22,7 +22,7 @@ on:
         default: ''
 
 env:
-  RTAG: ${{ format('{0}{1}', ${{ github.event.commits[][sha] }}, ${{ github.event.inputs.rtag) }} }}  
+  GITHUB_SHA: ${{ github.event.inputs.rtag) }} }}  
 
 jobs:
   build:
@@ -43,7 +43,7 @@ jobs:
           unzip pup_v0.4.0_linux_amd64.zip
           rm pup_v0.4.0_linux_amd64.zip
 
-          BRANCH=$(curl https://github.com/uazo/bromite/branch_commits/$RTAG | ./pup -p li.branch:last-child a text{})
+          BRANCH=$(curl https://github.com/uazo/bromite/branch_commits/$GITHUB_SHA | ./pup -p li.branch:last-child a text{})
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
       - name: Checkout 'uazo/bromite' ${{ env.BRANCH }}
@@ -61,7 +61,7 @@ jobs:
 
       - name: Download chromium ${{ env.VERSION }} sources
         run: |
-          ./bin/SuperPatchUtils bromite $RTAG chromium/src
+          ./bin/SuperPatchUtils bromite $GITHUB_SHA chromium/src
           cd chromium/src
           git init
           git config user.email "you@example.com"
