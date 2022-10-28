@@ -22,12 +22,20 @@ on:
         default: ''
 
 env:
-  GITHUB_SHA: ${{ github.event.inputs.rtag }}  
+  RTAG: ${{ github.event.inputs.rtag }}  
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:        
+    steps:
+    
+      - name: "Get value from dispatch"
+        run: |
+          if [ -z "${RTAG}" ]; then
+            echo "GITHUB_SHA=$RTAG" >> $GITHUB_ENV
+            echo "RTAG=$RTAG"
+          fi
+          
       - name: Prepare container
         run: |
           sudo apt update
