@@ -575,7 +575,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
              @TabLoadStatus
              int result = loadUrlInternal(params, fixedUrl);
  
-@@ -1402,8 +1432,15 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+@@ -1418,8 +1448,15 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
  
              mWebContents.setImportance(mImportance);
  
@@ -593,7 +593,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
  
              mContentView.addOnAttachStateChangeListener(mAttachStateChangeListener);
              updateInteractableState();
-@@ -1561,6 +1598,10 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+@@ -1577,6 +1614,10 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
              if (mWebContents != null) mWebContents.getNavigationController().loadIfNecessary();
              mIsBeingRestored = true;
              for (TabObserver observer : mObservers) observer.onRestoreStarted(this);
@@ -604,7 +604,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
          } finally {
              TraceEvent.end("Tab.restoreIfNeeded");
          }
-@@ -1697,6 +1738,13 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+@@ -1713,6 +1754,13 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
      }
  
      private @UserAgentOverrideOption int calculateUserAgentOverrideOption(@Nullable GURL url) {
@@ -618,7 +618,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
          WebContents webContents = getWebContents();
          boolean currentRequestDesktopSite = TabUtils.isUsingDesktopUserAgent(webContents);
          @TabUserAgent
-@@ -1757,6 +1805,43 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+@@ -1773,6 +1821,43 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
                  /* forcedByUser */ false, caller);
      }
  
@@ -660,8 +660,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
 +    }
 +
      @NativeMethods
-     interface Natives {
-         TabImpl fromWebContents(WebContents webContents);
+     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
+     public interface Natives {
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabUtils.java b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabUtils.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabUtils.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabUtils.java
