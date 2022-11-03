@@ -218,7 +218,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
      /**
       * Creates an instance of a {@link TabImpl}.
       *
-@@ -759,6 +772,11 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+@@ -775,6 +788,11 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
          for (TabObserver observer : mObservers) observer.onDestroyed(this);
          mObservers.clear();
  
@@ -230,7 +230,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
          mUserDataHost.destroy();
          mTabViewManager.destroy();
          hideNativePage(false, null);
-@@ -1340,6 +1358,16 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+@@ -1356,6 +1374,16 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
          return tabsPtrArray;
      }
  
@@ -247,7 +247,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
      /**
       * Initializes the {@link WebContents}. Completes the browser content components initialization
       * around a native WebContents pointer.
-@@ -1389,6 +1417,27 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+@@ -1405,6 +1433,27 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
                              mDelegateFactory.createContextMenuPopulatorFactory(this), this));
  
              mWebContents.notifyRendererPreferenceUpdate();
@@ -275,11 +275,12 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
              TabHelpers.initWebContentsHelpers(this);
              notifyContentChanged();
          } finally {
-@@ -1725,5 +1774,6 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+@@ -1742,6 +1791,7 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
          void setActiveNavigationEntryTitleForUrl(long nativeTabAndroid, String url, String title);
          void loadOriginalImage(long nativeTabAndroid);
          boolean handleNonNavigationAboutURL(GURL url);
 +        void initializeAutofillIfNecessary(long nativeTabAndroid);
+         void onShow(long nativeTabAndroid);
      }
  }
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabViewAndroidDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabViewAndroidDelegate.java
@@ -331,7 +332,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/android/tab_android.cc b/chrome/browser/android/tab_android.cc
 --- a/chrome/browser/android/tab_android.cc
 +++ b/chrome/browser/android/tab_android.cc
-@@ -69,6 +69,13 @@
+@@ -70,6 +70,13 @@
  #include "url/android/gurl_android.h"
  #include "url/gurl.h"
  
@@ -345,7 +346,7 @@ diff --git a/chrome/browser/android/tab_android.cc b/chrome/browser/android/tab_
  using base::android::AttachCurrentThread;
  using base::android::ConvertUTF8ToJavaString;
  using base::android::JavaParamRef;
-@@ -470,3 +477,19 @@ static void JNI_TabImpl_Init(JNIEnv* env, const JavaParamRef<jobject>& obj) {
+@@ -505,3 +512,19 @@ static void JNI_TabImpl_Init(JNIEnv* env, const JavaParamRef<jobject>& obj) {
    // This will automatically bind to the Java object and pass ownership there.
    new TabAndroid(env, obj);
  }
@@ -368,7 +369,7 @@ diff --git a/chrome/browser/android/tab_android.cc b/chrome/browser/android/tab_
 diff --git a/chrome/browser/android/tab_android.h b/chrome/browser/android/tab_android.h
 --- a/chrome/browser/android/tab_android.h
 +++ b/chrome/browser/android/tab_android.h
-@@ -160,6 +160,8 @@ class TabAndroid : public base::SupportsUserData {
+@@ -162,6 +162,8 @@ class TabAndroid : public base::SupportsUserData {
  
    void SetDevToolsAgentHost(scoped_refptr<content::DevToolsAgentHost> host);
  
