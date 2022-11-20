@@ -19,15 +19,15 @@ ld.lld: error: undefined symbol: notifier::NotifierOptions::NotifierOptions()
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/android/BUILD.gn                       |  20 --
- chrome/android/chrome_java_sources.gni        |  30 ---
+ chrome/android/BUILD.gn                       |  19 --
+ chrome/android/chrome_java_sources.gni        |  29 ---
  .../features/autofill_assistant/BUILD.gn      |   1 -
  .../AssistantAccessTokenUtilChrome.java       |   8 -
  .../AssistantProfileImageUtilChrome.java      |  21 +-
  .../AssistantStaticDependenciesChrome.java    |   6 +-
  chrome/android/features/tab_ui/BUILD.gn       |   1 -
  .../TabSuggestionsServerFetcher.java          |   9 +-
- .../browser/feed/FeedSurfaceCoordinator.java  |  10 +-
+ .../browser/feed/FeedSurfaceCoordinator.java  |   9 +-
  .../browser/feed/FeedSurfaceMediator.java     |  77 +-----
  chrome/android/java/AndroidManifest.xml       |  19 --
  .../res/xml/google_services_preferences.xml   |   5 -
@@ -37,15 +37,15 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../org/chromium/chrome/browser/AppHooks.java |  34 ---
  .../chrome/browser/ChromeBackupAgentImpl.java |   9 +-
  .../chrome/browser/ChromeBackupWatcher.java   |  10 -
- .../chrome/browser/ChromeTabbedActivity.java  |  15 --
+ .../chrome/browser/ChromeTabbedActivity.java  |   9 -
  .../chrome/browser/app/ChromeActivity.java    |  76 ------
  .../AutofillAssistantPreferenceFragment.java  |  17 +-
  .../bookmarks/BookmarkItemsAdapter.java       |  56 +----
  .../bookmarks/BookmarkPromoHeader.java        | 230 +-----------------
- .../ClearBrowsingDataFragment.java            |  77 +-----
+ .../ClearBrowsingDataFragment.java            |  64 +----
  .../ClearBrowsingDataFragmentBasic.java       |  27 +-
  .../contacts_picker/ChromePickerAdapter.java  |  67 +----
- .../browser/customtabs/CustomTabActivity.java |   3 -
+ .../browser/customtabs/CustomTabActivity.java |   6 -
  .../firstrun/FirstRunActivityBase.java        |   1 -
  .../firstrun/LightweightFirstRunActivity.java |   4 +-
  ...FirstRunFragmentWithEnterpriseSupport.java |   6 -
@@ -68,8 +68,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../share/crow/CrowButtonDelegateImpl.java    |   5 +-
  .../survey/ChromeSurveyController.java        |   6 +-
  .../tabbed_mode/TabbedRootUiCoordinator.java  |  19 --
- .../browser/tasks/ReturnToChromeUtil.java     |   9 +-
- chrome/browser/BUILD.gn                       |  11 -
+ .../browser/tasks/ReturnToChromeUtil.java     |   4 -
+ chrome/browser/BUILD.gn                       |   9 -
  ...mobile_identity_consistency_field_trial.cc |  15 +-
  .../price_tracking/PriceTrackingFeatures.java |   9 +-
  .../commerce/subscriptions/android/BUILD.gn   |   1 -
@@ -120,112 +120,106 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ProfileOAuth2TokenServiceDelegate.java    |  52 ----
  .../net/HttpNegotiateAuthenticator.java       |  88 +------
  .../chromoting/base/OAuthTokenFetcher.java    |   2 -
- 101 files changed, 92 insertions(+), 2563 deletions(-)
+ 101 files changed, 91 insertions(+), 2538 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -238,14 +238,12 @@ android_resources("chrome_app_java_resources") {
-     "//chrome/browser/password_check/android:java_resources",
-     "//chrome/browser/password_manager/android:java_resources",
-     "//chrome/browser/search_resumption:java_resources",
--    "//chrome/browser/signin/services/android:java_resources",
-     "//chrome/browser/tab:java_resources",
-     "//chrome/browser/ui/android/appmenu:java_resources",
-     "//chrome/browser/ui/android/favicon:java_resources",
-     "//chrome/browser/ui/android/management:java_resources",
-     "//chrome/browser/ui/android/omnibox:java_resources",
-     "//chrome/browser/ui/android/quickactionsearchwidget:java_resources",
--    "//chrome/browser/ui/android/signin:java_resources",
-     "//chrome/browser/ui/android/strings:ui_strings_grd",
-     "//chrome/browser/ui/android/theme:java_resources",
-     "//chrome/browser/ui/android/toolbar:java_resources",
-@@ -439,8 +437,6 @@ android_library("chrome_java") {
-     "//chrome/browser/settings:java",
-     "//chrome/browser/share:java",
-     "//chrome/browser/share/android:java_resources",
--    "//chrome/browser/signin/services/android:java",
--    "//chrome/browser/sync/android:java",
-     "//chrome/browser/tab:java",
-     "//chrome/browser/tab_group:java",
-     "//chrome/browser/tabmodel:factory_java",
-@@ -464,7 +460,6 @@ android_library("chrome_java") {
-     "//chrome/browser/ui/android/page_info:java",
-     "//chrome/browser/ui/android/quickactionsearchwidget:java",
-     "//chrome/browser/ui/android/searchactivityutils:java",
--    "//chrome/browser/ui/android/signin:java",
-     "//chrome/browser/ui/android/theme:java",
-     "//chrome/browser/ui/android/toolbar:java",
-     "//chrome/browser/ui/messages/android:java",
-@@ -1081,9 +1076,6 @@ robolectric_binary("chrome_junit_tests") {
-     "//chrome/browser/search_resumption:junit",
-     "//chrome/browser/segmentation_platform:factory_java",
-     "//chrome/browser/share:java",
--    "//chrome/browser/signin/services/android:java",
--    "//chrome/browser/signin/services/android:junit",
--    "//chrome/browser/sync/android:java",
-     "//chrome/browser/tab:java",
-     "//chrome/browser/tab:junit",
-     "//chrome/browser/tab_group:java",
-@@ -1115,8 +1107,6 @@ robolectric_binary("chrome_junit_tests") {
-     "//chrome/browser/ui/android/omnibox:junit",
-     "//chrome/browser/ui/android/quickactionsearchwidget:java",
-     "//chrome/browser/ui/android/searchactivityutils:java",
--    "//chrome/browser/ui/android/signin:java",
--    "//chrome/browser/ui/android/signin:junit",
-     "//chrome/browser/ui/android/theme:java",
-     "//chrome/browser/ui/android/toolbar:java",
-     "//chrome/browser/ui/android/toolbar:junit",
-@@ -1631,9 +1621,6 @@ android_library("chrome_test_java") {
-     "//chrome/browser/settings:test_support_java",
-     "//chrome/browser/share:java",
-     "//chrome/browser/share/android:java_resources",
--    "//chrome/browser/signin/services/android:java",
--    "//chrome/browser/sync/android:java",
--    "//chrome/browser/sync/test/android:test_support_java",
-     "//chrome/browser/tab:critical_persisted_tab_data_flatbuffer_java",
-     "//chrome/browser/tab:critical_persisted_tab_data_proto_java",
-     "//chrome/browser/tab:java",
-@@ -1659,8 +1646,6 @@ android_library("chrome_test_java") {
-     "//chrome/browser/ui/android/quickactionsearchwidget:java",
-     "//chrome/browser/ui/android/quickactionsearchwidget:javatests",
-     "//chrome/browser/ui/android/searchactivityutils:java",
--    "//chrome/browser/ui/android/signin:java",
--    "//chrome/browser/ui/android/signin:javatests",
-     "//chrome/browser/ui/android/theme:java",
-     "//chrome/browser/ui/android/toolbar:java",
-     "//chrome/browser/ui/messages/android:java",
-@@ -2609,7 +2594,6 @@ android_library("browser_java_test_support") {
-     "//chrome/browser/download/android:java",
-     "//chrome/browser/prefetch/android:java",
-     "//chrome/browser/profiles/android:java",
--    "//chrome/browser/sync/android:java",
-     "//chrome/browser/tab:java",
-     "//components/offline_items_collection/core:core_java",
-     "//components/sync/protocol:protocol_java",
-@@ -3296,13 +3280,11 @@ chrome_test_apk_tmpl("chrome_public_unit_test_apk") {
-     "//chrome/browser/optimization_guide/android:unit_device_javatests",
-     "//chrome/browser/partnercustomizations:unit_device_javatests",
-     "//chrome/browser/password_edit_dialog/android:unit_device_javatests",
--    "//chrome/browser/signin/services/android:unit_device_javatests",
-     "//chrome/browser/thumbnail/generator:unit_device_javatests",
-     "//chrome/browser/ui/android/appmenu/internal:unit_device_javatests",
-     "//chrome/browser/ui/android/night_mode:unit_device_javatests",
-     "//chrome/browser/ui/android/omnibox:unit_device_javatests",
-     "//chrome/browser/ui/android/searchactivityutils:unit_device_javatests",
--    "//chrome/browser/ui/android/signin:unit_device_javatests",
-     "//chrome/browser/ui/messages/android:unit_device_javatests",
-     "//chrome/browser/user_education:unit_device_javatests",
-     "//chrome/browser/video_tutorials/internal:unit_device_javatests",
-@@ -4179,7 +4161,6 @@ generate_jni("chrome_jni_headers") {
-     "java/src/org/chromium/chrome/browser/infobar/SafetyTipInfoBar.java",
-     "java/src/org/chromium/chrome/browser/infobar/SavePasswordInfoBar.java",
-     "java/src/org/chromium/chrome/browser/infobar/SurveyInfoBar.java",
--    "java/src/org/chromium/chrome/browser/infobar/SyncErrorInfoBar.java",
-     "java/src/org/chromium/chrome/browser/infobar/TranslateCompactInfoBar.java",
-     "java/src/org/chromium/chrome/browser/infobar/UpdatePasswordInfoBar.java",
-     "java/src/org/chromium/chrome/browser/init/NativeStartupBridge.java",
-@@ -4257,7 +4238,6 @@ generate_jni("chrome_jni_headers") {
+@@ -265,14 +265,12 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/password_check/android:java_resources",
+       "//chrome/browser/password_manager/android:java_resources",
+       "//chrome/browser/search_resumption:java_resources",
+-      "//chrome/browser/signin/services/android:java_resources",
+       "//chrome/browser/tab:java_resources",
+       "//chrome/browser/ui/android/appmenu:java_resources",
+       "//chrome/browser/ui/android/favicon:java_resources",
+       "//chrome/browser/ui/android/management:java_resources",
+       "//chrome/browser/ui/android/omnibox:java_resources",
+       "//chrome/browser/ui/android/quickactionsearchwidget:java_resources",
+-      "//chrome/browser/ui/android/signin:java_resources",
+       "//chrome/browser/ui/android/strings:ui_strings_grd",
+       "//chrome/browser/ui/android/theme:java_resources",
+       "//chrome/browser/ui/android/toolbar:java_resources",
+@@ -466,8 +464,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/settings:java",
+       "//chrome/browser/share:java",
+       "//chrome/browser/share/android:java_resources",
+-      "//chrome/browser/signin/services/android:java",
+-      "//chrome/browser/sync/android:java",
+       "//chrome/browser/tab:java",
+       "//chrome/browser/tab_group:java",
+       "//chrome/browser/tabmodel:factory_java",
+@@ -491,7 +487,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/ui/android/page_info:java",
+       "//chrome/browser/ui/android/quickactionsearchwidget:java",
+       "//chrome/browser/ui/android/searchactivityutils:java",
+-      "//chrome/browser/ui/android/signin:java",
+       "//chrome/browser/ui/android/theme:java",
+       "//chrome/browser/ui/android/toolbar:java",
+       "//chrome/browser/ui/messages/android:java",
+@@ -1065,9 +1060,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/search_resumption:junit",
+       "//chrome/browser/segmentation_platform:factory_java",
+       "//chrome/browser/share:java",
+-      "//chrome/browser/signin/services/android:java",
+-      "//chrome/browser/signin/services/android:junit",
+-      "//chrome/browser/sync/android:java",
+       "//chrome/browser/tab:java",
+       "//chrome/browser/tab:junit",
+       "//chrome/browser/tab_group:java",
+@@ -1099,8 +1091,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/ui/android/omnibox:junit",
+       "//chrome/browser/ui/android/quickactionsearchwidget:java",
+       "//chrome/browser/ui/android/searchactivityutils:java",
+-      "//chrome/browser/ui/android/signin:java",
+-      "//chrome/browser/ui/android/signin:junit",
+       "//chrome/browser/ui/android/theme:java",
+       "//chrome/browser/ui/android/toolbar:java",
+       "//chrome/browser/ui/android/toolbar:junit",
+@@ -1608,11 +1598,8 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/settings:test_support_java",
+       "//chrome/browser/share:java",
+       "//chrome/browser/share/android:java_resources",
+-      "//chrome/browser/signin/services/android:java",
+       "//chrome/browser/supervised_user:javatests",
+       "//chrome/browser/supervised_user:test_support_java",
+-      "//chrome/browser/sync/android:java",
+-      "//chrome/browser/sync/test/android:test_support_java",
+       "//chrome/browser/tab:critical_persisted_tab_data_flatbuffer_java",
+       "//chrome/browser/tab:critical_persisted_tab_data_proto_java",
+       "//chrome/browser/tab:java",
+@@ -1638,8 +1625,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/ui/android/quickactionsearchwidget:java",
+       "//chrome/browser/ui/android/quickactionsearchwidget:javatests",
+       "//chrome/browser/ui/android/searchactivityutils:java",
+-      "//chrome/browser/ui/android/signin:java",
+-      "//chrome/browser/ui/android/signin:javatests",
+       "//chrome/browser/ui/android/theme:java",
+       "//chrome/browser/ui/android/toolbar:java",
+       "//chrome/browser/ui/messages/android:java",
+@@ -2451,7 +2436,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/download/android:java",
+       "//chrome/browser/prefetch/android:java",
+       "//chrome/browser/profiles/android:java",
+-      "//chrome/browser/sync/android:java",
+       "//chrome/browser/tab:java",
+       "//components/offline_items_collection/core:core_java",
+       "//components/sync/protocol:protocol_java",
+@@ -3157,13 +3141,11 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/optimization_guide/android:unit_device_javatests",
+       "//chrome/browser/partnercustomizations:unit_device_javatests",
+       "//chrome/browser/password_edit_dialog/android:unit_device_javatests",
+-      "//chrome/browser/signin/services/android:unit_device_javatests",
+       "//chrome/browser/thumbnail/generator:unit_device_javatests",
+       "//chrome/browser/ui/android/appmenu/internal:unit_device_javatests",
+       "//chrome/browser/ui/android/night_mode:unit_device_javatests",
+       "//chrome/browser/ui/android/omnibox:unit_device_javatests",
+       "//chrome/browser/ui/android/searchactivityutils:unit_device_javatests",
+-      "//chrome/browser/ui/android/signin:unit_device_javatests",
+       "//chrome/browser/ui/messages/android:unit_device_javatests",
+       "//chrome/browser/user_education:unit_device_javatests",
+       "//chrome/browser/video_tutorials/internal:unit_device_javatests",
+@@ -4138,7 +4120,6 @@ generate_jni("chrome_jni_headers") {
      "java/src/org/chromium/chrome/browser/sharing/shared_clipboard/SharedClipboardMessageHandler.java",
      "java/src/org/chromium/chrome/browser/sharing/sms_fetcher/SmsFetcherMessageHandler.java",
      "java/src/org/chromium/chrome/browser/signin/SigninBridge.java",
@@ -236,7 +230,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -602,14 +602,11 @@ chrome_java_sources = [
+@@ -604,14 +604,11 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/firstrun/FirstRunPage.java",
    "java/src/org/chromium/chrome/browser/firstrun/FirstRunPageDelegate.java",
    "java/src/org/chromium/chrome/browser/firstrun/FirstRunPagerAdapter.java",
@@ -251,15 +245,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/firstrun/TabbedModeFirstRunActivity.java",
    "java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java",
    "java/src/org/chromium/chrome/browser/firstrun/TosAndUmaFirstRunFragmentWithEnterpriseSupport.java",
-@@ -700,7 +697,6 @@ chrome_java_sources = [
-   "java/src/org/chromium/chrome/browser/infobar/SubPanelListener.java",
-   "java/src/org/chromium/chrome/browser/infobar/SurveyInfoBar.java",
-   "java/src/org/chromium/chrome/browser/infobar/SurveyInfoBarDelegate.java",
--  "java/src/org/chromium/chrome/browser/infobar/SyncErrorInfoBar.java",
-   "java/src/org/chromium/chrome/browser/infobar/TextViewEllipsizerSafe.java",
-   "java/src/org/chromium/chrome/browser/infobar/TranslateCompactInfoBar.java",
-   "java/src/org/chromium/chrome/browser/infobar/UpdatePasswordInfoBar.java",
-@@ -814,7 +810,6 @@ chrome_java_sources = [
+@@ -815,7 +812,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/ntp/RevampedIncognitoDescriptionView.java",
    "java/src/org/chromium/chrome/browser/ntp/SnapScrollHelperImpl.java",
    "java/src/org/chromium/chrome/browser/ntp/TitleUtil.java",
@@ -267,7 +253,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/ntp/search/SearchBoxContainerView.java",
    "java/src/org/chromium/chrome/browser/ntp/search/SearchBoxCoordinator.java",
    "java/src/org/chromium/chrome/browser/ntp/search/SearchBoxMediator.java",
-@@ -1018,14 +1013,6 @@ chrome_java_sources = [
+@@ -1023,14 +1019,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/sharing/click_to_call/ClickToCallUma.java",
    "java/src/org/chromium/chrome/browser/sharing/shared_clipboard/SharedClipboardMessageHandler.java",
    "java/src/org/chromium/chrome/browser/sharing/sms_fetcher/SmsFetcherMessageHandler.java",
@@ -282,7 +268,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java",
    "java/src/org/chromium/chrome/browser/site_settings/CookieControlsServiceBridge.java",
    "java/src/org/chromium/chrome/browser/site_settings/ManageSpaceActivity.java",
-@@ -1066,23 +1053,6 @@ chrome_java_sources = [
+@@ -1071,23 +1059,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/survey/ChromeSurveyController.java",
    "java/src/org/chromium/chrome/browser/survey/SurveyController.java",
    "java/src/org/chromium/chrome/browser/survey/SurveyHttpClientBridge.java",
@@ -309,7 +295,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
 diff --git a/chrome/android/features/autofill_assistant/BUILD.gn b/chrome/android/features/autofill_assistant/BUILD.gn
 --- a/chrome/android/features/autofill_assistant/BUILD.gn
 +++ b/chrome/android/features/autofill_assistant/BUILD.gn
-@@ -141,7 +141,6 @@ android_library("test_java") {
+@@ -146,7 +146,6 @@ android_library("test_java") {
      "//chrome/browser/password_manager/android:java",
      "//chrome/browser/preferences:java",
      "//chrome/browser/profiles/android:java",
@@ -425,7 +411,7 @@ diff --git a/chrome/android/features/autofill_assistant/public/java/src/org/chro
 diff --git a/chrome/android/features/tab_ui/BUILD.gn b/chrome/android/features/tab_ui/BUILD.gn
 --- a/chrome/android/features/tab_ui/BUILD.gn
 +++ b/chrome/android/features/tab_ui/BUILD.gn
-@@ -201,7 +201,6 @@ android_library("java") {
+@@ -205,7 +205,6 @@ android_library("java") {
      "//chrome/browser/profiles/android:java",
      "//chrome/browser/search_engines/android:java",
      "//chrome/browser/share:java",
@@ -467,22 +453,21 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceCoordinator.java b/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceCoordinator.java
 --- a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceCoordinator.java
 +++ b/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceCoordinator.java
-@@ -733,13 +733,7 @@ public class FeedSurfaceCoordinator
+@@ -734,12 +734,7 @@ public class FeedSurfaceCoordinator
  
      /** @return The {@link View} for this class. */
      View getSigninPromoView() {
 -        if (mSigninPromoView == null) {
 -            LayoutInflater inflater = LayoutInflater.from(mRootView.getContext());
 -            mSigninPromoView = inflater.inflate(
--                    R.layout.personalized_signin_promo_view_modern_content_suggestions, mRootView,
--                    false);
+-                    R.layout.sync_promo_view_content_suggestions, mRootView, false);
 -        }
 -        return mSigninPromoView;
 +        return null;
      }
  
      /**
-@@ -867,7 +861,7 @@ public class FeedSurfaceCoordinator
+@@ -867,7 +862,7 @@ public class FeedSurfaceCoordinator
  
      @Override
      public boolean isSignedIn() {
@@ -494,7 +479,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
 diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java b/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java
 --- a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java
 +++ b/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/FeedSurfaceMediator.java
-@@ -34,17 +34,12 @@ import org.chromium.chrome.browser.feed.sort_ui.FeedOptionsCoordinator;
+@@ -36,17 +36,12 @@ import org.chromium.chrome.browser.feed.v2.ContentOrder;
  import org.chromium.chrome.browser.feed.v2.FeedUserActionType;
  import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.ntp.NewTabPageLaunchOrigin;
@@ -511,8 +496,8 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
 -import org.chromium.chrome.browser.ui.signin.SyncPromoController;
  import org.chromium.chrome.browser.xsurface.FeedLaunchReliabilityLogger;
  import org.chromium.chrome.browser.xsurface.FeedLaunchReliabilityLogger.StreamType;
- import org.chromium.components.browser_ui.widget.listmenu.ListMenu;
-@@ -132,7 +127,6 @@ public class FeedSurfaceMediator
+ import org.chromium.chrome.browser.xsurface.ListLayoutHelper;
+@@ -119,7 +114,6 @@ public class FeedSurfaceMediator
      /**
       * The {@link SignInPromo} for the Feed.
       * TODO(huayinz): Update content and visibility through a ModelChangeProcessor.
@@ -520,7 +505,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
      private class FeedSignInPromo extends SignInPromo {
          FeedSignInPromo(SigninManager signinManager) {
              super(signinManager);
-@@ -153,7 +147,7 @@ public class FeedSurfaceMediator
+@@ -140,7 +134,7 @@ public class FeedSurfaceMediator
              maybeUpdateSignInPromo();
          }
  
@@ -529,16 +514,16 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
          private void maybeUpdateSignInPromo() {
              // Only call #setupPromoViewFromCache() if SignInPromo is visible to avoid potentially
              // blocking the UI thread for several seconds if the accounts cache is not populated
-@@ -171,7 +165,7 @@ public class FeedSurfaceMediator
-             super.onDismissPromo();
-             mCoordinator.updateHeaderViews(false);
+@@ -173,7 +167,7 @@ public class FeedSurfaceMediator
+                 FeedSurfaceMediator.this.switchToStream(headerIndex);
+             }
          }
 -    }
 +    } */
  
      @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
      public static void setPrefForTest(
-@@ -187,7 +181,6 @@ public class FeedSurfaceMediator
+@@ -192,7 +186,6 @@ public class FeedSurfaceMediator
      private final Context mContext;
      private final @Nullable SnapScrollHelper mSnapScrollHelper;
      private final PrefChangeRegistrar mPrefChangeRegistrar;
@@ -546,7 +531,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
      private final PropertyModel mSectionHeaderModel;
      private final FeedActionDelegate mActionDelegate;
      private final FeedOptionsCoordinator mOptionsCoordinator;
-@@ -197,7 +190,6 @@ public class FeedSurfaceMediator
+@@ -202,7 +195,6 @@ public class FeedSurfaceMediator
      private HasContentListener mHasContentListener;
      private ContentChangedListener mStreamContentChangedListener;
      private MemoryPressureCallback mMemoryPressureCallback;
@@ -554,7 +539,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
      private RecyclerViewAnimationFinishDetector mRecyclerViewAnimationFinishDetector =
              new RecyclerViewAnimationFinishDetector();
  
-@@ -239,8 +231,6 @@ public class FeedSurfaceMediator
+@@ -244,8 +236,6 @@ public class FeedSurfaceMediator
          mHasContentListener = coordinator;
          mContext = context;
          mSnapScrollHelper = snapScrollHelper;
@@ -562,8 +547,8 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
 -                Profile.getLastUsedRegularProfile());
          mActionDelegate = actionDelegate;
          mOptionsCoordinator = optionsCoordinator;
- 
-@@ -396,7 +386,6 @@ public class FeedSurfaceMediator
+         mOptionsCoordinator.setOptionsListener(this);
+@@ -458,7 +448,6 @@ public class FeedSurfaceMediator
          mFeedMenuModel = buildMenuItems();
  
          mCoordinator.initializeBubbleTriggering();
@@ -571,7 +556,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
  
          mSectionHeaderModel.set(SectionHeaderListProperties.MENU_MODEL_LIST_KEY, mFeedMenuModel);
          mSectionHeaderModel.set(
-@@ -437,8 +426,6 @@ public class FeedSurfaceMediator
+@@ -499,8 +488,6 @@ public class FeedSurfaceMediator
          };
          mCoordinator.getRecyclerView().addOnScrollListener(mStreamScrollListener);
  
@@ -580,7 +565,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
          mMemoryPressureCallback =
                  pressure -> mCoordinator.getRecyclerView().getRecycledViewPool().clear();
          MemoryPressureListener.addCallback(mMemoryPressureCallback);
-@@ -627,27 +614,12 @@ public class FeedSurfaceMediator
+@@ -707,27 +694,12 @@ public class FeedSurfaceMediator
          }
      }
  
@@ -609,7 +594,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
      }
  
      /** Clear any dependencies related to the {@link Stream}. */
-@@ -662,11 +634,6 @@ public class FeedSurfaceMediator
+@@ -742,11 +714,6 @@ public class FeedSurfaceMediator
          MemoryPressureListener.removeCallback(mMemoryPressureCallback);
          mMemoryPressureCallback = null;
  
@@ -621,7 +606,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
          unbindStream();
          for (Stream s : mTabToStreamMap.values()) {
              s.removeOnContentChangedListener(mStreamContentChangedListener);
-@@ -677,7 +644,6 @@ public class FeedSurfaceMediator
+@@ -757,7 +724,6 @@ public class FeedSurfaceMediator
  
          mPrefChangeRegistrar.removeObserver(Pref.ARTICLES_LIST_VISIBLE);
          TemplateUrlServiceFactory.get().removeObserver(this);
@@ -629,7 +614,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
  
          mSectionHeaderModel.get(SectionHeaderListProperties.SECTION_HEADERS_KEY).clear();
  
-@@ -748,9 +714,6 @@ public class FeedSurfaceMediator
+@@ -828,9 +794,6 @@ public class FeedSurfaceMediator
          // Update toggleswitch item, which is last item in list.
          mSectionHeaderModel.set(SectionHeaderListProperties.MENU_MODEL_LIST_KEY, buildMenuItems());
  
@@ -639,7 +624,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
          if (suggestionsVisible) mCoordinator.getSurfaceLifecycleManager().show();
          mStreamContentChanged = true;
  
-@@ -828,35 +791,6 @@ public class FeedSurfaceMediator
+@@ -908,35 +871,6 @@ public class FeedSurfaceMediator
  
      private ModelList buildMenuItems() {
          ModelList itemList = new ModelList();
@@ -675,7 +660,7 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
          return itemList;
      }
  
-@@ -1044,11 +978,6 @@ public class FeedSurfaceMediator
+@@ -1122,11 +1056,6 @@ public class FeedSurfaceMediator
          updateSectionHeader();
      }
  
@@ -717,7 +702,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
      {% block extra_uses_permissions %}
      {% endblock %}
  
-@@ -532,15 +527,6 @@ by a child template that "extends" this file.
+@@ -536,15 +531,6 @@ by a child template that "extends" this file.
              TODO(crbug.com/1093292): investigate why
              @android:style/Theme.NoDisplay can't be used here.
          -->
@@ -733,7 +718,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <activity android:name="org.chromium.chrome.browser.firstrun.LightweightFirstRunActivity"
              android:theme="@style/Theme.BrowserUI.AlertDialog.NoActionBar"
              android:launchMode="singleInstance"
-@@ -573,11 +559,6 @@ by a child template that "extends" this file.
+@@ -577,11 +563,6 @@ by a child template that "extends" this file.
              {{ self.supports_vr() }}
          </activity>
          {% endif %}
@@ -969,7 +954,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeBackupWat
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-@@ -89,7 +89,6 @@ import org.chromium.chrome.browser.download.DownloadUtils;
+@@ -90,7 +90,6 @@ import org.chromium.chrome.browser.download.DownloadUtils;
  import org.chromium.chrome.browser.feature_engagement.TrackerFactory;
  import org.chromium.chrome.browser.feature_guide.notifications.FeatureNotificationUtils;
  import org.chromium.chrome.browser.feed.FeedSurfaceTracker;
@@ -977,44 +962,31 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
  import org.chromium.chrome.browser.flags.ActivityType;
  import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.flags.ChromeSwitches;
-@@ -103,7 +102,6 @@ import org.chromium.chrome.browser.incognito.IncognitoStartup;
- import org.chromium.chrome.browser.incognito.IncognitoTabLauncher;
- import org.chromium.chrome.browser.incognito.IncognitoTabbedSnapshotController;
- import org.chromium.chrome.browser.incognito.IncognitoUtils;
--import org.chromium.chrome.browser.infobar.SyncErrorInfoBar;
- import org.chromium.chrome.browser.layouts.LayoutStateProvider;
- import org.chromium.chrome.browser.layouts.LayoutType;
- import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
-@@ -141,8 +139,6 @@ import org.chromium.chrome.browser.share.crow.CrowButtonDelegateImpl;
+@@ -141,7 +140,6 @@ import org.chromium.chrome.browser.share.crow.CrowButtonDelegateImpl;
  import org.chromium.chrome.browser.share.send_tab_to_self.SendTabToSelfAndroidBridge;
  import org.chromium.chrome.browser.suggestions.SuggestionsMetrics;
  import org.chromium.chrome.browser.survey.ChromeSurveyController;
 -import org.chromium.chrome.browser.sync.ui.SyncErrorMessage;
--import org.chromium.chrome.browser.sync.ui.SyncErrorPromptUtils;
  import org.chromium.chrome.browser.tab.RedirectHandlerTabHelper;
  import org.chromium.chrome.browser.tab.Tab;
  import org.chromium.chrome.browser.tab.TabAssociatedApp;
-@@ -691,9 +687,6 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -687,10 +685,6 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
      }
  
      private void refreshSignIn() {
 -        try (TraceEvent e = TraceEvent.scoped("ChromeTabbedActivity.refreshSignIn")) {
--            FirstRunSignInProcessor.start(this);
+-            FirstRunSignInProcessor.openSyncSettingsIfScheduled(this);
+-            BackupSigninProcessor.start(this);
 -        }
      }
  
      private void setupCompositorContentPreNativeForPhone() {
-@@ -1940,14 +1933,6 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -1944,9 +1938,6 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                      Tab tab, NavigationHandle navigation) {
                  if (!navigation.hasCommitted()) return;
  
 -                try (TraceEvent e = TraceEvent.scoped("CheckSyncErrorOnDidFinishNavigation")) {
--                    if (SyncErrorPromptUtils.isMessageUiEnabled()) {
--                        SyncErrorMessage.maybeShowMessageUi(
--                                getWindowAndroid(), ChromeTabbedActivity.this);
--                    } else {
--                        SyncErrorInfoBar.maybeLaunchSyncErrorInfoBar(tab.getWebContents());
--                    }
+-                    SyncErrorMessage.maybeShowMessageUi(getWindowAndroid());
 -                }
                  try (TraceEvent te = TraceEvent.scoped("updateActiveWebContents")) {
                      SendTabToSelfAndroidBridge.updateActiveWebContents(tab.getWebContents());
@@ -1038,16 +1010,16 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  import org.chromium.chrome.browser.tab.AccessibilityVisibilityHandler;
  import org.chromium.chrome.browser.tab.RequestDesktopUtils;
  import org.chromium.chrome.browser.tab.Tab;
-@@ -219,8 +217,6 @@ import org.chromium.components.page_info.PageInfoController.OpenedFromSource;
- import org.chromium.components.policy.CombinedPolicyProvider;
+@@ -220,8 +218,6 @@ import org.chromium.components.policy.CombinedPolicyProvider;
  import org.chromium.components.policy.CombinedPolicyProvider.PolicyChangeListener;
+ import org.chromium.components.prefs.PrefService;
  import org.chromium.components.profile_metrics.BrowserProfileType;
 -import org.chromium.components.sync.ModelType;
 -import org.chromium.components.sync.PassphraseType;
  import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.components.webapk.lib.client.WebApkValidator;
  import org.chromium.components.webapps.AddToHomescreenCoordinator;
-@@ -317,9 +313,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -318,9 +314,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
      private boolean mRemoveWindowBackgroundDone;
      protected AccessibilityVisibilityHandler mAccessibilityVisibilityHandler;
  
@@ -1057,7 +1029,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
      // The FullscreenVideoPictureInPictureController is initialized lazily https://crbug.com/729738.
      private FullscreenVideoPictureInPictureController mFullscreenVideoPictureInPictureController;
  
-@@ -1065,61 +1058,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -1061,61 +1054,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
          return StatusBarColorController.UNDEFINED_STATUS_BAR_COLOR;
      }
  
@@ -1119,7 +1091,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
      @Override
      public void onResumeWithNative() {
          // TODO(b/182286787): Clean-up once fixed session resume order is verified.
-@@ -1254,14 +1192,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -1250,14 +1188,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
          if (GSAState.getInstance(this).isGsaAvailable() && !SysUtils.isLowEndDevice()) {
              if (mGSAAccountChangeListener != null) mGSAAccountChangeListener.disconnect();
          }
@@ -1134,7 +1106,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  
          super.onStopWithNative();
      }
-@@ -1354,11 +1284,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -1350,11 +1280,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
                      .recordUserFontPrefOnStartup();
          });
  
@@ -1146,7 +1118,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
          // GSA connection is not needed on low-end devices because Icing is disabled.
          if (!SysUtils.isLowEndDevice()) {
              if (isActivityFinishingOrDestroyed()) return;
-@@ -1373,7 +1298,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -1369,7 +1294,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
                              GSAAccountChangeListener.create(AppHooks.get().createGsaHelper());
                  }
                  mGSAAccountChangeListener.connect();
@@ -1157,16 +1129,16 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantPreferenceFragment.java b/chrome/android/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantPreferenceFragment.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantPreferenceFragment.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantPreferenceFragment.java
-@@ -18,8 +18,6 @@ import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
- import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
+@@ -20,8 +20,6 @@ import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
  import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.browser.settings.ChromeManagedPreferenceDelegate;
  import org.chromium.chrome.browser.settings.SettingsLauncherImpl;
 -import org.chromium.chrome.browser.signin.services.UnifiedConsentServiceBridge;
 -import org.chromium.chrome.browser.sync.settings.GoogleServicesSettings;
  import org.chromium.components.autofill_assistant.AssistantFeatures;
- import org.chromium.components.autofill_assistant.AutofillAssistantPreferencesUtil;
  import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
-@@ -53,7 +51,6 @@ public class AutofillAssistantPreferenceFragment extends PreferenceFragmentCompa
+ import org.chromium.components.browser_ui.settings.ManagedPreferenceDelegate;
+@@ -64,7 +62,6 @@ public class AutofillAssistantPreferenceFragment
      private ChromeSwitchPreference mAutofillAssistantPreference;
      private ChromeSwitchPreference mProactiveHelpPreference;
      private ChromeSwitchPreference mAssistantVoiceSearchEnabledPref;
@@ -1174,7 +1146,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/autofill_assist
  
      @Override
      public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-@@ -89,15 +86,6 @@ public class AutofillAssistantPreferenceFragment extends PreferenceFragmentCompa
+@@ -94,15 +91,6 @@ public class AutofillAssistantPreferenceFragment
              mProactiveHelpPreference.setVisible(false);
          }
  
@@ -1190,7 +1162,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/autofill_assist
          PreferenceCategory assistantVoiceSearchCategory =
                  findPreference(PREF_ASSISTANT_VOICE_SEARCH_CATEGORY);
          mAssistantVoiceSearchEnabledPref =
-@@ -146,9 +134,7 @@ public class AutofillAssistantPreferenceFragment extends PreferenceFragmentCompa
+@@ -178,9 +166,7 @@ public class AutofillAssistantPreferenceFragment
  
          boolean assistant_switch_on_or_missing =
                  !mAutofillAssistantPreference.isVisible() || autofill_assistant_enabled;
@@ -1200,8 +1172,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/autofill_assist
 +        boolean url_keyed_anonymized_data_collection_enabled = false;
  
          boolean proactive_help_on =
-                 AutofillAssistantPreferencesUtil.getProactiveHelpPreference(true);
-@@ -164,7 +150,6 @@ public class AutofillAssistantPreferenceFragment extends PreferenceFragmentCompa
+                 mPrefService.getBoolean(Pref.AUTOFILL_ASSISTANT_TRIGGER_SCRIPTS_ENABLED);
+@@ -196,7 +182,6 @@ public class AutofillAssistantPreferenceFragment
          }
          mProactiveHelpPreference.setEnabled(proactive_toggle_enabled);
          mProactiveHelpPreference.setChecked(proactive_toggle_enabled && proactive_help_on);
@@ -1212,7 +1184,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/autofill_assist
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkItemsAdapter.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkItemsAdapter.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkItemsAdapter.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkItemsAdapter.java
-@@ -30,10 +30,7 @@ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+@@ -28,10 +28,7 @@ import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.subscriptions.CommerceSubscriptionsServiceFactory;
  import org.chromium.chrome.browser.subscriptions.SubscriptionsManager;
@@ -1221,9 +1193,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 -import org.chromium.chrome.browser.ui.signin.PersonalizedSigninPromoView;
 -import org.chromium.chrome.browser.ui.signin.SyncPromoController.SyncPromoState;
  import org.chromium.components.bookmarks.BookmarkId;
+ import org.chromium.components.bookmarks.BookmarkItem;
  import org.chromium.components.bookmarks.BookmarkType;
- import org.chromium.components.browser_ui.util.GlobalDiscardableReferencePool;
-@@ -54,7 +51,7 @@ import java.util.List;
+@@ -53,7 +50,7 @@ import java.util.List;
   * BaseAdapter for {@link RecyclerView}. It manages bookmarks to list there.
   */
  public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkListEntry>
@@ -1232,7 +1204,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      private static final int MAXIMUM_NUMBER_OF_SEARCH_RESULTS = 500;
      private static final String EMPTY_QUERY = null;
  
-@@ -67,10 +64,8 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -66,10 +63,8 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
      @ViewType
      private int mPromoHeaderType = ViewType.INVALID;
      private BookmarkDelegate mDelegate;
@@ -1243,7 +1215,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      private CommerceSubscriptionsServiceFactory mCommerceSubscriptionsServiceFactory;
  
      // Keep track of the currently highlighted bookmark - used for "show in folder" action.
-@@ -126,8 +121,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -125,8 +120,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
  
      BookmarkItemsAdapter(Context context, SnackbarManager snackbarManager) {
          super(context);
@@ -1252,7 +1224,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  
          mImageFetcher =
                  ImageFetcherFactory.createImageFetcher(ImageFetcherConfig.IN_MEMORY_WITH_DISK_CACHE,
-@@ -172,11 +165,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -171,11 +164,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
          clearHighlight();
          mElements.clear();
  
@@ -1264,7 +1236,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          updateHeader(false);
          if (BookmarkId.SHOPPING_FOLDER.equals(mCurrentFolder)) {
              filterForPriceTrackingCategory(bookmarks);
-@@ -241,9 +229,9 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -240,9 +228,9 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
              case ViewType.PERSONALIZED_SIGNIN_PROMO:
                  // fall through
              case ViewType.PERSONALIZED_SYNC_PROMO:
@@ -1276,7 +1248,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
              case ViewType.SECTION_HEADER:
                  return createSectionHeaderViewHolder(parent, viewType);
              case ViewType.FOLDER:
-@@ -279,10 +267,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -278,10 +266,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
      public void onBindViewHolder(ViewHolder holder, int position) {
          if (holder.getItemViewType() == ViewType.PERSONALIZED_SIGNIN_PROMO
                  || holder.getItemViewType() == ViewType.PERSONALIZED_SYNC_PROMO) {
@@ -1287,7 +1259,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          } else if (holder.getItemViewType() == ViewType.SECTION_HEADER) {
              bindSectionHeaderViewHolder(holder.itemView, getItemByPosition(position));
          } else if (BookmarkListEntry.isBookmarkEntry(holder.getItemViewType())) {
-@@ -339,7 +323,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -338,7 +322,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
              case ViewType.PERSONALIZED_SIGNIN_PROMO:
                  // fall through
              case ViewType.PERSONALIZED_SYNC_PROMO:
@@ -1295,7 +1267,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
                  break;
              default:
                  // Other view holders don't have special recycling code.
-@@ -362,7 +345,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -361,7 +344,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
              updateHeader(true);
          };
  
@@ -1303,7 +1275,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          populateTopLevelFoldersList();
  
          mElements = new ArrayList<>();
-@@ -377,8 +359,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -376,8 +358,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
          mDelegate.getModel().removeObserver(mBookmarkModelObserver);
          mDelegate.getSelectionDelegate().removeObserver(this);
          mDelegate = null;
@@ -1312,7 +1284,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      }
  
      @Override
-@@ -473,18 +453,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -472,18 +452,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
          setOrder(mElements);
      }
  
@@ -1331,7 +1303,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * Updates mPromoHeaderType. Makes sure that the 0th index of mElements is consistent with the
       * promo header. This 0th index is null iff there is a promo header.
-@@ -505,29 +473,12 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -504,29 +472,12 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
          } else if (currentUIState == BookmarkUIState.STATE_SEARCHING) {
              mPromoHeaderType = ViewType.INVALID;
          } else {
@@ -1361,7 +1333,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
              if (shouldNotify) notifyItemInserted(0);
          } else if (wasShowingPromo && willShowPromo) {
              if (shouldNotify) notifyItemChanged(0);
-@@ -642,7 +593,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+@@ -641,7 +592,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
  
      @VisibleForTesting
      public void simulateSignInForTests() {
@@ -1477,7 +1449,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 -     */
 -    ViewHolder createPersonalizedSigninAndSyncPromoHolder(ViewGroup parent) {
 -        View view = LayoutInflater.from(mContext).inflate(
--                R.layout.personalized_signin_promo_view_bookmarks, parent, false);
+-                R.layout.sync_promo_view_bookmarks, parent, false);
 -
 -        // ViewHolder is abstract and it cannot be instantiated directly.
 -        return new ViewHolder(view) {};
@@ -1648,33 +1620,13 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
  public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
          implements BrowsingDataBridge.OnClearBrowsingDataListener,
 -                   Preference.OnPreferenceClickListener, Preference.OnPreferenceChangeListener,
--                   SignOutDialogCoordinator.Listener {
-+                   Preference.OnPreferenceClickListener, Preference.OnPreferenceChangeListener {
+-                   SignOutDialogCoordinator.Listener, SigninManager.SignInStateObserver {
++                   Preference.OnPreferenceClickListener, Preference.OnPreferenceChangeListener, SigninManager.SignInStateObserver {
      private static final String CLEAR_DATA_PROGRESS_DIALOG_TAG = "clear_data_progress";
  
      /**
-@@ -587,19 +579,7 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
-         spinner.setOnPreferenceChangeListener(this);
- 
-         // Text for sign-out option.
--        if (ChromeFeatureList.isEnabled(ChromeFeatureList.ENABLE_CBD_SIGN_OUT)
--                && IdentityServicesProvider.get()
--                           .getIdentityManager(Profile.getLastUsedRegularProfile())
--                           .hasPrimaryAccount(ConsentLevel.SIGNIN)
--                && IdentityServicesProvider.get()
--                           .getSigninManager(Profile.getLastUsedRegularProfile())
--                           .isSignOutAllowed()) {
--            ClickableSpansTextMessagePreference signOutOfChromeTextPref =
--                    findPreference(ClearBrowsingDataFragment.PREF_SIGN_OUT_OF_CHROME_TEXT);
--            signOutOfChromeTextPref.setSummary(buildSignOutOfChromeText());
--        } else {
-             deleteSignOutOfChromeTextIfExists();
--        }
-     }
- 
-     @Override
-@@ -667,21 +647,6 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
-         return mConfirmImportantSitesDialog;
+@@ -674,21 +666,6 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+         }
      }
  
 -    @VisibleForTesting
@@ -1692,10 +1644,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
 -                        ActionType.CLEAR_PRIMARY_ACCOUNT, GAIAServiceType.GAIA_SERVICE_TYPE_NONE);
 -    }
 -
-     private void deleteSignOutOfChromeTextIfExists() {
-         Preference signOutOfChromeTextPref =
-                 findPreference(ClearBrowsingDataFragment.PREF_SIGN_OUT_OF_CHROME_TEXT);
-@@ -752,44 +717,4 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+     /**
+      * This method shows the important sites dialog. After the dialog is shown, we correctly clear.
+      */
+@@ -751,43 +728,4 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
                      ignoredDomains, ignoredDomainReasons);
          }
      }
@@ -1704,23 +1656,19 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
 -    @Override
 -    public void onSignOutClicked(boolean forceWipeUserData) {
 -        // In case the user is not signed in, we guard the sign out so we do not hit a native crash.
--        if (!IdentityServicesProvider.get()
--                        .getIdentityManager(Profile.getLastUsedRegularProfile())
--                        .hasPrimaryAccount(ConsentLevel.SIGNIN)) {
+-        if (!mSigninManager.getIdentityManager().hasPrimaryAccount(ConsentLevel.SIGNIN)) {
 -            return;
 -        }
--        final SigninManager signinManager = IdentityServicesProvider.get().getSigninManager(
--                Profile.getLastUsedRegularProfile());
--        signinManager.runAfterOperationInProgress(() -> {
+-        mSigninManager.runAfterOperationInProgress(() -> {
 -            // In case supervised users reach this flow, remove the preference and guard against
 -            // signing out.
--            if (!signinManager.isSignOutAllowed()) {
--                deleteSignOutOfChromeTextIfExists();
+-            if (!mSigninManager.isSignOutAllowed()) {
+-                updateSignOutOfChromeText();
 -                return;
 -            }
 -            final DialogFragment clearDataProgressDialog = new ClearDataProgressDialog();
--            signinManager.signOut(org.chromium.components.signin.metrics.SignoutReason
--                                          .USER_CLICKED_SIGNOUT_FROM_CLEAR_BROWSING_DATA_PAGE,
+-            mSigninManager.signOut(org.chromium.components.signin.metrics.SignoutReason
+-                                           .USER_CLICKED_SIGNOUT_FROM_CLEAR_BROWSING_DATA_PAGE,
 -                    new SigninManager.SignOutCallback() {
 -                        @Override
 -                        public void preWipeData() {
@@ -1734,10 +1682,13 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
 -                        }
 -                    },
 -                    forceWipeUserData);
--            // TODO(https://crbug.com/1334918): Observe SignInStateObserver and move this inside
--            // onSignOutAllowedChanged().
--            deleteSignOutOfChromeTextIfExists();
 -        });
+-    }
+-
+-    /** {@link SigninManager.SignInStateObserver} implementation. */
+-    @Override
+-    public void onSignOutAllowedChanged() {
+-        updateSignOutOfChromeText();
 -    }
  }
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragmentBasic.java b/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragmentBasic.java
@@ -1935,7 +1886,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/contacts_picker
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
-@@ -37,7 +37,6 @@ import org.chromium.chrome.browser.customtabs.content.CustomTabActivityTabProvid
+@@ -38,7 +38,6 @@ import org.chromium.chrome.browser.customtabs.content.CustomTabActivityTabProvid
  import org.chromium.chrome.browser.customtabs.dependency_injection.BaseCustomTabActivityComponent;
  import org.chromium.chrome.browser.customtabs.features.CustomTabNavigationBarController;
  import org.chromium.chrome.browser.dependency_injection.ChromeActivityCommonsModule;
@@ -1943,11 +1894,14 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Cust
  import org.chromium.chrome.browser.flags.AllCachedFieldTrialParameters;
  import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.fonts.FontPreloader;
-@@ -150,8 +149,6 @@ public class CustomTabActivity extends BaseCustomTabActivity {
+@@ -151,11 +150,6 @@ public class CustomTabActivity extends BaseCustomTabActivity {
  
      @Override
      public void finishNativeInitialization() {
--        if (!mIntentDataProvider.isInfoPage()) FirstRunSignInProcessor.start(this);
+-        if (!mIntentDataProvider.isInfoPage()) {
+-            FirstRunSignInProcessor.openSyncSettingsIfScheduled(this);
+-            BackupSigninProcessor.start(this);
+-        }
 -
          mConnection.showSignInToastIfNecessary(mSession, getIntent());
  
@@ -2311,7 +2265,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessIni
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsManager.java b/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsManager.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsManager.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsManager.java
-@@ -15,21 +15,11 @@ import org.chromium.chrome.browser.invalidation.SessionsInvalidationManager;
+@@ -14,21 +14,11 @@ import org.chromium.chrome.browser.invalidation.SessionsInvalidationManager;
  import org.chromium.chrome.browser.ntp.ForeignSessionHelper.ForeignSession;
  import org.chromium.chrome.browser.ntp.ForeignSessionHelper.ForeignSessionTab;
  import org.chromium.chrome.browser.profiles.Profile;
@@ -2333,7 +2287,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
  import org.chromium.components.signin.AccountsChangeObserver;
  import org.chromium.components.signin.identitymanager.ConsentLevel;
  import org.chromium.components.signin.metrics.SigninAccessPoint;
-@@ -42,8 +32,7 @@ import java.util.Map;
+@@ -41,8 +31,7 @@ import java.util.Map;
  /**
   * Provides the domain logic and data for RecentTabsPage and RecentTabsRowAdapter.
   */
@@ -2343,7 +2297,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
      /**
       * Implement this to receive updates when the page contents change.
       */
-@@ -64,21 +53,15 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+@@ -63,21 +52,15 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
      private final Runnable mShowHistoryManager;
  
      private TabModel mTabModel;
@@ -2365,7 +2319,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
      /**
       * Maps Session IDs to whether that entry was restored split by entry type. These are used to
       * record historgrams on {@link #destroy()} to measure restore ratio. Cached Session IDs are
-@@ -109,12 +92,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+@@ -108,12 +91,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
          mRecentlyClosedTabManager = sRecentlyClosedTabManagerForTests != null
                  ? sRecentlyClosedTabManagerForTests
                  : new RecentlyClosedBridge(profile, tabModelSelector);
@@ -2378,7 +2332,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
  
          mRecentlyClosedTabManager.setEntriesUpdatedRunnable(this::updateRecentlyClosedEntries);
          updateRecentlyClosedEntries();
-@@ -123,12 +100,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+@@ -122,12 +99,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
          updateForeignSessions();
          mForeignSessionHelper.triggerSessionSync();
  
@@ -2391,7 +2345,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
          SessionsInvalidationManager.get(mProfile).onRecentTabsPageOpened();
      }
  
-@@ -166,14 +137,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+@@ -165,14 +136,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
          recordEntries("Group", mGroupSessionIdsRestored);
          recordEntries("Bulk", mBulkSessionIdsRestored);
  
@@ -2406,7 +2360,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
          mFaviconHelper.destroy();
          mFaviconHelper = null;
  
-@@ -406,7 +369,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+@@ -398,7 +361,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
       */
      public void setPromoCollapsed(boolean isCollapsed) {
          if (mIsDestroyed) return;
@@ -2414,7 +2368,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
      }
  
      /**
-@@ -418,80 +380,12 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+@@ -410,80 +372,12 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
          return mPrefs.getSyncPromoCollapsed();
      }
  
@@ -2495,7 +2449,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
      private void onUpdateDone() {
          if (mUpdatedCallback != null) {
              mUpdatedCallback.onUpdated();
-@@ -499,7 +393,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
+@@ -491,7 +385,6 @@ public class RecentTabsManager implements SyncService.SyncStateChangedListener,
      }
  
      private void update() {
@@ -2506,7 +2460,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsRowAdapter.java b/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsRowAdapter.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsRowAdapter.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsRowAdapter.java
-@@ -31,11 +31,9 @@ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+@@ -30,11 +30,9 @@ import org.chromium.chrome.R;
  import org.chromium.chrome.browser.ntp.ForeignSessionHelper.ForeignSession;
  import org.chromium.chrome.browser.ntp.ForeignSessionHelper.ForeignSessionTab;
  import org.chromium.chrome.browser.ntp.ForeignSessionHelper.ForeignSessionWindow;
@@ -2518,14 +2472,14 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsR
  import org.chromium.components.browser_ui.styles.SemanticColorUtils;
  import org.chromium.components.browser_ui.widget.RoundedIconGenerator;
  import org.chromium.components.embedder_support.util.UrlUtilities;
-@@ -453,14 +451,7 @@ public class RecentTabsRowAdapter extends BaseExpandableListAdapter {
+@@ -452,14 +450,7 @@ public class RecentTabsRowAdapter extends BaseExpandableListAdapter {
          @Override
          View getChildView(
                  int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
 -            if (convertView == null) {
 -                LayoutInflater layoutInflater = LayoutInflater.from(parent.getContext());
--                convertView = layoutInflater.inflate(
--                        R.layout.personalized_signin_promo_view_recent_tabs, parent, false);
+-                convertView =
+-                        layoutInflater.inflate(R.layout.sync_promo_view_recent_tabs, parent, false);
 -            }
 -            mRecentTabsManager.setUpSyncPromoView(
 -                    convertView.findViewById(R.id.signin_promo_view_container));
@@ -2534,7 +2488,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsR
          }
      }
  
-@@ -476,9 +467,6 @@ public class RecentTabsRowAdapter extends BaseExpandableListAdapter {
+@@ -475,9 +466,6 @@ public class RecentTabsRowAdapter extends BaseExpandableListAdapter {
          @Override
          View getChildView(
                  int childPosition, boolean isLastChild, View convertView, ViewGroup parent) {
@@ -2544,7 +2498,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsR
              return convertView;
          }
      }
-@@ -916,22 +904,6 @@ public class RecentTabsRowAdapter extends BaseExpandableListAdapter {
+@@ -913,22 +901,6 @@ public class RecentTabsRowAdapter extends BaseExpandableListAdapter {
              addGroup(new ForeignSessionGroup(session));
          }
  
@@ -2860,10 +2814,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
  package org.chromium.chrome.browser.settings;
  
 -import static org.chromium.chrome.browser.password_manager.PasswordManagerHelper.hasChosenToSyncPasswords;
+ import static org.chromium.chrome.browser.password_manager.PasswordManagerHelper.usesUnifiedPasswordManagerBranding;
  import static org.chromium.chrome.browser.password_manager.PasswordManagerHelper.usesUnifiedPasswordManagerUI;
  
- import android.content.Context;
-@@ -39,27 +38,14 @@ import org.chromium.chrome.browser.password_manager.PasswordManagerLauncher;
+@@ -40,27 +39,14 @@ import org.chromium.chrome.browser.password_manager.PasswordManagerLauncher;
  import org.chromium.chrome.browser.preferences.Pref;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
@@ -2891,7 +2845,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
  import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.ui.modaldialog.ModalDialogManager;
  import org.chromium.ui.text.SpanApplier;
-@@ -72,14 +58,10 @@ import java.util.Map;
+@@ -73,14 +59,10 @@ import java.util.Map;
   * The main settings screen, shown when the user first opens Settings.
   */
  public class MainSettings extends PreferenceFragmentCompat
@@ -2907,7 +2861,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      public static final String PREF_SEARCH_ENGINE = "search_engine";
      public static final String PREF_PASSWORDS = "passwords";
      public static final String PREF_HOMEPAGE = "homepage";
-@@ -97,9 +79,6 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -98,9 +80,6 @@ public class MainSettings extends PreferenceFragmentCompat
  
      private final ManagedPreferenceDelegate mManagedPreferenceDelegate;
      private final Map<String, Preference> mAllPreferences = new HashMap<>();
@@ -2917,7 +2871,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      private @Nullable PasswordCheck mPasswordCheck;
      private ObservableSupplier<ModalDialogManager> mModalDialogManagerSupplier;
  
-@@ -137,34 +116,6 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -138,34 +117,6 @@ public class MainSettings extends PreferenceFragmentCompat
          if (getActivity().isFinishing() && mPasswordCheck != null) PasswordCheckFactory.destroy();
      }
  
@@ -2952,7 +2906,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      @Override
      public void onResume() {
          super.onResume();
-@@ -176,8 +127,6 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -177,8 +128,6 @@ public class MainSettings extends PreferenceFragmentCompat
  
          cachePreferences();
  
@@ -2961,7 +2915,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
          updatePasswordsPreference();
  
          if (usesUnifiedPasswordManagerUI()) {
-@@ -232,9 +181,6 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -233,9 +182,6 @@ public class MainSettings extends PreferenceFragmentCompat
              Preference preference = getPreferenceScreen().getPreference(index);
              mAllPreferences.put(preference.getKey(), preference);
          }
@@ -2971,7 +2925,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      }
  
      private void setManagedPreferenceDelegateForPreference(String key) {
-@@ -243,15 +189,6 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -244,15 +190,6 @@ public class MainSettings extends PreferenceFragmentCompat
      }
  
      private void updatePreferences() {
@@ -2987,7 +2941,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
          updateSearchEnginePreference();
          updatePasswordsPreference();
  
-@@ -285,41 +222,6 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -286,41 +223,6 @@ public class MainSettings extends PreferenceFragmentCompat
          if (preference != null) getPreferenceScreen().removePreference(preference);
      }
  
@@ -3029,7 +2983,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      private void updateSearchEnginePreference() {
          if (!TemplateUrlServiceFactory.get().isLoaded()) {
              ChromeBasePreference searchEnginePref =
-@@ -356,9 +258,7 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -357,9 +259,7 @@ public class MainSettings extends PreferenceFragmentCompat
      }
  
      private boolean shouldShowNewLabelForPasswordsPreference() {
@@ -3040,7 +2994,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      }
  
      // TODO(crbug.com/1217070): remove this method once UPM feature is rolled out.
-@@ -389,37 +289,6 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -390,37 +290,6 @@ public class MainSettings extends PreferenceFragmentCompat
          pref.setSummary(isOn ? R.string.text_on : R.string.text_off);
      }
  
@@ -3078,7 +3032,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
      // TemplateUrlService.LoadListener implementation.
      @Override
      public void onTemplateUrlServiceLoaded() {
-@@ -427,12 +296,6 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -428,12 +297,6 @@ public class MainSettings extends PreferenceFragmentCompat
          updateSearchEnginePreference();
      }
  
@@ -3143,7 +3097,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/share/crow/Crow
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/survey/ChromeSurveyController.java b/chrome/android/java/src/org/chromium/chrome/browser/survey/ChromeSurveyController.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/survey/ChromeSurveyController.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/survey/ChromeSurveyController.java
-@@ -283,7 +283,7 @@ public class ChromeSurveyController implements InfoBarAnimationListener {
+@@ -275,7 +275,7 @@ public class ChromeSurveyController implements InfoBarAnimationListener {
                              .with(MessageBannerProperties.TITLE,
                                      resources.getString(R.string.chrome_survey_message_title))
                              .with(MessageBannerProperties.ICON_RESOURCE_ID,
@@ -3152,7 +3106,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/survey/ChromeSu
                              .with(MessageBannerProperties.ICON_TINT_COLOR,
                                      MessageBannerProperties.TINT_NONE)
                              .with(MessageBannerProperties.PRIMARY_BUTTON_TEXT,
-@@ -360,7 +360,7 @@ public class ChromeSurveyController implements InfoBarAnimationListener {
+@@ -350,7 +350,7 @@ public class ChromeSurveyController implements InfoBarAnimationListener {
              InfoBarContainer.get(tab).addAnimationListener(this);
  
              SurveyInfoBar.showSurveyInfoBar(
@@ -3161,7 +3115,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/survey/ChromeSu
  
              RecordUserAction.record("Android.Survey.ShowSurveyInfoBar");
          }
-@@ -373,7 +373,7 @@ public class ChromeSurveyController implements InfoBarAnimationListener {
+@@ -363,7 +363,7 @@ public class ChromeSurveyController implements InfoBarAnimationListener {
       */
      private void showSurvey(String siteId) {
          SurveyController.getInstance().showSurveyIfAvailable(
@@ -3189,7 +3143,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
  import org.chromium.chrome.browser.ui.system.StatusBarColorController.StatusBarColorProvider;
  import org.chromium.chrome.browser.ui.tablet.emptybackground.EmptyBackgroundViewWrapper;
  import org.chromium.chrome.browser.vr.VrModuleProvider;
-@@ -914,23 +912,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -915,23 +913,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
              return false;
      }
  
@@ -3216,41 +3170,21 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tasks/ReturnToChromeUtil.java b/chrome/android/java/src/org/chromium/chrome/browser/tasks/ReturnToChromeUtil.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tasks/ReturnToChromeUtil.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tasks/ReturnToChromeUtil.java
-@@ -41,7 +41,6 @@ import org.chromium.chrome.browser.preferences.PrefChangeRegistrar;
- import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
- import org.chromium.chrome.browser.profiles.Profile;
- import org.chromium.chrome.browser.segmentation_platform.SegmentationPlatformServiceFactory;
--import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
- import org.chromium.chrome.browser.tab.Tab;
- import org.chromium.chrome.browser.tab.TabLaunchType;
- import org.chromium.chrome.browser.tabmodel.TabModelSelector;
-@@ -55,7 +54,6 @@ import org.chromium.components.embedder_support.util.UrlUtilities;
- import org.chromium.components.segmentation_platform.SegmentSelectionResult;
- import org.chromium.components.segmentation_platform.SegmentationPlatformService;
- import org.chromium.components.segmentation_platform.proto.SegmentationProto.SegmentId;
--import org.chromium.components.signin.identitymanager.ConsentLevel;
- import org.chromium.components.user_prefs.UserPrefs;
- import org.chromium.content_public.browser.LoadUrlParams;
- import org.chromium.content_public.common.ResourceRequestBody;
-@@ -549,13 +547,8 @@ public final class ReturnToChromeUtil {
-      * Caches the status of whether the primary account is synced.
+@@ -900,10 +900,6 @@ public final class ReturnToChromeUtil {
+      * is a search result page or not. This should be called when Start surface is shown at startup.
       */
-     public static void cachePrimaryAccountSyncStatus() {
--        boolean isPrimaryAccountSync =
--                IdentityServicesProvider.get()
--                        .getSigninManager(Profile.getLastUsedRegularProfile())
--                        .getIdentityManager()
--                        .hasPrimaryAccount(ConsentLevel.SYNC);
-         SharedPreferencesManager.getInstance().writeBoolean(
--                ChromePreferenceKeys.PRIMARY_ACCOUNT_SYNC, isPrimaryAccountSync);
-+                ChromePreferenceKeys.PRIMARY_ACCOUNT_SYNC, false);
+     public static void recordLastVisitedTabIsSRPWhenOverviewIsShownAtLaunch() {
+-        RecordHistogram.recordBooleanHistogram(
+-                LAST_VISITED_TAB_IS_SRP_WHEN_OVERVIEW_IS_SHOWN_AT_LAUNCH_UMA,
+-                SharedPreferencesManager.getInstance().readBoolean(
+-                        ChromePreferenceKeys.IS_LAST_VISITED_TAB_SRP, false));
      }
  
      /**
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -2004,7 +2004,6 @@ static_library("browser") {
+@@ -2016,7 +2016,6 @@ static_library("browser") {
      "//chrome/browser/share",
      "//chrome/browser/sharing:buildflags",
      "//chrome/browser/sharing/proto",
@@ -3258,7 +3192,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/storage_access_api:permissions",
      "//chrome/browser/thumbnail",
      "//chrome/browser/touch_to_fill",
-@@ -2825,8 +2824,6 @@ static_library("browser") {
+@@ -2838,8 +2837,6 @@ static_library("browser") {
        "android/signin/fre_mobile_identity_consistency_field_trial.h",
        "android/signin/signin_bridge.cc",
        "android/signin/signin_bridge.h",
@@ -3267,7 +3201,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "android/signin/signin_metrics_utils.cc",
        "android/signin/unified_consent_service_bridge.cc",
        "android/signin/web_signin_bridge.cc",
-@@ -3242,8 +3239,6 @@ static_library("browser") {
+@@ -3257,8 +3254,6 @@ static_library("browser") {
        "sharing/sms/sms_fetch_request_handler.h",
        "shell_integration_android.cc",
        "signin/identity_services_provider_android.cc",
@@ -3276,16 +3210,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "ssl/chrome_security_state_client.cc",
        "ssl/chrome_security_state_client.h",
        "ssl/chrome_security_state_model_delegate.cc",
-@@ -3260,8 +3255,6 @@ static_library("browser") {
-       "sync/glue/synced_window_delegate_android.h",
-       "sync/glue/synced_window_delegates_getter_android.cc",
-       "sync/glue/synced_window_delegates_getter_android.h",
--      "sync/sync_error_infobar_delegate_android.cc",
--      "sync/sync_error_infobar_delegate_android.h",
-       "sync/trusted_vault_client_android.cc",
-       "sync/trusted_vault_client_android.h",
-       "tab/web_contents_state.cc",
-@@ -4596,10 +4589,6 @@ static_library("browser") {
+@@ -4617,10 +4612,6 @@ static_library("browser") {
          "profiles/profile_statistics_factory.h",
          "signin/force_signin_verifier.cc",
          "signin/force_signin_verifier.h",
@@ -3453,7 +3378,7 @@ diff --git a/chrome/browser/commerce/subscriptions/android/java_sources.gni b/ch
 diff --git a/chrome/browser/feed/android/BUILD.gn b/chrome/browser/feed/android/BUILD.gn
 --- a/chrome/browser/feed/android/BUILD.gn
 +++ b/chrome/browser/feed/android/BUILD.gn
-@@ -101,7 +101,6 @@ android_library("java") {
+@@ -102,7 +102,6 @@ android_library("java") {
      "//chrome/browser/privacy:java",
      "//chrome/browser/profiles/android:java",
      "//chrome/browser/share:java",
@@ -3464,7 +3389,7 @@ diff --git a/chrome/browser/feed/android/BUILD.gn b/chrome/browser/feed/android/
 diff --git a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
 --- a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
 +++ b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
-@@ -11,9 +11,7 @@ import org.chromium.chrome.browser.feed.componentinterfaces.SurfaceCoordinator.S
+@@ -13,9 +13,7 @@ import org.chromium.chrome.browser.feed.componentinterfaces.SurfaceCoordinator.S
  import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.preferences.Pref;
  import org.chromium.chrome.browser.profiles.Profile;
@@ -3472,8 +3397,8 @@ diff --git a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/fe
  import org.chromium.components.prefs.PrefService;
 -import org.chromium.components.signin.identitymanager.ConsentLevel;
  import org.chromium.components.user_prefs.UserPrefs;
+ import org.chromium.ui.base.DeviceFormFactor;
  
- /**
 diff --git a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedServiceBridge.java b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedServiceBridge.java
 --- a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedServiceBridge.java
 +++ b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedServiceBridge.java
@@ -3555,7 +3480,7 @@ diff --git a/chrome/browser/media/router/discovery/access_code/BUILD.gn b/chrome
 -      "//chrome/browser/signin:identity_manager_provider",
        "//chrome/browser/ui/webui/access_code_cast:mojo_bindings",
        "//components/access_code_cast/common",
-       "//components/cast_channel:cast_channel",
+       "//components/endpoint_fetcher:endpoint_fetcher",
 diff --git a/chrome/browser/password_manager/android/BUILD.gn b/chrome/browser/password_manager/android/BUILD.gn
 --- a/chrome/browser/password_manager/android/BUILD.gn
 +++ b/chrome/browser/password_manager/android/BUILD.gn
@@ -3626,7 +3551,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
 diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerHelper.java b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerHelper.java
 --- a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerHelper.java
 +++ b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerHelper.java
-@@ -19,7 +19,6 @@ import android.os.SystemClock;
+@@ -20,7 +20,6 @@ import android.os.SystemClock;
  import androidx.annotation.IntDef;
  import androidx.annotation.VisibleForTesting;
  
@@ -3634,7 +3559,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
  import com.google.common.base.Optional;
  
  import org.chromium.base.Callback;
-@@ -32,7 +31,6 @@ import org.chromium.chrome.browser.password_manager.CredentialManagerLauncher.Cr
+@@ -33,7 +32,6 @@ import org.chromium.chrome.browser.password_manager.CredentialManagerLauncher.Cr
  import org.chromium.chrome.browser.password_manager.PasswordCheckupClientHelper.PasswordCheckBackendException;
  import org.chromium.chrome.browser.preferences.Pref;
  import org.chromium.chrome.browser.profiles.Profile;
@@ -3642,7 +3567,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
  import org.chromium.components.browser_ui.settings.SettingsLauncher;
  import org.chromium.components.prefs.PrefService;
  import org.chromium.components.signin.base.CoreAccountInfo;
-@@ -138,19 +136,8 @@ public class PasswordManagerHelper {
+@@ -139,19 +137,8 @@ public class PasswordManagerHelper {
       * @param context used to show the UI to manage passwords.
       */
      public static void showPasswordSettings(Context context, @ManagePasswordsReferrer int referrer,
@@ -3663,7 +3588,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
          Bundle fragmentArgs = new Bundle();
          fragmentArgs.putInt(MANAGE_PASSWORDS_REFERRER, referrer);
          context.startActivity(settingsLauncher.createSettingsActivityIntent(
-@@ -171,13 +158,7 @@ public class PasswordManagerHelper {
+@@ -172,13 +159,7 @@ public class PasswordManagerHelper {
       * @return True if Unified Password Manager can be used, false otherwise.
       */
      public static boolean canUseUpm() {
@@ -3678,7 +3603,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
      }
  
      /**
-@@ -190,19 +171,7 @@ public class PasswordManagerHelper {
+@@ -191,19 +172,7 @@ public class PasswordManagerHelper {
       *         loading dialog.
       */
      public static void showPasswordCheckup(Context context, @PasswordCheckReferrer int referrer,
@@ -3698,7 +3623,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
      }
  
      /**
-@@ -282,49 +251,6 @@ public class PasswordManagerHelper {
+@@ -283,49 +252,6 @@ public class PasswordManagerHelper {
                  });
      }
  
@@ -3748,7 +3673,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
      public static boolean usesUnifiedPasswordManagerUI() {
          if (!ChromeFeatureList.isEnabled(UNIFIED_PASSWORD_MANAGER_ANDROID)) return false;
          @UpmExperimentVariation
-@@ -359,53 +285,12 @@ public class PasswordManagerHelper {
+@@ -365,53 +291,12 @@ public class PasswordManagerHelper {
      }
  
      public static void launchGmsUpdate(Context context) {
@@ -4300,7 +4225,7 @@ diff --git a/chrome/browser/signin/services/android/java/src/org/chromium/chrome
 diff --git a/chrome/browser/supervised_user/BUILD.gn b/chrome/browser/supervised_user/BUILD.gn
 --- a/chrome/browser/supervised_user/BUILD.gn
 +++ b/chrome/browser/supervised_user/BUILD.gn
-@@ -71,7 +71,6 @@ if (is_android) {
+@@ -88,7 +88,6 @@ if (is_android) {
        "//base:jni_java",
        "//build/android:build_java",
        "//chrome/browser/profiles/android:java",
@@ -4311,11 +4236,12 @@ diff --git a/chrome/browser/supervised_user/BUILD.gn b/chrome/browser/supervised
 diff --git a/chrome/browser/supervised_user/android/java/src/org/chromium/chrome/browser/supervised_user/website_approval/WebsiteApprovalMediator.java b/chrome/browser/supervised_user/android/java/src/org/chromium/chrome/browser/supervised_user/website_approval/WebsiteApprovalMediator.java
 --- a/chrome/browser/supervised_user/android/java/src/org/chromium/chrome/browser/supervised_user/website_approval/WebsiteApprovalMediator.java
 +++ b/chrome/browser/supervised_user/android/java/src/org/chromium/chrome/browser/supervised_user/website_approval/WebsiteApprovalMediator.java
-@@ -5,11 +5,8 @@
+@@ -5,12 +5,9 @@
  package org.chromium.chrome.browser.supervised_user.website_approval;
  
  import org.chromium.chrome.browser.profiles.Profile;
 -import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
+ import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
  import org.chromium.components.signin.base.AccountInfo;
  import org.chromium.components.signin.base.CoreAccountInfo;
 -import org.chromium.components.signin.identitymanager.ConsentLevel;
@@ -4323,11 +4249,10 @@ diff --git a/chrome/browser/supervised_user/android/java/src/org/chromium/chrome
  import org.chromium.ui.modelutil.PropertyModel;
  
  /**
-@@ -31,25 +28,5 @@ class WebsiteApprovalMediator {
-                 v -> mCompletionCallback.onWebsiteApproved());
-         mModel.set(WebsiteApprovalProperties.ON_CLICK_DENY,
-                 v -> mCompletionCallback.onWebsiteDenied());
--
+@@ -44,26 +41,6 @@ class WebsiteApprovalMediator {
+             mCompletionCallback.onWebsiteDenied();
+         });
+ 
 -        // Set the child name.  We use the given name if there is one for this account, otherwise we
 -        // use the full account email address.
 -        IdentityManager identityManager = IdentityServicesProvider.get().getIdentityManager(
@@ -4347,12 +4272,14 @@ diff --git a/chrome/browser/supervised_user/android/java/src/org/chromium/chrome
 -            childNameProperty = childAccountInfo.getGivenName();
 -        }
 -        mModel.set(WebsiteApprovalProperties.CHILD_NAME, childNameProperty);
+-
+         // Now show the actual content.
+         mBottomSheetController.requestShowContent(mSheetContent, true);
      }
- }
 diff --git a/chrome/browser/sync/sync_service_factory.cc b/chrome/browser/sync/sync_service_factory.cc
 --- a/chrome/browser/sync/sync_service_factory.cc
 +++ b/chrome/browser/sync/sync_service_factory.cc
-@@ -78,7 +78,7 @@
+@@ -73,7 +73,7 @@
  #include "chrome/browser/sync/wifi_configuration_sync_service_factory.h"
  #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
  
@@ -4361,7 +4288,7 @@ diff --git a/chrome/browser/sync/sync_service_factory.cc b/chrome/browser/sync/s
  
  std::unique_ptr<KeyedService> BuildSyncService(
      content::BrowserContext* context) {
-@@ -174,7 +174,7 @@ std::unique_ptr<KeyedService> BuildSyncService(
+@@ -186,7 +186,7 @@ std::unique_ptr<KeyedService> BuildSyncService(
    return sync_service;
  }
  
@@ -4370,7 +4297,7 @@ diff --git a/chrome/browser/sync/sync_service_factory.cc b/chrome/browser/sync/s
  
  // static
  SyncServiceFactory* SyncServiceFactory::GetInstance() {
-@@ -252,7 +252,7 @@ SyncServiceFactory::~SyncServiceFactory() = default;
+@@ -264,7 +264,7 @@ SyncServiceFactory::~SyncServiceFactory() = default;
  
  KeyedService* SyncServiceFactory::BuildServiceInstanceFor(
      content::BrowserContext* context) const {
@@ -4379,7 +4306,7 @@ diff --git a/chrome/browser/sync/sync_service_factory.cc b/chrome/browser/sync/s
  }
  
  bool SyncServiceFactory::ServiceIsNULLWhileTesting() const {
-@@ -294,9 +294,3 @@ SyncServiceFactory::GetAllSyncServices() {
+@@ -306,9 +306,3 @@ SyncServiceFactory::GetAllSyncServices() {
    }
    return sync_services;
  }
@@ -4392,7 +4319,7 @@ diff --git a/chrome/browser/sync/sync_service_factory.cc b/chrome/browser/sync/s
 diff --git a/chrome/browser/ui/android/omnibox/BUILD.gn b/chrome/browser/ui/android/omnibox/BUILD.gn
 --- a/chrome/browser/ui/android/omnibox/BUILD.gn
 +++ b/chrome/browser/ui/android/omnibox/BUILD.gn
-@@ -159,7 +159,6 @@ android_library("java") {
+@@ -163,7 +163,6 @@ android_library("java") {
      "//chrome/browser/profiles/android:java",
      "//chrome/browser/search_engines/android:java",
      "//chrome/browser/share:java",
@@ -4400,7 +4327,7 @@ diff --git a/chrome/browser/ui/android/omnibox/BUILD.gn b/chrome/browser/ui/andr
      "//chrome/browser/tab:java",
      "//chrome/browser/tabmodel:java",
      "//chrome/browser/ui/android/favicon:java",
-@@ -446,7 +445,6 @@ robolectric_library("junit") {
+@@ -456,7 +455,6 @@ robolectric_library("junit") {
      "//chrome/browser/profiles/android:java",
      "//chrome/browser/search_engines/android:java",
      "//chrome/browser/share:java",
@@ -4549,7 +4476,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
 diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/SyncConsentFragmentBase.java b/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/SyncConsentFragmentBase.java
 --- a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/SyncConsentFragmentBase.java
 +++ b/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/SyncConsentFragmentBase.java
-@@ -241,35 +241,8 @@ public abstract class SyncConsentFragmentBase
+@@ -266,35 +266,8 @@ public abstract class SyncConsentFragmentBase
      // this method replaces onSyncAccepted(), the field can be set directly.
      protected void signinAndEnableSync(
              String accountName, boolean settingsClicked, Runnable callback) {
@@ -4587,7 +4514,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
      }
  
      @Override
-@@ -320,10 +293,6 @@ public abstract class SyncConsentFragmentBase
+@@ -347,10 +320,6 @@ public abstract class SyncConsentFragmentBase
                  : ProfileDataCache.createWithDefaultImageSizeAndNoBadge(requireContext());
          mProfileDataCache.addObserver(mProfileDataCacheObserver);
  
@@ -4598,7 +4525,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
          // By default this is set to true so that when system back button is pressed user action
          // is recorded in onDestroy().
          mRecordUndoSignin = true;
-@@ -334,9 +303,6 @@ public abstract class SyncConsentFragmentBase
+@@ -361,9 +330,6 @@ public abstract class SyncConsentFragmentBase
      @Override
      public void onDestroy() {
          super.onDestroy();
@@ -4608,7 +4535,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
          mProfileDataCache.removeObserver(mProfileDataCacheObserver);
          if (mConfirmSyncDataStateMachine != null) {
              mConfirmSyncDataStateMachine.cancel(/* isBeingDestroyed = */ true);
-@@ -710,21 +676,6 @@ public abstract class SyncConsentFragmentBase
+@@ -737,21 +703,6 @@ public abstract class SyncConsentFragmentBase
  
                          // Don't start sign-in if this fragment has been destroyed.
                          if (getActivity().isDestroyed()) return;
@@ -4681,7 +4608,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
 diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java b/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
 --- a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
 +++ b/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
-@@ -200,15 +200,11 @@ public class SigninFirstRunMediator
+@@ -198,15 +198,11 @@ public class SigninFirstRunMediator
              mModel.set(SigninFirstRunProperties.FRE_POLICY, frePolicy);
          }
  
@@ -4700,7 +4627,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
      /** Implements {@link ProfileDataCache.Observer}. */
      @Override
      public void onProfileDataUpdated(String accountEmail) {
-@@ -307,50 +303,12 @@ public class SigninFirstRunMediator
+@@ -305,50 +301,12 @@ public class SigninFirstRunMediator
                  TextUtils.equals(mDefaultAccountName, mSelectedAccountName)
                          ? MobileFreProgress.WELCOME_SIGNIN_WITH_DEFAULT_ACCOUNT
                          : MobileFreProgress.WELCOME_SIGNIN_WITH_NON_DEFAULT_ACCOUNT);
@@ -4751,7 +4678,7 @@ diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/brows
  
          if (mDelegate.getNativeInitializationPromise().isFulfilled()) {
              handleDismissWithNative();
-@@ -368,28 +326,7 @@ public class SigninFirstRunMediator
+@@ -366,28 +324,7 @@ public class SigninFirstRunMediator
  
          assert mDelegate.getNativeInitializationPromise().isFulfilled();
  
@@ -4797,7 +4724,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/components/password_manager/core/browser/leak_detection_delegate.cc b/components/password_manager/core/browser/leak_detection_delegate.cc
 --- a/components/password_manager/core/browser/leak_detection_delegate.cc
 +++ b/components/password_manager/core/browser/leak_detection_delegate.cc
-@@ -64,7 +64,7 @@ void LeakDetectionDelegate::StartLeakCheck(
+@@ -63,7 +63,7 @@ void LeakDetectionDelegate::StartLeakCheck(
    is_likely_signup_form_ = submitted_form_was_likely_signup_form;
  
    leak_check_ = leak_factory_->TryCreateLeakCheck(
@@ -4817,7 +4744,7 @@ diff --git a/components/password_manager/core/browser/password_form_manager.cc b
  #include "google_apis/gaia/core_account_id.h"
  #include "third_party/abseil-cpp/absl/types/optional.h"
  #include "third_party/abseil-cpp/absl/types/variant.h"
-@@ -285,27 +284,7 @@ bool PasswordFormManager::WasUnblocklisted() const {
+@@ -290,27 +289,7 @@ bool PasswordFormManager::WasUnblocklisted() const {
  }
  
  bool PasswordFormManager::IsMovableToAccountStore() const {
@@ -4846,7 +4773,7 @@ diff --git a/components/password_manager/core/browser/password_form_manager.cc b
  }
  
  void PasswordFormManager::Save() {
-@@ -470,17 +449,6 @@ void PasswordFormManager::MoveCredentialsToAccountStore() {
+@@ -477,17 +456,6 @@ void PasswordFormManager::MoveCredentialsToAccountStore() {
  void PasswordFormManager::BlockMovingCredentialsToAccountStore() {
    // Nothing to do if there is no signed in user or the credentials are already
    // blocked for moving.

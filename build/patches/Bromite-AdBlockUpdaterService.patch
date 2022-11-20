@@ -62,14 +62,14 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -372,6 +372,7 @@ android_library("chrome_java") {
-     "//chrome/browser/download/android:java",
-     "//chrome/browser/download/android:java_resources",
-     "//chrome/browser/enterprise/util:java",
-+    "//chrome/browser/endpoint_fetcher:java",
-     "//chrome/browser/feature_engagement:java",
-     "//chrome/browser/feature_guide/notifications:java",
-     "//chrome/browser/feed/android:java",
+@@ -401,6 +401,7 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/download/android:java",
+       "//chrome/browser/download/android:java_resources",
+       "//chrome/browser/enterprise/util:java",
++      "//chrome/browser/endpoint_fetcher:java",
+       "//chrome/browser/feature_engagement:java",
+       "//chrome/browser/feature_guide/notifications:java",
+       "//chrome/browser/feed/android:java",
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
@@ -81,7 +81,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
    "java/res/layout/auto_sign_in_first_run_dialog.xml",
    "java/res/layout/autofill_billing_address_dropdown.xml",
    "java/res/layout/autofill_card_unmask_prompt.xml",
-@@ -643,6 +644,7 @@ chrome_java_resources = [
+@@ -641,6 +642,7 @@ chrome_java_resources = [
    "java/res/values/values.xml",
    "java/res/xml/about_chrome_preferences.xml",
    "java/res/xml/account_management_preferences.xml",
@@ -92,7 +92,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -905,6 +905,8 @@ chrome_java_sources = [
+@@ -908,6 +908,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/permissions/PermissionSettingsBridge.java",
    "java/src/org/chromium/chrome/browser/permissions/PermissionUpdateRequester.java",
    "java/src/org/chromium/chrome/browser/photo_picker/DecoderServiceImpl.java",
@@ -435,7 +435,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabMod
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -12253,6 +12253,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
+@@ -12468,6 +12468,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
        Never show this again.
      </message>
  
@@ -555,10 +555,10 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -1736,6 +1736,9 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
+@@ -1753,6 +1753,9 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
+   // Just initialize the policy prefs service here. Variations seed fetching
    // will be initialized when the app enters foreground mode.
    variations_service->set_policy_pref_service(profile->GetPrefs());
- 
 +  // force AdBlock updater initialisation
 +  g_browser_process->adblock_updater();
 +
@@ -593,7 +593,7 @@ diff --git a/chrome/browser/flags/android/cached_feature_flags.cc b/chrome/brows
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
-@@ -273,6 +273,14 @@ public class CachedFeatureFlags {
+@@ -278,6 +278,14 @@ public class CachedFeatureFlags {
                  ChromeFeatureList.isEnabled(ChromeFeatureList.BACKGROUND_THREAD_POOL));
      }
  
@@ -608,7 +608,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      /**
       * Caches flags that must take effect on startup but are set via native code.
       */
-@@ -519,5 +527,7 @@ public class CachedFeatureFlags {
+@@ -524,5 +532,7 @@ public class CachedFeatureFlags {
      @NativeMethods
      interface Natives {
          boolean isNetworkServiceWarmUpEnabled();
@@ -678,7 +678,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 --- a/chrome/common/pref_names.cc
 +++ b/chrome/common/pref_names.cc
-@@ -2350,6 +2350,9 @@ const char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
+@@ -2383,6 +2383,9 @@ const char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
  // capture devices without prompt.
  const char kAudioCaptureAllowedUrls[] = "hardware.audio_capture_allowed_urls";
  
@@ -702,7 +702,7 @@ diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
 --- a/components/browser_ui/strings/android/site_settings.grdp
 +++ b/components/browser_ui/strings/android/site_settings.grdp
-@@ -274,8 +274,8 @@
+@@ -282,8 +282,8 @@
    <message name="IDS_INTRUSIVE_ADS_INFORMATION" desc="The extra information at the top of the Site Details page when the site tends to show intrusive ads">
      This site shows intrusive or misleading ads
    </message>

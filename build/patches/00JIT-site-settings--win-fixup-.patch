@@ -23,7 +23,7 @@ Subject: JIT site settings (win fixup)
 diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -3764,6 +3764,25 @@
+@@ -3793,6 +3793,25 @@
      Not allowed to autoplay
    </message>
  
@@ -64,7 +64,7 @@ diff --git a/chrome/browser/resources/settings/icons.html b/chrome/browser/resou
 diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/chrome/browser/resources/settings/privacy_page/privacy_page.html
 --- a/chrome/browser/resources/settings/privacy_page/privacy_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/privacy_page.html
-@@ -1030,4 +1030,26 @@
+@@ -1014,4 +1014,26 @@
            </category-setting-exceptions>
          </settings-subpage>
        </template>
@@ -94,7 +94,7 @@ diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/
 diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resources/settings/route.ts
 --- a/chrome/browser/resources/settings/route.ts
 +++ b/chrome/browser/resources/settings/route.ts
-@@ -103,6 +103,7 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
+@@ -101,6 +101,7 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
    r.SITE_SETTINGS_FILE_SYSTEM_WRITE = r.SITE_SETTINGS.createChild('filesystem');
    r.SITE_SETTINGS_LOCAL_FONTS = r.SITE_SETTINGS.createChild('localFonts');
    r.SITE_SETTINGS_AUTOPLAY = r.SITE_SETTINGS.createChild('autoplay');
@@ -105,7 +105,7 @@ diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resourc
 diff --git a/chrome/browser/resources/settings/settings_routes.ts b/chrome/browser/resources/settings/settings_routes.ts
 --- a/chrome/browser/resources/settings/settings_routes.ts
 +++ b/chrome/browser/resources/settings/settings_routes.ts
-@@ -97,4 +97,5 @@ export interface SettingsRoutes {
+@@ -95,4 +95,5 @@ export interface SettingsRoutes {
    SYSTEM: Route;
    TRIGGERED_RESET_DIALOG: Route;
    SITE_SETTINGS_AUTOPLAY: Route;
@@ -126,7 +126,7 @@ diff --git a/chrome/browser/resources/settings/site_settings/constants.ts b/chro
 --- a/chrome/browser/resources/settings/site_settings/constants.ts
 +++ b/chrome/browser/resources/settings/site_settings/constants.ts
 @@ -43,6 +43,7 @@ export enum ContentSettingsTypes {
-   WINDOW_PLACEMENT = 'window-placement',
+   WINDOW_MANAGEMENT = 'window-placement',
    ZOOM_LEVELS = 'zoom-levels',
    AUTOPLAY = 'autoplay',
 +  JAVASCRIPT_JIT = 'javascript-jit',
@@ -147,7 +147,7 @@ diff --git a/chrome/browser/resources/settings/site_settings/settings_category_d
 diff --git a/chrome/browser/resources/settings/site_settings/site_details.html b/chrome/browser/resources/settings/site_settings/site_details.html
 --- a/chrome/browser/resources/settings/site_settings/site_details.html
 +++ b/chrome/browser/resources/settings/site_settings/site_details.html
-@@ -231,4 +231,9 @@
+@@ -258,4 +258,9 @@
            icon="settings:federated-identity-api"
            label="$i18n{siteSettingsFederatedIdentityApi}">
        </site-details-permission>
@@ -211,7 +211,7 @@ diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.cc b/chrom
 diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2130,6 +2130,13 @@ void AddSiteSettingsStrings(content::WebUIDataSource* html_source,
+@@ -2143,6 +2143,13 @@ void AddSiteSettingsStrings(content::WebUIDataSource* html_source,
      {"siteSettingsAutoplayAllowedExceptions",IDS_SETTINGS_SITE_SETTINGS_AUTOPLAY_ALLOWED_EXCEPTIONS},
      {"siteSettingsAutoplayBlockedExceptions", IDS_SETTINGS_SITE_SETTINGS_AUTOPLAY_BLOCKED_EXCEPTIONS},
      {"siteSettingsAutoplayMidSentence", IDS_SITE_SETTINGS_TYPE_AUTOPLAY},
@@ -228,7 +228,7 @@ diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provide
 diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/browser/ui/webui/settings/site_settings_helper.cc
 --- a/chrome/browser/ui/webui/settings/site_settings_helper.cc
 +++ b/chrome/browser/ui/webui/settings/site_settings_helper.cc
-@@ -116,6 +116,7 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
+@@ -115,6 +115,7 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
       "file-system-access-handles-data"},
      {ContentSettingsType::FEDERATED_IDENTITY_API, "federated-identity-api"},
      {ContentSettingsType::AUTOPLAY, "autoplay"},
@@ -236,7 +236,7 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
  
      // Add new content settings here if a corresponding Javascript string
      // representation for it is not required, for example if the content setting
-@@ -152,7 +153,6 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
+@@ -151,7 +152,6 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
      {ContentSettingsType::FILE_SYSTEM_LAST_PICKED_DIRECTORY, nullptr},
      {ContentSettingsType::DISPLAY_CAPTURE, nullptr},
      {ContentSettingsType::FEDERATED_IDENTITY_SHARING, nullptr},
@@ -244,7 +244,7 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
      {ContentSettingsType::HTTP_ALLOWED, nullptr},
      {ContentSettingsType::FORMFILL_METADATA, nullptr},
      {ContentSettingsType::FEDERATED_IDENTITY_ACTIVE_SESSION, nullptr},
-@@ -446,6 +446,7 @@ const std::vector<ContentSettingsType>& GetVisiblePermissionCategories() {
+@@ -435,6 +435,7 @@ const std::vector<ContentSettingsType>& GetVisiblePermissionCategories() {
      }
  
      base_types->push_back(ContentSettingsType::AUTOPLAY);
@@ -255,7 +255,7 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -621,7 +621,12 @@ void ContentSettingsRegistry::Init() {
+@@ -608,7 +608,12 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
    Register(ContentSettingsType::JAVASCRIPT_JIT, "javascript-jit",

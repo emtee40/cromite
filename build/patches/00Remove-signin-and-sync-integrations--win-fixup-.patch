@@ -16,15 +16,15 @@ Subject: Remove signin and sync integrations (win fixup)
  .../ui/webui/signin/profile_picker_handler.cc |   5 +-
  components/signin/public/android/BUILD.gn     |   1 -
  .../identitymanager/IdentityManager.java      |  21 +-
- .../identity_manager/identity_manager.cc      | 472 ++----------------
+ .../identity_manager/identity_manager.cc      | 468 ++----------------
  .../identity_manager/identity_manager.h       |  47 +-
  .../identity_manager_builder.cc               |   3 +
- 16 files changed, 47 insertions(+), 604 deletions(-)
+ 16 files changed, 46 insertions(+), 601 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -4261,8 +4261,6 @@ static_library("browser") {
+@@ -4282,8 +4282,6 @@ static_library("browser") {
        "sharing_hub/sharing_hub_service_factory.h",
        "signin/signin_promo.cc",
        "signin/signin_promo.h",
@@ -33,7 +33,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "signin/signin_ui_util.cc",
        "signin/signin_ui_util.h",
        "speech/chrome_speech_recognition_service.cc",
-@@ -6947,12 +6945,6 @@ static_library("browser") {
+@@ -6999,12 +6997,6 @@ static_library("browser") {
        "signin/signin_ui_delegate_impl_dice.cc",
        "signin/signin_ui_delegate_impl_dice.h",
      ]
@@ -179,7 +179,7 @@ diff --git a/chrome/browser/signin/signin_ui_util.cc b/chrome/browser/signin/sig
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -3583,12 +3583,6 @@ static_library("ui") {
+@@ -3607,12 +3607,6 @@ static_library("ui") {
        "webui/signin/signin_ui_error.h",
        "webui/signin/signin_utils_desktop.cc",
        "webui/signin/signin_utils_desktop.h",
@@ -308,7 +308,7 @@ diff --git a/chrome/browser/ui/webui/signin/profile_customization_handler.cc b/c
 diff --git a/chrome/browser/ui/webui/signin/profile_customization_ui.cc b/chrome/browser/ui/webui/signin/profile_customization_ui.cc
 --- a/chrome/browser/ui/webui/signin/profile_customization_ui.cc
 +++ b/chrome/browser/ui/webui/signin/profile_customization_ui.cc
-@@ -102,10 +102,11 @@ ProfileCustomizationUI::ProfileCustomizationUI(content::WebUI* web_ui)
+@@ -101,10 +101,11 @@ ProfileCustomizationUI::ProfileCustomizationUI(content::WebUI* web_ui)
        "profileCustomizationInDialogDesign",
        base::FeatureList::IsEnabled(kSyncPromoAfterSigninIntercept));
    const GURL& url = web_ui->GetWebContents()->GetVisibleURL();
@@ -324,7 +324,7 @@ diff --git a/chrome/browser/ui/webui/signin/profile_customization_ui.cc b/chrome
 diff --git a/chrome/browser/ui/webui/signin/profile_picker_handler.cc b/chrome/browser/ui/webui/signin/profile_picker_handler.cc
 --- a/chrome/browser/ui/webui/signin/profile_picker_handler.cc
 +++ b/chrome/browser/ui/webui/signin/profile_picker_handler.cc
-@@ -943,6 +943,7 @@ void ProfilePickerHandler::HandleSelectNewAccount(
+@@ -942,6 +942,7 @@ void ProfilePickerHandler::HandleSelectNewAccount(
      const base::Value::List& args) {
    AllowJavascript();
    CHECK_EQ(1U, args.size());
@@ -332,7 +332,7 @@ diff --git a/chrome/browser/ui/webui/signin/profile_picker_handler.cc b/chrome/b
    absl::optional<SkColor> profile_color = args[0].GetIfInt();
  #if BUILDFLAG(IS_CHROMEOS_LACROS)
    SelectAccountLacrosInternal("", profile_color);
-@@ -958,6 +959,7 @@ void ProfilePickerHandler::HandleSelectNewAccount(
+@@ -957,6 +958,7 @@ void ProfilePickerHandler::HandleSelectNewAccount(
  #else
    NOTERACHED();
  #endif
@@ -340,7 +340,7 @@ diff --git a/chrome/browser/ui/webui/signin/profile_picker_handler.cc b/chrome/b
  }
  
  #if BUILDFLAG(IS_CHROMEOS_LACROS)
-@@ -1050,9 +1052,6 @@ void ProfilePickerHandler::OnSwitchToProfileCompleteOpenCustomization(
+@@ -1049,9 +1051,6 @@ void ProfilePickerHandler::OnSwitchToProfileCompleteOpenCustomization(
      BeginFirstWebContentsProfiling(browser, profile_picked_time_on_startup_);
    }
  
@@ -353,7 +353,7 @@ diff --git a/chrome/browser/ui/webui/signin/profile_picker_handler.cc b/chrome/b
 diff --git a/components/signin/public/android/BUILD.gn b/components/signin/public/android/BUILD.gn
 --- a/components/signin/public/android/BUILD.gn
 +++ b/components/signin/public/android/BUILD.gn
-@@ -64,7 +64,6 @@ generate_jni("jni_headers") {
+@@ -65,7 +65,6 @@ generate_jni("jni_headers") {
      "java/src/org/chromium/components/signin/base/CoreAccountInfo.java",
      "java/src/org/chromium/components/signin/base/GoogleServiceAuthError.java",
      "java/src/org/chromium/components/signin/identitymanager/AccountTrackerService.java",
@@ -421,7 +421,7 @@ diff --git a/components/signin/public/android/java/src/org/chromium/components/s
 diff --git a/components/signin/public/identity_manager/identity_manager.cc b/components/signin/public/identity_manager/identity_manager.cc
 --- a/components/signin/public/identity_manager/identity_manager.cc
 +++ b/components/signin/public/identity_manager/identity_manager.cc
-@@ -31,7 +31,6 @@
+@@ -30,7 +30,6 @@
  #include "base/android/jni_string.h"
  #include "base/metrics/histogram_functions.h"
  #include "components/signin/internal/identity_manager/profile_oauth2_token_service_delegate.h"
@@ -429,7 +429,7 @@ diff --git a/components/signin/public/identity_manager/identity_manager.cc b/com
  #endif
  
  #if BUILDFLAG(ENABLE_DICE_SUPPORT)
-@@ -45,179 +44,31 @@
+@@ -44,179 +43,31 @@
  
  namespace signin {
  
@@ -611,7 +611,7 @@ diff --git a/components/signin/public/identity_manager/identity_manager.cc b/com
  }
  
  CoreAccountId IdentityManager::GetPrimaryAccountId(ConsentLevel consent) const {
-@@ -225,7 +76,7 @@ CoreAccountId IdentityManager::GetPrimaryAccountId(ConsentLevel consent) const {
+@@ -224,7 +75,7 @@ CoreAccountId IdentityManager::GetPrimaryAccountId(ConsentLevel consent) const {
  }
  
  bool IdentityManager::HasPrimaryAccount(ConsentLevel consent) const {
@@ -620,7 +620,7 @@ diff --git a/components/signin/public/identity_manager/identity_manager.cc b/com
  }
  
  std::unique_ptr<AccessTokenFetcher>
-@@ -235,9 +86,7 @@ IdentityManager::CreateAccessTokenFetcherForAccount(
+@@ -234,9 +85,7 @@ IdentityManager::CreateAccessTokenFetcherForAccount(
      const ScopeSet& scopes,
      AccessTokenFetcher::TokenCallback callback,
      AccessTokenFetcher::Mode mode) {
@@ -631,7 +631,7 @@ diff --git a/components/signin/public/identity_manager/identity_manager.cc b/com
  }
  
  std::unique_ptr<AccessTokenFetcher>
-@@ -248,10 +97,7 @@ IdentityManager::CreateAccessTokenFetcherForAccount(
+@@ -247,10 +96,7 @@ IdentityManager::CreateAccessTokenFetcherForAccount(
      const ScopeSet& scopes,
      AccessTokenFetcher::TokenCallback callback,
      AccessTokenFetcher::Mode mode) {
@@ -643,7 +643,7 @@ diff --git a/components/signin/public/identity_manager/identity_manager.cc b/com
  }
  
  std::unique_ptr<AccessTokenFetcher>
-@@ -263,108 +109,68 @@ IdentityManager::CreateAccessTokenFetcherForClient(
+@@ -262,161 +108,108 @@ IdentityManager::CreateAccessTokenFetcherForClient(
      const ScopeSet& scopes,
      AccessTokenFetcher::TokenCallback callback,
      AccessTokenFetcher::Mode mode) {
@@ -762,17 +762,6 @@ diff --git a/components/signin/public/identity_manager/identity_manager.cc b/com
 +  return AccountInfo();
  }
  
- std::unique_ptr<UbertokenFetcher>
-@@ -373,62 +179,47 @@ IdentityManager::CreateUbertokenFetcherForAccount(
-     UbertokenFetcher::CompletionCallback callback,
-     gaia::GaiaSource source,
-     scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory) {
--  return std::make_unique<UbertokenFetcherImpl>(
--      account_id, token_service_.get(), std::move(callback), source,
--      url_loader_factory);
-+  return nullptr;
- }
- 
  AccountsInCookieJarInfo IdentityManager::GetAccountsInCookieJar() const {
    std::vector<gaia::ListedAccount> signed_in_accounts;
    std::vector<gaia::ListedAccount> signed_out_accounts;
@@ -833,7 +822,7 @@ diff --git a/components/signin/public/identity_manager/identity_manager.cc b/com
  }
  
  // static
-@@ -446,235 +237,72 @@ void IdentityManager::RegisterProfilePrefs(PrefRegistrySimple* registry) {
+@@ -434,235 +227,72 @@ void IdentityManager::RegisterProfilePrefs(PrefRegistrySimple* registry) {
  }
  
  DiagnosticsProvider* IdentityManager::GetDiagnosticsProvider() {
@@ -1077,7 +1066,7 @@ diff --git a/components/signin/public/identity_manager/identity_manager.cc b/com
  }
  
  void IdentityManager::OnFetchAccessTokenComplete(
-@@ -683,65 +311,27 @@ void IdentityManager::OnFetchAccessTokenComplete(
+@@ -671,65 +301,27 @@ void IdentityManager::OnFetchAccessTokenComplete(
      const ScopeSet& scopes,
      GoogleServiceAuthError error,
      base::Time expiration_time) {
@@ -1146,7 +1135,7 @@ diff --git a/components/signin/public/identity_manager/identity_manager.cc b/com
 diff --git a/components/signin/public/identity_manager/identity_manager.h b/components/signin/public/identity_manager/identity_manager.h
 --- a/components/signin/public/identity_manager/identity_manager.h
 +++ b/components/signin/public/identity_manager/identity_manager.h
-@@ -436,7 +436,7 @@ class IdentityManager : public KeyedService,
+@@ -426,7 +426,7 @@ class IdentityManager : public KeyedService,
  
    // Returns account consistency method for this profile.
    AccountConsistencyMethod GetAccountConsistency() {
@@ -1155,7 +1144,7 @@ diff --git a/components/signin/public/identity_manager/identity_manager.h b/comp
    }
  
  #if BUILDFLAG(IS_ANDROID)
-@@ -680,51 +680,6 @@ class IdentityManager : public KeyedService,
+@@ -670,51 +670,6 @@ class IdentityManager : public KeyedService,
    // AccountTrackerService callbacks:
    void OnAccountUpdated(const AccountInfo& info);
    void OnAccountRemoved(const AccountInfo& info);

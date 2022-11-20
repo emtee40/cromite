@@ -22,7 +22,7 @@ Subject: Revert the removal to block autoplay (win fixup)
 diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -3745,6 +3745,25 @@
+@@ -3774,6 +3774,25 @@
      Control how your browsing history is used to personalize Search and more
    </message>
  
@@ -63,7 +63,7 @@ diff --git a/chrome/browser/resources/settings/icons.html b/chrome/browser/resou
 diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/chrome/browser/resources/settings/privacy_page/privacy_page.html
 --- a/chrome/browser/resources/settings/privacy_page/privacy_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/privacy_page.html
-@@ -1008,4 +1008,26 @@
+@@ -992,4 +992,26 @@
            </category-setting-exceptions>
          </settings-subpage>
        </template>
@@ -93,8 +93,8 @@ diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/
 diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resources/settings/route.ts
 --- a/chrome/browser/resources/settings/route.ts
 +++ b/chrome/browser/resources/settings/route.ts
-@@ -102,6 +102,7 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
-       r.SITE_SETTINGS.createChild('windowPlacement');
+@@ -100,6 +100,7 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
+       r.SITE_SETTINGS.createChild('windowManagement');
    r.SITE_SETTINGS_FILE_SYSTEM_WRITE = r.SITE_SETTINGS.createChild('filesystem');
    r.SITE_SETTINGS_LOCAL_FONTS = r.SITE_SETTINGS.createChild('localFonts');
 +  r.SITE_SETTINGS_AUTOPLAY = r.SITE_SETTINGS.createChild('autoplay');
@@ -104,7 +104,7 @@ diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resourc
 diff --git a/chrome/browser/resources/settings/settings_routes.ts b/chrome/browser/resources/settings/settings_routes.ts
 --- a/chrome/browser/resources/settings/settings_routes.ts
 +++ b/chrome/browser/resources/settings/settings_routes.ts
-@@ -96,4 +96,5 @@ export interface SettingsRoutes {
+@@ -94,4 +94,5 @@ export interface SettingsRoutes {
    SYNC_ADVANCED: Route;
    SYSTEM: Route;
    TRIGGERED_RESET_DIALOG: Route;
@@ -126,7 +126,7 @@ diff --git a/chrome/browser/resources/settings/site_settings/constants.ts b/chro
 +++ b/chrome/browser/resources/settings/site_settings/constants.ts
 @@ -42,6 +42,7 @@ export enum ContentSettingsTypes {
    VR = 'vr',
-   WINDOW_PLACEMENT = 'window-placement',
+   WINDOW_MANAGEMENT = 'window-placement',
    ZOOM_LEVELS = 'zoom-levels',
 +  AUTOPLAY = 'autoplay',
  
@@ -146,7 +146,7 @@ diff --git a/chrome/browser/resources/settings/site_settings/settings_category_d
 diff --git a/chrome/browser/resources/settings/site_settings/site_details.html b/chrome/browser/resources/settings/site_settings/site_details.html
 --- a/chrome/browser/resources/settings/site_settings/site_details.html
 +++ b/chrome/browser/resources/settings/site_settings/site_details.html
-@@ -226,4 +226,9 @@
+@@ -253,4 +253,9 @@
            category="[[contentSettingsTypesEnum_.LOCAL_FONTS]]"
            icon="settings:local-fonts" label="$i18n{fonts}">
        </site-details-permission>
@@ -210,7 +210,7 @@ diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.cc b/chrom
 diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2123,6 +2123,13 @@ void AddSearchEnginesStrings(content::WebUIDataSource* html_source) {
+@@ -2136,6 +2136,13 @@ void AddSearchEnginesStrings(content::WebUIDataSource* html_source) {
  void AddSiteSettingsStrings(content::WebUIDataSource* html_source,
                              Profile* profile) {
    static constexpr webui::LocalizedString kLocalizedStrings[] = {
@@ -227,7 +227,7 @@ diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provide
 diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/browser/ui/webui/settings/site_settings_helper.cc
 --- a/chrome/browser/ui/webui/settings/site_settings_helper.cc
 +++ b/chrome/browser/ui/webui/settings/site_settings_helper.cc
-@@ -115,6 +115,7 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
+@@ -114,6 +114,7 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
      {ContentSettingsType::FILE_SYSTEM_ACCESS_CHOOSER_DATA,
       "file-system-access-handles-data"},
      {ContentSettingsType::FEDERATED_IDENTITY_API, "federated-identity-api"},
@@ -235,7 +235,7 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
  
      // Add new content settings here if a corresponding Javascript string
      // representation for it is not required, for example if the content setting
-@@ -126,7 +127,6 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
+@@ -125,7 +126,6 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
      {ContentSettingsType::APP_BANNER, nullptr},
      {ContentSettingsType::SITE_ENGAGEMENT, nullptr},
      {ContentSettingsType::DURABLE_STORAGE, nullptr},
@@ -243,7 +243,7 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
      {ContentSettingsType::IMPORTANT_SITE_INFO, nullptr},
      {ContentSettingsType::PERMISSION_AUTOBLOCKER_DATA, nullptr},
      {ContentSettingsType::ADS_DATA, nullptr},
-@@ -445,6 +445,8 @@ const std::vector<ContentSettingsType>& GetVisiblePermissionCategories() {
+@@ -434,6 +434,8 @@ const std::vector<ContentSettingsType>& GetVisiblePermissionCategories() {
        base_types->push_back(ContentSettingsType::ADS);
      }
  

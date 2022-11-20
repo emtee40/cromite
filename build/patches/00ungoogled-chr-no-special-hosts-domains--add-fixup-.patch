@@ -29,18 +29,18 @@ Subject: ungoogled-chr no special hosts/domains (add fixup)
  chrome/common/BUILD.gn                        |   2 -
  .../url_loader_throttle_provider_impl.cc      |   7 -
  chrome/test/BUILD.gn                          |   1 -
- components/google/core/common/google_util.cc  | 150 +-----------------
+ components/google/core/common/google_util.cc  | 151 +-----------------
  components/google/core/common/google_util.h   |  14 +-
  .../search_engines/search_terms_data.cc       |   4 +-
  components/search_provider_logos/BUILD.gn     |   2 -
  .../logo_service_impl.cc                      |  16 +-
  components/url_matcher/url_util.cc            |  83 ----------
- 32 files changed, 20 insertions(+), 442 deletions(-)
+ 32 files changed, 20 insertions(+), 443 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1014,10 +1014,6 @@ static_library("browser") {
+@@ -1022,10 +1022,6 @@ static_library("browser") {
      "page_load_metrics/observers/foreground_duration_ukm_observer.h",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.cc",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.h",
@@ -51,7 +51,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "page_load_metrics/observers/histogram_suffixes.cc",
      "page_load_metrics/observers/histogram_suffixes.h",
      "page_load_metrics/observers/https_engagement_metrics/https_engagement_page_load_metrics_observer.cc",
-@@ -1923,7 +1919,6 @@ static_library("browser") {
+@@ -1935,7 +1931,6 @@ static_library("browser") {
    allow_circular_includes_from = [
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -59,7 +59,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/profiling_host",
  
      # TODO(crbug.com/1335199): break this dep when favicon is in its own target
-@@ -1942,7 +1937,6 @@ static_library("browser") {
+@@ -1954,7 +1949,6 @@ static_library("browser") {
  
    public_deps = [
      "//base",
@@ -67,7 +67,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/common",
      "//chrome/common:buildflags",
      "//chrome/common:constants",
-@@ -7631,8 +7625,6 @@ static_library("browser") {
+@@ -7692,8 +7686,6 @@ static_library("browser") {
        "supervised_user/supervised_user_constants.h",
        "supervised_user/supervised_user_denylist.cc",
        "supervised_user/supervised_user_denylist.h",
@@ -110,7 +110,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -2646,7 +2646,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
+@@ -2675,7 +2675,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
        switches::kForcePNaClSubzero,
  #endif
        switches::kForceUIDirection,
@@ -118,7 +118,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
        switches::kJavaScriptHarmony,
        switches::kEnableExperimentalWebAssemblyFeatures,
        embedder_support::kOriginTrialDisabledFeatures,
-@@ -4550,12 +4549,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
+@@ -4580,12 +4579,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
                     &throttles);
  #endif
  
@@ -131,7 +131,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    if (auto* throttle_manager =
            subresource_filter::ContentSubresourceFilterThrottleManager::
                FromNavigationHandle(*handle)) {
-@@ -5051,11 +5044,11 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
+@@ -5087,11 +5080,11 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
        profile->GetPrefs()->GetInteger(prefs::kForceYouTubeRestrict),
        profile->GetPrefs()->GetString(prefs::kAllowedDomainsForApps),
        false /*-> allow_userscript, don't care */};
@@ -149,10 +149,10 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
 diff --git a/chrome/browser/extensions/BUILD.gn b/chrome/browser/extensions/BUILD.gn
 --- a/chrome/browser/extensions/BUILD.gn
 +++ b/chrome/browser/extensions/BUILD.gn
-@@ -786,7 +786,6 @@ static_library("extensions") {
+@@ -783,7 +783,6 @@ static_library("extensions") {
+     "//chrome/browser/browsing_data:constants",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
-     "//chrome/browser/first_party_sets",
 -    "//chrome/browser/google",
      "//chrome/browser/image_decoder",
      "//chrome/browser/media/router",
@@ -182,7 +182,7 @@ diff --git a/chrome/browser/feedback/system_logs/log_sources/chrome_internal_log
 diff --git a/chrome/browser/first_run/first_run.cc b/chrome/browser/first_run/first_run.cc
 --- a/chrome/browser/first_run/first_run.cc
 +++ b/chrome/browser/first_run/first_run.cc
-@@ -284,15 +284,6 @@ void SetupInitialPrefsFromInstallPrefs(
+@@ -285,15 +285,6 @@ void SetupInitialPrefsFromInstallPrefs(
  
  // -- Platform-specific functions --
  
@@ -257,7 +257,7 @@ diff --git a/chrome/browser/long_screenshots/long_screenshots_tab_service.cc b/c
 diff --git a/chrome/browser/metrics/chrome_metrics_service_client.cc b/chrome/browser/metrics/chrome_metrics_service_client.cc
 --- a/chrome/browser/metrics/chrome_metrics_service_client.cc
 +++ b/chrome/browser/metrics/chrome_metrics_service_client.cc
-@@ -571,7 +571,7 @@ ChromeMetricsServiceClient::GetNetworkTimeTracker() {
+@@ -572,7 +572,7 @@ ChromeMetricsServiceClient::GetNetworkTimeTracker() {
  }
  
  bool ChromeMetricsServiceClient::GetBrand(std::string* brand_code) {
@@ -269,7 +269,7 @@ diff --git a/chrome/browser/metrics/chrome_metrics_service_client.cc b/chrome/br
 diff --git a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
 --- a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
 +++ b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
-@@ -99,9 +99,6 @@ void PostStoreMetricsClientInfo(const metrics::ClientInfo& client_info) {
+@@ -101,9 +101,6 @@ void PostStoreMetricsClientInfo(const metrics::ClientInfo& client_info) {
    // This must happen on the same sequence as the tasks to enable/disable
    // metrics reporting. Otherwise, this may run while disabling metrics
    // reporting if the user quickly enables and disables metrics reporting.
@@ -279,9 +279,9 @@ diff --git a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc b/
  }
  
  #if BUILDFLAG(IS_ANDROID)
-@@ -311,7 +308,7 @@ ChromeMetricsServicesManagerClient::GetMetricsStateManager() {
-         local_state_, enabled_state_provider_.get(), GetRegistryBackupKey(),
+@@ -314,7 +311,7 @@ ChromeMetricsServicesManagerClient::GetMetricsStateManager() {
          user_data_dir, startup_visibility,
+         metrics::EntropyProviderType::kDefault,
          base::BindRepeating(&PostStoreMetricsClientInfo),
 -        base::BindRepeating(&GoogleUpdateSettings::LoadMetricsClientInfo),
 +        metrics::MetricsStateManager::LoadClientInfoCallback(),
@@ -461,7 +461,7 @@ diff --git a/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc b/
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -418,7 +418,6 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -419,7 +419,6 @@ void ChromeBrowserMainExtraPartsProfiles::
  #if !BUILDFLAG(IS_ANDROID)
    GlobalErrorServiceFactory::GetInstance();
  #endif
@@ -486,7 +486,7 @@ diff --git a/chrome/browser/search_engines/ui_thread_search_terms_data.cc b/chro
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -404,7 +404,6 @@ static_library("ui") {
+@@ -409,7 +409,6 @@ static_library("ui") {
      "//chrome/browser/breadcrumbs",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -497,7 +497,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 diff --git a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 --- a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 +++ b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
-@@ -489,11 +489,6 @@ content::WebUIDataSource* CreateNewTabPageUiHtmlSource(Profile* profile) {
+@@ -511,11 +511,6 @@ content::WebUIDataSource* CreateNewTabPageUiHtmlSource(Profile* profile) {
    // chrome-untrusted://new-tab-page for other external content and resources.
    // NOTE: Use caution when overriding content security policies as that cean
    // lead to subtle security bugs such as https://crbug.com/1251541.
@@ -564,7 +564,7 @@ diff --git a/chrome/renderer/url_loader_throttle_provider_impl.cc b/chrome/rende
 diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 --- a/chrome/test/BUILD.gn
 +++ b/chrome/test/BUILD.gn
-@@ -5724,7 +5724,6 @@ test("unit_tests") {
+@@ -5785,7 +5785,6 @@ test("unit_tests") {
      "//chrome/browser/favicon",
      "//chrome/browser/feature_guide/notifications:unit_tests",
      "//chrome/browser/first_party_sets",
@@ -594,7 +594,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
  }
  
  std::string GetGoogleCountryCode(const GURL& google_homepage_url) {
-@@ -83,155 +82,12 @@ bool IsYoutubeDomainUrl(const GURL& url, SubdomainPermission subdomain_permissio
+@@ -83,156 +82,12 @@ bool IsYoutubeDomainUrl(const GURL& url, SubdomainPermission subdomain_permissio
  }
  
  bool IsGoogleAssociatedDomainUrl(const GURL& url) { // disabled on Bromite
@@ -615,6 +615,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -      ".googlevideo.com",
 -      ".gstatic.com",
 -      ".litepages.googlezip.net",
+-      ".youtubekids.com",
 -      ".ytimg.com",
 -  };
 -  const std::string host = url.host();
