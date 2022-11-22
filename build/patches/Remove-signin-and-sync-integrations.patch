@@ -35,6 +35,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../java/res/xml/manage_sync_preferences.xml  |  12 -
  .../java/res/xml/privacy_preferences.xml      |   4 -
  .../org/chromium/chrome/browser/AppHooks.java |  34 ---
+ .../chrome/browser/BackupSigninProcessor.java |  54 ----
  .../chrome/browser/ChromeBackupAgentImpl.java |   9 +-
  .../chrome/browser/ChromeBackupWatcher.java   |  10 -
  .../chrome/browser/ChromeTabbedActivity.java  |   9 -
@@ -42,7 +43,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../AutofillAssistantPreferenceFragment.java  |  17 +-
  .../bookmarks/BookmarkItemsAdapter.java       |  56 +----
  .../bookmarks/BookmarkPromoHeader.java        | 230 +-----------------
- .../ClearBrowsingDataFragment.java            |  64 +----
+ .../ClearBrowsingDataFragment.java            |  79 +-----
  .../ClearBrowsingDataFragmentBasic.java       |  27 +-
  .../contacts_picker/ChromePickerAdapter.java  |  67 +----
  .../browser/customtabs/CustomTabActivity.java |   6 -
@@ -120,7 +121,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ProfileOAuth2TokenServiceDelegate.java    |  52 ----
  .../net/HttpNegotiateAuthenticator.java       |  88 +------
  .../chromoting/base/OAuthTokenFetcher.java    |   2 -
- 101 files changed, 91 insertions(+), 2538 deletions(-)
+ 102 files changed, 92 insertions(+), 2606 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
@@ -514,15 +515,15 @@ diff --git a/chrome/android/feed/core/java/src/org/chromium/chrome/browser/feed/
          private void maybeUpdateSignInPromo() {
              // Only call #setupPromoViewFromCache() if SignInPromo is visible to avoid potentially
              // blocking the UI thread for several seconds if the accounts cache is not populated
-@@ -173,7 +167,7 @@ public class FeedSurfaceMediator
-                 FeedSurfaceMediator.this.switchToStream(headerIndex);
-             }
+@@ -158,7 +152,7 @@ public class FeedSurfaceMediator
+             super.onDismissPromo();
+             mCoordinator.updateHeaderViews(false);
          }
 -    }
 +    } */
  
-     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
-     public static void setPrefForTest(
+     /**
+      * Internal implementation of Stream.StreamsMediator.
 @@ -192,7 +186,6 @@ public class FeedSurfaceMediator
      private final Context mContext;
      private final @Nullable SnapScrollHelper mSnapScrollHelper;
@@ -884,6 +885,73 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/AppHooks.java b
      /**
       * This is deprecated, and should not be called. Use FeedHooks instead.
       */
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/BackupSigninProcessor.java b/chrome/android/java/src/org/chromium/chrome/browser/BackupSigninProcessor.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/BackupSigninProcessor.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/BackupSigninProcessor.java
+@@ -37,63 +37,9 @@ public final class BackupSigninProcessor {
+      * @param activity The current activity.
+      */
+     public static void start(final Activity activity) {
+-        // Warning, another layer relies on SigninManager being instantiated at this moment, don't
+-        // move this call around.
+-        // TODO(crbug.com/1336196): Delete comment above once the dependency is gone.
+-        SigninManager signinManager = IdentityServicesProvider.get().getSigninManager(
+-                Profile.getLastUsedRegularProfile());
+-        final String accountName = getBackupFlowSigninAccountName();
+-        if (!signinManager.isSyncOptInAllowed() || TextUtils.isEmpty(accountName)) {
+-            setBackupFlowSigninComplete();
+-            return;
+-        }
+-
+-        final AccountManagerFacade accountManagerFacade =
+-                AccountManagerFacadeProvider.getInstance();
+-        accountManagerFacade.getAccounts().then(accounts -> {
+-            AccountUtils.checkChildAccountStatus(
+-                    accountManagerFacade, accounts, (isChild, unused) -> {
+-                        if (isChild) {
+-                            // TODO(crbug.com/1318350): Pre-AllowSyncOffForChildAccounts, the backup
+-                            // sign-in for child accounts would happen in SigninChecker anyways.
+-                            // Maybe it should be handled by this class once the feature launches.
+-                            setBackupFlowSigninComplete();
+-                            return;
+-                        }
+-
+-                        Account account = AccountUtils.findAccountByName(accounts, accountName);
+-                        if (account == null) {
+-                            setBackupFlowSigninComplete();
+-                            return;
+-                        }
+-
+-                        signinAndEnableSync(account, activity);
+-                    });
+-        });
+     }
+ 
+     private static void signinAndEnableSync(@NonNull Account account, Activity activity) {
+-        IdentityServicesProvider.get()
+-                .getSigninManager(Profile.getLastUsedRegularProfile())
+-                .signinAndEnableSync(SigninAccessPoint.POST_DEVICE_RESTORE_BACKGROUND_SIGNIN,
+-                        account, new SignInCallback() {
+-                            @Override
+-                            public void onSignInComplete() {
+-                                UnifiedConsentServiceBridge
+-                                        .setUrlKeyedAnonymizedDataCollectionEnabled(
+-                                                Profile.getLastUsedRegularProfile(), true);
+-                                SyncService.get().setFirstSetupComplete(
+-                                        SyncFirstSetupCompleteSource.ANDROID_BACKUP_RESTORE);
+-                                setBackupFlowSigninComplete();
+-                            }
+-
+-                            @Override
+-                            public void onSignInAborted() {
+-                                // If sign-in failed, give up and mark as complete.
+-                                // TODO(crbug.com/1371130): Measure how often this happens.
+-                                setBackupFlowSigninComplete();
+-                            }
+-                        });
+     }
+ 
+     /**
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeBackupAgentImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeBackupAgentImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeBackupAgentImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeBackupAgentImpl.java
@@ -1621,14 +1689,58 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
          implements BrowsingDataBridge.OnClearBrowsingDataListener,
 -                   Preference.OnPreferenceClickListener, Preference.OnPreferenceChangeListener,
 -                   SignOutDialogCoordinator.Listener, SigninManager.SignInStateObserver {
-+                   Preference.OnPreferenceClickListener, Preference.OnPreferenceChangeListener, SigninManager.SignInStateObserver {
++                   Preference.OnPreferenceClickListener, Preference.OnPreferenceChangeListener {
      private static final String CLEAR_DATA_PROGRESS_DIALOG_TAG = "clear_data_progress";
  
      /**
-@@ -674,21 +666,6 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+@@ -228,8 +220,6 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+ 
+     private OtherFormsOfHistoryDialogFragment mDialogAboutOtherFormsOfBrowsingHistory;
+ 
+-    private SigninManager mSigninManager;
+-
+     private ProgressDialog mProgressDialog;
+     private Item[] mItems;
+     private ClearBrowsingDataFetcher mFetcher;
+@@ -539,8 +529,6 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
          }
+         getActivity().setTitle(R.string.clear_browsing_data_title);
+         SettingsUtils.addPreferencesFromResource(this, R.xml.clear_browsing_data_preferences_tab);
+-        mSigninManager = IdentityServicesProvider.get().getSigninManager(
+-                Profile.getLastUsedRegularProfile());
+         List<Integer> options = getDialogOptions();
+         mItems = new Item[options.size()];
+         for (int i = 0; i < options.size(); i++) {
+@@ -592,8 +580,6 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+ 
+         // Text for sign-out option.
+         updateSignOutOfChromeText();
+-
+-        mSigninManager.addSignInStateObserver(this);
      }
  
+     @Override
+@@ -639,7 +625,6 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+         for (Item item : mItems) {
+             item.destroy();
+         }
+-        mSigninManager.removeSignInStateObserver(this);
+     }
+ 
+     // We either show the dialog, or modify the current one to display our messages.  This avoids
+@@ -665,28 +650,7 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+     private void updateSignOutOfChromeText() {
+         ClickableSpansTextMessagePreference signOutOfChromeTextPref =
+                 findPreference(ClearBrowsingDataFragment.PREF_SIGN_OUT_OF_CHROME_TEXT);
+-        if (ChromeFeatureList.isEnabled(ChromeFeatureList.ENABLE_CBD_SIGN_OUT)
+-                && mSigninManager.isSignOutAllowed()) {
+-            signOutOfChromeTextPref.setSummary(buildSignOutOfChromeText());
+-            signOutOfChromeTextPref.setVisible(true);
+-        } else {
+-            signOutOfChromeTextPref.setVisible(false);
+-        }
+-    }
+-
 -    @VisibleForTesting
 -    SpannableString buildSignOutOfChromeText() {
 -        return SpanApplier.applySpans(getContext().getString(R.string.sign_out_of_chrome_link),
@@ -1642,12 +1754,11 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
 -                -> SignOutDialogCoordinator.show(requireContext(),
 -                        ((ModalDialogManagerHolder) getActivity()).getModalDialogManager(), this,
 -                        ActionType.CLEAR_PRIMARY_ACCOUNT, GAIAServiceType.GAIA_SERVICE_TYPE_NONE);
--    }
--
++        signOutOfChromeTextPref.setVisible(false);
+     }
+ 
      /**
-      * This method shows the important sites dialog. After the dialog is shown, we correctly clear.
-      */
-@@ -751,43 +728,4 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+@@ -751,43 +715,4 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
                      ignoredDomains, ignoredDomainReasons);
          }
      }

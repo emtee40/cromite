@@ -25,7 +25,7 @@ Parts of this patch were developed by csagan5, uazo and others.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  ...em_webview_bundle.AndroidManifest.expected |   5 -
- chrome/android/BUILD.gn                       |  46 +-
+ chrome/android/BUILD.gn                       |  47 +-
  chrome/android/chrome_java_sources.gni        |   5 -
  .../features/cablev2_authenticator/BUILD.gn   |   2 -
  chrome/android/java/AndroidManifest.xml       |  68 ---
@@ -94,7 +94,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/signin/public/android/BUILD.gn     |   3 -
  .../signin/AccountRenameChecker.java          |  16 -
  components/webauthn/android/BUILD.gn          |  10 -
- .../webauthn/AuthenticatorImpl.java           |  50 +-
+ .../webauthn/AuthenticatorImpl.java           |  59 +-
  .../webauthn/Fido2ApiCallHelper.java          |  23 +-
  .../push_messaging/push_messaging_manager.cc  |   2 +-
  content/public/android/BUILD.gn               |   4 -
@@ -108,7 +108,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  third_party/android_deps/BUILD.gn             | 539 +-----------------
  .../preconditions/javatests/BUILD.gn          |   1 -
  .../gms/ChromiumPlayServicesAvailability.java |  10 +-
- 84 files changed, 87 insertions(+), 2015 deletions(-)
+ 84 files changed, 88 insertions(+), 2024 deletions(-)
 
 diff --git a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected b/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
 --- a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
@@ -205,15 +205,17 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java",
        "//base:base_java_test_support",
        "//base:jni_java",
-@@ -2579,7 +2568,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2579,9 +2568,7 @@ if (current_toolchain == default_toolchain) {
    # is in a DFM.
    android_library("base_module_java") {
      sources = [
 -      "java/src/com/google/ipc/invalidation/ticl/android2/channel/GcmRegistrationTaskService.java",
        "java/src/org/chromium/chrome/app/TrichromeZygotePreload.java",
-       "java/src/org/chromium/chrome/browser/ChromeBackgroundService.java",
+-      "java/src/org/chromium/chrome/browser/ChromeBackgroundService.java",
        "java/src/org/chromium/chrome/browser/ChromeBackupAgent.java",
-@@ -2595,8 +2583,6 @@ if (current_toolchain == default_toolchain) {
+       "java/src/org/chromium/chrome/browser/DeferredStartupHandler.java",
+       "java/src/org/chromium/chrome/browser/app/bluetooth/BluetoothNotificationService.java",
+@@ -2595,8 +2582,6 @@ if (current_toolchain == default_toolchain) {
        "java/src/org/chromium/chrome/browser/base/SplitCompatBackupAgent.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatContentProvider.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatCustomTabsService.java",
@@ -222,7 +224,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "java/src/org/chromium/chrome/browser/base/SplitCompatIntentService.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatJobService.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatMinidumpUploadJobService.java",
-@@ -2621,17 +2607,11 @@ if (current_toolchain == default_toolchain) {
+@@ -2621,17 +2606,11 @@ if (current_toolchain == default_toolchain) {
        "java/src/org/chromium/chrome/browser/photo_picker/DecoderService.java",
        "java/src/org/chromium/chrome/browser/prerender/ChromePrerenderService.java",
        "java/src/org/chromium/chrome/browser/provider/ChromeBrowserProvider.java",
@@ -240,7 +242,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java",
        "//base:jni_java",
        "//chrome/browser/download/android:file_provider_java",
-@@ -2645,7 +2625,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2645,7 +2624,6 @@ if (current_toolchain == default_toolchain) {
        "//components/media_router/browser/android:cast_options_provider_java",
        "//components/minidump_uploader:minidump_uploader_java",
        "//components/module_installer/android:module_installer_java",
@@ -248,7 +250,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//third_party/androidx:androidx_annotation_annotation_java",
        "//third_party/androidx:androidx_collection_collection_java",
        "//ui/android:ui_no_recycler_view_java",
-@@ -2665,7 +2644,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2665,7 +2643,6 @@ if (current_toolchain == default_toolchain) {
        # Deps to pull services into base module.
        # TODO(crbug.com/1126301): Consider moving these to the chrome module to
        # reduce base dex size.
@@ -3395,7 +3397,23 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
      }
  
      /**
-@@ -238,10 +196,7 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -215,14 +173,7 @@ public final class AuthenticatorImpl implements Authenticator {
+      */
+     public void getMatchingCredentialIds(String relyingPartyId, byte[][] credentialIds,
+             boolean requireThirdPartyPayment, GetMatchingCredentialIdsResponseCallback callback) {
+-        if (mGmsCorePackageVersion < GMSCORE_MIN_VERSION_GET_MATCHING_CRED_IDS) {
+-            callback.onResponse(new ArrayList<byte[]>());
+-            return;
+-        }
+-
+-        getFido2CredentialRequest().handleGetMatchingCredentialIdsRequest(mRenderFrameHost,
+-                relyingPartyId, credentialIds, requireThirdPartyPayment, callback,
+-                status -> onError(status));
++        callback.onResponse(new ArrayList<byte[]>());
+     }
+ 
+     @Override
+@@ -238,10 +189,7 @@ public final class AuthenticatorImpl implements Authenticator {
          // reason, this method will return true but chrome will ignore conditional requests.
          // Android surfaces only platform credentials on conditional requests, use IsUVPAA as a
          // proxy for availability.
@@ -3407,7 +3425,7 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
      }
  
      @Override
-@@ -251,8 +206,6 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -251,8 +199,6 @@ public final class AuthenticatorImpl implements Authenticator {
          if (!mIsOperationPending || mGetAssertionCallback == null) {
              return;
          }
@@ -3416,7 +3434,7 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
      }
  
      /**
-@@ -302,7 +255,6 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -302,7 +248,6 @@ public final class AuthenticatorImpl implements Authenticator {
          mIsOperationPending = false;
          mMakeCredentialCallback = null;
          mGetAssertionCallback = null;

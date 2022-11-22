@@ -1967,7 +1967,7 @@ diff --git a/chrome/browser/permissions/permission_revocation_request.cc b/chrom
    CrowdDenyPreloadData* crowd_deny = CrowdDenyPreloadData::GetInstance();
    permissions::PermissionUmaUtil::RecordCrowdDenyVersionAtAbuseCheckTime(
        crowd_deny->version_on_disk());
-@@ -156,6 +157,9 @@ void PermissionRevocationRequest::CheckAndRevokeIfBlocklisted() {
+@@ -156,10 +157,14 @@ void PermissionRevocationRequest::CheckAndRevokeIfBlocklisted() {
        url::Origin::Create(origin_),
        base::BindOnce(&PermissionRevocationRequest::OnSiteReputationReady,
                       weak_factory_.GetWeakPtr()));
@@ -1977,22 +1977,19 @@ diff --git a/chrome/browser/permissions/permission_revocation_request.cc b/chrom
  }
  
  void PermissionRevocationRequest::OnSiteReputationReady(
-@@ -180,6 +184,7 @@ void PermissionRevocationRequest::OnSiteReputationReady(
-       default:
-         should_revoke_permission = false;
-     }
+     const CrowdDenyPreloadData::SiteReputation* site_reputation) {
 +#if BUILDFLAG(FULL_SAFE_BROWSING)
-     DCHECK(g_browser_process->safe_browsing_service());
-     if (should_revoke_permission &&
-         g_browser_process->safe_browsing_service()) {
-@@ -191,6 +196,7 @@ void PermissionRevocationRequest::OnSiteReputationReady(
-               weak_factory_.GetWeakPtr(), site_reputation));
+   if (crowd_deny_request_start_time_.has_value()) {
+     crowd_deny_request_duration_ =
+         base::TimeTicks::Now() - crowd_deny_request_start_time_.value();
+@@ -192,6 +197,7 @@ void PermissionRevocationRequest::OnSiteReputationReady(
        return;
      }
-+#endif
    }
++#endif
    NotifyCallback(Outcome::PERMISSION_NOT_REVOKED);
  }
+ 
 diff --git a/chrome/browser/permissions/quiet_notification_permission_ui_config.cc b/chrome/browser/permissions/quiet_notification_permission_ui_config.cc
 --- a/chrome/browser/permissions/quiet_notification_permission_ui_config.cc
 +++ b/chrome/browser/permissions/quiet_notification_permission_ui_config.cc

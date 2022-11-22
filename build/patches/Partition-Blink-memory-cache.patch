@@ -85,7 +85,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/memory_cache.cc b/
  
  bool MemoryCache::Contains(const Resource* resource) const {
 -  if (!resource || resource->Url().IsEmpty())
-+  if (!resource || resource->Url().IsEmpty() || resource->CacheIdentifier().IsEmpty())
++  if (!resource || resource->Url().IsEmpty() || resource->CacheIdentifier().empty())
      return false;
  
    const auto resource_maps_it =
@@ -99,7 +99,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/memory_cache.cc b/
 -
  Resource* MemoryCache::ResourceForURL(const KURL& resource_url,
                                        const String& cache_identifier) const {
-+  if (cache_identifier.IsEmpty()) return nullptr;
++  if (cache_identifier.empty()) return nullptr;
    DCHECK(WTF::IsMainThread());
    if (!resource_url.IsValid() || resource_url.IsNull())
      return nullptr;

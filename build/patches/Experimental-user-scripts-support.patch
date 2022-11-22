@@ -2607,10 +2607,9 @@ new file mode 100644
 +js_library("view_script_source") {
 +  deps = [
 +    "//ui/webui/resources/js:cr.m",
-+    "//ui/webui/resources/js:util.m",
++    "//ui/webui/resources/js:util",
 +  ]
 +}
-\ No newline at end of file
 diff --git a/components/user_scripts/browser/resources/user-script-ui/user-scripts-ui.html b/components/user_scripts/browser/resources/user-script-ui/user-scripts-ui.html
 new file mode 100644
 --- /dev/null
@@ -2620,7 +2619,7 @@ new file mode 100644
 +<html lang="en">
 +<head>
 +  <meta charset="utf-8">
-+  <title>Local State Debug Page</title>
++  <title>Userscript View Source</title>
 +  <link rel="stylesheet" href="chrome://resources/css/text_defaults.css">
 +  <script type="module" src="user-scripts-ui.js"></script>
 +</head>
@@ -2630,14 +2629,13 @@ new file mode 100644
 +  </pre>
 +</body>
 +</html>
-\ No newline at end of file
 diff --git a/components/user_scripts/browser/resources/user-script-ui/user-scripts-ui.js b/components/user_scripts/browser/resources/user-script-ui/user-scripts-ui.js
 new file mode 100644
 --- /dev/null
 +++ b/components/user_scripts/browser/resources/user-script-ui/user-scripts-ui.js
 @@ -0,0 +1,9 @@
 +import {sendWithPromise} from 'chrome://resources/js/cr.m.js';
-+import {$} from 'chrome://resources/js/util.m.js';
++import {$} from 'chrome://resources/js/util.js';
 +
 +document.addEventListener('DOMContentLoaded', function() {
 +  const urlParams = new URLSearchParams(window.location.search);
@@ -2645,7 +2643,6 @@ new file mode 100644
 +    $('content').textContent = textContent[0].content;
 +  });
 +});
-\ No newline at end of file
 diff --git a/components/user_scripts/browser/ui/user_scripts_ui.cc b/components/user_scripts/browser/ui/user_scripts_ui.cc
 new file mode 100644
 --- /dev/null
@@ -5071,19 +5068,19 @@ new file mode 100755
 +      // Not IPv6 (either IPv4 or just a normal address).
 +      port_separator_pos = host_and_port.find(':');
 +    } else {  // IPv6.
-+      size_t host_end_pos = host_and_port.find(']');
-+      if (host_end_pos == base::StringPiece::npos)
++      size_t ipv6_host_end_pos = host_and_port.find(']');
++      if (ipv6_host_end_pos == base::StringPiece::npos)
 +        return ParseResult::kInvalidHost;
-+      if (host_end_pos == 1)
++      if (ipv6_host_end_pos == 1)
 +        return ParseResult::kEmptyHost;
 +
-+      if (host_end_pos < host_and_port.length() - 1) {
++      if (ipv6_host_end_pos < host_and_port.length() - 1) {
 +        // The host isn't the only component. Check for a port. This would
 +        // require a ':' to follow the closing ']' from the host.
-+        if (host_and_port[host_end_pos + 1] != ':')
++        if (host_and_port[ipv6_host_end_pos + 1] != ':')
 +          return ParseResult::kInvalidHost;
 +
-+        port_separator_pos = host_end_pos + 1;
++        port_separator_pos = ipv6_host_end_pos + 1;
 +      }
 +    }
 +

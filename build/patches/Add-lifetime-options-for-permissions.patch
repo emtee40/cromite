@@ -1298,15 +1298,15 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    if (ignore_callbacks_from_prompt_)
      return;
    DCHECK(view_);
-@@ -586,7 +597,7 @@ void PermissionRequestManager::Deny() {
-   std::vector<PermissionRequest*>::iterator requests_iter;
-   for (requests_iter = requests_.begin(); requests_iter != requests_.end();
-        requests_iter++) {
--    StorePermissionActionForUMA((*requests_iter)->requesting_origin(),
-+    StorePermissionActionForUMA((*requests_iter, is_one_time, lifetime_option)->requesting_origin(),
+@@ -589,7 +600,7 @@ void PermissionRequestManager::Deny() {
+     StorePermissionActionForUMA((*requests_iter)->requesting_origin(),
                                  (*requests_iter)->request_type(),
                                  PermissionAction::DENIED);
-     PermissionDeniedIncludingDuplicates(*requests_iter);
+-    PermissionDeniedIncludingDuplicates(*requests_iter);
++    PermissionDeniedIncludingDuplicates(*requests_iter, is_one_time, lifetime_option);
+   }
+ 
+   NotifyRequestDecided(PermissionAction::DENIED);
 @@ -967,25 +978,25 @@ PermissionRequest* PermissionRequestManager::GetExistingRequest(
  
  void PermissionRequestManager::PermissionGrantedIncludingDuplicates(

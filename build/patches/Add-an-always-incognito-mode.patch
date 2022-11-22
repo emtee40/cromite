@@ -24,7 +24,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../java/res/xml/incognito_preferences.xml    |  37 ++++
  .../java/res/xml/privacy_preferences.xml      |   5 +
  .../AlwaysIncognitoLinkInterceptor.java       |  53 ++++++
- .../chrome/browser/ChromeTabbedActivity.java  |   6 +-
+ .../chrome/browser/ChromeTabbedActivity.java  |   9 +-
  .../chrome/browser/app/ChromeActivity.java    |   4 +
  .../AppMenuPropertiesDelegateImpl.java        |  26 ++-
  .../ChromeContextMenuPopulator.java           |   7 +-
@@ -35,16 +35,17 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/history/HistoryManager.java       |  18 +-
  .../chrome/browser/history/HistoryPage.java   |  16 ++
  .../native_page/NativePageFactory.java        |   4 +-
- .../chrome/browser/ntp/RecentTabsManager.java |   3 +-
+ .../chrome/browser/ntp/RecentTabsManager.java |  27 ++-
  .../privacy/settings/IncognitoSettings.java   | 160 ++++++++++++++++++
  .../browser/settings/SettingsActivity.java    |   4 +
- .../HistoricalTabModelObserver.java           |   8 +-
+ .../HistoricalTabModelObserver.java           |   6 +-
  .../tab/tab_restore/HistoricalTabSaver.java   |   2 +-
  .../tab_restore/HistoricalTabSaverImpl.java   |  17 +-
  .../tabbed_mode/TabbedRootUiCoordinator.java  |   4 +-
  .../browser/tabmodel/ChromeTabCreator.java    |   5 +-
  .../tabmodel/TabModelSelectorImpl.java        |   3 +
  .../browser/tabmodel/TabPersistentStore.java  |   9 +
+ .../browser/toolbar/ToolbarManager.java       |   4 +-
  .../webapps/WebappIntentDataProvider.java     |  14 ++
  chrome/browser/about_flags.cc                 |   4 +
  .../browser/android/historical_tab_saver.cc   |  22 ++-
@@ -56,9 +57,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../flags/android/chrome_feature_list.cc      |   4 +-
  chrome/browser/history/history_tab_helper.cc  |  18 ++
  chrome/browser/history/history_tab_helper.h   |  10 +-
- .../android/offline_page_bridge.cc            |  13 +-
- .../android/offline_page_model_factory.cc     |  21 ++-
- .../android/request_coordinator_factory.cc    |  21 ++-
+ .../android/offline_page_bridge.cc            |  11 +-
+ .../android/offline_page_model_factory.cc     |  20 ++-
+ .../android/request_coordinator_factory.cc    |  26 ++-
  .../offline_page_model_factory.h              |   1 +
  .../offline_pages/recent_tab_helper.cc        |  19 ++-
  .../browser/offline_pages/recent_tab_helper.h |   3 +
@@ -67,6 +68,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/ui/android/native_page/BUILD.gn   |   2 +
  .../browser/ui/native_page/NativePage.java    |  12 +-
  .../strings/android_chrome_strings.grd        |  31 ++++
+ .../browser/toolbar/LocationBarModel.java     |  11 +-
  chrome/browser/ui/messages/android/BUILD.gn   |   1 +
  .../snackbar/INeedSnackbarManager.java        |  27 +++
  chrome/common/pref_names.cc                   |   6 +
@@ -82,7 +84,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../omnibox/browser/base_search_provider.cc   |   2 +-
  components/omnibox/browser/search_provider.cc |   4 +-
  .../host_content_settings_map_factory.cc      |   1 +
- 63 files changed, 682 insertions(+), 74 deletions(-)
+ 65 files changed, 721 insertions(+), 77 deletions(-)
  create mode 100644 chrome/android/java/res/xml/incognito_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/AlwaysIncognitoLinkInterceptor.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java
@@ -244,7 +246,18 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
  import org.chromium.chrome.browser.IntentHandler.IntentHandlerDelegate;
  import org.chromium.chrome.browser.IntentHandler.TabOpenType;
  import org.chromium.chrome.browser.accessibility_tab_switcher.OverviewListLayout;
-@@ -1904,8 +1905,9 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -578,8 +579,9 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+             mTabModelOrchestrator.onNativeLibraryReady(getTabContentManager());
+ 
+             // For saving non-incognito tab closures for Recent Tabs.
++            boolean alwaysIncognito = AlwaysIncognitoLinkInterceptor.isAlwaysIncognito();
+             mHistoricalTabModelObserver =
+-                    new HistoricalTabModelObserver(mTabModelSelector.getModel(false));
++                    new HistoricalTabModelObserver(mTabModelSelector.getModel(alwaysIncognito));
+ 
+             if (TabUiFeatureUtilities.isTabletGridTabSwitcherEnabled(this)) {
+                 mTabModelSelector.addObserver(new TabModelSelectorObserver() {
+@@ -1904,8 +1906,9 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
          Bundle savedInstanceState = getSavedInstanceState();
  
          // We determine the model as soon as possible so every systems get initialized coherently.
@@ -603,7 +616,23 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/native_page/Nat
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsManager.java b/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsManager.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsManager.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsManager.java
-@@ -81,7 +81,8 @@ public class RecentTabsManager implements AccountsChangeObserver {
+@@ -24,6 +24,15 @@ import org.chromium.components.signin.identitymanager.ConsentLevel;
+ import org.chromium.components.signin.metrics.SigninAccessPoint;
+ import org.chromium.url.GURL;
+ 
++import android.content.Intent;
++import android.provider.Browser;
++import android.net.Uri;
++import org.chromium.base.ContextUtils;
++import org.chromium.chrome.browser.AlwaysIncognitoLinkInterceptor;
++import org.chromium.chrome.browser.IntentHandler;
++import org.chromium.ui.mojom.WindowOpenDisposition;
++import org.chromium.components.embedder_support.util.UrlUtilities;
++
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+@@ -81,7 +90,8 @@ public class RecentTabsManager implements AccountsChangeObserver {
       */
      public RecentTabsManager(Tab tab, TabModelSelector tabModelSelector, Profile profile,
              Context context, Runnable showHistoryManager) {
@@ -613,6 +642,28 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsM
          mActiveTab = tab;
          mTabModelSelector = tabModelSelector;
          mShowHistoryManager = showHistoryManager;
+@@ -213,6 +223,21 @@ public class RecentTabsManager implements AccountsChangeObserver {
+      */
+     public void openRecentlyClosedTab(RecentlyClosedTab tab, int windowDisposition) {
+         if (mIsDestroyed) return;
++        if (AlwaysIncognitoLinkInterceptor.isAlwaysIncognito()) {
++            // allow only http/https urls
++            if (!UrlUtilities.isHttpOrHttps(tab.getUrl())) return;
++
++            Context context = ContextUtils.getApplicationContext();
++            Intent intent = new Intent(Intent.ACTION_VIEW,
++                Uri.parse(tab.getUrl().getSpec()));
++            intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.getPackageName());
++            if (windowDisposition != WindowOpenDisposition.CURRENT_TAB)
++                intent.putExtra(Browser.EXTRA_CREATE_NEW_TAB, true);
++            intent.setPackage(context.getPackageName());
++            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++            IntentHandler.startActivityForTrustedIntent(intent);
++            return;
++        }
+         mTabSessionIdsRestored.put(tab.getSessionId(), true);
+         RecordUserAction.record("MobileRecentTabManagerRecentTabOpened");
+         // Window disposition will select which tab to open.
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java
 new file mode 100644
 --- /dev/null
@@ -821,20 +872,11 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/tab_restore
              return;
          }
  
-@@ -49,6 +52,7 @@ public class HistoricalTabModelObserver implements TabModelObserver {
-     }
- 
-     private void buildGroupsAndCreateClosure(List<Tab> tabs) {
-+        boolean is_always_incognito = AlwaysIncognitoLinkInterceptor.isAlwaysIncognito();
-         HashMap<Integer, HistoricalEntry> idToGroup = new HashMap<>();
-         List<HistoricalEntry> entries = new ArrayList<>();
- 
-@@ -72,7 +76,7 @@ public class HistoricalTabModelObserver implements TabModelObserver {
+@@ -72,7 +75,6 @@ public class HistoricalTabModelObserver implements TabModelObserver {
              entries.add(historicalGroup);
              idToGroup.put(groupId, historicalGroup);
          }
 -
-+        fix me!
          mHistoricalTabSaver.createHistoricalBulkClosure(entries);
      }
  }
@@ -1006,6 +1048,27 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabPer
          TabModel model = mTabModelSelector.getModel(isIncognito);
  
          if (model.isIncognito() != isIncognito) {
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+@@ -38,6 +38,7 @@ import org.chromium.base.supplier.OneshotSupplier;
+ import org.chromium.base.supplier.Supplier;
+ import org.chromium.chrome.R;
+ import org.chromium.chrome.browser.ActivityTabProvider;
++import org.chromium.chrome.browser.AlwaysIncognitoLinkInterceptor;
+ import org.chromium.chrome.browser.IntentHandler;
+ import org.chromium.chrome.browser.app.tab_activity_glue.TabReparentingController;
+ import org.chromium.chrome.browser.app.tabmodel.TabWindowManagerSingleton;
+@@ -526,7 +527,8 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+                         return ret;
+                     }
+                 },
+-                SearchEngineLogoUtils.getInstance());
++                SearchEngineLogoUtils.getInstance(),
++                AlwaysIncognitoLinkInterceptor.isAlwaysIncognito());
+         mControlContainer = controlContainer;
+         assert mControlContainer != null;
+ 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/webapps/WebappIntentDataProvider.java b/chrome/android/java/src/org/chromium/chrome/browser/webapps/WebappIntentDataProvider.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/webapps/WebappIntentDataProvider.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/webapps/WebappIntentDataProvider.java
@@ -1113,7 +1176,7 @@ diff --git a/chrome/browser/android/historical_tab_saver.cc b/chrome/browser/and
      const JavaParamRef<jobject>& state,
 -    jint saved_state_version) {
 +    jint saved_state_version,
-+    bool is_always_incognito) {
++    jboolean is_always_incognito) {
    void* data = env->GetDirectBufferAddress(state);
    int size = env->GetDirectBufferCapacity(state);
  
@@ -1332,38 +1395,23 @@ diff --git a/chrome/browser/offline_pages/android/offline_page_bridge.cc b/chrom
  
  using base::android::ConvertJavaStringToUTF8;
  using base::android::ConvertUTF16ToJavaString;
-@@ -156,7 +159,13 @@ void ValidateFileCallback(
-     int64_t offline_id,
-     const GURL& url,
-     const base::FilePath& file_path,
-+    SimpleFactoryKey* key,
-     bool is_trusted) {
-+  // in always incognito, never trust input file (show file name in url)
-+  ProfileKey* profile_key = ProfileKey::FromSimpleFactoryKey(key);
-+  if(profile_key->GetPrefs()->GetBoolean(prefs::kIncognitoTabHistoryEnabled))
-+    is_trusted = false;
-+
-   // If trusted, the launch url will be the http/https url of the offline
-   // page. If the file path is content URI, directly open it. Otherwise, the
-   // launch url will be the file URL pointing to the archive file of the offline
-@@ -787,7 +796,7 @@ void OfflinePageBridge::GetPageByOfflineIdDone(
+@@ -785,9 +788,15 @@ void OfflinePageBridge::GetPageByOfflineIdDone(
+   }
+ 
    if (offline_page_model_->IsArchiveInInternalDir(offline_page->file_path)) {
++    bool is_trusted = true;
++    // in always incognito, never trust input file (show file name in url)
++    ProfileKey* profile_key = ProfileKey::FromSimpleFactoryKey(key_);
++    if(profile_key->GetPrefs()->GetBoolean(prefs::kIncognitoTabHistoryEnabled))
++      is_trusted = false;
++
      ValidateFileCallback(launch_location, j_callback_obj,
                           offline_page->offline_id, offline_page->url,
 -                         offline_page->file_path, true /* is_trusted*/);
-+                         offline_page->file_path, key_, true /* is_trusted*/);
++                         offline_page->file_path, is_trusted);
      return;
    }
  
-@@ -797,7 +806,7 @@ void OfflinePageBridge::GetPageByOfflineIdDone(
-                      offline_page->file_size, offline_page->digest),
-       base::BindOnce(&ValidateFileCallback, launch_location, j_callback_obj,
-                      offline_page->offline_id, offline_page->url,
--                     offline_page->file_path));
-+                     offline_page->file_path, key_));
- }
- 
- void OfflinePageBridge::GetSizeAndComputeDigestDone(
 diff --git a/chrome/browser/offline_pages/android/offline_page_model_factory.cc b/chrome/browser/offline_pages/android/offline_page_model_factory.cc
 --- a/chrome/browser/offline_pages/android/offline_page_model_factory.cc
 +++ b/chrome/browser/offline_pages/android/offline_page_model_factory.cc
@@ -1377,15 +1425,7 @@ diff --git a/chrome/browser/offline_pages/android/offline_page_model_factory.cc 
  
  namespace offline_pages {
  
-@@ -46,6 +49,7 @@ OfflinePageModel* OfflinePageModelFactory::GetForKey(SimpleFactoryKey* key) {
- OfflinePageModel* OfflinePageModelFactory::GetForBrowserContext(
-     content::BrowserContext* browser_context) {
-   Profile* profile = Profile::FromBrowserContext(browser_context);
-+  profile = profile->GetOriginalProfile();
-   return GetForKey(profile->GetProfileKey());
- }
- 
-@@ -54,13 +58,15 @@ std::unique_ptr<KeyedService> OfflinePageModelFactory::BuildServiceInstanceFor(
+@@ -54,13 +57,15 @@ std::unique_ptr<KeyedService> OfflinePageModelFactory::BuildServiceInstanceFor(
    scoped_refptr<base::SequencedTaskRunner> background_task_runner =
        base::ThreadPool::CreateSequencedTaskRunner({base::MayBlock()});
  
@@ -1403,7 +1443,7 @@ diff --git a/chrome/browser/offline_pages/android/offline_page_model_factory.cc 
    // If base::PathService::Get returns false, the temporary_archives_dir will be
    // empty, and no temporary pages will be saved during this chrome lifecycle.
    base::FilePath temporary_archives_dir;
-@@ -69,7 +75,6 @@ std::unique_ptr<KeyedService> OfflinePageModelFactory::BuildServiceInstanceFor(
+@@ -69,7 +74,6 @@ std::unique_ptr<KeyedService> OfflinePageModelFactory::BuildServiceInstanceFor(
          temporary_archives_dir.Append(chrome::kOfflinePageArchivesDirname);
    }
  
@@ -1411,7 +1451,7 @@ diff --git a/chrome/browser/offline_pages/android/offline_page_model_factory.cc 
    auto archive_manager = std::make_unique<DownloadArchiveManager>(
        temporary_archives_dir, persistent_archives_dir,
        DownloadPrefs::GetDefaultDownloadDirectory(), background_task_runner,
-@@ -87,4 +92,14 @@ std::unique_ptr<KeyedService> OfflinePageModelFactory::BuildServiceInstanceFor(
+@@ -87,4 +91,14 @@ std::unique_ptr<KeyedService> OfflinePageModelFactory::BuildServiceInstanceFor(
    return model;
  }
  
@@ -1459,7 +1499,19 @@ diff --git a/chrome/browser/offline_pages/android/request_coordinator_factory.cc
    // Depends on OfflinePageModelFactory in SimpleDependencyManager.
  }
  
-@@ -111,4 +118,16 @@ KeyedService* RequestCoordinatorFactory::BuildServiceInstanceFor(
+@@ -79,6 +86,11 @@ RequestCoordinator* RequestCoordinatorFactory::GetForBrowserContext(
+ 
+ KeyedService* RequestCoordinatorFactory::BuildServiceInstanceFor(
+     content::BrowserContext* context) const {
++  if(context->IsOffTheRecord() &&
++      Profile::FromBrowserContext(context)->GetOriginalProfile()
++        ->GetPrefs()->GetBoolean(prefs::kIncognitoTabHistoryEnabled) == false) {
++    return nullptr;
++  }
+   std::unique_ptr<OfflinerPolicy> policy(new OfflinerPolicy());
+   std::unique_ptr<Offliner> offliner;
+   OfflinePageModel* model =
+@@ -111,4 +123,16 @@ KeyedService* RequestCoordinatorFactory::BuildServiceInstanceFor(
    return request_coordinator;
  }
  
@@ -1687,6 +1739,55 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
        <message name="IDS_CLEAR_SEARCH_HISTORY_LINK" desc="Text informing the user that they can clear search history and other data using MyActivity.">
          <ph name="BEGIN_LINK1">&lt;link1&gt;</ph>Search history<ph name="END_LINK1">&lt;/link1&gt;</ph> and <ph name="BEGIN_LINK2">&lt;link2&gt;</ph>other forms of activity<ph name="END_LINK2">&lt;/link2&gt;</ph> may be saved in your Google Account when you’re signed in. You can delete them anytime.
        </message>
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/LocationBarModel.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/LocationBarModel.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/LocationBarModel.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/LocationBarModel.java
+@@ -178,6 +178,7 @@ public class LocationBarModel implements ToolbarDataProvider, LocationBarDataPro
+     protected GURL mVisibleGurl = GURL.emptyGURL();
+     protected String mFormattedFullUrl;
+     protected String mUrlForDisplay;
++    private boolean mIsAlwaysIncognito;
+ 
+     /**
+      * Default constructor for this class.
+@@ -192,7 +193,8 @@ public class LocationBarModel implements ToolbarDataProvider, LocationBarDataPro
+     public LocationBarModel(Context context, NewTabPageDelegate newTabPageDelegate,
+             @NonNull UrlFormatter urlFormatter, @NonNull ProfileProvider profileProvider,
+             @NonNull OfflineStatus offlineStatus,
+-            @NonNull SearchEngineLogoUtils searchEngineLogoUtils) {
++            @NonNull SearchEngineLogoUtils searchEngineLogoUtils,
++            boolean isAlwaysIncognito) {
+         mContext = context;
+         mNtpDelegate = newTabPageDelegate;
+         mUrlFormatter = urlFormatter;
+@@ -200,6 +202,7 @@ public class LocationBarModel implements ToolbarDataProvider, LocationBarDataPro
+         mOfflineStatus = offlineStatus;
+         mPrimaryColor = ChromeColors.getDefaultThemeColor(context, false);
+         mSearchEngineLogoUtils = searchEngineLogoUtils;
++        mIsAlwaysIncognito = isAlwaysIncognito;
+     }
+ 
+     /**
+@@ -429,6 +432,10 @@ public class LocationBarModel implements ToolbarDataProvider, LocationBarDataPro
+             if (mOptimizationsEnabled) {
+                 autocompleteSchemeClassifier = mChromeAutocompleteSchemeClassifier;
+                 cachedSpannableDisplayText = mSpannableDisplayTextCache.get(cacheKey);
++                if (mIsAlwaysIncognito) {
++                    // the profile may be destroyed and no longer be valid
++                    autocompleteSchemeClassifier = new ChromeAutocompleteSchemeClassifier(getProfile());
++                }
+             } else {
+                 autocompleteSchemeClassifier = new ChromeAutocompleteSchemeClassifier(getProfile());
+             }
+@@ -446,7 +453,7 @@ public class LocationBarModel implements ToolbarDataProvider, LocationBarDataPro
+                     }
+                 }
+             } finally {
+-                if (!mOptimizationsEnabled) {
++                if (!mOptimizationsEnabled || mIsAlwaysIncognito) {
+                     autocompleteSchemeClassifier.destroy();
+                 }
+             }
 diff --git a/chrome/browser/ui/messages/android/BUILD.gn b/chrome/browser/ui/messages/android/BUILD.gn
 --- a/chrome/browser/ui/messages/android/BUILD.gn
 +++ b/chrome/browser/ui/messages/android/BUILD.gn

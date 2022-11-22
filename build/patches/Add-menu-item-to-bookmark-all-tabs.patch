@@ -5,7 +5,7 @@ Subject: Add menu item to bookmark all tabs
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  chrome/android/java/res/menu/main_menu.xml    |  7 +++
- .../chrome/browser/ChromeTabbedActivity.java  | 26 ++++++++
+ .../chrome/browser/ChromeTabbedActivity.java  | 24 ++++++++
  .../browser/bookmarks/BookmarkBridge.java     | 60 +++++++++++++++++++
  .../browser/bookmarks/BookmarkUtils.java      |  4 ++
  .../bookmarks/android/bookmark_bridge.cc      | 17 ++++++
@@ -25,7 +25,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/bookmarks/browser/bookmark_node.h  |  5 ++
  components/bookmarks/browser/model_loader.cc  |  3 +-
  .../bookmark_specifics_conversions.cc         |  1 +
- 21 files changed, 202 insertions(+), 10 deletions(-)
+ 21 files changed, 200 insertions(+), 10 deletions(-)
 
 diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/res/menu/main_menu.xml
 --- a/chrome/android/java/res/menu/main_menu.xml
@@ -54,16 +54,15 @@ diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/re
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-@@ -77,6 +77,8 @@ import org.chromium.chrome.browser.back_press.MinimizeAppAndCloseTabBackPressHan
+@@ -77,6 +77,7 @@ import org.chromium.chrome.browser.back_press.MinimizeAppAndCloseTabBackPressHan
  import org.chromium.chrome.browser.bookmarks.BookmarkUtils;
  import org.chromium.chrome.browser.browserservices.intents.WebappConstants;
  import org.chromium.chrome.browser.compositor.CompositorViewHolder;
-+import org.chromium.chrome.browser.bookmarks.BookmarkBridge;
 +import org.chromium.chrome.browser.bookmarks.BookmarkModel;
  import org.chromium.chrome.browser.compositor.layouts.Layout;
  import org.chromium.chrome.browser.compositor.layouts.LayoutManagerChrome;
  import org.chromium.chrome.browser.compositor.layouts.LayoutManagerChromePhone;
-@@ -2202,6 +2204,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -2203,6 +2204,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
              CloseAllTabsDialog.show(this, getModalDialogManagerSupplier(),
                      () -> getTabModelSelector().closeAllTabs(), /*isIncognito=*/false);
              RecordUserAction.record("MobileMenuCloseAllTabs");
@@ -72,7 +71,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
          } else if (id == R.id.close_all_incognito_tabs_menu_id) {
              // Close only incognito tabs
              CloseAllTabsDialog.show(this, getModalDialogManagerSupplier(),
-@@ -2254,6 +2258,28 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -2255,6 +2258,27 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
          mTabModalHandler.onOmniboxFocusChanged(hasFocus);
      }
  
@@ -84,17 +83,16 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
 +            return;
 +        }
 +
-+        final BookmarkBridge bridge = mBookmarkBridgeSupplier.get();
-+        final BookmarkModel bookmarkModel = new BookmarkModel();
++        final BookmarkModel bookmarkModel = mBookmarkModelSupplier.get();
 +        bookmarkModel.finishLoadingBookmarkModel(() -> {
 +            for (int i = 0; i < tabModel.getCount(); i++) {
 +                Tab tab = tabModel.getTabAt(i);
 +                if (tab.isNativePage()) {
 +                    continue;
 +                }
-+                bridge.addToTabsCollection(this, tab);
++                bookmarkModel.addToTabsCollection(this, tab);
 +            }
-+            bridge.finishedAddingToTabsCollection(this, getSnackbarManager());
++            bookmarkModel.finishedAddingToTabsCollection(this, getSnackbarManager());
 +        });
 +    }
 +
