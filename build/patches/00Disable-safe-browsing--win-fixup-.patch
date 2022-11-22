@@ -15,6 +15,7 @@ Subject: Disable safe browsing (win fixup)
  .../analysis/request_handler_base.cc          |  20 ---
  .../reporting/realtime_reporting_client.cc    |   2 +-
  chrome/browser/extensions/BUILD.gn            |   5 -
+ .../extensions/api/cookies/cookies_api.cc     |  35 ----
  .../safe_browsing_private_api.cc              |   3 +-
  .../safe_browsing_private_event_router.cc     |  43 ++---
  .../webstore_private/webstore_private_api.cc  |  15 +-
@@ -25,14 +26,16 @@ Subject: Disable safe browsing (win fixup)
  .../safe_browsing/safe_browsing_handler.cc    |   5 +-
  .../safe_browsing/safe_browsing_handler.h     |   3 -
  .../notification_display_service_impl.cc      |   7 -
+ .../chrome_password_manager_client.cc         |  19 ++-
  ...nfiguration_policy_handler_list_factory.cc |   7 -
  chrome/browser/prefs/browser_prefs.cc         |   2 +
  chrome/browser/printing/print_view_manager.cc |  15 --
  chrome/browser/profiles/profiles_state.cc     |   2 -
+ chrome/browser/resources/BUILD.gn             |   1 -
  chrome/browser/safe_browsing/BUILD.gn         |   8 +-
  .../safe_browsing/chrome_cleaner/BUILD.gn     |   1 -
  .../chrome_cleaner/settings_resetter_win.cc   |   1 -
- .../download_protection/file_analyzer.h       |  15 --
+ .../download_protection/file_analyzer.h       |  18 ---
  .../chrome_security_blocking_page_factory.cc  |  21 ---
  chrome/browser/ui/BUILD.gn                    |   6 -
  ...b_modal_dialog_manager_delegate_desktop.cc |   1 -
@@ -40,7 +43,9 @@ Subject: Disable safe browsing (win fixup)
  .../ui/views/download/download_item_view.cc   |  23 +--
  .../webui/downloads/downloads_dom_handler.cc  |  12 +-
  .../ui/webui/downloads/downloads_ui.cc        |   5 +-
+ chrome/browser/ui/webui/intro/intro_ui.cc     |   2 +
  chrome/browser/webshare/share_service_impl.cc |   4 +
+ chrome/chrome_paks.gni                        |   2 -
  .../public/cpp/sandboxed_rar_analyzer.cc      |  16 +-
  .../public/cpp/sandboxed_rar_analyzer.h       |   2 -
  .../public/cpp/sandboxed_zip_analyzer.h       |   2 -
@@ -48,7 +53,7 @@ Subject: Disable safe browsing (win fixup)
  .../browser/mojo_safe_browsing_impl.cc        |   1 +
  .../core/common/safe_browsing_prefs.cc        |   2 +-
  .../tracked_persistent_pref_store_factory.cc  |  10 +-
- 45 files changed, 48 insertions(+), 554 deletions(-)
+ 50 files changed, 65 insertions(+), 599 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
@@ -638,6 +643,58 @@ diff --git a/chrome/browser/extensions/BUILD.gn b/chrome/browser/extensions/BUIL
      "//chrome/browser/ui/tabs:tab_enums",
      "//chrome/browser/web_applications",
      "//components/adblock/content:browser",
+diff --git a/chrome/browser/extensions/api/cookies/cookies_api.cc b/chrome/browser/extensions/api/cookies/cookies_api.cc
+--- a/chrome/browser/extensions/api/cookies/cookies_api.cc
++++ b/chrome/browser/extensions/api/cookies/cookies_api.cc
+@@ -285,21 +285,6 @@ void CookiesGetFunction::GetCookieListCallback(
+ }
+ 
+ void CookiesGetFunction::NotifyExtensionTelemetry() {
+-  auto* telemetry_service =
+-      safe_browsing::ExtensionTelemetryServiceFactory::GetForProfile(
+-          Profile::FromBrowserContext(browser_context()));
+-
+-  if (!telemetry_service || !telemetry_service->enabled() ||
+-      !base::FeatureList::IsEnabled(
+-          safe_browsing::kExtensionTelemetryCookiesGetSignal)) {
+-    return;
+-  }
+-
+-  auto cookies_get_signal = std::make_unique<safe_browsing::CookiesGetSignal>(
+-      extension_id(), parsed_args_->details.name,
+-      parsed_args_->details.store_id.value_or(std::string()),
+-      parsed_args_->details.url);
+-  telemetry_service->AddSignal(std::move(cookies_get_signal));
+ }
+ 
+ CookiesGetAllFunction::CookiesGetAllFunction() {
+@@ -383,26 +368,6 @@ void CookiesGetAllFunction::GetCookieListCallback(
+ }
+ 
+ void CookiesGetAllFunction::NotifyExtensionTelemetry() {
+-  auto* telemetry_service =
+-      safe_browsing::ExtensionTelemetryServiceFactory::GetForProfile(
+-          Profile::FromBrowserContext(browser_context()));
+-
+-  if (!telemetry_service || !telemetry_service->enabled() ||
+-      !base::FeatureList::IsEnabled(
+-          safe_browsing::kExtensionTelemetryCookiesGetAllSignal)) {
+-    return;
+-  }
+-
+-  auto cookies_get_all_signal =
+-      std::make_unique<safe_browsing::CookiesGetAllSignal>(
+-          extension_id(), parsed_args_->details.domain.value_or(std::string()),
+-          parsed_args_->details.name.value_or(std::string()),
+-          parsed_args_->details.path.value_or(std::string()),
+-          parsed_args_->details.secure.value_or(false),
+-          parsed_args_->details.store_id.value_or(std::string()),
+-          parsed_args_->details.url.value_or(std::string()),
+-          parsed_args_->details.session.value_or(false));
+-  telemetry_service->AddSignal(std::move(cookies_get_all_signal));
+ }
+ 
+ CookiesSetFunction::CookiesSetFunction()
 diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_private_api.cc b/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_private_api.cc
 --- a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_private_api.cc
 +++ b/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_private_api.cc
@@ -960,6 +1017,56 @@ diff --git a/chrome/browser/notifications/notification_display_service_impl.cc b
  #if BUILDFLAG(ENABLE_EXTENSIONS)
      AddNotificationHandler(
          NotificationHandler::Type::EXTENSION,
+diff --git a/chrome/browser/password_manager/chrome_password_manager_client.cc b/chrome/browser/password_manager/chrome_password_manager_client.cc
+--- a/chrome/browser/password_manager/chrome_password_manager_client.cc
++++ b/chrome/browser/password_manager/chrome_password_manager_client.cc
+@@ -201,7 +201,7 @@ typedef autofill::SavePasswordProgressLogger Logger;
+ 
+ namespace {
+ 
+-#if !BUILDFLAG(IS_ANDROID)
++#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_WIN)
+ static const char kPasswordBreachEntryTrigger[] = "PASSWORD_ENTRY";
+ constexpr char kExtensionScheme[] = "chrome-extension";
+ #endif
+@@ -242,7 +242,7 @@ void HideSavePasswordInfobar(content::WebContents* web_contents) {
+ }
+ #endif  // BUILDFLAG(IS_ANDROID)
+ 
+-#if !BUILDFLAG(IS_ANDROID)
++#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_WIN)
+ // Retrieves and formats the saved passwords domains from signon_realms.
+ std::vector<std::string> GetMatchingDomains(
+     const std::vector<password_manager::MatchingReusedCredential>&
+@@ -982,7 +982,7 @@ void ChromePasswordManagerClient::CheckProtectedPasswordEntry(
+     uint64_t reused_password_hash,
+     const std::string& domain) {
+ 
+-#if !BUILDFLAG(IS_ANDROID)
++#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_WIN)
+   // If the webpage is not an extension page, do nothing.
+   if (!GURL(domain).SchemeIs(kExtensionScheme)) {
+     return;
+@@ -1022,7 +1022,18 @@ void ChromePasswordManagerClient::CheckProtectedPasswordEntry(
+ void ChromePasswordManagerClient::LogPasswordReuseDetectedEvent() {
+ }
+ 
+-#if !BUILDFLAG(IS_ANDROID)
++#if BUILDFLAG(IS_WIN)
++void ChromePasswordManagerClient::MaybeReportEnterpriseLoginEvent(
++    const GURL& url,
++    bool is_federated,
++    const url::Origin& federated_origin,
++    const std::u16string& login_user_name) const {}
++
++void ChromePasswordManagerClient::MaybeReportEnterprisePasswordBreachEvent(
++    const std::vector<std::pair<GURL, std::u16string>>& identities) const {}
++#endif
++
++#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_WIN)
+ void ChromePasswordManagerClient::MaybeReportEnterpriseLoginEvent(
+     const GURL& url,
+     bool is_federated,
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
@@ -1028,6 +1135,17 @@ diff --git a/chrome/browser/profiles/profiles_state.cc b/chrome/browser/profiles
  
    Profile* profile =
        g_browser_process->profile_manager()->GetProfileByPath(profile_path);
+diff --git a/chrome/browser/resources/BUILD.gn b/chrome/browser/resources/BUILD.gn
+--- a/chrome/browser/resources/BUILD.gn
++++ b/chrome/browser/resources/BUILD.gn
+@@ -95,7 +95,6 @@ group("resources") {
+ 
+   if (!is_android && !is_chromeos_ash) {
+     public_deps += [
+-      "intro:resources",
+       "signin/profile_picker:resources",
+       "welcome:resources",
+     ]
 diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsing/BUILD.gn
 --- a/chrome/browser/safe_browsing/BUILD.gn
 +++ b/chrome/browser/safe_browsing/BUILD.gn
@@ -1092,7 +1210,12 @@ diff --git a/chrome/browser/safe_browsing/chrome_cleaner/settings_resetter_win.c
 diff --git a/chrome/browser/safe_browsing/download_protection/file_analyzer.h b/chrome/browser/safe_browsing/download_protection/file_analyzer.h
 --- a/chrome/browser/safe_browsing/download_protection/file_analyzer.h
 +++ b/chrome/browser/safe_browsing/download_protection/file_analyzer.h
-@@ -18,10 +18,6 @@
+@@ -13,15 +13,10 @@
+ #include "build/build_config.h"
+ #include "chrome/common/safe_browsing/binary_feature_extractor.h"
+ #include "chrome/services/file_util/public/cpp/sandboxed_rar_analyzer.h"
+-#include "chrome/services/file_util/public/cpp/sandboxed_seven_zip_analyzer.h"
+ #include "chrome/services/file_util/public/cpp/sandboxed_zip_analyzer.h"
  #include "components/safe_browsing/core/common/proto/csd.pb.h"
  #include "third_party/protobuf/src/google/protobuf/repeated_field.h"
  
@@ -1103,7 +1226,7 @@ diff --git a/chrome/browser/safe_browsing/download_protection/file_analyzer.h b/
  #if BUILDFLAG(IS_MAC)
  #include "chrome/common/safe_browsing/disk_image_type_sniffer_mac.h"
  #include "chrome/services/file_util/public/cpp/sandboxed_dmg_analyzer_mac.h"
-@@ -106,12 +102,6 @@ class FileAnalyzer {
+@@ -106,12 +101,6 @@ class FileAnalyzer {
        const safe_browsing::ArchiveAnalyzerResults& archive_results);
  #endif
  
@@ -1116,7 +1239,7 @@ diff --git a/chrome/browser/safe_browsing/download_protection/file_analyzer.h b/
    void StartExtractSevenZipFeatures();
    void OnSevenZipAnalysisFinished(
        const ArchiveAnalyzerResults& archive_results);
-@@ -133,11 +123,6 @@ class FileAnalyzer {
+@@ -133,13 +122,6 @@ class FileAnalyzer {
    scoped_refptr<SandboxedDMGAnalyzer> dmg_analyzer_;
  #endif
  
@@ -1125,9 +1248,11 @@ diff --git a/chrome/browser/safe_browsing/download_protection/file_analyzer.h b/
 -  base::TimeTicks document_analysis_start_time_;
 -#endif
 -
-   scoped_refptr<SandboxedSevenZipAnalyzer> seven_zip_analyzer_;
- 
+-  scoped_refptr<SandboxedSevenZipAnalyzer> seven_zip_analyzer_;
+-
    base::WeakPtrFactory<FileAnalyzer> weakptr_factory_{this};
+ };
+ 
 diff --git a/chrome/browser/ssl/chrome_security_blocking_page_factory.cc b/chrome/browser/ssl/chrome_security_blocking_page_factory.cc
 --- a/chrome/browser/ssl/chrome_security_blocking_page_factory.cc
 +++ b/chrome/browser/ssl/chrome_security_blocking_page_factory.cc
@@ -1330,6 +1455,21 @@ diff --git a/chrome/browser/ui/webui/downloads/downloads_ui.cc b/chrome/browser/
    source->AddBoolean("requestsApVerdicts", requests_ap_verdicts);
  
    static constexpr webui::LocalizedString kStrings[] = {
+diff --git a/chrome/browser/ui/webui/intro/intro_ui.cc b/chrome/browser/ui/webui/intro/intro_ui.cc
+--- a/chrome/browser/ui/webui/intro/intro_ui.cc
++++ b/chrome/browser/ui/webui/intro/intro_ui.cc
+@@ -51,9 +51,11 @@ IntroUI::IntroUI(content::WebUI* web_ui) : content::WebUIController(web_ui) {
+       web_ui->GetWebContents()->GetBrowserContext(),
+       chrome::kChromeUIIntroHost);
+ 
++#if BUILDFLAG(ENABLE_DICE_SUPPORT)
+   webui::SetupWebUIDataSource(
+       source, base::make_span(kIntroResources, kIntroResourcesSize),
+       IDR_INTRO_INTRO_HTML);
++#endif
+ 
+   AddStrings(source);
+ }
 diff --git a/chrome/browser/webshare/share_service_impl.cc b/chrome/browser/webshare/share_service_impl.cc
 --- a/chrome/browser/webshare/share_service_impl.cc
 +++ b/chrome/browser/webshare/share_service_impl.cc
@@ -1360,6 +1500,22 @@ diff --git a/chrome/browser/webshare/share_service_impl.cc b/chrome/browser/webs
  
    OnSafeBrowsingResultReceived(title, text, share_url, std::move(files),
                                 std::move(callback),
+diff --git a/chrome/chrome_paks.gni b/chrome/chrome_paks.gni
+--- a/chrome/chrome_paks.gni
++++ b/chrome/chrome_paks.gni
+@@ -379,12 +379,10 @@ template("chrome_extra_paks") {
+     }
+     if (!is_android && !is_chromeos_ash) {
+       sources += [
+-        "$root_gen_dir/chrome/intro_resources.pak",
+         "$root_gen_dir/chrome/profile_picker_resources.pak",
+         "$root_gen_dir/chrome/welcome_resources.pak",
+       ]
+       deps += [
+-        "//chrome/browser/resources/intro:resources",
+         "//chrome/browser/resources/signin/profile_picker:resources",
+         "//chrome/browser/resources/welcome:resources",
+       ]
 diff --git a/chrome/services/file_util/public/cpp/sandboxed_rar_analyzer.cc b/chrome/services/file_util/public/cpp/sandboxed_rar_analyzer.cc
 --- a/chrome/services/file_util/public/cpp/sandboxed_rar_analyzer.cc
 +++ b/chrome/services/file_util/public/cpp/sandboxed_rar_analyzer.cc
