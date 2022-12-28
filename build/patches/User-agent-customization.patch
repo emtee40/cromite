@@ -33,10 +33,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../strings/android_chrome_strings.grd        |  35 ++++
  chrome/common/pref_names.cc                   |  13 ++
  chrome/common/pref_names.h                    |   8 +
- .../WebsitePreferenceBridge.java              |   2 +-
- .../android/website_preference_bridge.cc      |  10 +-
  .../widget/RadioButtonWithEditText.java       |  11 +
- .../core/browser/host_content_settings_map.cc |   8 +-
  .../embedder_support/user_agent_utils.cc      |  15 +-
  .../navigation_controller_android.cc          |   4 +
  .../navigation_controller_android.h           |   1 +
@@ -44,7 +41,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/web_contents/web_contents_impl.cc |   4 +
  .../framehost/NavigationControllerImpl.java   |   3 +-
  content/renderer/render_thread_impl.cc        |   1 -
- 34 files changed, 776 insertions(+), 26 deletions(-)
+ 31 files changed, 766 insertions(+), 16 deletions(-)
  create mode 100644 chrome/android/java/res/layout/custom_useragent_preferences.xml
  create mode 100644 chrome/android/java/res/xml/useragent_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/UserAgentPreferences.java
@@ -86,7 +83,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -896,6 +896,7 @@ chrome_java_sources = [
+@@ -898,6 +898,7 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/payments/ui/DimmingDialog.java",
    "java/src/org/chromium/chrome/browser/payments/ui/LineItem.java",
    "java/src/org/chromium/chrome/browser/payments/ui/PaymentAppComparator.java",
@@ -332,7 +329,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 +        boolean isOverrideUserAgentEnabled(boolean desktopMode);
 +        void setOverrideUserAgentEnabled(boolean enabled, boolean desktopMode);
 +        String getOverrideUserAgentValue(boolean desktopMode);
-+        void setOverrideUserAgentValue(String customTimezone, boolean desktopMode);
++        void setOverrideUserAgentValue(String user_agent, boolean desktopMode);
 +        boolean isDesktopModeViewportMetaEnabled();
 +        void setDesktopModeViewportMetaEnabled(boolean enabled);
      }
@@ -942,7 +939,7 @@ diff --git a/chrome/browser/privacy/settings/java/src/org/chromium/chrome/browse
 +    boolean isOverrideUserAgentEnabled(boolean desktopMode);
 +    void setOverrideUserAgentEnabled(boolean enabled, boolean desktopMode);
 +    String getOverrideUserAgentValue(boolean desktopMode);
-+    void setOverrideUserAgentValue(String timezone, boolean desktopMode);
++    void setOverrideUserAgentValue(String user_agent, boolean desktopMode);
 +    boolean isDesktopModeViewportMetaEnabled();
 +    void setDesktopModeViewportMetaEnabled(boolean enabled);
 +
@@ -1087,41 +1084,6 @@ diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
  
  #if !BUILDFLAG(IS_ANDROID)
  extern const char kLensRegionSearchEnabled[];
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
-@@ -467,6 +467,6 @@ public class WebsitePreferenceBridge {
-         String toDomainWildcardPattern(String pattern);
-         String toHostOnlyPattern(String pattern);
-         String getCustomTimezone(BrowserContextHandle browserContextHandle);
--        void setCustomTimezone(BrowserContextHandle browserContextHandle, String timezone);
-+        void setCustomTimezone(BrowserContextHandle browserContextHandle, String customTimezone);
-     }
- }
-diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
---- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
-+++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -1021,15 +1021,15 @@ JNI_WebsitePreferenceBridge_ToHostOnlyPattern(
- static void JNI_WebsitePreferenceBridge_SetCustomTimezone(
-     JNIEnv* env,
-     const JavaParamRef<jobject>& jbrowser_context_handle,
--    const JavaParamRef<jstring>& timezone) {
--  std::string new_timezone = ConvertJavaStringToUTF8(env, timezone);
-+    const JavaParamRef<jstring>& custom_timezone) {
-+  std::string new_timezone = ConvertJavaStringToUTF8(env, custom_timezone);
-   GetHostContentSettingsMap(jbrowser_context_handle)->SetTimezoneOverrideValue(new_timezone);
- }
- 
- static base::android::ScopedJavaLocalRef<jstring> JNI_WebsitePreferenceBridge_GetCustomTimezone(
-     JNIEnv* env,
-     const JavaParamRef<jobject>& jbrowser_context_handle) {
--  std::string timezone;
--  GetHostContentSettingsMap(jbrowser_context_handle)->GetTimezoneOverrideValue(timezone);
--  return ConvertUTF8ToJavaString(env, timezone);
-+  std::string custom_timezone;
-+  GetHostContentSettingsMap(jbrowser_context_handle)->GetTimezoneOverrideValue(custom_timezone);
-+  return ConvertUTF8ToJavaString(env, custom_timezone);
- }
 diff --git a/components/browser_ui/widget/android/java/src/org/chromium/components/browser_ui/widget/RadioButtonWithEditText.java b/components/browser_ui/widget/android/java/src/org/chromium/components/browser_ui/widget/RadioButtonWithEditText.java
 --- a/components/browser_ui/widget/android/java/src/org/chromium/components/browser_ui/widget/RadioButtonWithEditText.java
 +++ b/components/browser_ui/widget/android/java/src/org/chromium/components/browser_ui/widget/RadioButtonWithEditText.java
@@ -1143,26 +1105,6 @@ diff --git a/components/browser_ui/widget/android/java/src/org/chromium/componen
      }
  
      /**
-diff --git a/components/content_settings/core/browser/host_content_settings_map.cc b/components/content_settings/core/browser/host_content_settings_map.cc
---- a/components/content_settings/core/browser/host_content_settings_map.cc
-+++ b/components/content_settings/core/browser/host_content_settings_map.cc
-@@ -604,12 +604,12 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
-     provider->SetClockForTesting(clock);
- }
- 
--void HostContentSettingsMap::GetTimezoneOverrideValue(std::string& timezone) const {
--  GetPrefProvider()->GetPrefTimezoneOverrideValue(timezone);
-+void HostContentSettingsMap::GetTimezoneOverrideValue(std::string& custom_timezone) const {
-+  GetPrefProvider()->GetPrefTimezoneOverrideValue(custom_timezone);
- }
- 
--void HostContentSettingsMap::SetTimezoneOverrideValue(const std::string& timezone) {
--  GetPrefProvider()->SetPrefTimezoneOverrideValue(timezone);
-+void HostContentSettingsMap::SetTimezoneOverrideValue(const std::string& custom_timezone) {
-+  GetPrefProvider()->SetPrefTimezoneOverrideValue(custom_timezone);
- }
- 
- void HostContentSettingsMap::RecordExceptionMetrics() {
 diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
 --- a/components/embedder_support/user_agent_utils.cc
 +++ b/components/embedder_support/user_agent_utils.cc

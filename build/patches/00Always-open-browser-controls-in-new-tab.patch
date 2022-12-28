@@ -1,0 +1,45 @@
+From: Your Name <you@example.com>
+Date: Wed, 28 Dec 2022 07:19:58 +0000
+Subject: Always open browser controls in new tab
+
+---
+ .../chrome/browser/tab/TabContextMenuItemDelegate.java        | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabContextMenuItemDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabContextMenuItemDelegate.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabContextMenuItemDelegate.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabContextMenuItemDelegate.java
+@@ -19,6 +19,7 @@ import org.chromium.base.IntentUtils;
+ import org.chromium.base.PackageManagerUtils;
+ import org.chromium.base.metrics.RecordUserAction;
+ import org.chromium.base.supplier.Supplier;
++import org.chromium.cc.input.BrowserControlsState;
+ import org.chromium.chrome.browser.DefaultBrowserInfo;
+ import org.chromium.chrome.browser.IntentHandler;
+ import org.chromium.chrome.browser.bookmarks.BookmarkModel;
+@@ -33,6 +34,7 @@ import org.chromium.chrome.browser.multiwindow.MultiWindowUtils;
+ import org.chromium.chrome.browser.offlinepages.OfflinePageBridge;
+ import org.chromium.chrome.browser.offlinepages.RequestCoordinatorBridge;
+ import org.chromium.chrome.browser.profiles.Profile;
++import org.chromium.chrome.browser.tab.TabBrowserControlsConstraintsHelper;
+ import org.chromium.chrome.browser.tab.state.CriticalPersistedTabData;
+ import org.chromium.chrome.browser.tabmodel.TabModelSelector;
+ import org.chromium.chrome.browser.tabmodel.document.TabDelegate;
+@@ -202,6 +204,7 @@ public class TabContextMenuItemDelegate implements ContextMenuItemDelegate {
+ 
+     @Override
+     public void onOpenInNewTab(GURL url, Referrer referrer, boolean navigateToTab) {
++        TabBrowserControlsConstraintsHelper.get(mTab).update(BrowserControlsState.SHOWN, true);
+         RecordUserAction.record("MobileNewTabOpened");
+         RecordUserAction.record("LinkOpenedInNewTab");
+         LoadUrlParams loadUrlParams = new LoadUrlParams(url.getSpec());
+@@ -214,6 +217,7 @@ public class TabContextMenuItemDelegate implements ContextMenuItemDelegate {
+ 
+     @Override
+     public void onOpenInNewTabInGroup(GURL url, Referrer referrer) {
++        TabBrowserControlsConstraintsHelper.get(mTab).update(BrowserControlsState.SHOWN, true);
+         RecordUserAction.record("MobileNewTabOpened");
+         RecordUserAction.record("LinkOpenedInNewTab");
+         LoadUrlParams loadUrlParams = new LoadUrlParams(url.getSpec());
+--
+2.25.1

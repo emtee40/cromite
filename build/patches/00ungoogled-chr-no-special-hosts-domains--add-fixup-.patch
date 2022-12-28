@@ -3,39 +3,39 @@ Date: Wed, 19 Oct 2022 13:01:32 +0000
 Subject: ungoogled-chr no special hosts/domains (add fixup)
 
 ---
- chrome/browser/BUILD.gn                       |   8 -
- .../android/metrics/uma_session_stats.cc      |  10 --
- chrome/browser/browser_process_impl.cc        |   1 -
- .../browser/chrome_content_browser_client.cc  |  13 +-
- chrome/browser/extensions/BUILD.gn            |   1 -
- .../log_sources/chrome_internal_log_source.cc |   5 -
- chrome/browser/first_run/first_run.cc         |   9 --
- chrome/browser/google/BUILD.gn                |   2 +-
- .../long_screenshots_tab_service.cc           |  22 ---
- .../metrics/chrome_metrics_service_client.cc  |   2 +-
- .../chrome_metrics_services_manager_client.cc |   5 +-
- .../metrics/metrics_reporting_state.cc        |  76 ---------
- .../net/system_network_context_manager.cc     |   1 -
- .../modules/recipes/recipes_service.cc        |   3 +-
- .../one_google_bar_loader_impl.cc             |   3 +-
- .../new_tab_page/promos/promo_service.cc      |   6 +-
- .../page_load_metrics_initialize.cc           |   2 -
- ...hrome_browser_main_extra_parts_profiles.cc |   1 -
- .../ui_thread_search_terms_data.cc            |   4 -
- chrome/browser/ui/BUILD.gn                    |   1 -
- .../ui/webui/new_tab_page/new_tab_page_ui.cc  |   5 -
- .../webui/settings/reset_settings_handler.cc  |   1 -
- .../upgrade_detector/upgrade_detector_impl.cc |   2 +-
- chrome/common/BUILD.gn                        |   2 -
- .../url_loader_throttle_provider_impl.cc      |   7 -
- chrome/test/BUILD.gn                          |   1 -
- components/google/core/common/google_util.cc  | 151 +-----------------
- components/google/core/common/google_util.h   |  14 +-
- .../search_engines/search_terms_data.cc       |   4 +-
- components/search_provider_logos/BUILD.gn     |   2 -
- .../logo_service_impl.cc                      |  16 +-
- components/url_matcher/url_util.cc            |  83 ----------
- 32 files changed, 20 insertions(+), 443 deletions(-)
+ chrome/browser/BUILD.gn                       |  8 --
+ .../android/metrics/uma_session_stats.cc      | 10 ---
+ chrome/browser/browser_process_impl.cc        |  1 -
+ .../browser/chrome_content_browser_client.cc  | 13 +--
+ chrome/browser/extensions/BUILD.gn            |  1 -
+ .../log_sources/chrome_internal_log_source.cc |  5 --
+ chrome/browser/first_run/first_run.cc         |  9 --
+ chrome/browser/google/BUILD.gn                |  2 +-
+ .../long_screenshots_tab_service.cc           | 22 -----
+ .../metrics/chrome_metrics_service_client.cc  |  2 +-
+ .../chrome_metrics_services_manager_client.cc |  5 +-
+ .../metrics/metrics_reporting_state.cc        | 76 -----------------
+ .../net/system_network_context_manager.cc     |  1 -
+ .../modules/recipes/recipes_service.cc        |  3 +-
+ .../one_google_bar_loader_impl.cc             |  3 +-
+ .../new_tab_page/promos/promo_service.cc      |  6 +-
+ .../page_load_metrics_initialize.cc           |  2 -
+ ...hrome_browser_main_extra_parts_profiles.cc |  1 -
+ .../ui_thread_search_terms_data.cc            |  4 -
+ chrome/browser/ui/BUILD.gn                    |  1 -
+ .../ui/webui/new_tab_page/new_tab_page_ui.cc  |  5 --
+ .../webui/settings/reset_settings_handler.cc  |  1 -
+ .../upgrade_detector/upgrade_detector_impl.cc |  2 +-
+ chrome/common/BUILD.gn                        |  2 -
+ .../url_loader_throttle_provider_impl.cc      |  7 --
+ chrome/test/BUILD.gn                          |  1 -
+ components/google/core/common/google_util.cc  | 70 +---------------
+ components/google/core/common/google_util.h   | 10 +--
+ .../search_engines/search_terms_data.cc       |  4 +-
+ components/search_provider_logos/BUILD.gn     |  2 -
+ .../logo_service_impl.cc                      | 16 +---
+ components/url_matcher/url_util.cc            | 83 -------------------
+ 32 files changed, 19 insertions(+), 359 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
@@ -67,7 +67,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/common",
      "//chrome/common:buildflags",
      "//chrome/common:constants",
-@@ -7692,8 +7686,6 @@ static_library("browser") {
+@@ -7690,8 +7684,6 @@ static_library("browser") {
        "supervised_user/supervised_user_constants.h",
        "supervised_user/supervised_user_denylist.cc",
        "supervised_user/supervised_user_denylist.h",
@@ -575,7 +575,7 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 diff --git a/components/google/core/common/google_util.cc b/components/google/core/common/google_util.cc
 --- a/components/google/core/common/google_util.cc
 +++ b/components/google/core/common/google_util.cc
-@@ -29,7 +29,7 @@ namespace google_util {
+@@ -52,7 +52,7 @@ bool IsCanonicalHostGoogleHostname(base::StringPiece canonical_host,
  
  // Global functions -----------------------------------------------------------
  
@@ -584,7 +584,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
  
  std::string GetGoogleLocale(const std::string& application_locale) {
    // Google does not recognize "nb" for Norwegian Bokmal; it uses "no".
-@@ -38,8 +38,7 @@ std::string GetGoogleLocale(const std::string& application_locale) {
+@@ -61,8 +61,7 @@ std::string GetGoogleLocale(const std::string& application_locale) {
  
  GURL AppendGoogleLocaleParam(const GURL& url,
                               const std::string& application_locale) {
@@ -594,47 +594,7 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
  }
  
  std::string GetGoogleCountryCode(const GURL& google_homepage_url) {
-@@ -83,156 +82,12 @@ bool IsYoutubeDomainUrl(const GURL& url, SubdomainPermission subdomain_permissio
- }
- 
- bool IsGoogleAssociatedDomainUrl(const GURL& url) { // disabled on Bromite
--  if ((true))
--    return false;
--
--  // Some domains don't have international TLD extensions, so testing for them
--  // is very straightforward.
--  static const char* kSuffixesToSetHeadersFor[] = {
--      ".android.com",
--      ".doubleclick.com",
--      ".doubleclick.net",
--      ".ggpht.com",
--      ".googleadservices.com",
--      ".googleapis.com",
--      ".googlesyndication.com",
--      ".googleusercontent.com",
--      ".googlevideo.com",
--      ".gstatic.com",
--      ".litepages.googlezip.net",
--      ".youtubekids.com",
--      ".ytimg.com",
--  };
--  const std::string host = url.host();
--  for (size_t i = 0; i < std::size(kSuffixesToSetHeadersFor); ++i) {
--    if (base::EndsWith(host, kSuffixesToSetHeadersFor[i],
--                       base::CompareCase::INSENSITIVE_ASCII)) {
--      return true;
--    }
--  }
--
--  // Exact hostnames in lowercase to set headers for.
--  static const char* kHostsToSetHeadersFor[] = {
--      "googleweblight.com",
--  };
--  for (size_t i = 0; i < std::size(kHostsToSetHeadersFor); ++i) {
--    if (base::EqualsCaseInsensitiveASCII(host, kHostsToSetHeadersFor[i]))
--      return true;
--  }
--
+@@ -133,69 +132,4 @@ bool IsGoogleAssociatedDomainUrl(const GURL& url) {
    return false;
  }
  
@@ -664,9 +624,9 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -  return *kGoogleRegisterableDomains;
 -}
 -
- GURL AppendToAsyncQueryParam(const GURL& url,
-                              const std::string& key,
-                              const std::string& value) {
+-GURL AppendToAsyncQueryParam(const GURL& url,
+-                             const std::string& key,
+-                             const std::string& value) {
 -  const std::string param_name = "async";
 -  const std::string key_value = key + ":" + value;
 -  bool replaced = false;
@@ -701,54 +661,6 @@ diff --git a/components/google/core/common/google_util.cc b/components/google/co
 -  GURL::Replacements replacements;
 -  replacements.SetQueryStr(output);
 -  return url.ReplaceComponents(replacements);
-+  return url;
- }
--
--GoogleSearchMode GoogleSearchModeFromUrl(const GURL& url) {
--  static_assert(GoogleSearchMode::kMaxValue == GoogleSearchMode::kFlights,
--                "This function should be updated if new values are added to "
--                "GoogleSearchMode");
--
--  base::StringPiece query_str = url.query_piece();
--  url::Component query(0, static_cast<int>(url.query_piece().length()));
--  url::Component key, value;
--  GoogleSearchMode mode = GoogleSearchMode::kUnspecified;
--  while (url::ExtractQueryKeyValue(query_str.data(), &query, &key, &value)) {
--    base::StringPiece key_str = query_str.substr(key.begin, key.len);
--    if (key_str != "tbm") {
--      continue;
--    }
--    if (mode != GoogleSearchMode::kUnspecified) {
--      // There is more than one tbm parameter, which is not expected. Return
--      // kUnknown to signify the result can't be trusted.
--      return GoogleSearchMode::kUnknown;
--    }
--    base::StringPiece value_str = query_str.substr(value.begin, value.len);
--    if (value_str == "isch") {
--      mode = GoogleSearchMode::kImages;
--    } else if (value_str == "web") {
--      mode = GoogleSearchMode::kWeb;
--    } else if (value_str == "nws") {
--      mode = GoogleSearchMode::kNews;
--    } else if (value_str == "shop") {
--      mode = GoogleSearchMode::kShopping;
--    } else if (value_str == "vid") {
--      mode = GoogleSearchMode::kVideos;
--    } else if (value_str == "bks") {
--      mode = GoogleSearchMode::kBooks;
--    } else if (value_str == "flm") {
--      mode = GoogleSearchMode::kFlights;
--    } else if (value_str == "lcl") {
--      mode = GoogleSearchMode::kLocal;
--    } else {
--      mode = GoogleSearchMode::kUnknown;
--    }
--  }
--  if (mode == GoogleSearchMode::kUnspecified) {
--    // No tbm query parameter means this is the Web mode.
--    mode = GoogleSearchMode::kWeb;
--  }
--  return mode;
 -}
 -
  }  // namespace google_util
@@ -779,17 +691,6 @@ diff --git a/components/google/core/common/google_util.h b/components/google/cor
  // Appends the provided |key| and |value| pair to the "async" query param list,
  // according to the format used by the Google servers:
  //
-@@ -154,10 +146,6 @@ GURL AppendToAsyncQueryParam(const GURL& url,
-                              const std::string& key,
-                              const std::string& value);
- 
--// Returns Google Search mode used by the user. This corresponds to the tab
--// (e.g. web result, image results, video results, etc.) the user is on. This
--// information is extracted from the "tbm" query parameter on the Search URL.
--GoogleSearchMode GoogleSearchModeFromUrl(const GURL& url);
- 
- }  // namespace google_util
- 
 diff --git a/components/search_engines/search_terms_data.cc b/components/search_engines/search_terms_data.cc
 --- a/components/search_engines/search_terms_data.cc
 +++ b/components/search_engines/search_terms_data.cc

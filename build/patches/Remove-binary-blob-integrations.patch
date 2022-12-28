@@ -25,12 +25,13 @@ Parts of this patch were developed by csagan5, uazo and others.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  ...em_webview_bundle.AndroidManifest.expected |   5 -
- chrome/android/BUILD.gn                       |  47 +-
+ chrome/android/BUILD.gn                       |  45 +-
  chrome/android/chrome_java_sources.gni        |   5 -
  .../features/cablev2_authenticator/BUILD.gn   |   2 -
  chrome/android/java/AndroidManifest.xml       |  68 ---
  .../java/res/xml/privacy_preferences.xml      |   5 -
  .../org/chromium/chrome/browser/AppHooks.java |  14 +-
+ .../browser/ChromeBackgroundService.java      |  12 +-
  .../browser/PlayServicesVersionInfo.java      |  12 +-
  .../ChromeBackgroundTaskFactory.java          |   3 -
  .../ExternalNavigationDelegateImpl.java       |   8 +-
@@ -47,8 +48,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../language/settings/LanguageSettings.java   |   6 -
  .../prefetch/prefetch_service_factory.cc      |  16 -
  .../browser/password_manager/android/BUILD.gn |   4 -
- .../PasswordManagerAndroidBackendUtil.java    |  40 +-
+ .../PasswordManagerAndroidBackendUtil.java    |  43 +-
  .../PasswordSettingsUpdaterBridge.java        |  11 -
+ ...PasswordStoreAndroidBackendBridgeImpl.java |   3 +-
  ...swordSyncControllerDelegateBridgeImpl.java |   7 -
  .../push_messaging_service_factory.cc         |   8 +-
  chrome/browser/resources/settings/route.ts    |   2 -
@@ -93,14 +95,14 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/module_installer/android/BUILD.gn  |   2 -
  components/signin/public/android/BUILD.gn     |   3 -
  .../signin/AccountRenameChecker.java          |  16 -
- components/webauthn/android/BUILD.gn          |  10 -
- .../webauthn/AuthenticatorImpl.java           |  59 +-
+ components/webauthn/android/BUILD.gn          |   9 -
+ .../webauthn/AuthenticatorImpl.java           |  85 +--
  .../webauthn/Fido2ApiCallHelper.java          |  23 +-
  .../push_messaging/push_messaging_manager.cc  |   2 +-
  content/public/android/BUILD.gn               |   4 -
  content/test/BUILD.gn                         |   4 -
  device/BUILD.gn                               |   3 -
- device/fido/features.cc                       |   4 +-
+ device/fido/features.cc                       |  10 +-
  remoting/android/client_java_tmpl.gni         |   3 -
  services/BUILD.gn                             |   9 -
  services/device/geolocation/BUILD.gn          |   4 -
@@ -108,7 +110,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  third_party/android_deps/BUILD.gn             | 539 +-----------------
  .../preconditions/javatests/BUILD.gn          |   1 -
  .../gms/ChromiumPlayServicesAvailability.java |  10 +-
- 84 files changed, 88 insertions(+), 2024 deletions(-)
+ 86 files changed, 99 insertions(+), 2060 deletions(-)
 
 diff --git a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected b/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
 --- a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
@@ -150,12 +152,10 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:jni_java",
        "//cc:cc_java",
        "//chrome/android/features/keyboard_accessory:public_java",
-@@ -661,8 +653,18 @@ if (current_toolchain == default_toolchain) {
+@@ -658,8 +650,19 @@ if (current_toolchain == default_toolchain) {
+       "//services/shape_detection:shape_detection_java",
        "//services/shape_detection/public/mojom:mojom_java",
        "//skia/public/mojom:mojom_java",
-       "//third_party/android_deps:chromium_play_services_availability_java",
--      "//third_party/android_deps:com_google_android_play_core_java",
--      "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
 +      # added for Bromite in place of binary blobs
 +      "//third_party/androidx:androidx_annotation_annotation_java",
 +      "//third_party/androidx:androidx_lifecycle_lifecycle_common_java",
@@ -168,10 +168,12 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 +      "//base:base_java",
 +      "//base:jni_java",
 +
+       "//third_party/android_deps:chromium_play_services_availability_java",
+-      "//third_party/android_deps:com_google_android_play_core_java",
+       "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
        "//third_party/android_deps:com_google_guava_listenablefuture_java",
        "//third_party/android_deps:dagger_java",
-       "//third_party/android_deps:guava_android_java",
-@@ -958,11 +960,6 @@ if (current_toolchain == default_toolchain) {
+@@ -956,11 +959,6 @@ if (current_toolchain == default_toolchain) {
        ":chrome_jni_headers",
        ":chrome_public_android_manifest",
        ":delegate_public_impl_java",
@@ -183,7 +185,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java_test_support",
        "//base:base_junit_test_support",
        "//base/test:test_support_java",
-@@ -1495,13 +1492,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1492,13 +1490,6 @@ if (current_toolchain == default_toolchain) {
        ":chrome_test_util_java",
        ":chrome_test_util_jni",
        ":delegate_public_impl_java",
@@ -197,7 +199,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java_test_support",
        "//base/test:test_support_java",
        "//cc:cc_java",
-@@ -2426,7 +2416,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2423,7 +2414,6 @@ if (current_toolchain == default_toolchain) {
      ]
      deps = [
        ":chrome_java",
@@ -205,17 +207,15 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java",
        "//base:base_java_test_support",
        "//base:jni_java",
-@@ -2579,9 +2568,7 @@ if (current_toolchain == default_toolchain) {
+@@ -2576,7 +2566,6 @@ if (current_toolchain == default_toolchain) {
    # is in a DFM.
    android_library("base_module_java") {
      sources = [
 -      "java/src/com/google/ipc/invalidation/ticl/android2/channel/GcmRegistrationTaskService.java",
        "java/src/org/chromium/chrome/app/TrichromeZygotePreload.java",
--      "java/src/org/chromium/chrome/browser/ChromeBackgroundService.java",
+       "java/src/org/chromium/chrome/browser/ChromeBackgroundService.java",
        "java/src/org/chromium/chrome/browser/ChromeBackupAgent.java",
-       "java/src/org/chromium/chrome/browser/DeferredStartupHandler.java",
-       "java/src/org/chromium/chrome/browser/app/bluetooth/BluetoothNotificationService.java",
-@@ -2595,8 +2582,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2592,8 +2581,6 @@ if (current_toolchain == default_toolchain) {
        "java/src/org/chromium/chrome/browser/base/SplitCompatBackupAgent.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatContentProvider.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatCustomTabsService.java",
@@ -224,7 +224,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "java/src/org/chromium/chrome/browser/base/SplitCompatIntentService.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatJobService.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatMinidumpUploadJobService.java",
-@@ -2621,17 +2606,11 @@ if (current_toolchain == default_toolchain) {
+@@ -2618,17 +2605,11 @@ if (current_toolchain == default_toolchain) {
        "java/src/org/chromium/chrome/browser/photo_picker/DecoderService.java",
        "java/src/org/chromium/chrome/browser/prerender/ChromePrerenderService.java",
        "java/src/org/chromium/chrome/browser/provider/ChromeBrowserProvider.java",
@@ -242,7 +242,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java",
        "//base:jni_java",
        "//chrome/browser/download/android:file_provider_java",
-@@ -2645,7 +2624,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2642,7 +2623,6 @@ if (current_toolchain == default_toolchain) {
        "//components/media_router/browser/android:cast_options_provider_java",
        "//components/minidump_uploader:minidump_uploader_java",
        "//components/module_installer/android:module_installer_java",
@@ -250,7 +250,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//third_party/androidx:androidx_annotation_annotation_java",
        "//third_party/androidx:androidx_collection_collection_java",
        "//ui/android:ui_no_recycler_view_java",
-@@ -2665,7 +2643,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2662,7 +2642,6 @@ if (current_toolchain == default_toolchain) {
        # Deps to pull services into base module.
        # TODO(crbug.com/1126301): Consider moving these to the chrome module to
        # reduce base dex size.
@@ -261,7 +261,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -17,7 +17,6 @@ chrome_java_sources = [
+@@ -15,7 +15,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/ChromeActionModeHandler.java",
    "java/src/org/chromium/chrome/browser/ChromeActivitySessionTracker.java",
    "java/src/org/chromium/chrome/browser/ChromeApplicationImpl.java",
@@ -269,7 +269,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/ChromeBackupAgentImpl.java",
    "java/src/org/chromium/chrome/browser/ChromeBackupWatcher.java",
    "java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java",
-@@ -955,10 +954,6 @@ chrome_java_sources = [
+@@ -952,10 +951,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/segmentation_platform/PriceTrackingActionProvider.java",
    "java/src/org/chromium/chrome/browser/segmentation_platform/ReaderModeActionProvider.java",
    "java/src/org/chromium/chrome/browser/segmentation_platform/SignalAccumulator.java",
@@ -295,7 +295,7 @@ diff --git a/chrome/android/features/cablev2_authenticator/BUILD.gn b/chrome/and
 diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
 --- a/chrome/android/java/AndroidManifest.xml
 +++ b/chrome/android/java/AndroidManifest.xml
-@@ -105,21 +105,16 @@ by a child template that "extends" this file.
+@@ -106,21 +106,16 @@ by a child template that "extends" this file.
      <permission android:name="{{ manifest_package }}.permission.CHILD_SERVICE" android:protectionLevel="signature" />
      <permission android:name="{{ manifest_package }}.permission.READ_WRITE_BOOKMARK_FOLDERS" android:protectionLevel="signatureOrSystem" />
      <permission android:name="{{ manifest_package }}.TOS_ACKED" android:protectionLevel="signatureOrSystem" />
@@ -317,7 +317,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
      <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
  
      {% block extra_uses_permissions %}
-@@ -749,16 +744,6 @@ by a child template that "extends" this file.
+@@ -750,16 +745,6 @@ by a child template that "extends" this file.
              </intent-filter>
          </activity>
  
@@ -334,7 +334,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <!-- This activity is used to restart the main Chrome process.  Should never be exported. -->
          <activity android:name="org.chromium.chrome.browser.BrowserRestartActivity"
              android:launchMode="singleInstance"
-@@ -768,15 +753,6 @@ by a child template that "extends" this file.
+@@ -769,15 +754,6 @@ by a child template that "extends" this file.
              android:process=":browser_restart_process">
          </activity>
  
@@ -350,7 +350,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <activity
              android:name="org.chromium.chrome.browser.vr.VrCancelAnimationActivity"
              android:exported="false"
-@@ -955,26 +931,6 @@ by a child template that "extends" this file.
+@@ -956,26 +932,6 @@ by a child template that "extends" this file.
              android:configChanges="orientation|keyboardHidden|keyboard|screenSize|mcc|mnc|screenLayout|smallestScreenSize"
              android:hardwareAccelerated="false" />
  
@@ -377,7 +377,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <!-- Android Notification service listener -->
          <service android:name="org.chromium.chrome.browser.notifications.NotificationService"
              android:exported="false"/>
-@@ -1006,28 +962,10 @@ by a child template that "extends" this file.
+@@ -1007,28 +963,10 @@ by a child template that "extends" this file.
              android:exported="false"
              android:permission="android.permission.BIND_JOB_SERVICE"/>
  
@@ -406,7 +406,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <service android:name="org.chromium.chrome.browser.prerender.ChromePrerenderService"
              android:exported="true"
              tools:ignore="ExportedService" />
-@@ -1262,12 +1200,6 @@ by a child template that "extends" this file.
+@@ -1263,12 +1201,6 @@ by a child template that "extends" this file.
        <meta-data android:name="com.google.ar.core" android:value="optional" />
        {% endif %}
  
@@ -422,7 +422,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -83,9 +83,4 @@ found in the LICENSE file.
+@@ -57,9 +57,4 @@ found in the LICENSE file.
            android:summary="@string/autocomplete_searches_and_urls_summary"
            android:persistent="false"/>
      </PreferenceCategory>
@@ -463,6 +463,27 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/AppHooks.java b
      }
  
      /**
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeBackgroundService.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeBackgroundService.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeBackgroundService.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeBackgroundService.java
+@@ -4,16 +4,6 @@
+ 
+ package org.chromium.chrome.browser;
+ 
+-import org.chromium.build.annotations.IdentifierNameString;
+-import org.chromium.chrome.browser.base.SplitCompatGcmTaskService;
+-
+ /** See {@link ChromeBackgroundServiceImpl}. */
+-public class ChromeBackgroundService extends SplitCompatGcmTaskService {
+-    @IdentifierNameString
+-    private static String sImplClassName =
+-            "org.chromium.chrome.browser.ChromeBackgroundServiceImpl";
+-
+-    public ChromeBackgroundService() {
+-        super(sImplClassName);
+-    }
++public class ChromeBackgroundService {
+ }
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/PlayServicesVersionInfo.java b/chrome/android/java/src/org/chromium/chrome/browser/PlayServicesVersionInfo.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/PlayServicesVersionInfo.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/PlayServicesVersionInfo.java
@@ -863,15 +884,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/password_manager/settings/PasswordSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/password_manager/settings/PasswordSettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/password_manager/settings/PasswordSettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/password_manager/settings/PasswordSettings.java
-@@ -133,7 +133,6 @@ public class PasswordSettings extends PreferenceFragmentCompat
+@@ -120,7 +120,6 @@ public class PasswordSettings extends PreferenceFragmentCompat
+     private Preference mLinkPref;
+     private Menu mMenu;
  
-     private ChromeSwitchPreference mEnableAndroidAutofillSwitch;
-     private ChromeSwitchPreference mEnableAndroidAutofillIncognitoSwitch;
 -    private @Nullable PasswordCheck mPasswordCheck;
      private @ManagePasswordsReferrer int mManagePasswordsReferrer;
  
      /**
-@@ -195,7 +194,6 @@ public class PasswordSettings extends PreferenceFragmentCompat
+@@ -182,7 +181,6 @@ public class PasswordSettings extends PreferenceFragmentCompat
      @Override
      public void onCreate(Bundle savedInstanceState) {
          super.onCreate(savedInstanceState);
@@ -879,9 +900,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/password_manage
          computeTrustedVaultBannerState();
      }
  
-@@ -301,9 +299,6 @@ public class PasswordSettings extends PreferenceFragmentCompat
+@@ -287,9 +285,6 @@ public class PasswordSettings extends PreferenceFragmentCompat
+ 
          createSavePasswordsSwitch();
-         createEnableAndroidAutofillSwitch();
          createAutoSignInCheckbox();
 -        if (mPasswordCheck != null) {
 -            createCheckPasswords();
@@ -889,7 +910,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/password_manage
  
          if (mTrustedVaultBannerState == TrustedVaultBannerState.OPTED_IN) {
              createTrustedVaultBanner(R.string.android_trusted_vault_banner_sub_label_opted_in,
-@@ -478,10 +473,6 @@ public class PasswordSettings extends PreferenceFragmentCompat
+@@ -464,10 +459,6 @@ public class PasswordSettings extends PreferenceFragmentCompat
          // by the system.
          if (getActivity().isFinishing()) {
              PasswordManagerHandlerProvider.getInstance().removeObserver(this);
@@ -923,7 +944,7 @@ diff --git a/chrome/android/modules/chrome_feature_modules.gni b/chrome/android/
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -7337,8 +7337,6 @@ static_library("browser") {
+@@ -7324,8 +7324,6 @@ static_library("browser") {
        "offline_pages/offliner_helper.h",
        "offline_pages/offliner_user_data.cc",
        "offline_pages/offliner_user_data.h",
@@ -1019,7 +1040,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
  import org.chromium.chrome.browser.language.R;
  import org.chromium.chrome.browser.preferences.Pref;
  import org.chromium.chrome.browser.preferences.PrefChangeRegistrar;
-@@ -101,11 +100,6 @@ public class LanguageSettings extends PreferenceFragmentCompat
+@@ -128,11 +127,6 @@ public class LanguageSettings extends PreferenceFragmentCompat
       * translate target language, and detailed translate preferences.
       */
      private void createDetailedPreferences(Bundle savedInstanceState, String rootKey) {
@@ -1109,7 +1130,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
          return AndroidBackendErrorType.UNCATEGORIZED;
      }
  
-@@ -40,44 +33,15 @@ class PasswordManagerAndroidBackendUtil {
+@@ -40,44 +33,10 @@ class PasswordManagerAndroidBackendUtil {
              return ((PasswordCheckupClientHelper.PasswordCheckBackendException) exception)
                      .errorCode;
          }
@@ -1124,11 +1145,10 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
 -            return ((ApiException) exception).getStatusCode();
 -        }
 -        return 0; // '0' means SUCCESS.
-+        return 13; // '13' means ERROR
-     }
- 
-     @Nullable
-     static Integer getConnectionResultCode(Exception exception) {
+-    }
+-
+-    @Nullable
+-    static Integer getConnectionResultCode(Exception exception) {
 -        if (!(exception instanceof ApiException)) return null;
 -
 -        ConnectionResult connectionResult =
@@ -1153,7 +1173,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
 -        } catch (PendingIntent.CanceledException e) {
 -            Log.e(TAG, "Can not launch error resolution intent", e);
 -        }
-+        return null;
++        return 13; // '13' means ERROR
      }
  }
 diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordSettingsUpdaterBridge.java b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordSettingsUpdaterBridge.java
@@ -1191,6 +1211,19 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
          PasswordSettingsUpdaterBridgeJni.get().onFailedSettingChange(
                  mNativeSettingsUpdaterBridge, setting, error, apiErrorCode);
      }
+diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordStoreAndroidBackendBridgeImpl.java b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordStoreAndroidBackendBridgeImpl.java
+--- a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordStoreAndroidBackendBridgeImpl.java
++++ b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordStoreAndroidBackendBridgeImpl.java
+@@ -122,8 +122,7 @@ class PasswordStoreAndroidBackendBridgeImpl {
+         @AndroidBackendErrorType
+         int error = PasswordManagerAndroidBackendUtil.getBackendError(exception);
+         int apiErrorCode = PasswordManagerAndroidBackendUtil.getApiErrorCode(exception);
+-        Integer connectionResultCode =
+-                PasswordManagerAndroidBackendUtil.getConnectionResultCode(exception);
++        Integer connectionResultCode = null;
+ 
+         PasswordStoreAndroidBackendBridgeImplJni.get().onError(mNativeBackendBridge, jobId, error,
+                 apiErrorCode, connectionResultCode != null,
 diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordSyncControllerDelegateBridgeImpl.java b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordSyncControllerDelegateBridgeImpl.java
 --- a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordSyncControllerDelegateBridgeImpl.java
 +++ b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordSyncControllerDelegateBridgeImpl.java
@@ -1257,7 +1290,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
      "webui/internals/internals_ui.cc",
      "webui/internals/internals_ui.h",
      "webui/interstitials/interstitial_ui.cc",
-@@ -492,7 +490,6 @@ static_library("ui") {
+@@ -490,7 +488,6 @@ static_library("ui") {
      "//components/feedback/content",
      "//components/find_in_page",
      "//components/flags_ui",
@@ -1293,7 +1326,7 @@ diff --git a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc b/chrom
  #include "chrome/browser/ui/webui/internals/internals_ui.h"
  #include "chrome/browser/ui/webui/interstitials/interstitial_ui.h"
  #include "chrome/browser/ui/webui/intro/intro_ui.h"
-@@ -779,8 +778,6 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
+@@ -778,8 +777,6 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
      return &NewWebUI<FlagsDeprecatedUI>;
    if (url.host_piece() == chrome::kChromeUIFlagsHost)
      return &NewWebUI<FlagsUI>;
@@ -3283,7 +3316,7 @@ diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/
      "java/src/org/chromium/components/webauthn/InternalAuthenticator.java",
      "java/src/org/chromium/components/webauthn/WebAuthnBrowserBridge.java",
    ]
-@@ -16,12 +15,7 @@ android_library("java") {
+@@ -16,11 +15,7 @@ android_library("java") {
    sources = [
      "java/src/org/chromium/components/webauthn/AuthenticatorFactory.java",
      "java/src/org/chromium/components/webauthn/AuthenticatorImpl.java",
@@ -3292,11 +3325,10 @@ diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/
      "java/src/org/chromium/components/webauthn/Fido2ApiCallHelper.java",
 -    "java/src/org/chromium/components/webauthn/Fido2CredentialRequest.java",
 -    "java/src/org/chromium/components/webauthn/FidoErrorResponseCallback.java",
--    "java/src/org/chromium/components/webauthn/GetAssertionResponseCallback.java",
+     "java/src/org/chromium/components/webauthn/GetAssertionResponseCallback.java",
      "java/src/org/chromium/components/webauthn/GetMatchingCredentialIdsResponseCallback.java",
      "java/src/org/chromium/components/webauthn/InternalAuthenticator.java",
-     "java/src/org/chromium/components/webauthn/IsUvpaaResponseCallback.java",
-@@ -31,9 +25,6 @@ android_library("java") {
+@@ -31,9 +26,6 @@ android_library("java") {
    ]
    annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
    deps = [
@@ -3306,7 +3338,7 @@ diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/
      "//base:base_java",
      "//base:jni_java",
      "//build/android:build_java",
-@@ -69,7 +60,6 @@ android_library("test_support_java") {
+@@ -69,7 +61,6 @@ android_library("test_support_java") {
  
  source_set("android") {
    sources = [
@@ -3317,7 +3349,25 @@ diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/
 diff --git a/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java b/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
 --- a/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
 +++ b/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
-@@ -68,9 +68,6 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -14,7 +14,6 @@ import androidx.annotation.RequiresApi;
+ 
+ import org.chromium.base.Callback;
+ import org.chromium.base.ContextUtils;
+-import org.chromium.base.PackageUtils;
+ import org.chromium.base.metrics.RecordHistogram;
+ import org.chromium.blink.mojom.Authenticator;
+ import org.chromium.blink.mojom.AuthenticatorStatus;
+@@ -57,9 +56,6 @@ public final class AuthenticatorImpl implements Authenticator {
+     /** The payment information to be added to the "clientDataJson". */
+     private PaymentOptions mPayment;
+ 
+-    /** Caches the GMS Core package version. */
+-    private int mGmsCorePackageVersion;
+-
+     private MakeCredential_Response mMakeCredentialCallback;
+     private GetAssertion_Response mGetAssertionCallback;
+     // A queue is used to store pending IsUserVerifyingPlatformAuthenticatorAvailable request
+@@ -68,9 +64,6 @@ public final class AuthenticatorImpl implements Authenticator {
      // situation does not matter because all pending requests will return the same value.
      private Queue<org.chromium.mojo.bindings.Callbacks.Callback1<Boolean>>
              mIsUserVerifyingPlatformAuthenticatorAvailableCallbackQueue = new LinkedList<>();
@@ -3327,10 +3377,15 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
  
      /**
       * Builds the Authenticator service implementation.
-@@ -100,18 +97,6 @@ public final class AuthenticatorImpl implements Authenticator {
-         mGmsCorePackageVersion = PackageUtils.getPackageVersion(context, GMSCORE_PACKAGE_NAME);
-     }
- 
+@@ -95,21 +88,6 @@ public final class AuthenticatorImpl implements Authenticator {
+         mRenderFrameHost = renderFrameHost;
+         mSupportLevel = supportLevel;
+         mOrigin = mRenderFrameHost.getLastCommittedOrigin();
+-
+-        Context context = ContextUtils.getApplicationContext();
+-        mGmsCorePackageVersion = PackageUtils.getPackageVersion(context, GMSCORE_PACKAGE_NAME);
+-    }
+-
 -    public static void overrideFido2CredentialRequestForTesting(Fido2CredentialRequest request) {
 -        sFido2CredentialRequestOverrideForTesting = request;
 -    }
@@ -3341,36 +3396,35 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
 -        }
 -
 -        return new Fido2CredentialRequest(mIntentSender, mSupportLevel);
--    }
--
+     }
+ 
      /**
-      * Called by InternalAuthenticatorAndroid, which facilitates WebAuthn for processes that
-      * originate from the browser process. Since the request is from the browser process, the
-@@ -139,17 +124,7 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -139,17 +117,9 @@ public final class AuthenticatorImpl implements Authenticator {
  
          mMakeCredentialCallback = callback;
          mIsOperationPending = true;
 -        if (mGmsCorePackageVersion < GMSCORE_MIN_VERSION) {
-             onError(AuthenticatorStatus.NOT_IMPLEMENTED);
+-            onError(AuthenticatorStatus.NOT_IMPLEMENTED);
 -            return;
 -        }
--
+ 
 -        mPendingFido2CredentialRequest = getFido2CredentialRequest();
 -        mPendingFido2CredentialRequest.handleMakeCredentialRequest(options, mRenderFrameHost,
 -                mOrigin,
 -                (status, response)
 -                        -> onRegisterResponse(status, response),
 -                status -> onError(status));
++        // Fido2 not supported on Bromite
++        onError(AuthenticatorStatus.NOT_IMPLEMENTED);
      }
  
      @Override
-@@ -162,16 +137,7 @@ public final class AuthenticatorImpl implements Authenticator {
- 
+@@ -163,15 +133,8 @@ public final class AuthenticatorImpl implements Authenticator {
          mGetAssertionCallback = callback;
          mIsOperationPending = true;
--
+ 
 -        if (mGmsCorePackageVersion < GMSCORE_MIN_VERSION) {
-             onError(AuthenticatorStatus.NOT_IMPLEMENTED);
+-            onError(AuthenticatorStatus.NOT_IMPLEMENTED);
 -            return;
 -        }
 -
@@ -3378,15 +3432,17 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
 -        mPendingFido2CredentialRequest.handleGetAssertionRequest(options, mRenderFrameHost, mOrigin,
 -                mPayment,
 -                (status, response) -> onSignResponse(status, response), status -> onError(status));
++        // Fido2 not supported on Bromite
++        onError(AuthenticatorStatus.NOT_IMPLEMENTED);
      }
  
      @Override
-@@ -184,15 +150,7 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -184,15 +147,8 @@ public final class AuthenticatorImpl implements Authenticator {
              callback.call(isUvpaa);
          };
  
 -        if (mGmsCorePackageVersion < GMSCORE_MIN_VERSION) {
-             decoratedCallback.call(false);
+-            decoratedCallback.call(false);
 -            return;
 -        }
 -
@@ -3394,10 +3450,21 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
 -        getFido2CredentialRequest().handleIsUserVerifyingPlatformAuthenticatorAvailableRequest(
 -                mRenderFrameHost,
 -                isUvpaa -> onIsUserVerifyingPlatformAuthenticatorAvailableResponse(isUvpaa));
++        decoratedCallback.call(false);
++        return;
      }
  
      /**
-@@ -215,14 +173,7 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -201,7 +157,7 @@ public final class AuthenticatorImpl implements Authenticator {
+      * version.
+      */
+     public boolean isGetMatchingCredentialIdsSupported() {
+-        return mGmsCorePackageVersion >= GMSCORE_MIN_VERSION_GET_MATCHING_CRED_IDS;
++        return false;
+     }
+ 
+     /**
+@@ -215,33 +171,13 @@ public final class AuthenticatorImpl implements Authenticator {
       */
      public void getMatchingCredentialIds(String relyingPartyId, byte[][] credentialIds,
              boolean requireThirdPartyPayment, GetMatchingCredentialIdsResponseCallback callback) {
@@ -3413,10 +3480,18 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
      }
  
      @Override
-@@ -238,10 +189,7 @@ public final class AuthenticatorImpl implements Authenticator {
-         // reason, this method will return true but chrome will ignore conditional requests.
-         // Android surfaces only platform credentials on conditional requests, use IsUVPAA as a
-         // proxy for availability.
+     public void isConditionalMediationAvailable(
+             final IsConditionalMediationAvailable_Response callback) {
+-        if (mGmsCorePackageVersion < GMSCORE_MIN_VERSION) {
+-            callback.call(false);
+-            return;
+-        }
+-
+-        // The WebAuthenticationConditionalUI feature will only be enabled on Android when gmscore
+-        // supports silent discovery. If the gmscore and chromium versions are out of sync for some
+-        // reason, this method will return true but chrome will ignore conditional requests.
+-        // Android surfaces only platform credentials on conditional requests, use IsUVPAA as a
+-        // proxy for availability.
 -        mIsUserVerifyingPlatformAuthenticatorAvailableCallbackQueue.add(callback);
 -        getFido2CredentialRequest().handleIsUserVerifyingPlatformAuthenticatorAvailableRequest(
 -                mRenderFrameHost,
@@ -3425,7 +3500,7 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
      }
  
      @Override
-@@ -251,8 +199,6 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -251,8 +187,6 @@ public final class AuthenticatorImpl implements Authenticator {
          if (!mIsOperationPending || mGetAssertionCallback == null) {
              return;
          }
@@ -3434,7 +3509,7 @@ diff --git a/components/webauthn/android/java/src/org/chromium/components/webaut
      }
  
      /**
-@@ -302,7 +248,6 @@ public final class AuthenticatorImpl implements Authenticator {
+@@ -302,7 +236,6 @@ public final class AuthenticatorImpl implements Authenticator {
          mIsOperationPending = false;
          mMakeCredentialCallback = null;
          mGetAssertionCallback = null;
@@ -3536,18 +3611,24 @@ diff --git a/device/BUILD.gn b/device/BUILD.gn
 diff --git a/device/fido/features.cc b/device/fido/features.cc
 --- a/device/fido/features.cc
 +++ b/device/fido/features.cc
-@@ -38,9 +38,9 @@ BASE_FEATURE(kWebAuthnGoogleCorpRemoteDesktopClientPrivilege,
-              "WebAuthenticationGoogleCorpRemoteDesktopClientPrivilege",
+@@ -39,12 +39,12 @@ BASE_FEATURE(kWebAuthnGoogleCorpRemoteDesktopClientPrivilege,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
--BASE_FEATURE(kWebAuthPasskeysUI,
-+BASE_FEATURE(kWebAuthPasskeysUI,                           // must be disabled
-              "WebAuthenticationPasskeysUI",
+ BASE_FEATURE(kWebAuthPasskeysUI,
+-             "WebAuthenticationPasskeysUI",
 -             base::FEATURE_DISABLED_BY_DEFAULT);
-+             base::FEATURE_DISABLED_BY_DEFAULT);   // in Bromite
++             "WebAuthenticationPasskeysUI",                     // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);                // in Bromite
  
- BASE_FEATURE(kWebAuthnNewDiscoverableCredentialsUi,
-              "WebAuthenticationNewDiscoverableCredentialsUi",
+-BASE_FEATURE(kWebAuthnNewDiscoverableCredentialsUi,
+-             "WebAuthenticationNewDiscoverableCredentialsUi",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kWebAuthnNewDiscoverableCredentialsUi,             // disabled by default
++             "WebAuthenticationNewDiscoverableCredentialsUi",   // in Bromite
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kWebAuthnNoEmptyDisplayNameCBOR,
+              "WebAuthenticationNoEmptyDisplayNameCBOR",
 diff --git a/remoting/android/client_java_tmpl.gni b/remoting/android/client_java_tmpl.gni
 --- a/remoting/android/client_java_tmpl.gni
 +++ b/remoting/android/client_java_tmpl.gni

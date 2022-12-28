@@ -22,8 +22,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/payments/core/payment_prefs.cc      |  2 +-
  .../core/common/safe_browsing_prefs.cc         |  4 ++--
  .../primary_account_manager.cc                 |  4 ++--
- content/public/common/content_features.cc      |  2 +-
- 19 files changed, 72 insertions(+), 19 deletions(-)
+ content/public/common/content_features.cc      |  4 ++--
+ 19 files changed, 73 insertions(+), 20 deletions(-)
  create mode 100644 components/bookmarks/browser/features.cc
  create mode 100644 components/bookmarks/browser/features.h
 
@@ -38,7 +38,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
  #include "components/browser_sync/browser_sync_switches.h"
  #include "components/browser_ui/site_settings/android/features.h"
  #include "components/browsing_data/core/features.h"
-@@ -5986,6 +5987,11 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -5937,6 +5938,11 @@ const FeatureEntry kFeatureEntries[] = {
           reading_list::switches::kReadLaterReminderNotification)},
  #endif
  
@@ -65,7 +65,7 @@ diff --git a/chrome/browser/background/background_mode_manager.cc b/chrome/brows
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -1445,7 +1445,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
+@@ -1435,7 +1435,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
  void ChromeContentBrowserClient::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kDisable3DAPIs, false);
@@ -249,7 +249,7 @@ new file mode 100644
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -308,7 +308,7 @@ void ContentSettingsRegistry::Init() {
+@@ -311,7 +311,7 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
    Register(ContentSettingsType::BACKGROUND_SYNC, "background-sync",
@@ -258,7 +258,7 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
             AllowlistedSchemes(),
             ValidSettings(CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK),
             WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
-@@ -408,7 +408,7 @@ void ContentSettingsRegistry::Init() {
+@@ -411,7 +411,7 @@ void ContentSettingsRegistry::Init() {
    // TODO(crbug.com/904439): Update this to "SECURE_ONLY" once
    // DeviceOrientationEvents and DeviceMotionEvents are only fired in secure
    // contexts.
@@ -324,12 +324,14 @@ diff --git a/components/signin/internal/identity_manager/primary_account_manager
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 --- a/content/public/common/content_features.cc
 +++ b/content/public/common/content_features.cc
-@@ -541,7 +541,7 @@ const char kIsolateOriginsFieldTrialParamName[] = "OriginsList";
+@@ -540,8 +540,8 @@ const char kIsolateOriginsFieldTrialParamName[] = "OriginsList";
+ // the attribute. Note: At present, only iframes with origin-restricted
  // sandboxes are isolated.
  BASE_FEATURE(kIsolateSandboxedIframes,
-              "IsolateSandboxedIframes",
+-             "IsolateSandboxedIframes",
 -             base::FEATURE_DISABLED_BY_DEFAULT);
-+             base::FEATURE_ENABLED_BY_DEFAULT);
++             "IsolateSandboxedIframes",            // enabled by default
++             base::FEATURE_ENABLED_BY_DEFAULT);    // in Bromite
  const base::FeatureParam<IsolateSandboxedIframesGrouping>::Option
      isolated_sandboxed_iframes_grouping_types[] = {
          {IsolateSandboxedIframesGrouping::kPerSite, "per-site"},

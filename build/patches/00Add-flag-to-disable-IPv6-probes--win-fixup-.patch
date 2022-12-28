@@ -10,14 +10,12 @@ Subject: Add flag to disable IPv6 probes (win fixup)
  net/base/features.cc                                       | 4 ++++
  net/base/features.h                                        | 3 +++
  net/dns/host_resolver_manager.cc                           | 2 +-
- services/network/public/cpp/features.cc                    | 4 ----
- services/network/public/cpp/features.h                     | 2 --
- 9 files changed, 11 insertions(+), 16 deletions(-)
+ 7 files changed, 11 insertions(+), 10 deletions(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -6098,7 +6098,7 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -6087,7 +6087,7 @@ const FeatureEntry kFeatureEntries[] = {
      {"ipv6-probing",
       flag_descriptions::kIPv6ProbingName,
       flag_descriptions::kIPv6ProbingDescription, kOsAll,
@@ -102,7 +100,7 @@ diff --git a/net/base/features.h b/net/base/features.h
      kUseDnsHttpsSvcbEnforceSecureResponse;
  
 +// Enable IPv6 ping probes to RIPE DNS.
-+NET_EXPORT extern const base::Feature kIPv6Probing;
++NET_EXPORT BASE_DECLARE_FEATURE(kIPv6Probing);
 +
  // If we are still waiting for an HTTPS transaction after all the
  // other transactions in an insecure DnsTask have completed, we will compute a
@@ -119,31 +117,5 @@ diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
        // pretend IPv6 connectivy probe is successful when probing is disabled
        SetLastIPv6ProbeResult(true);
      } else {
-diff --git a/services/network/public/cpp/features.cc b/services/network/public/cpp/features.cc
---- a/services/network/public/cpp/features.cc
-+++ b/services/network/public/cpp/features.cc
-@@ -42,10 +42,6 @@ BASE_FEATURE(kThrottleDelayable,
-              "ThrottleDelayable",
-              base::FEATURE_ENABLED_BY_DEFAULT);
- 
--// Enable IPv6 ping probes to RIPE DNS.
--const base::Feature kIPv6Probing{"IPv6Probing",
--                                       base::FEATURE_ENABLED_BY_DEFAULT};
--
- // When kPriorityRequestsDelayableOnSlowConnections is enabled, HTTP
- // requests fetched from a SPDY/QUIC/H2 proxies can be delayed by the
- // ResourceScheduler just as HTTP/1.1 resources are. However, requests from such
-diff --git a/services/network/public/cpp/features.h b/services/network/public/cpp/features.h
---- a/services/network/public/cpp/features.h
-+++ b/services/network/public/cpp/features.h
-@@ -48,8 +48,6 @@ COMPONENT_EXPORT(NETWORK_CPP)
- extern const base::FeatureParam<TrustTokenOriginTrialSpec>
-     kTrustTokenOperationsRequiringOriginTrial;
- COMPONENT_EXPORT(NETWORK_CPP)
--extern const base::Feature kIPv6Probing;
--COMPONENT_EXPORT(NETWORK_CPP)
- extern const base::FeatureParam<bool> kPlatformProvidedTrustTokenIssuance;
- 
- COMPONENT_EXPORT(NETWORK_CPP) BASE_DECLARE_FEATURE(kEnableSaveDataHeader);
 --
 2.25.1

@@ -6,8 +6,10 @@ Subject: Disable fetching of all field trials (add fixup)
  chrome/browser/net/system_network_context_manager.cc  | 1 -
  components/variations/net/BUILD.gn                    | 2 --
  content/browser/loader/url_loader_throttles.cc        | 2 --
+ content/browser/origin_trials/origin_trials_utils.cc  | 2 +-
+ content/public/common/content_features.cc             | 4 ++--
  content/renderer/variations_render_thread_observer.cc | 9 ---------
- 4 files changed, 14 deletions(-)
+ 6 files changed, 3 insertions(+), 17 deletions(-)
 
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
@@ -44,6 +46,32 @@ diff --git a/content/browser/loader/url_loader_throttles.cc b/content/browser/lo
  
    ClientHintsControllerDelegate* client_hint_delegate =
        browser_context->GetClientHintsControllerDelegate();
+diff --git a/content/browser/origin_trials/origin_trials_utils.cc b/content/browser/origin_trials/origin_trials_utils.cc
+--- a/content/browser/origin_trials/origin_trials_utils.cc
++++ b/content/browser/origin_trials/origin_trials_utils.cc
+@@ -14,7 +14,7 @@ namespace {
+ std::vector<std::string> GetHeaderValues(
+     base::StringPiece header_name,
+     const net::HttpResponseHeaders* headers) {
+-  if (!headers) {
++  if ((true)) {
+     return {};
+   }
+   size_t iter = 0;
+diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
+--- a/content/public/common/content_features.cc
++++ b/content/public/common/content_features.cc
+@@ -773,8 +773,8 @@ BASE_FEATURE(kPepperCrossOriginRedirectRestriction,
+ // things before receiving the response, for instance it can affect the next
+ // navigation's network request.
+ BASE_FEATURE(kPersistentOriginTrials,
+-             "PersistentOriginTrials",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PersistentOriginTrials",            // always disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);  // in bromite
+ 
+ // A browser-side equivalent of the Blink feature "DocumentPictureInPictureAPI".
+ // This is used for sanity checks to ensure that the feature can't be enabled by
 diff --git a/content/renderer/variations_render_thread_observer.cc b/content/renderer/variations_render_thread_observer.cc
 --- a/content/renderer/variations_render_thread_observer.cc
 +++ b/content/renderer/variations_render_thread_observer.cc

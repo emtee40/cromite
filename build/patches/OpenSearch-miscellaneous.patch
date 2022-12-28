@@ -12,11 +12,11 @@ Add verbose logging
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../settings/SearchEngineAdapter.java         |  4 +-
- .../search_engine_tab_helper.cc               | 47 ++++++++++++++-----
+ .../search_engine_tab_helper.cc               | 51 ++++++++++++++-----
  .../renderer/chrome_render_frame_observer.cc  |  2 +
  .../search_engines/template_url_fetcher.cc    | 23 +++++++--
- .../search_engines/template_url_service.h     |  8 ++--
- 5 files changed, 62 insertions(+), 22 deletions(-)
+ .../search_engines/template_url_service.h     |  8 +--
+ 5 files changed, 65 insertions(+), 23 deletions(-)
 
 diff --git a/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java b/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
 --- a/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
@@ -43,7 +43,19 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
  #include "base/metrics/histogram_macros.h"
  #include "chrome/browser/favicon/favicon_utils.h"
  #include "chrome/browser/profiles/profile.h"
-@@ -73,16 +74,20 @@ std::u16string SearchEngineTabHelper::GenerateKeywordFromNavigationEntry(
+@@ -46,8 +47,10 @@ void SearchEngineTabHelper::BindOpenSearchDescriptionDocumentHandler(
+     mojo::PendingReceiver<chrome::mojom::OpenSearchDescriptionDocumentHandler>
+         receiver) {
+   // Bind only for outermost main frames.
+-  if (rfh->GetParentOrOuterDocument())
++  if (rfh->GetParentOrOuterDocument()) {
++    LOG(INFO) << "OpenSearch: not on main frame";
+     return;
++  }
+ 
+   auto* web_contents = content::WebContents::FromRenderFrameHost(rfh);
+   if (!web_contents)
+@@ -73,16 +76,20 @@ std::u16string SearchEngineTabHelper::GenerateKeywordFromNavigationEntry(
      NavigationEntry* entry) {
    // Don't autogenerate keywords for pages that are the result of form
    // submissions.
@@ -66,7 +78,7 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
    }
  
    // Don't autogenerate keywords for referrers that
-@@ -90,10 +95,10 @@ std::u16string SearchEngineTabHelper::GenerateKeywordFromNavigationEntry(
+@@ -90,10 +97,10 @@ std::u16string SearchEngineTabHelper::GenerateKeywordFromNavigationEntry(
    // b) have a path.
    //
    // If we relax the path constraint, we need to be sure to sanitize the path
@@ -80,7 +92,7 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
      return std::u16string();
    }
  
-@@ -121,15 +126,18 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
+@@ -121,15 +128,18 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
    // When |page_url| has file: scheme, this method doesn't work because of
    // http://b/issue?id=863583. For that reason, this doesn't check and allow
    // urls referring to osdd urls with same schemes.
@@ -102,7 +114,7 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
  
    // If the current page is a form submit, find the last page that was not a
    // form submit and use its url to generate the keyword from.
-@@ -139,8 +147,10 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
+@@ -139,8 +149,10 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
         (index > 0) && IsFormSubmit(entry);
         entry = controller.GetEntryAtIndex(index))
      --index;
@@ -114,7 +126,7 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
  
    // Autogenerate a keyword for the autodetected case; in the other cases we'll
    // generate a keyword later after fetching the OSDD.
-@@ -148,6 +158,12 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
+@@ -148,6 +160,12 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
    if (keyword.empty())
      return;
  
@@ -127,7 +139,7 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
    auto* frame = web_contents()->GetPrimaryMainFrame();
    mojo::Remote<network::mojom::URLLoaderFactory> url_loader_factory;
    frame->CreateNetworkServiceDefaultFactory(
-@@ -155,6 +171,7 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
+@@ -155,6 +173,7 @@ void SearchEngineTabHelper::PageHasOpenSearchDescriptionDocument(
  
    // Download the OpenSearch description document. If this is successful, a
    // new keyword will be created when done.
@@ -135,7 +147,7 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
    TemplateURLFetcherFactory::GetForProfile(profile)->ScheduleDownload(
        keyword, osdd_url, entry->GetFavicon().url,
        frame->GetLastCommittedOrigin(), url_loader_factory.get(),
-@@ -196,11 +213,18 @@ void SearchEngineTabHelper::GenerateKeywordIfNecessary(
+@@ -196,11 +215,18 @@ void SearchEngineTabHelper::GenerateKeywordIfNecessary(
    if (last_index <= 0)
      return;
  
@@ -156,7 +168,7 @@ diff --git a/chrome/browser/ui/search_engines/search_engine_tab_helper.cc b/chro
    TemplateURLService* url_service =
        TemplateURLServiceFactory::GetForProfile(profile);
    if (!url_service)
-@@ -211,7 +235,6 @@ void SearchEngineTabHelper::GenerateKeywordIfNecessary(
+@@ -211,7 +237,6 @@ void SearchEngineTabHelper::GenerateKeywordIfNecessary(
      return;
    }
  

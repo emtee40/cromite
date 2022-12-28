@@ -2,7 +2,8 @@ From: csagan5 <32685696+csagan5@users.noreply.github.com>
 Date: Sun, 8 Jul 2018 18:16:34 +0200
 Subject: Disable fetching of all field trials
 
-Disable seed-based field trials
+Disable seed-based field trials.
+Disable reporting of Omnibox suggestions header.
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
@@ -12,12 +13,12 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/ukm/ukm_recorder_impl.cc           |  3 +++
  .../firstrun/VariationsSeedBridge.java        |  2 +-
  .../firstrun/VariationsSeedFetcher.java       | 26 ++++---------------
- .../variations/net/omnibox_http_headers.cc    |  2 +-
+ .../variations/net/omnibox_http_headers.cc    |  4 +--
  .../variations/net/variations_http_headers.cc |  3 +++
  .../service/variations_field_trial_creator.cc |  3 ++-
  .../variations/service/variations_service.cc  | 15 +++--------
  .../renderer/core/loader/document_loader.cc   |  7 -----
- 11 files changed, 22 insertions(+), 47 deletions(-)
+ 11 files changed, 23 insertions(+), 48 deletions(-)
 
 diff --git a/android_webview/nonembedded/BUILD.gn b/android_webview/nonembedded/BUILD.gn
 --- a/android_webview/nonembedded/BUILD.gn
@@ -145,12 +146,14 @@ diff --git a/components/variations/android/java/src/org/chromium/components/vari
 diff --git a/components/variations/net/omnibox_http_headers.cc b/components/variations/net/omnibox_http_headers.cc
 --- a/components/variations/net/omnibox_http_headers.cc
 +++ b/components/variations/net/omnibox_http_headers.cc
-@@ -22,7 +22,7 @@ const char kOmniboxOnDeviceSuggestionsHeader[] =
+@@ -21,8 +21,8 @@ const char kOmniboxOnDeviceSuggestionsHeader[] =
+ // Whether to enable reporting the header. Included as a quick escape hatch in
  // case of crashes.
  BASE_FEATURE(kReportOmniboxOnDeviceSuggestionsHeader,
-              "ReportOmniboxOnDeviceSuggestionsHeader",
+-             "ReportOmniboxOnDeviceSuggestionsHeader",
 -             base::FEATURE_ENABLED_BY_DEFAULT);
-+             base::FEATURE_DISABLED_BY_DEFAULT);
++             "ReportOmniboxOnDeviceSuggestionsHeader",  // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);        // in Bromite
  
  std::string GetHeaderValue() {
    const std::string group =

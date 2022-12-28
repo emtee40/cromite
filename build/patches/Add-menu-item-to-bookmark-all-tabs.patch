@@ -6,7 +6,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  chrome/android/java/res/menu/main_menu.xml    |  7 +++
  .../chrome/browser/ChromeTabbedActivity.java  | 24 ++++++++
- .../browser/bookmarks/BookmarkBridge.java     | 60 +++++++++++++++++++
+ .../browser/bookmarks/BookmarkBridge.java     | 61 +++++++++++++++++++
  .../browser/bookmarks/BookmarkUtils.java      |  4 ++
  .../bookmarks/android/bookmark_bridge.cc      | 17 ++++++
  .../bookmarks/android/bookmark_bridge.h       |  4 ++
@@ -25,7 +25,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/bookmarks/browser/bookmark_node.h  |  5 ++
  components/bookmarks/browser/model_loader.cc  |  3 +-
  .../bookmark_specifics_conversions.cc         |  1 +
- 21 files changed, 200 insertions(+), 10 deletions(-)
+ 21 files changed, 201 insertions(+), 10 deletions(-)
 
 diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/res/menu/main_menu.xml
 --- a/chrome/android/java/res/menu/main_menu.xml
@@ -41,16 +41,16 @@ diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/re
          <item android:id="@+id/recent_tabs_menu_id"
              android:title="@string/menu_recent_tabs"
              android:icon="@drawable/devices_black_24dp" />
-@@ -187,6 +191,9 @@ found in the LICENSE file.
-         <item android:id="@+id/menu_select_tabs"
-             android:title="@string/menu_select_tabs"
-             android:icon="@drawable/ic_select_tabs" />
+@@ -184,6 +188,9 @@ found in the LICENSE file.
+         <item android:id="@+id/menu_group_tabs"
+             android:title="@string/menu_group_tabs"
+             android:icon="@drawable/ic_widgets" />
 +        <item android:id="@+id/bookmark_all_tabs_menu_id"
 +            android:title="@string/menu_bookmark_all_tabs"
 +            android:icon="@drawable/ic_folder_blue_24dp" />
-         <item android:id="@+id/track_prices_row_menu_id"
-             android:title="@string/menu_track_prices"
-             android:icon="@drawable/ic_trending_down_black" />
+         <item android:id="@+id/menu_select_tabs"
+             android:title="@string/menu_select_tabs"
+             android:icon="@drawable/ic_select_tabs" />
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
@@ -110,7 +110,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  import org.chromium.base.ObserverList;
  import org.chromium.base.ThreadUtils;
  import org.chromium.base.annotations.CalledByNative;
-@@ -39,6 +40,10 @@ import org.chromium.chrome.browser.partnerbookmarks.PartnerBookmarksShim;
+@@ -40,6 +41,10 @@ import org.chromium.chrome.browser.partnerbookmarks.PartnerBookmarksShim;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.read_later.ReadingListUtils;
  import org.chromium.chrome.browser.tab.Tab;
@@ -121,15 +121,16 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  import org.chromium.components.bookmarks.BookmarkId;
  import org.chromium.components.bookmarks.BookmarkItem;
  import org.chromium.components.bookmarks.BookmarkType;
-@@ -85,6 +90,7 @@ import java.io.File;
+@@ -86,6 +91,8 @@ import java.io.File;
   * bookmark model stored in native.
   */
  class BookmarkBridge {
 +    private static final String TAG = "BookmarkBridge";
++
      private final Profile mProfile;
      private boolean mIsDestroyed;
      private boolean mIsDoingExtensiveChanges;
-@@ -392,6 +398,16 @@ class BookmarkBridge {
+@@ -393,6 +400,16 @@ class BookmarkBridge {
                  mNativeBookmarkBridge, BookmarkBridge.this);
      }
  
@@ -146,7 +147,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * @return Id representing the special "other" folder from bookmark model.
       */
-@@ -1029,6 +1045,49 @@ class BookmarkBridge {
+@@ -1030,6 +1047,49 @@ class BookmarkBridge {
                  mNativeBookmarkBridge, BookmarkBridge.this, title, url);
      }
  
@@ -196,7 +197,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * @param url The URL of the reading list item.
       * @return The reading list item with the URL, or null if no such reading list item.
-@@ -1326,6 +1385,7 @@ class BookmarkBridge {
+@@ -1327,6 +1387,7 @@ class BookmarkBridge {
          void getAllFoldersWithDepths(long nativeBookmarkBridge, BookmarkBridge caller,
                  List<BookmarkId> folderList, List<Integer> depthList);
          BookmarkId getRootFolderId(long nativeBookmarkBridge, BookmarkBridge caller);
@@ -348,7 +349,7 @@ diff --git a/chrome/browser/download/android/java/src/org/chromium/chrome/browse
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3588,6 +3588,9 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -3606,6 +3606,9 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
        <message name="IDS_MENU_TRACK_PRICES" desc="Menu item for tracking prices on tabs. [CHAR_LIMIT=27]">
          Track prices
        </message>
@@ -506,14 +507,14 @@ diff --git a/components/bookmarks/browser/bookmark_codec.h b/components/bookmark
                int64_t* max_node_id,
                std::string* sync_metadata_str);
  
-@@ -114,6 +116,7 @@ class BookmarkCodec {
+@@ -113,6 +115,7 @@ class BookmarkCodec {
+   // Allows the BookmarkClient to read and a write a string blob from the JSON
    // file. That string captures the bookmarks sync metadata.
    static const char kSyncMetadata[];
-   static const char kDateLastUsed[];
 +  static const char kTabsBookmarkFolderNameKey[];
+   static const char kDateLastUsed[];
  
    // Possible values for kTypeKey.
-   static const char kTypeURL[];
 @@ -130,6 +133,7 @@ class BookmarkCodec {
    bool DecodeHelper(BookmarkNode* bb_node,
                      BookmarkNode* other_folder_node,

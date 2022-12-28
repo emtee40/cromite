@@ -24,23 +24,24 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../bottombar/OverlayPanelContent.java        |  1 -
  .../compositor/layouts/LayoutManagerImpl.java |  4 +-
  .../customtabs/BaseCustomTabActivity.java     |  2 +-
- .../BaseCustomTabRootUiCoordinator.java       |  8 +-
+ .../BaseCustomTabRootUiCoordinator.java       | 16 +---
  .../browser/customtabs/CustomTabActivity.java |  6 --
  .../modaldialog/ChromeTabModalPresenter.java  | 12 +--
  .../modaldialog/TabModalLifetimeHandler.java  |  7 +-
  .../privacy/settings/PrivacySettings.java     |  9 --
  .../chrome/browser/tab/TabHelpers.java        |  2 -
  .../tabbed_mode/TabbedRootUiCoordinator.java  |  5 +-
- .../chrome/browser/ui/RootUiCoordinator.java  | 27 +-----
+ .../chrome/browser/ui/RootUiCoordinator.java  | 39 +-------
  chrome/browser/BUILD.gn                       | 17 ----
- chrome/browser/about_flags.cc                 | 48 ----------
- .../flags/android/chrome_feature_list.cc      |  1 -
+ chrome/browser/about_flags.cc                 | 49 -----------
+ .../flags/android/chrome_feature_list.cc      | 42 ---------
+ .../flags/android/chrome_feature_list.h       |  8 --
  ...nfiguration_policy_handler_list_factory.cc |  6 +-
  .../strings/android_chrome_strings.grd        | 59 -------------
  content/browser/browser_interface_binders.cc  |  1 -
  third_party/blink/public/mojom/BUILD.gn       |  2 +-
  third_party/blink/public/public_features.gni  |  2 +-
- 36 files changed, 17 insertions(+), 579 deletions(-)
+ 37 files changed, 17 insertions(+), 649 deletions(-)
  delete mode 100644 chrome/android/java/res/layout/contextual_search_caption_view.xml
  delete mode 100644 chrome/android/java/res/layout/contextual_search_card_icon_view.xml
  delete mode 100644 chrome/android/java/res/layout/contextual_search_context_view.xml
@@ -54,7 +55,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -723,7 +723,6 @@ if (current_toolchain == default_toolchain) {
+@@ -722,7 +722,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/ui:duplicate_download_enums_java",
        "//components/browsing_data/core:browsing_data_utils_java",
        "//components/browsing_data/core:clear_browsing_data_tab_java",
@@ -62,7 +63,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//components/dom_distiller/core:distiller_type_java",
        "//components/ntp_tiles:ntp_tiles_enums_java",
        "//components/offline_pages/core:offline_page_model_enums_java",
-@@ -3981,16 +3980,12 @@ generate_jni("chrome_jni_headers") {
+@@ -3979,16 +3978,12 @@ generate_jni("chrome_jni_headers") {
      "java/src/org/chromium/chrome/browser/compositor/LayerTitleCache.java",
      "java/src/org/chromium/chrome/browser/compositor/bottombar/OverlayPanelContent.java",
      "java/src/org/chromium/chrome/browser/compositor/layouts/content/TabContentManager.java",
@@ -108,7 +109,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -306,21 +306,6 @@ chrome_java_sources = [
+@@ -304,21 +304,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/compositor/bottombar/OverlayPanelManager.java",
    "java/src/org/chromium/chrome/browser/compositor/bottombar/OverlayPanelRepaddingTextView.java",
    "java/src/org/chromium/chrome/browser/compositor/bottombar/OverlayPanelTextViewInflater.java",
@@ -130,7 +131,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/compositor/bottombar/ephemeraltab/EphemeralTabCoordinator.java",
    "java/src/org/chromium/chrome/browser/compositor/bottombar/ephemeraltab/EphemeralTabMediator.java",
    "java/src/org/chromium/chrome/browser/compositor/bottombar/ephemeraltab/EphemeralTabSheetContent.java",
-@@ -361,7 +346,6 @@ chrome_java_sources = [
+@@ -359,7 +344,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/compositor/overlays/strip/TabLoadTracker.java",
    "java/src/org/chromium/chrome/browser/compositor/resources/StaticResourcePreloads.java",
    "java/src/org/chromium/chrome/browser/compositor/resources/SystemResourcePreloads.java",
@@ -138,7 +139,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/compositor/scene_layer/StaticTabSceneLayer.java",
    "java/src/org/chromium/chrome/browser/compositor/scene_layer/TabListSceneLayer.java",
    "java/src/org/chromium/chrome/browser/compositor/scene_layer/TabStripSceneLayer.java",
-@@ -387,34 +371,6 @@ chrome_java_sources = [
+@@ -385,34 +369,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/contextmenu/ContextMenuUi.java",
    "java/src/org/chromium/chrome/browser/contextmenu/ContextMenuUtils.java",
    "java/src/org/chromium/chrome/browser/contextmenu/LensChipDelegate.java",
@@ -510,7 +511,7 @@ diff --git a/chrome/android/java/res/xml/google_services_preferences.xml b/chrom
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -70,10 +70,6 @@ found in the LICENSE file.
+@@ -56,10 +56,6 @@ found in the LICENSE file.
            android:title="@string/autocomplete_searches_and_urls_title"
            android:summary="@string/autocomplete_searches_and_urls_summary"
            android:persistent="false"/>
@@ -524,7 +525,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-@@ -1735,7 +1735,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -1728,7 +1728,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
          return new TabbedRootUiCoordinator(this, this::onOmniboxFocusChanged,
                  getShareDelegateSupplier(), getActivityTabProvider(), mTabModelProfileSupplier,
                  mBookmarkModelSupplier, mTabBookmarkerSupplier,
@@ -533,7 +534,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
                  mStartSurfaceSupplier, mTabSwitcherSupplier, mIntentMetadataOneshotSupplier,
                  mLayoutStateProviderSupplier, mStartSurfaceParentTabSupplier,
                  getBrowserControlsManager(), getWindowAndroid(), mJankTracker,
-@@ -2809,7 +2809,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -2799,7 +2799,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
          // TODO(crbug.com/1157310): Transition this::method refs to dedicated suppliers.
          mTabModalHandler = new TabModalLifetimeHandler(this, getLifecycleDispatcher(), manager,
                  this::getAppBrowserControlsVisibilityDelegate, this::getTabObscuringHandler,
@@ -545,7 +546,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -94,9 +94,6 @@ import org.chromium.chrome.browser.compositor.layouts.SceneChangeObserver;
+@@ -93,9 +93,6 @@ import org.chromium.chrome.browser.compositor.layouts.SceneChangeObserver;
  import org.chromium.chrome.browser.compositor.layouts.content.ContentOffsetProvider;
  import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
  import org.chromium.chrome.browser.compositor.layouts.content.TabContentManagerHandler;
@@ -553,9 +554,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
 -import org.chromium.chrome.browser.contextualsearch.ContextualSearchManager;
 -import org.chromium.chrome.browser.contextualsearch.ContextualSearchManager.ContextualSearchTabPromotionDelegate;
  import org.chromium.chrome.browser.dependency_injection.ChromeActivityCommonsModule;
- import org.chromium.chrome.browser.AlwaysIncognitoLinkInterceptor;
  import org.chromium.chrome.browser.dependency_injection.ChromeActivityComponent;
-@@ -261,7 +258,7 @@ import java.util.function.Consumer;
+ import org.chromium.chrome.browser.dependency_injection.ModuleFactoryOverrides;
+@@ -259,7 +256,7 @@ import java.util.function.Consumer;
   */
  public abstract class ChromeActivity<C extends ChromeActivityComponent>
          extends AsyncInitializationActivity
@@ -564,7 +565,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
                     SnackbarManageable, SceneChangeObserver,
                     StatusBarColorController.StatusBarColorProvider, AppMenuDelegate, AppMenuBlocker,
                     MenuOrKeyboardActionController, CompositorViewHolder.Initializer,
-@@ -325,8 +322,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -323,8 +320,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
              new ObservableSupplierImpl<>();
      protected final UnownedUserDataSupplier<InsetObserverView> mInsetObserverViewSupplier =
              new InsetObserverViewSupplier();
@@ -573,7 +574,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  
      private SnackbarManager mSnackbarManager;
  
-@@ -516,7 +511,7 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -514,7 +509,7 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
          // clang-format off
          return new RootUiCoordinator(this, null, getShareDelegateSupplier(),
                  getActivityTabProvider(), mTabModelProfileSupplier, mBookmarkModelSupplier,
@@ -582,7 +583,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
                  getTabModelSelectorSupplier(), new OneshotSupplierImpl<>(),
                  new OneshotSupplierImpl<>(), new OneshotSupplierImpl<>(),
                  new OneshotSupplierImpl<>(), () -> null, mBrowserControlsManagerSupplier.get(),
-@@ -951,14 +946,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -949,14 +944,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
          mCompositorViewHolderSupplier.get().onNativeLibraryReady(
                  getWindowAndroid(), getTabContentManager(), getPrefService());
  
@@ -597,7 +598,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
          TraceEvent.end("ChromeActivity:CompositorInitialization");
      }
  
-@@ -1445,11 +1432,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -1443,11 +1430,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
      @SuppressLint("NewApi")
      @Override
      protected final void onDestroy() {
@@ -609,7 +610,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
          if (mSnackbarManager != null) {
              SnackbarManagerProvider.detach(mSnackbarManager);
          }
-@@ -1949,13 +1931,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -1944,13 +1926,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
          return mCompositorViewHolderSupplier.get();
      }
  
@@ -623,7 +624,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
      /**
       * Exits the fullscreen mode, if any. Does nothing if no fullscreen is present.
       * @return Whether the fullscreen mode is currently showing.
-@@ -2001,15 +1976,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -1996,15 +1971,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
          }
  
          mActivityTabProvider.setLayoutStateProvider(layoutManager);
@@ -639,7 +640,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
      }
  
      /**
-@@ -2278,18 +2244,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -2273,18 +2239,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
          return webContents != null ? SelectionPopupController.fromWebContents(webContents) : null;
      }
  
@@ -713,7 +714,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Base
  import org.chromium.chrome.browser.customtabs.content.CustomTabActivityNavigationController;
  import org.chromium.chrome.browser.customtabs.content.CustomTabActivityTabController;
  import org.chromium.chrome.browser.customtabs.features.branding.BrandingController;
-@@ -127,7 +126,7 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
+@@ -93,7 +92,6 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
+      * @param profileSupplier Supplier of the currently applicable profile.
+      * @param bookmarkModelSupplier Supplier of the bookmark bridge for the current profile.
+      * @param tabBookmarkerSupplier Supplier of {@link TabBookmarker} for bookmarking a given tab.
+-     * @param contextualSearchManagerSupplier Supplier of the {@link ContextualSearchManager}.
+      * @param tabModelSelectorSupplier Supplies the {@link TabModelSelector}.
+      * @param browserControlsManager Manages the browser controls.
+      * @param windowAndroid The current {@link WindowAndroid}.
+@@ -127,7 +125,7 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
              @NonNull ObservableSupplier<Profile> profileSupplier,
              @NonNull ObservableSupplier<BookmarkModel> bookmarkModelSupplier,
              @NonNull ObservableSupplier<TabBookmarker> tabBookmarkerSupplier,
@@ -722,7 +731,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Base
              @NonNull ObservableSupplier<TabModelSelector> tabModelSelectorSupplier,
              @NonNull BrowserControlsManager browserControlsManager,
              @NonNull ActivityWindowAndroid windowAndroid,
-@@ -158,7 +157,7 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
+@@ -158,7 +156,7 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
          // clang-format off
          super(activity, null, shareDelegateSupplier, tabProvider,
                  profileSupplier, bookmarkModelSupplier, tabBookmarkerSupplier,
@@ -731,20 +740,27 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Base
                  new OneshotSupplierImpl<>(), new OneshotSupplierImpl<>(),
                  new OneshotSupplierImpl<>(), new OneshotSupplierImpl<>(), () -> null,
                  browserControlsManager, windowAndroid, new DummyJankTracker(),
-@@ -213,9 +212,6 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
-                 public void didFirstVisuallyNonEmptyPaint(Tab tab) {
-                     BaseCustomTabActivity baseActivity = (BaseCustomTabActivity) mActivity;
-                     assert baseActivity != null;
+@@ -208,16 +206,6 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
+                     ((PartialCustomTabHeightStrategy) mCustomTabHeightStrategy)::onShowSoftInput;
+             mTabController.get().registerTabObserver(
+                     new PartialCustomTabTabObserver(softInputCallback));
+-            mTabController.get().registerTabObserver(new EmptyTabObserver() {
+-                @Override
+-                public void didFirstVisuallyNonEmptyPaint(Tab tab) {
+-                    BaseCustomTabActivity baseActivity = (BaseCustomTabActivity) mActivity;
+-                    assert baseActivity != null;
 -                    baseActivity.getContextualSearchManagerSupplier()
 -                            .get()
 -                            .setCanHideAndroidBrowserControls(false);
-                 }
-             });
+-                }
+-            });
          }
+     }
+ 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
-@@ -189,12 +189,6 @@ public class CustomTabActivity extends BaseCustomTabActivity {
+@@ -188,12 +188,6 @@ public class CustomTabActivity extends BaseCustomTabActivity {
                  mIntentDataProvider.getSession(), webContents);
      }
  
@@ -855,7 +871,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/modaldialog/Tab
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -44,7 +44,6 @@ import org.chromium.ui.text.SpanApplier;
+@@ -41,7 +41,6 @@ import org.chromium.ui.text.SpanApplier;
  
  import androidx.annotation.Nullable;
  import androidx.preference.PreferenceCategory;
@@ -863,7 +879,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
  import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
  
-@@ -69,9 +68,7 @@ public class PrivacySettings
+@@ -63,9 +62,7 @@ public class PrivacySettings
      // moved from SyncAndServicesSettings.java
      private static final String PREF_SERVICES_CATEGORY = "services_category";
      private static final String PREF_SEARCH_SUGGESTIONS = "search_suggestions";
@@ -873,7 +889,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      private final SharedPreferencesManager mSharedPreferencesManager =
              SharedPreferencesManager.getInstance();
      private final PrefService prefService = UserPrefs.get(Profile.getLastUsedRegularProfile());
-@@ -119,12 +116,6 @@ public class PrivacySettings
+@@ -113,12 +110,6 @@ public class PrivacySettings
          mSearchSuggestions.setOnPreferenceChangeListener(this);
          mSearchSuggestions.setManagedPreferenceDelegate(mManagedPreferenceDelegate);
  
@@ -916,7 +932,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
  import org.chromium.chrome.browser.feature_guide.notifications.FeatureNotificationUtils;
  import org.chromium.chrome.browser.feature_guide.notifications.FeatureType;
  import org.chromium.chrome.browser.feed.webfeed.WebFeedFollowIntroController;
-@@ -257,7 +256,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -255,7 +254,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
              @NonNull ObservableSupplier<Profile> profileSupplier,
              @NonNull ObservableSupplier<BookmarkModel> bookmarkModelSupplier,
              @NonNull ObservableSupplier<TabBookmarker> tabBookmarkerSupplier,
@@ -925,7 +941,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
              @NonNull ObservableSupplier<TabModelSelector> tabModelSelectorSupplier,
              @NonNull OneshotSupplier<StartSurface> startSurfaceSupplier,
              @NonNull OneshotSupplier<TabSwitcher> tabSwitcherSupplier,
-@@ -292,7 +291,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -290,7 +289,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
              boolean initializeUiWithIncognitoColors, @NonNull BackPressManager backPressManager) {
          super(activity, onOmniboxFocusChangedListener, shareDelegateSupplier, tabProvider,
                  profileSupplier, bookmarkModelSupplier, tabBookmarkerSupplier,
@@ -945,7 +961,23 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
  import org.chromium.chrome.browser.crash.ChromePureJavaExceptionReporter;
  import org.chromium.chrome.browser.directactions.DirectActionInitializer;
  import org.chromium.chrome.browser.dom_distiller.ReaderModeToolbarButtonController;
-@@ -259,7 +258,6 @@ public class RootUiCoordinator
+@@ -99,7 +98,6 @@ import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
+ import org.chromium.chrome.browser.price_tracking.PriceTrackingButtonController;
+ import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
+-import org.chromium.chrome.browser.segmentation_platform.ContextualPageActionController;
+ import org.chromium.chrome.browser.settings.SettingsLauncherImpl;
+ import org.chromium.chrome.browser.share.ShareButtonController;
+ import org.chromium.chrome.browser.share.ShareDelegate;
+@@ -246,7 +244,6 @@ public class RootUiCoordinator
+     private List<ButtonDataProvider> mButtonDataProviders;
+     @Nullable
+     private AdaptiveToolbarButtonController mAdaptiveToolbarButtonController;
+-    private ContextualPageActionController mContextualPageActionController;
+     private IdentityDiscController mIdentityDiscController;
+     private ChromeActionModeHandler mChromeActionModeHandler;
+     private final ToolbarActionModeCallback mActionModeControllerCallback;
+@@ -259,7 +256,6 @@ public class RootUiCoordinator
      private final ObservableSupplier<TabBookmarker> mTabBookmarkerSupplier;
      private final OneshotSupplierImpl<AppMenuCoordinator> mAppMenuSupplier;
      private BottomSheetObserver mBottomSheetObserver;
@@ -953,7 +985,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
      protected final CallbackController mCallbackController;
      protected final BrowserControlsManager mBrowserControlsManager;
      private BrowserControlsStateProvider.Observer mBrowserControlsObserver;
-@@ -364,7 +362,7 @@ public class RootUiCoordinator
+@@ -364,7 +360,7 @@ public class RootUiCoordinator
              @NonNull ObservableSupplier<Profile> profileSupplier,
              @NonNull ObservableSupplier<BookmarkModel> bookmarkModelSupplier,
              @NonNull ObservableSupplier<TabBookmarker> tabBookmarkerSupplier,
@@ -962,7 +994,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
              @NonNull ObservableSupplier<TabModelSelector> tabModelSelectorSupplier,
              @NonNull OneshotSupplier<StartSurface> startSurfaceSupplier,
              @NonNull OneshotSupplier<TabSwitcher> tabSwitcherSupplier,
-@@ -457,7 +455,6 @@ public class RootUiCoordinator
+@@ -457,7 +453,6 @@ public class RootUiCoordinator
          mBookmarkModelSupplier = bookmarkModelSupplier;
          mTabBookmarkerSupplier = tabBookmarkerSupplier;
          mAppMenuSupplier = new OneshotSupplierImpl<>();
@@ -970,7 +1002,19 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
          mActionModeControllerCallback = new ToolbarActionModeCallback();
  
          mTabModelSelectorSupplier = tabModelSelectorSupplier;
-@@ -1006,15 +1003,6 @@ public class RootUiCoordinator
+@@ -561,11 +556,6 @@ public class RootUiCoordinator
+             mToolbarManager = null;
+         }
+ 
+-        if (mContextualPageActionController != null) {
+-            mContextualPageActionController.destroy();
+-            mContextualPageActionController = null;
+-        }
+-
+         if (mAdaptiveToolbarButtonController != null) {
+             mAdaptiveToolbarButtonController.destroy();
+             mAdaptiveToolbarButtonController = null;
+@@ -1006,15 +996,6 @@ public class RootUiCoordinator
  
      @Override
      public boolean canShowAppMenu() {
@@ -986,7 +1030,19 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
          // Do not show the menu if we are in find in page view.
          if (mFindToolbarManager != null && mFindToolbarManager.isShowing()
                  && !DeviceFormFactor.isNonMultiDisplayContextOnTablet(mActivity)) {
-@@ -1243,10 +1231,6 @@ public class RootUiCoordinator
+@@ -1169,11 +1150,6 @@ public class RootUiCoordinator
+                     AdaptiveToolbarButtonVariant.PRICE_TRACKING, priceTrackingButtonController);
+             adaptiveToolbarButtonController.addButtonVariant(
+                     AdaptiveToolbarButtonVariant.READER_MODE, readerModeToolbarButtonController);
+-            mContextualPageActionController = new ContextualPageActionController(mProfileSupplier,
+-                    mActivityTabProvider, adaptiveToolbarButtonController,
+-                    ()
+-                            -> ShoppingServiceFactory.getForProfile(mProfileSupplier.get()),
+-                    mBookmarkModelSupplier);
+             mButtonDataProviders =
+                     Arrays.asList(mIdentityDiscController, adaptiveToolbarButtonController);
+ 
+@@ -1243,10 +1219,6 @@ public class RootUiCoordinator
              public void onStartedShowing(int layoutType, boolean showToolbar) {
                  if (layoutType != LayoutType.BROWSING
                          && layoutType != LayoutType.SIMPLE_ANIMATION) {
@@ -997,7 +1053,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
                  }
  
                  if (layoutType == LayoutType.TAB_SWITCHER) {
-@@ -1386,10 +1370,6 @@ public class RootUiCoordinator
+@@ -1386,10 +1358,6 @@ public class RootUiCoordinator
       * cross-feature interaction, e.g. hide other features when this feature is shown.
       */
      protected void onFindToolbarShown() {
@@ -1008,7 +1064,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
      }
  
      /**
-@@ -1547,9 +1527,6 @@ public class RootUiCoordinator
+@@ -1547,9 +1515,6 @@ public class RootUiCoordinator
                      case SheetState.FULL:
                          if (!mOpened) {
                              mOpened = true;
@@ -1018,7 +1074,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
                          }
  
                          // On visible bottom sheet, hide page zoom dialog
-@@ -1557,8 +1534,6 @@ public class RootUiCoordinator
+@@ -1557,8 +1522,6 @@ public class RootUiCoordinator
                          break;
                      case SheetState.HIDDEN:
                          mOpened = false;
@@ -1030,7 +1086,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -2095,7 +2095,6 @@ static_library("browser") {
+@@ -2090,7 +2090,6 @@ static_library("browser") {
      "//components/content_settings/common:mojom",
      "//components/content_settings/core/browser",
      "//components/content_settings/core/common",
@@ -1038,7 +1094,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//components/cookie_config",
      "//components/country_codes",
      "//components/crash/core/browser",
-@@ -2571,8 +2570,6 @@ static_library("browser") {
+@@ -2565,8 +2564,6 @@ static_library("browser") {
        "android/compositor/decoration_title.h",
        "android/compositor/layer/content_layer.cc",
        "android/compositor/layer/content_layer.h",
@@ -1047,7 +1103,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "android/compositor/layer/layer.h",
        "android/compositor/layer/overlay_panel_layer.cc",
        "android/compositor/layer/overlay_panel_layer.h",
-@@ -2593,8 +2590,6 @@ static_library("browser") {
+@@ -2587,8 +2584,6 @@ static_library("browser") {
        "android/compositor/resources/resource_factory.cc",
        "android/compositor/resources/toolbar_resource.cc",
        "android/compositor/resources/toolbar_resource.h",
@@ -1056,7 +1112,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "android/compositor/scene_layer/overscroll_scene_layer.cc",
        "android/compositor/scene_layer/overscroll_scene_layer.h",
        "android/compositor/scene_layer/scrolling_bottom_view_scene_layer.cc",
-@@ -2617,16 +2612,6 @@ static_library("browser") {
+@@ -2611,16 +2606,6 @@ static_library("browser") {
        "android/content/content_utils.cc",
        "android/context_menu/context_menu_native_delegate_impl.cc",
        "android/context_menu/context_menu_native_delegate_impl.h",
@@ -1073,7 +1129,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "android/cookies/cookies_fetcher_util.cc",
        "android/customtabs/chrome_origin_verifier.cc",
        "android/customtabs/chrome_origin_verifier.h",
-@@ -3238,8 +3223,6 @@ static_library("browser") {
+@@ -3230,8 +3215,6 @@ static_library("browser") {
        "safe_browsing/android/safe_browsing_referring_app_bridge_android.h",
        "safe_browsing/android/safe_browsing_settings_launcher_android.cc",
        "safe_browsing/android/safe_browsing_settings_launcher_android.h",
@@ -1085,10 +1141,11 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -1970,26 +1970,6 @@ const FeatureEntry::FeatureVariation kRelatedSearchesAlternateUxVariations[] = {
+@@ -1961,27 +1961,6 @@ const FeatureEntry::FeatureVariation kRelatedSearchesAlternateUxVariations[] = {
+      std::size(kRelatedSearchesAlternateUxShowDefaultChipWith120SpEllipsis),
       nullptr},
  };
- 
+-
 -const FeatureEntry::FeatureParam kContextualSearchSuppressShortViewWith300Dp[] =
 -    {{"contextual_search_minimum_page_height_dp", "300"}};
 -const FeatureEntry::FeatureParam kContextualSearchSuppressShortViewWith400Dp[] =
@@ -1112,7 +1169,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
  #endif  // BUILDFLAG(IS_ANDROID)
  
  const FeatureEntry::FeatureParam kResamplingInputEventsLSQEnabled[] = {
-@@ -3712,34 +3692,6 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -3686,34 +3665,6 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kEnableOskResizesVisualViewportByDefaultDescription,
       kOsAndroid,
       FEATURE_VALUE_TYPE(blink::features::kOSKResizesVisualViewportByDefault)},
@@ -1150,14 +1207,87 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -224,7 +224,6 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+@@ -35,7 +35,6 @@
+ #include "components/content_creation/notes/core/note_features.h"
+ #include "components/content_creation/reactions/core/reactions_features.h"
+ #include "components/content_settings/core/common/features.h"
+-#include "components/contextual_search/core/browser/contextual_search_field_trial.h"
+ #include "components/download/public/common/download_features.h"
+ #include "components/embedder_support/android/util/cdn_utils.h"
+ #include "components/feature_engagement/public/feature_list.h"
+@@ -223,15 +222,6 @@ const base::Feature* const kFeaturesExposedToJava[] = {
      &kContextMenuSearchAndShopWithGoogleLens,
      &kContextMenuTranslateWithGoogleLens,
      &kContextMenuPopupForAllScreenSizes,
 -    &kContextualSearchDebug,
-     &kContextualSearchDelayedIntelligence,
-     &kContextualSearchDisableOnlineDetection,
-     &kContextualSearchForceCaption,
+-    &kContextualSearchDelayedIntelligence,
+-    &kContextualSearchDisableOnlineDetection,
+-    &kContextualSearchForceCaption,
+-    &kContextualSearchSuppressShortView,
+-    &kContextualSearchThinWebViewImplementation,
+-    &kContextualTriggersSelectionHandles,
+-    &kContextualTriggersSelectionMenu,
+-    &kContextualTriggersSelectionSize,
+     &kDirectActions,
+     &kDisableCompositedProgressBar,
+     &kDownloadFileProvider,
+@@ -709,38 +699,6 @@ BASE_FEATURE(kLensOnQuickActionSearchWidget,
+              "LensOnQuickActionSearchWidget",
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+-BASE_FEATURE(kContextualSearchDelayedIntelligence,
+-             "ContextualSearchDelayedIntelligence",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
+-
+-BASE_FEATURE(kContextualSearchDisableOnlineDetection,
+-             "ContextualSearchDisableOnlineDetection",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
+-
+-BASE_FEATURE(kContextualSearchForceCaption,
+-             "ContextualSearchForceCaption",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
+-
+-BASE_FEATURE(kContextualSearchSuppressShortView,
+-             "ContextualSearchSuppressShortView",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
+-
+-BASE_FEATURE(kContextualSearchThinWebViewImplementation,
+-             "ContextualSearchThinWebViewImplementation",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
+-
+-BASE_FEATURE(kContextualTriggersSelectionHandles,
+-             "ContextualTriggersSelectionHandles",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
+-
+-BASE_FEATURE(kContextualTriggersSelectionMenu,
+-             "ContextualTriggersSelectionMenu",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
+-
+-BASE_FEATURE(kContextualTriggersSelectionSize,
+-             "ContextualTriggersSelectionSize",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
+-
+ BASE_FEATURE(kDirectActions, "DirectActions", base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kDisableCompositedProgressBar,
+diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
+--- a/chrome/browser/flags/android/chrome_feature_list.h
++++ b/chrome/browser/flags/android/chrome_feature_list.h
+@@ -75,14 +75,6 @@ BASE_DECLARE_FEATURE(kContextMenuSearchWithGoogleLens);
+ BASE_DECLARE_FEATURE(kContextMenuShopWithGoogleLens);
+ BASE_DECLARE_FEATURE(kContextMenuSearchAndShopWithGoogleLens);
+ BASE_DECLARE_FEATURE(kContextMenuTranslateWithGoogleLens);
+-BASE_DECLARE_FEATURE(kContextualSearchDelayedIntelligence);
+-BASE_DECLARE_FEATURE(kContextualSearchDisableOnlineDetection);
+-BASE_DECLARE_FEATURE(kContextualSearchForceCaption);
+-BASE_DECLARE_FEATURE(kContextualSearchSuppressShortView);
+-BASE_DECLARE_FEATURE(kContextualSearchThinWebViewImplementation);
+-BASE_DECLARE_FEATURE(kContextualTriggersSelectionHandles);
+-BASE_DECLARE_FEATURE(kContextualTriggersSelectionMenu);
+-BASE_DECLARE_FEATURE(kContextualTriggersSelectionSize);
+ BASE_DECLARE_FEATURE(kDirectActions);
+ BASE_DECLARE_FEATURE(kDisableCompositedProgressBar);
+ BASE_DECLARE_FEATURE(kDontPrefetchLibraries);
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
@@ -1184,7 +1314,7 @@ diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc 
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -815,33 +815,6 @@ CHAR_LIMIT guidelines:
+@@ -791,33 +791,6 @@ CHAR_LIMIT guidelines:
        <message name="IDS_PREFS_PRIVACY_SECURITY" desc="Title for the Privacy and Security preferences. [CHAR_LIMIT=32]">
          Privacy and security
        </message>
@@ -1218,7 +1348,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
        <message name="IDS_DO_NOT_TRACK_TITLE" desc="Title for 'Do Not Track' preference">
          “Do Not Track”
        </message>
-@@ -4029,38 +4002,6 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -3974,38 +3947,6 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
          Tabs
        </message>
  

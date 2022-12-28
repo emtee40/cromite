@@ -4,7 +4,7 @@ Subject: Remove price/shopping/commerce integrations
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/android/BUILD.gn                       |  23 ---
+ chrome/android/BUILD.gn                       |  27 ---
  chrome/android/chrome_java_sources.gni        |   5 -
  chrome/android/features/tab_ui/BUILD.gn       |   7 -
  .../res/layout/large_message_card_item.xml    |   9 -
@@ -22,29 +22,30 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../TabSelectionEditorCoordinator.java        |   2 +-
  .../TabSwitcherCoordinator.java               | 102 +---------
  .../tab_management/TabSwitcherMediator.java   |  57 ------
- .../chrome/browser/app/ChromeActivity.java    |  17 --
- .../AppMenuPropertiesDelegateImpl.java        |  44 +----
- .../browser/bookmarks/BookmarkBridge.java     |  85 ---------
+ .../chrome/browser/app/ChromeActivity.java    |  20 --
+ .../AppMenuPropertiesDelegateImpl.java        |  16 +-
+ .../browser/bookmarks/BookmarkBridge.java     |  84 ---------
  .../bookmarks/BookmarkItemsAdapter.java       |  23 ---
- .../browser/bookmarks/BookmarkManager.java    |  14 --
+ .../browser/bookmarks/BookmarkManager.java    |  12 --
  .../BookmarkSaveFlowCoordinator.java          |  37 +---
- .../bookmarks/BookmarkSaveFlowMediator.java   |  68 +------
+ .../bookmarks/BookmarkSaveFlowMediator.java   |  69 +------
  .../browser/bookmarks/BookmarkUtils.java      |  12 +-
  .../init/ProcessInitializationHandler.java    |   5 -
  .../ContextualPageActionController.java       |   4 -
  .../chrome/browser/tab/TabHelpers.java        |   9 -
  .../tabbed_mode/TabbedRootUiCoordinator.java  |  22 ---
  .../ToolbarButtonInProductHelpController.java |  27 ---
- .../browser/toolbar/ToolbarManager.java       |  33 ----
- .../chrome/browser/ui/RootUiCoordinator.java  |  23 ---
+ .../browser/toolbar/ToolbarManager.java       |  17 --
+ .../chrome/browser/ui/RootUiCoordinator.java  |  22 ---
  chrome/android/java_sources.gni               |   8 -
+ chrome/browser/BUILD.gn                       |   2 -
  .../price_tracking/PriceTrackingFeatures.java |   2 +-
- .../price_tracking_notification_bridge.cc     |  10 -
  .../commerce/subscriptions/android/BUILD.gn   |   1 -
  .../CommerceSubscriptionsService.java         |  36 +---
  .../SubscriptionsManagerImpl.java             |  26 +--
+ .../optimization_guide_keyed_service.cc       |   4 -
  chrome/browser/persisted_state_db/BUILD.gn    |   1 -
- 40 files changed, 23 insertions(+), 986 deletions(-)
+ 41 files changed, 29 insertions(+), 936 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
@@ -60,16 +61,17 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
  import("//chrome/browser/password_manager/buildflags.gni")
  import("//chrome/browser/share/android/java_sources.gni")
  import("//chrome/chrome_paks.gni")
-@@ -394,8 +390,6 @@ if (current_toolchain == default_toolchain) {
+@@ -394,9 +390,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/browser_controls/android:java",
        "//chrome/browser/commerce/android:java",
        "//chrome/browser/commerce/merchant_viewer/android:java",
 -      "//chrome/browser/commerce/price_tracking/android:java",
 -      "//chrome/browser/commerce/price_tracking/proto:proto_java",
-       "//chrome/browser/commerce/subscriptions/android:subscriptions_java",
+-      "//chrome/browser/commerce/subscriptions/android:subscriptions_java",
        "//chrome/browser/consent_auditor/android:java",
        "//chrome/browser/contextmenu:java",
-@@ -784,16 +778,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/creator/android:java",
+@@ -783,16 +776,6 @@ if (current_toolchain == default_toolchain) {
      sources += share_java_sources
      deps += share_java_deps
  
@@ -86,24 +88,34 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
      if (enable_basic_printing) {
        deps += [ "//printing:printing_java" ]
      }
-@@ -997,8 +981,6 @@ if (current_toolchain == default_toolchain) {
+@@ -996,9 +979,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/browser_controls/android:junit",
        "//chrome/browser/commerce/android:java",
        "//chrome/browser/commerce/merchant_viewer/android:junit",
 -      "//chrome/browser/commerce/price_tracking/android:java",
 -      "//chrome/browser/commerce/price_tracking/proto:proto_java",
-       "//chrome/browser/commerce/subscriptions/android:subscriptions_java",
+-      "//chrome/browser/commerce/subscriptions/android:subscriptions_java",
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/creator/android:java",
-@@ -1522,7 +1504,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/creator/android:junit",
+@@ -1390,7 +1370,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/android/browserservices/intents:java",
+       "//chrome/browser/android/browserservices/verification:java",
+       "//chrome/browser/android/crypto:java",
+-      "//chrome/browser/commerce/subscriptions/android:subscriptions_java",
+       "//chrome/browser/contextmenu:java",
+       "//chrome/browser/download/android:download_java_tests",
+       "//chrome/browser/download/android:file_provider_java",
+@@ -1520,8 +1499,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/commerce/android:javatests",
        "//chrome/browser/commerce/merchant_viewer/android:java",
        "//chrome/browser/commerce/merchant_viewer/android:javatests",
 -      "//chrome/browser/commerce/price_tracking/android:java",
-       "//chrome/browser/commerce/subscriptions/android:subscriptions_java",
+-      "//chrome/browser/commerce/subscriptions/android:subscriptions_java",
        "//chrome/browser/content_creation/notes/internal/android:java",
        "//chrome/browser/contextmenu:java",
-@@ -1801,8 +1782,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/dependency_injection:java",
+@@ -1799,8 +1776,6 @@ if (current_toolchain == default_toolchain) {
  
      deps += feed_test_deps
  
@@ -112,7 +124,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
      if (enable_basic_printing) {
        deps += [ "//printing:printing_java" ]
      }
-@@ -4159,8 +4138,6 @@ group("jni_headers") {
+@@ -4158,8 +4133,6 @@ group("jni_headers") {
      "//chrome/browser/android/browserservices/verification:jni_headers",
      "//chrome/browser/battery/android:jni_headers",
      "//chrome/browser/commerce/merchant_viewer/android:jni_headers",
@@ -124,7 +136,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -199,10 +199,6 @@ chrome_java_sources = [
+@@ -197,10 +197,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/bookmarks/BookmarkUIState.java",
    "java/src/org/chromium/chrome/browser/bookmarks/BookmarkUndoController.java",
    "java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java",
@@ -135,7 +147,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/bookmarks/ReadingListFeatures.java",
    "java/src/org/chromium/chrome/browser/bookmarks/ReadingListSectionHeader.java",
    "java/src/org/chromium/chrome/browser/bookmarks/TabBookmarker.java",
-@@ -951,7 +947,6 @@ chrome_java_sources = [
+@@ -948,7 +944,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/searchwidget/SearchType.java",
    "java/src/org/chromium/chrome/browser/searchwidget/SearchWidgetProvider.java",
    "java/src/org/chromium/chrome/browser/segmentation_platform/ContextualPageActionController.java",
@@ -1160,7 +1172,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -84,9 +84,7 @@ import org.chromium.chrome.browser.app.tabmodel.AsyncTabParamsManagerSingleton;
+@@ -83,9 +83,7 @@ import org.chromium.chrome.browser.app.tabmodel.AsyncTabParamsManagerSingleton;
  import org.chromium.chrome.browser.app.tabmodel.TabModelOrchestrator;
  import org.chromium.chrome.browser.back_press.BackPressManager;
  import org.chromium.chrome.browser.bookmarks.BookmarkModel;
@@ -1170,7 +1182,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  import org.chromium.chrome.browser.compositor.CompositorViewHolder;
  import org.chromium.chrome.browser.compositor.layouts.Layout;
  import org.chromium.chrome.browser.compositor.layouts.LayoutManagerImpl;
-@@ -151,8 +149,6 @@ import org.chromium.chrome.browser.share.ShareDelegate;
+@@ -149,8 +147,6 @@ import org.chromium.chrome.browser.share.ShareDelegate;
  import org.chromium.chrome.browser.share.ShareDelegateImpl;
  import org.chromium.chrome.browser.share.ShareDelegateSupplier;
  import org.chromium.chrome.browser.stylus_handwriting.StylusWritingCoordinator;
@@ -1179,7 +1191,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  import org.chromium.chrome.browser.tab.AccessibilityVisibilityHandler;
  import org.chromium.chrome.browser.tab.RequestDesktopUtils;
  import org.chromium.chrome.browser.tab.Tab;
-@@ -2374,19 +2370,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -2366,27 +2362,11 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+         }
+ 
+         if (id == R.id.enable_price_tracking_menu_id) {
+-            mTabBookmarkerSupplier.get().startOrModifyPriceTracking(currentTab);
+             RecordUserAction.record("MobileMenuEnablePriceTracking");
+-            TrackerFactory.getTrackerForProfile(Profile.getLastUsedRegularProfile())
+-                    .notifyEvent(EventConstants.SHOPPING_LIST_PRICE_TRACK_FROM_MENU);
+             return true;
          }
  
          if (id == R.id.disable_price_tracking_menu_id) {
@@ -1202,18 +1222,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
-@@ -38,10 +38,7 @@ import org.chromium.chrome.browser.AlwaysIncognitoLinkInterceptor;
+@@ -37,7 +37,6 @@ import org.chromium.chrome.browser.ActivityTabProvider;
  import org.chromium.chrome.browser.banners.AppMenuVerbiage;
  import org.chromium.chrome.browser.bookmarks.BookmarkFeatures;
  import org.chromium.chrome.browser.bookmarks.BookmarkModel;
 -import org.chromium.chrome.browser.bookmarks.PowerBookmarkUtils;
  import org.chromium.chrome.browser.bookmarks.ReadingListFeatures;
--import org.chromium.chrome.browser.commerce.ShoppingFeatures;
--import org.chromium.chrome.browser.commerce.ShoppingServiceFactory;
- import org.chromium.chrome.browser.device.DeviceClassManager;
- import org.chromium.chrome.browser.device.DeviceConditions;
- import org.chromium.chrome.browser.download.DownloadUtils;
-@@ -57,7 +54,6 @@ import org.chromium.chrome.browser.multiwindow.MultiWindowUtils;
+ import org.chromium.chrome.browser.commerce.ShoppingFeatures;
+ import org.chromium.chrome.browser.commerce.ShoppingServiceFactory;
+@@ -56,7 +55,6 @@ import org.chromium.chrome.browser.multiwindow.MultiWindowUtils;
  import org.chromium.chrome.browser.night_mode.WebContentsDarkModeController;
  import org.chromium.chrome.browser.omaha.UpdateMenuItemHelper;
  import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
@@ -1221,15 +1238,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/App
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.read_later.ReadingListUtils;
  import org.chromium.chrome.browser.share.ShareHelper;
-@@ -84,7 +80,6 @@ import org.chromium.components.commerce.core.ShoppingService;
- import org.chromium.components.dom_distiller.core.DomDistillerUrlUtils;
- import org.chromium.components.embedder_support.util.UrlConstants;
- import org.chromium.components.embedder_support.util.UrlUtilities;
--import org.chromium.components.power_bookmarks.PowerBookmarkMeta;
- import org.chromium.components.webapk.lib.client.WebApkValidator;
- import org.chromium.components.webapps.AppBannerManager;
- import org.chromium.components.webapps.WebappsUtils;
-@@ -607,9 +602,7 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
+@@ -595,9 +593,7 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
                              > 1;
          }
  
@@ -1240,58 +1249,34 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/App
          boolean isPriceTrackingEnabled = isPriceTrackingVisible;
          boolean hasItemBetweenDividers = false;
  
-@@ -1205,43 +1198,8 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
+@@ -1181,9 +1177,9 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
+      * @param stopPriceTrackingMenuItem The menu item to stop price tracking.
+      * @param currentTab Current tab being displayed.
       */
-     protected void updatePriceTrackingMenuItemRow(@NonNull MenuItem startPriceTrackingMenuItem,
-             @NonNull MenuItem stopPriceTrackingMenuItem, @Nullable Tab currentTab) {
+-    protected void updatePriceTrackingMenuItemRow(@NonNull MenuItem startPriceTrackingMenuItem,
+-            @NonNull MenuItem stopPriceTrackingMenuItem, @Nullable Tab currentTab) {
 -        ShoppingService service =
--                ShoppingServiceFactory.getForProfile(Profile.getLastUsedRegularProfile());
--        ShoppingService.ProductInfo info = null;
--        if (service != null && currentTab != null) {
--            info = service.getAvailableProductInfoForUrl(currentTab.getUrl());
--        }
--
--        // If price tracking isn't enabled or the page isn't eligible, then hide both items.
--        if (!ShoppingFeatures.isShoppingListEnabled()
--                || !PowerBookmarkUtils.isPriceTrackingEligible(currentTab)
--                || mIsTypeSpecificBookmarkItemRowPresent) {
--            startPriceTrackingMenuItem.setVisible(false);
--            stopPriceTrackingMenuItem.setVisible(false);
--            return;
--        }
--
--        PowerBookmarkMeta existingBookmarkMeta = PowerBookmarkUtils.getBookmarkBookmarkMetaForTab(
--                mBookmarkModelSupplier.get(), currentTab);
--        if (existingBookmarkMeta != null && !existingBookmarkMeta.hasShoppingSpecifics()) {
-             startPriceTrackingMenuItem.setVisible(false);
-             stopPriceTrackingMenuItem.setVisible(false);
--            return;
--        }
--
--        mIsTypeSpecificBookmarkItemRowPresent = true;
--
--        boolean editEnabled = mBookmarkModelSupplier.get().isEditBookmarksEnabled();
--        startPriceTrackingMenuItem.setEnabled(editEnabled);
--        stopPriceTrackingMenuItem.setEnabled(editEnabled);
--
--        boolean priceTrackingEnabled = false;
--        if (info != null) {
--            priceTrackingEnabled = PowerBookmarkUtils.isPriceTrackingEnabledForClusterId(
--                    info.productClusterId, mBookmarkModelSupplier.get());
--        }
--        startPriceTrackingMenuItem.setVisible(!priceTrackingEnabled);
++    protected void updatePriceTrackingMenuItemRow(@NonNull MenuItem startPriceTrackingMenuItem,  // disabled
++            @NonNull MenuItem stopPriceTrackingMenuItem, @Nullable Tab currentTab) {             // in Bromite
++        /*ShoppingService service =
+                 ShoppingServiceFactory.getForProfile(Profile.getLastUsedRegularProfile());
+         ShoppingService.ProductInfo info = null;
+         if (service != null && currentTab != null) {
+@@ -1219,7 +1215,9 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
+                     info.productClusterId, mBookmarkModelSupplier.get());
+         }
+         startPriceTrackingMenuItem.setVisible(!priceTrackingEnabled);
 -        stopPriceTrackingMenuItem.setVisible(priceTrackingEnabled);
++        stopPriceTrackingMenuItem.setVisible(priceTrackingEnabled); */
++        startPriceTrackingMenuItem.setVisible(false);
++        stopPriceTrackingMenuItem.setVisible(false);
      }
  
      /**
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
-@@ -35,13 +35,9 @@ import org.chromium.base.annotations.CalledByNative;
- import org.chromium.base.annotations.NativeMethods;
- import org.chromium.base.metrics.RecordHistogram;
- import org.chromium.base.metrics.RecordUserAction;
--import org.chromium.chrome.browser.commerce.ShoppingFeatures;
+@@ -26,9 +26,6 @@ import org.chromium.chrome.browser.commerce.ShoppingFeatures;
  import org.chromium.chrome.browser.partnerbookmarks.PartnerBookmarksShim;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.read_later.ReadingListUtils;
@@ -1301,7 +1286,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  import org.chromium.chrome.browser.tab.Tab;
  import org.chromium.components.bookmarks.BookmarkId;
  import org.chromium.components.bookmarks.BookmarkItem;
-@@ -98,8 +94,6 @@ class BookmarkBridge {
+@@ -59,8 +56,6 @@ class BookmarkBridge {
              new ArrayList<DelayedBookmarkCallback>();
      private final ObserverList<BookmarkModelObserver> mObservers =
              new ObserverList<BookmarkModelObserver>();
@@ -1310,7 +1295,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  
      /**
       * Interface for callback object for fetching bookmarks and folder hierarchy.
-@@ -143,26 +137,6 @@ class BookmarkBridge {
+@@ -104,26 +99,6 @@ class BookmarkBridge {
          mNativeBookmarkBridge = BookmarkBridgeJni.get().init(BookmarkBridge.this, profile);
          mIsDoingExtensiveChanges = BookmarkBridgeJni.get().isDoingExtensiveChanges(
                  mNativeBookmarkBridge, BookmarkBridge.this);
@@ -1337,7 +1322,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      }
  
      /**
-@@ -177,10 +151,6 @@ class BookmarkBridge {
+@@ -138,10 +113,6 @@ class BookmarkBridge {
              mDelayedBookmarkCallbacks.clear();
          }
          mObservers.clear();
@@ -1348,7 +1333,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      }
  
      /** Returns whether the bridge has been destroyed. */
-@@ -484,61 +454,6 @@ class BookmarkBridge {
+@@ -445,61 +416,6 @@ class BookmarkBridge {
          return result;
      }
  
@@ -1475,19 +1460,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManager.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManager.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManager.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManager.java
-@@ -22,11 +22,8 @@ import org.chromium.base.ObserverList;
- import org.chromium.base.metrics.RecordUserAction;
- import org.chromium.chrome.R;
- import org.chromium.chrome.browser.app.bookmarks.BookmarkActivity;
--import org.chromium.chrome.browser.commerce.ShoppingFeatures;
--import org.chromium.chrome.browser.commerce.ShoppingServiceFactory;
+@@ -26,7 +26,6 @@ import org.chromium.chrome.browser.commerce.ShoppingFeatures;
+ import org.chromium.chrome.browser.commerce.ShoppingServiceFactory;
  import org.chromium.chrome.browser.partnerbookmarks.PartnerBookmarksReader;
  import org.chromium.chrome.browser.profiles.Profile;
 -import org.chromium.chrome.browser.subscriptions.CommerceSubscriptionsServiceFactory;
  import org.chromium.chrome.browser.tab.TabLaunchType;
  import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
  import org.chromium.chrome.browser.ui.native_page.BasicNativePage;
-@@ -210,17 +207,6 @@ public class BookmarkManager
+@@ -206,17 +205,6 @@ public class BookmarkManager
          mBookmarkModel = new BookmarkModel();
          mMainView = (ViewGroup) LayoutInflater.from(mContext).inflate(R.layout.bookmark_main, null);
  
@@ -1645,10 +1626,11 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          bindBookmarkProperties(mBookmarkId, mPowerBookmarkMeta, mWasBookmarkMoved);
          bindPowerBookmarkProperties(mBookmarkId, mPowerBookmarkMeta, fromExplicitTrackUi);
      }
-@@ -129,39 +113,9 @@ public class BookmarkSaveFlowMediator
+@@ -128,40 +112,9 @@ public class BookmarkSaveFlowMediator
+ 
      private void bindPowerBookmarkProperties(
              BookmarkId bookmarkId, @Nullable PowerBookmarkMeta meta, boolean fromExplicitTrackUi) {
-         if (meta == null) return;
+-        if (meta == null) return;
 -
 -        if (meta.hasShoppingSpecifics()) {
 -            setPriceTrackingNotificationUiEnabled(true);
@@ -1685,7 +1667,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      }
  
      void setPriceTrackingNotificationUiEnabled(boolean enabled) {
-@@ -180,9 +134,6 @@ public class BookmarkSaveFlowMediator
+@@ -180,9 +133,6 @@ public class BookmarkSaveFlowMediator
  
      void destroy() {
          mBookmarkModel.removeObserver(this);
@@ -1695,7 +1677,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  
          mBookmarkModel = null;
          mPropertyModel = null;
-@@ -203,10 +154,6 @@ public class BookmarkSaveFlowMediator
+@@ -203,10 +153,6 @@ public class BookmarkSaveFlowMediator
                  this::handleNotificationSwitchToggle);
      }
  
@@ -1706,7 +1688,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      // BookmarkModelObserver implementation
  
      @Override
-@@ -218,15 +165,4 @@ public class BookmarkSaveFlowMediator
+@@ -218,15 +164,4 @@ public class BookmarkSaveFlowMediator
          }
          bindBookmarkProperties(mBookmarkId, mPowerBookmarkMeta, mWasBookmarkMoved);
      }
@@ -1842,7 +1824,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
  import org.chromium.chrome.browser.tab.RequestDesktopUtils;
  import org.chromium.chrome.browser.tab.Tab;
  import org.chromium.chrome.browser.tab.TabAssociatedApp;
-@@ -157,7 +154,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -155,7 +152,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
      private NavigationSheet mNavigationSheet;
      private ComposedBrowserControlsVisibilityDelegate mAppBrowserControlsVisibilityDelegate;
      private LayoutManagerImpl mLayoutManager;
@@ -1850,7 +1832,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
      private UndoGroupSnackbarController mUndoGroupSnackbarController;
      private final int mControlContainerHeightResource;
      private final Supplier<InsetObserverView> mInsetObserverViewSupplier;
-@@ -380,11 +376,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -378,11 +374,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
              mUndoGroupSnackbarController.destroy();
          }
  
@@ -1862,7 +1844,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
          super.onDestroy();
      }
  
-@@ -522,7 +513,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -520,7 +511,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
          mPwaBottomSheetController =
                  PwaBottomSheetControllerFactory.createPwaBottomSheetController(mActivity);
          PwaBottomSheetControllerFactory.attach(mWindowAndroid, mPwaBottomSheetController);
@@ -1870,7 +1852,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
          initUndoGroupSnackbarController();
      }
  
-@@ -767,18 +757,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -765,18 +755,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
          if (animate) browserControlsSizer.setAnimateBrowserControlsHeightChanges(false);
      }
  
@@ -1943,7 +1925,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
-@@ -93,8 +93,6 @@ import org.chromium.chrome.browser.omnibox.suggestions.OmniboxPedalDelegate;
+@@ -92,8 +92,6 @@ import org.chromium.chrome.browser.omnibox.suggestions.OmniboxPedalDelegate;
  import org.chromium.chrome.browser.omnibox.voice.VoiceRecognitionHandler;
  import org.chromium.chrome.browser.page_info.ChromePageInfo;
  import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
@@ -1952,30 +1934,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
  import org.chromium.chrome.browser.privacy.settings.PrivacyPreferencesManagerImpl;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
-@@ -1996,22 +1994,6 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
- 
-     @VisibleForTesting
-     public void showPriceDropIPH() {
--        ToggleTabStackButton toggleTabStackButton =
--                mControlContainer.findViewById(R.id.tab_switcher_button);
--        UserEducationHelper userEducationHelper = new UserEducationHelper(mActivity, mHandler);
--        HighlightParams params = new HighlightParams(HighlightShape.CIRCLE);
--        params.setBoundsRespectPadding(true);
--        userEducationHelper.requestShowIPH(
--                new IPHCommandBuilder(mControlContainer.getResources(),
--                        FeatureConstants.PRICE_DROP_NTP_FEATURE, R.string.price_drop_spotted_iph,
--                        R.string.price_drop_spotted_iph)
--                        .setInsetRect(new Rect(0, 0, 0,
--                                -(mControlContainer.getResources().getDimensionPixelOffset(
--                                        R.dimen.price_drop_spotted_iph_ntp_tabswitcher_y_inset))))
--                        .setAnchorView(toggleTabStackButton)
--                        .setHighlightParams(params)
--                        .setDismissOnTouch(true)
--                        .build());
-     }
- 
-     /**
-@@ -2020,21 +2002,6 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+@@ -2018,21 +2016,6 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
       * viewed in the tab switcher grid.
       */
      private void maybeShowPriceDropIPH() {
@@ -2000,26 +1959,23 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
-@@ -44,10 +44,8 @@ import org.chromium.chrome.browser.app.omnibox.OmniboxPedalDelegateImpl;
+@@ -44,7 +44,6 @@ import org.chromium.chrome.browser.app.omnibox.OmniboxPedalDelegateImpl;
  import org.chromium.chrome.browser.app.tab_activity_glue.TabReparentingController;
  import org.chromium.chrome.browser.back_press.BackPressManager;
  import org.chromium.chrome.browser.bookmarks.BookmarkModel;
 -import org.chromium.chrome.browser.bookmarks.PowerBookmarkUtils;
  import org.chromium.chrome.browser.bookmarks.TabBookmarker;
  import org.chromium.chrome.browser.browser_controls.BrowserControlsStateProvider;
--import org.chromium.chrome.browser.commerce.ShoppingFeatures;
- import org.chromium.chrome.browser.commerce.ShoppingServiceFactory;
- import org.chromium.chrome.browser.compositor.CompositorViewHolder;
- import org.chromium.chrome.browser.compositor.bottombar.OverlayPanel;
-@@ -95,7 +93,6 @@ import org.chromium.chrome.browser.omnibox.voice.VoiceRecognitionHandler;
+ import org.chromium.chrome.browser.commerce.ShoppingFeatures;
+@@ -95,7 +94,6 @@ import org.chromium.chrome.browser.omnibox.voice.VoiceRecognitionHandler;
  import org.chromium.chrome.browser.omnibox.voice.VoiceRecognitionHandler.VoiceInteractionSource;
  import org.chromium.chrome.browser.paint_preview.DemoPaintPreview;
  import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
 -import org.chromium.chrome.browser.price_tracking.PriceTrackingButtonController;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
- import org.chromium.chrome.browser.segmentation_platform.ContextualPageActionController;
-@@ -106,7 +103,6 @@ import org.chromium.chrome.browser.share.ShareDelegate.ShareOrigin;
+ import org.chromium.chrome.browser.settings.SettingsLauncherImpl;
+@@ -105,7 +103,6 @@ import org.chromium.chrome.browser.share.ShareDelegate.ShareOrigin;
  import org.chromium.chrome.browser.share.ShareUtils;
  import org.chromium.chrome.browser.share.qrcode.QrCodeDialog;
  import org.chromium.chrome.browser.share.scroll_capture.ScrollCaptureManager;
@@ -2027,7 +1983,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
  import org.chromium.chrome.browser.tab.AccessibilityVisibilityHandler;
  import org.chromium.chrome.browser.tab.AutofillSessionLifetimeController;
  import org.chromium.chrome.browser.tab.RequestDesktopUtils;
-@@ -782,17 +778,6 @@ public class RootUiCoordinator
+@@ -775,17 +772,6 @@ public class RootUiCoordinator
          initMerchantTrustSignals();
          initScrollCapture();
  
@@ -2045,7 +2001,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
          new OneShotCallback<>(mProfileSupplier, this::initHistoryClustersCoordinator);
  
          if (DeviceFormFactor.isWindowOnTablet(mWindowAndroid)
-@@ -1097,12 +1082,6 @@ public class RootUiCoordinator
+@@ -1090,12 +1076,6 @@ public class RootUiCoordinator
  
              mIdentityDiscController = new IdentityDiscController(
                      mActivity, mActivityLifecycleDispatcher, mProfileSupplier);
@@ -2058,7 +2014,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
              ReaderModeToolbarButtonController readerModeToolbarButtonController =
                      new ReaderModeToolbarButtonController(mActivityTabProvider,
                              mModalDialogManagerSupplier.get(),
-@@ -1153,8 +1132,6 @@ public class RootUiCoordinator
+@@ -1146,8 +1126,6 @@ public class RootUiCoordinator
                      AdaptiveToolbarButtonVariant.SHARE, shareButtonController);
              adaptiveToolbarButtonController.addButtonVariant(
                      AdaptiveToolbarButtonVariant.VOICE, voiceToolbarButtonController);
@@ -2066,7 +2022,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
 -                    AdaptiveToolbarButtonVariant.PRICE_TRACKING, priceTrackingButtonController);
              adaptiveToolbarButtonController.addButtonVariant(
                      AdaptiveToolbarButtonVariant.READER_MODE, readerModeToolbarButtonController);
-             mContextualPageActionController = new ContextualPageActionController(mProfileSupplier,
+             mButtonDataProviders =
 diff --git a/chrome/android/java_sources.gni b/chrome/android/java_sources.gni
 --- a/chrome/android/java_sources.gni
 +++ b/chrome/android/java_sources.gni
@@ -2097,6 +2053,18 @@ diff --git a/chrome/android/java_sources.gni b/chrome/android/java_sources.gni
  chrome_test_java_sources += commerce_merchant_viewer_java_test_sources
  
  if (enable_arcore) {
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -2921,8 +2921,6 @@ static_library("browser") {
+       "chrome_browser_main_android.h",
+       "commerce/android/shopping_service_factory_android.cc",
+       "commerce/merchant_viewer/web_contents_helper.cc",
+-      "commerce/price_tracking/android/price_tracking_notification_bridge.cc",
+-      "commerce/price_tracking/android/price_tracking_notification_bridge.h",
+       "component_updater/crow_domain_list_component_installer.cc",
+       "component_updater/crow_domain_list_component_installer.h",
+       "component_updater/desktop_sharing_hub_component_remover.cc",
 diff --git a/chrome/browser/commerce/price_tracking/android/java/src/org/chromium/chrome/browser/price_tracking/PriceTrackingFeatures.java b/chrome/browser/commerce/price_tracking/android/java/src/org/chromium/chrome/browser/price_tracking/PriceTrackingFeatures.java
 --- a/chrome/browser/commerce/price_tracking/android/java/src/org/chromium/chrome/browser/price_tracking/PriceTrackingFeatures.java
 +++ b/chrome/browser/commerce/price_tracking/android/java/src/org/chromium/chrome/browser/price_tracking/PriceTrackingFeatures.java
@@ -2109,38 +2077,6 @@ diff --git a/chrome/browser/commerce/price_tracking/android/java/src/org/chromiu
      }
  
      private static boolean isSignedIn() {
-diff --git a/chrome/browser/commerce/price_tracking/android/price_tracking_notification_bridge.cc b/chrome/browser/commerce/price_tracking/android/price_tracking_notification_bridge.cc
---- a/chrome/browser/commerce/price_tracking/android/price_tracking_notification_bridge.cc
-+++ b/chrome/browser/commerce/price_tracking/android/price_tracking_notification_bridge.cc
-@@ -6,7 +6,6 @@
- 
- #include "base/android/jni_array.h"
- #include "base/memory/ptr_util.h"
--#include "chrome/browser/commerce/price_tracking/android/jni_headers/PriceTrackingNotificationBridge_jni.h"
- #include "content/public/browser/browser_context.h"
- 
- using OptimizationType = optimization_guide::proto::OptimizationType;
-@@ -26,10 +25,6 @@ PriceTrackingNotificationBridge::GetForBrowserContext(
- }
- 
- PriceTrackingNotificationBridge::PriceTrackingNotificationBridge() {
--  JNIEnv* env = base::android::AttachCurrentThread();
--  java_obj_.Reset(env, Java_PriceTrackingNotificationBridge_create(
--                           env, reinterpret_cast<intptr_t>(this))
--                           .obj());
- }
- 
- PriceTrackingNotificationBridge::~PriceTrackingNotificationBridge() = default;
-@@ -42,9 +37,4 @@ void PriceTrackingNotificationBridge::OnNotificationPayload(
-       !payload.has_value()) {
-     return;
-   }
--
--  // Pass the payload to Java.
--  JNIEnv* env = base::android::AttachCurrentThread();
--  Java_PriceTrackingNotificationBridge_showNotification(
--      env, java_obj_, base::android::ToJavaByteArray(env, payload.value()));
- }
 diff --git a/chrome/browser/commerce/subscriptions/android/BUILD.gn b/chrome/browser/commerce/subscriptions/android/BUILD.gn
 --- a/chrome/browser/commerce/subscriptions/android/BUILD.gn
 +++ b/chrome/browser/commerce/subscriptions/android/BUILD.gn
@@ -2303,6 +2239,20 @@ diff --git a/chrome/browser/commerce/subscriptions/android/java/src/org/chromium
      }
  
      /**
+diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
+--- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
++++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
+@@ -113,10 +113,6 @@ OptimizationGuideKeyedService::MaybeCreatePushNotificationManager(
+   if (optimization_guide::features::IsPushNotificationsEnabled()) {
+     auto push_notification_manager =
+         std::make_unique<optimization_guide::PushNotificationManager>();
+-#if BUILDFLAG(IS_ANDROID)
+-    push_notification_manager->AddObserver(
+-        PriceTrackingNotificationBridge::GetForBrowserContext(profile));
+-#endif
+     return push_notification_manager;
+   }
+   return nullptr;
 diff --git a/chrome/browser/persisted_state_db/BUILD.gn b/chrome/browser/persisted_state_db/BUILD.gn
 --- a/chrome/browser/persisted_state_db/BUILD.gn
 +++ b/chrome/browser/persisted_state_db/BUILD.gn

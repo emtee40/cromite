@@ -23,7 +23,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../site_settings/SiteSettingsDelegate.java   |   2 +
  ...imezoneOverrideSiteSettingsPreference.java | 193 ++++++++++++++++++
  .../browser_ui/site_settings/Website.java     |  11 +
- .../WebsitePermissionsFetcher.java            |   3 +
+ .../WebsitePermissionsFetcher.java            |   2 +
  .../WebsitePreferenceBridge.java              |  12 ++
  .../android/website_preference_bridge.cc      |  16 ++
  .../strings/android/site_settings.grdp        |  35 ++++
@@ -44,7 +44,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/content_settings_agent_impl.cc   |  83 ++++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 35 files changed, 697 insertions(+), 12 deletions(-)
+ 35 files changed, 696 insertions(+), 12 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -519,7 +519,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case ContentSettingsType.AR:
                  return "ar_permission_list";
              case ContentSettingsType.MEDIASTREAM_CAMERA:
-@@ -928,11 +930,13 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -934,11 +936,13 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          if (value == null) return;
          setUpPreferenceCommon(preference, value);
  
@@ -811,7 +811,7 @@ new file mode 100755
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-@@ -248,6 +248,17 @@ public final class Website implements WebsiteEntry {
+@@ -243,6 +243,17 @@ public final class Website implements WebsiteEntry {
              } else {
                  RecordUserAction.record("SoundContentSetting.UnmuteBy.SiteSettings");
              }
@@ -840,12 +840,11 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
                  return WebsitePermissionsType.CONTENT_SETTING_EXCEPTION;
              case ContentSettingsType.AR:
              case ContentSettingsType.CLIPBOARD_READ_WRITE:
-@@ -208,6 +209,8 @@ public class WebsitePermissionsFetcher {
+@@ -208,6 +209,7 @@ public class WebsitePermissionsFetcher {
              for (@ContentSettingsType int type = 0; type < ContentSettingsType.NUM_TYPES; type++) {
                  addFetcherForContentSettingsType(queue, type);
              }
-+        queue.add(new ExceptionInfoFetcher(ContentSettingsType.TIMEZONE_OVERRIDE));
-+
++            queue.add(new ExceptionInfoFetcher(ContentSettingsType.TIMEZONE_OVERRIDE));
          }
  
          /**
@@ -869,8 +868,8 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +        return WebsitePreferenceBridgeJni.get().getCustomTimezone(browserContextHandle);
 +    }
 +
-+    public static void setCustomTimezone(BrowserContextHandle browserContextHandle, String timezone) {
-+        WebsitePreferenceBridgeJni.get().setCustomTimezone(browserContextHandle, timezone);
++    public static void setCustomTimezone(BrowserContextHandle browserContextHandle, String custom_timezone) {
++        WebsitePreferenceBridgeJni.get().setCustomTimezone(browserContextHandle, custom_timezone);
 +    }
 +
      @NativeMethods
@@ -881,7 +880,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          String toDomainWildcardPattern(String pattern);
          String toHostOnlyPattern(String pattern);
 +        String getCustomTimezone(BrowserContextHandle browserContextHandle);
-+        void setCustomTimezone(BrowserContextHandle browserContextHandle, String timezone);
++        void setCustomTimezone(BrowserContextHandle browserContextHandle, String custom_timezone);
      }
  }
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
@@ -895,17 +894,17 @@ diff --git a/components/browser_ui/site_settings/android/website_preference_brid
 +static void JNI_WebsitePreferenceBridge_SetCustomTimezone(
 +    JNIEnv* env,
 +    const JavaParamRef<jobject>& jbrowser_context_handle,
-+    const JavaParamRef<jstring>& timezone) {
-+  std::string new_timezone = ConvertJavaStringToUTF8(env, timezone);
++    const JavaParamRef<jstring>& custom_timezone) {
++  std::string new_timezone = ConvertJavaStringToUTF8(env, custom_timezone);
 +  GetHostContentSettingsMap(jbrowser_context_handle)->SetTimezoneOverrideValue(new_timezone);
 +}
 +
 +static base::android::ScopedJavaLocalRef<jstring> JNI_WebsitePreferenceBridge_GetCustomTimezone(
 +    JNIEnv* env,
 +    const JavaParamRef<jobject>& jbrowser_context_handle) {
-+  std::string timezone;
-+  GetHostContentSettingsMap(jbrowser_context_handle)->GetTimezoneOverrideValue(timezone);
-+  return ConvertUTF8ToJavaString(env, timezone);
++  std::string custom_timezone;
++  GetHostContentSettingsMap(jbrowser_context_handle)->GetTimezoneOverrideValue(custom_timezone);
++  return ConvertUTF8ToJavaString(env, custom_timezone);
 +}
 diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
 --- a/components/browser_ui/strings/android/site_settings.grdp
@@ -971,7 +970,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
    // Obsolete prefs ----------------------------------------------------------
  
    // These prefs have been removed, but need to be registered so they can
-@@ -182,6 +184,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
+@@ -178,6 +180,10 @@ PrefProvider::PrefProvider(PrefService* prefs,
      event_args->set_number_of_exceptions(
          num_exceptions);  // PrefProvider::PrefProvider.
    });
@@ -982,7 +981,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
  }
  
  PrefProvider::~PrefProvider() {
-@@ -346,4 +352,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
+@@ -342,4 +348,14 @@ void PrefProvider::SetClockForTesting(base::Clock* clock) {
    clock_ = clock;
  }
  
@@ -1000,7 +999,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_pref_provider.h b/components/content_settings/core/browser/content_settings_pref_provider.h
 --- a/components/content_settings/core/browser/content_settings_pref_provider.h
 +++ b/components/content_settings/core/browser/content_settings_pref_provider.h
-@@ -66,6 +66,9 @@ class PrefProvider : public UserModifiableProvider {
+@@ -65,6 +65,9 @@ class PrefProvider : public UserModifiableProvider {
  
    ContentSettingsPref* GetPref(ContentSettingsType type) const;
  
@@ -1010,7 +1009,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
   private:
    friend class DeadlockCheckerObserver;  // For testing.
  
-@@ -98,6 +101,7 @@ class PrefProvider : public UserModifiableProvider {
+@@ -96,6 +99,7 @@ class PrefProvider : public UserModifiableProvider {
    base::ThreadChecker thread_checker_;
  
    raw_ptr<base::Clock> clock_;
@@ -1060,16 +1059,16 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/browser/host_content_settings_map.cc b/components/content_settings/core/browser/host_content_settings_map.cc
 --- a/components/content_settings/core/browser/host_content_settings_map.cc
 +++ b/components/content_settings/core/browser/host_content_settings_map.cc
-@@ -604,6 +604,14 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
+@@ -602,6 +602,14 @@ void HostContentSettingsMap::SetClockForTesting(base::Clock* clock) {
      provider->SetClockForTesting(clock);
  }
  
-+void HostContentSettingsMap::GetTimezoneOverrideValue(std::string& timezone) const {
-+  GetPrefProvider()->GetPrefTimezoneOverrideValue(timezone);
++void HostContentSettingsMap::GetTimezoneOverrideValue(std::string& custom_timezone) const {
++  GetPrefProvider()->GetPrefTimezoneOverrideValue(custom_timezone);
 +}
 +
-+void HostContentSettingsMap::SetTimezoneOverrideValue(const std::string& timezone) {
-+  GetPrefProvider()->SetPrefTimezoneOverrideValue(timezone);
++void HostContentSettingsMap::SetTimezoneOverrideValue(const std::string& custom_timezone) {
++  GetPrefProvider()->SetPrefTimezoneOverrideValue(custom_timezone);
 +}
 +
  void HostContentSettingsMap::RecordExceptionMetrics() {
@@ -1078,12 +1077,12 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
 diff --git a/components/content_settings/core/browser/host_content_settings_map.h b/components/content_settings/core/browser/host_content_settings_map.h
 --- a/components/content_settings/core/browser/host_content_settings_map.h
 +++ b/components/content_settings/core/browser/host_content_settings_map.h
-@@ -330,6 +330,9 @@ class HostContentSettingsMap : public content_settings::Observer,
+@@ -329,6 +329,9 @@ class HostContentSettingsMap : public content_settings::Observer,
      allow_invalid_secondary_pattern_for_testing_ = allow;
    }
  
-+  void GetTimezoneOverrideValue(std::string& timezone) const;
-+  void SetTimezoneOverrideValue(const std::string& timezone);
++  void GetTimezoneOverrideValue(std::string& custom_timezone) const;
++  void SetTimezoneOverrideValue(const std::string& custom_timezone);
 +
   private:
    friend class base::RefCountedThreadSafe<HostContentSettingsMap>;

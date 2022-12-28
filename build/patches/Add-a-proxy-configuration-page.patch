@@ -3,11 +3,15 @@ Date: Thu, 29 Mar 2018 00:43:32 +0200
 Subject: Add a proxy configuration page
 
 Accessible from proxy settings and chrome://proxy
-Allows to use a PAC script URL, automatic configuration and explicit proxy
-settings.
+Allows to use a PAC script URL, automatic configuration and explicit proxy settings.
 Offer auto-complete for the proxy page URL.
-Store proxy settings in LocalState instead of Profile, so that proxy is used
-for SimpleURLLoaders as well.
+Store proxy settings in LocalState instead of Profile, so that proxy is used for SimpleURLLoaders as well;
+this implementation is the same as the one in ChromeOS which gets proxy information from the LocalState
+for the system network context; this is strictly not correct on Android because the network context is
+never connected to any user profile and only gets proxy information from the system.
+Existing settings on Profile are migrated to LocalState on startup.
+
+Credits to @uazo for the LocalState integration.
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
@@ -72,7 +76,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -54,6 +54,7 @@ public class PrivacySettings
+@@ -59,6 +59,7 @@ public class PrivacySettings
      private static final String PREF_DO_NOT_TRACK = "do_not_track";
      private static final String PREF_CLEAR_BROWSING_DATA = "clear_browsing_data";
      private static final String PREF_PRIVACY_SANDBOX = "privacy_sandbox";
@@ -637,7 +641,7 @@ new file mode 100644
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -287,6 +287,8 @@ static_library("ui") {
+@@ -285,6 +285,8 @@ static_library("ui") {
      "webui/metrics_internals/metrics_internals_ui.h",
      "webui/net_export_ui.cc",
      "webui/net_export_ui.h",
@@ -649,7 +653,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 diff --git a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc b/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
 --- a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
 +++ b/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
-@@ -61,6 +61,7 @@
+@@ -60,6 +60,7 @@
  #include "chrome/browser/ui/webui/ntp_tiles_internals_ui.h"
  #include "chrome/browser/ui/webui/omnibox/omnibox_ui.h"
  #include "chrome/browser/ui/webui/policy/policy_ui.h"
@@ -657,7 +661,7 @@ diff --git a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc b/chrom
  #include "chrome/browser/ui/webui/predictors/predictors_ui.h"
  #include "chrome/browser/ui/webui/segmentation_internals/segmentation_internals_ui.h"
  #include "chrome/browser/ui/webui/signin_internals_ui.h"
-@@ -798,6 +799,8 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
+@@ -795,6 +796,8 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
      return &NewWebUI<MetricsInternalsUI>;
    if (url.host_piece() == chrome::kChromeUINetExportHost)
      return &NewWebUI<NetExportUI>;
@@ -1288,7 +1292,7 @@ diff --git a/components/proxy_config/proxy_config_dictionary.h b/components/prox
    static base::Value::Dict CreateFixedServers(const std::string& proxy_server,
 -                                              const std::string& bypass_list);
 +                                              const std::string& bypass_list,
-+                                        bool reverse_bypass);
++                                              bool reverse_bypass);
    static base::Value::Dict CreateSystem();
  
    // Encodes the proxy server as "<url-scheme>=<proxy-scheme>://<proxy>".
@@ -1298,7 +1302,7 @@ diff --git a/components/proxy_config/proxy_config_dictionary.h b/components/prox
                                              const std::string& proxy_server,
 -                                            const std::string& bypass_list);
 +                                            const std::string& bypass_list,
-+                                      bool reverse_bypass);
++                                            bool reverse_bypass);
  
    base::Value::Dict dict_;
  };
