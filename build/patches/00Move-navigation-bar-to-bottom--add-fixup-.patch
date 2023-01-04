@@ -3,10 +3,10 @@ Date: Tue, 27 Dec 2022 16:58:28 +0000
 Subject: Move navigation bar to bottom (add fixup)
 
 ---
- .../TabListContainerViewBinder.java           |  4 --
- .../tab_management/TabListCoordinator.java    | 69 ++++++++++++++++++-
+ .../TabListContainerViewBinder.java           |  4 -
+ .../tab_management/TabListCoordinator.java    | 77 ++++++++++++++++++-
  .../tab_management/TabSwitcherMediator.java   |  3 +
- 3 files changed, 69 insertions(+), 7 deletions(-)
+ 3 files changed, 77 insertions(+), 7 deletions(-)
 
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java
@@ -40,7 +40,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
  import android.content.res.Resources;
  import android.graphics.Bitmap;
  import android.graphics.BitmapFactory;
-@@ -98,6 +99,62 @@ public class TabListCoordinator
+@@ -98,6 +99,70 @@ public class TabListCoordinator
      private boolean mLayoutListenerRegistered;
      private @Nullable TabStripSnapshotter mTabStripSnapshotter;
  
@@ -49,7 +49,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 +
 +        TabListRecyclerView mRecyclerView;
 +
-+        int mTopPadding = -1;
++        int mTopPadding = 99999;
 +        int mLastPosition = -1;
 +        boolean mIsFirstLayout = true;
 +
@@ -68,25 +68,33 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 +
 +        @Override
 +        public int getPaddingTop() {
-+            if (mContext.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
++            if (mContext.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
++                mTopPadding = 99999;
 +                return 0;
-+            if (mTopPadding == -1) return super.getPaddingTop();
++            }
++            if (mTopPadding == 99999) return super.getPaddingTop();
 +            return mTopPadding;
++        }
++
++        @Override
++        public int getPaddingBottom() {
++            return 1;
 +        }
 +
 +        @Override
 +        public void scrollToPositionWithOffset(int position, int offset) {
 +            mLastPosition = position;
-+            super.scrollToPositionWithOffset(position, -1);
++            super.scrollToPositionWithOffset(position, getPaddingBottom());
 +        }
 +
 +        @Override
 +        public void onLayoutCompleted(RecyclerView.State state) {
 +            super.onLayoutCompleted(state);
 +
++            if (state.isPreLayout()) return;
 +            View lastView = findViewByPosition(findFirstVisibleItemPosition());
 +            if (lastView != null) {
-+                mTopPadding = mRecyclerView.getHeight() - lastView.getHeight();
++                mTopPadding = Math.min(mTopPadding, mRecyclerView.getHeight() - lastView.getHeight());
 +                if (mIsFirstLayout) {
 +                    mIsFirstLayout = false;
 +                    scrollToPositionWithOffset(mLastPosition, 0);
@@ -103,7 +111,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
      /**
       * Construct a coordinator for UI that shows a list of tabs.
       * @param mode Modes of showing the list of tabs. Can be used in GRID or STRIP.
-@@ -258,9 +315,12 @@ public class TabListCoordinator
+@@ -258,9 +323,12 @@ public class TabListCoordinator
              if (mMode == TabListMode.GRID) {
                  GridLayoutManager gridLayoutManager =
                          new GridLayoutManager(context, GRID_LAYOUT_SPAN_COUNT_COMPACT);
@@ -119,7 +127,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
                  mRecyclerView.setLayoutManager(gridLayoutManager);
                  mMediator.registerOrientationListener(gridLayoutManager);
                  mMediator.updateSpanCount(gridLayoutManager,
-@@ -440,6 +500,9 @@ public class TabListCoordinator
+@@ -440,6 +508,9 @@ public class TabListCoordinator
          }
          registerLayoutChangeListener();
          mRecyclerView.prepareTabSwitcherView();
