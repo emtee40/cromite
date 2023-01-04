@@ -20,7 +20,7 @@ Subject: Experimental user scripts support (win fixup)
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -3534,11 +3534,13 @@ static_library("browser") {
+@@ -3495,11 +3495,13 @@ static_library("browser") {
        ]
        deps += [ "//chrome/android/modules/dev_ui/provider:native" ]
      }
@@ -42,7 +42,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -7762,9 +7762,11 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -7901,9 +7901,11 @@ const FeatureEntry kFeatureEntries[] = {
           chromeos::features::kClipboardHistoryNudgeSessionReset)},
  #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
  
@@ -57,7 +57,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1324,7 +1324,9 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+@@ -1372,7 +1372,9 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
    translate::TranslatePrefs::RegisterProfilePrefs(registry);
    omnibox::RegisterProfilePrefs(registry);
    ZeroSuggestProvider::RegisterProfilePrefs(registry);
@@ -87,7 +87,7 @@ diff --git a/chrome/browser/profiles/BUILD.gn b/chrome/browser/profiles/BUILD.gn
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -273,7 +273,9 @@
+@@ -275,7 +275,9 @@
  #include "chrome/browser/enterprise/idle/idle_service_factory.h"
  #endif
  
@@ -97,7 +97,7 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  
  namespace chrome {
  
-@@ -639,7 +641,9 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -646,7 +648,9 @@ void ChromeBrowserMainExtraPartsProfiles::
  #endif
    WebDataServiceFactory::GetInstance();
    webrtc_event_logging::WebRtcEventLogManagerKeyedServiceFactory::GetInstance();
@@ -120,7 +120,7 @@ diff --git a/chrome/browser/profiles/profile_manager.cc b/chrome/browser/profile
  
  #if BUILDFLAG(ENABLE_SESSION_SERVICE)
  #include "chrome/browser/sessions/app_session_service_factory.h"
-@@ -1708,11 +1710,13 @@ void ProfileManager::DoFinalInitForServices(Profile* profile,
+@@ -1724,11 +1726,13 @@ void ProfileManager::DoFinalInitForServices(Profile* profile,
  
  #endif
  
@@ -188,7 +188,7 @@ diff --git a/chrome/browser/profiles/renderer_updater.h b/chrome/browser/profile
 diff --git a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc b/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
 --- a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
 +++ b/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
-@@ -835,8 +835,10 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
+@@ -841,8 +841,10 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
      return &NewWebUI<UserActionsUI>;
    if (url.host_piece() == chrome::kChromeUIVersionHost)
      return &NewWebUI<VersionUI>;
@@ -226,7 +226,7 @@ diff --git a/chrome/renderer/BUILD.gn b/chrome/renderer/BUILD.gn
 diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer/chrome_content_renderer_client.cc
 --- a/chrome/renderer/chrome_content_renderer_client.cc
 +++ b/chrome/renderer/chrome_content_renderer_client.cc
-@@ -250,8 +250,10 @@
+@@ -249,8 +249,10 @@
  #include "chrome/renderer/supervised_user/supervised_user_error_page_controller_delegate_impl.h"
  #endif
  
@@ -237,7 +237,7 @@ diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer
  
  using autofill::AutofillAgent;
  using autofill::PasswordAutofillAgent;
-@@ -434,11 +436,13 @@ void ChromeContentRendererClient::RenderThreadStarted() {
+@@ -433,11 +435,13 @@ void ChromeContentRendererClient::RenderThreadStarted() {
        WebString::FromASCII(extensions::kExtensionScheme));
  #endif
  
@@ -251,7 +251,7 @@ diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer
  
  #if BUILDFLAG(ENABLE_SPELLCHECK)
    if (!spellcheck_)
-@@ -596,12 +600,14 @@ void ChromeContentRendererClient::RenderFrameCreated(
+@@ -595,12 +599,14 @@ void ChromeContentRendererClient::RenderFrameCreated(
        render_frame, registry);
  #endif
  
@@ -266,7 +266,7 @@ diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer
  
  #if BUILDFLAG(ENABLE_PPAPI)
    new PepperHelper(render_frame);
-@@ -1572,6 +1578,9 @@ void ChromeContentRendererClient::RunScriptsAtDocumentStart(
+@@ -1571,6 +1577,9 @@ void ChromeContentRendererClient::RunScriptsAtDocumentStart(
    ChromeExtensionsRendererClient::GetInstance()->RunScriptsAtDocumentStart(
        render_frame);
    // |render_frame| might be dead by now.
@@ -276,7 +276,7 @@ diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer
    static_assert(false, "Compiler error: extensions cannot be enabled with user scripts");
  #endif
    user_scripts::UserScriptsRendererClient* userscript_client =
-@@ -1580,6 +1589,7 @@ void ChromeContentRendererClient::RunScriptsAtDocumentStart(
+@@ -1579,6 +1588,7 @@ void ChromeContentRendererClient::RunScriptsAtDocumentStart(
      userscript_client->RunScriptsAtDocumentStart(
        render_frame);
    }
@@ -284,7 +284,7 @@ diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer
  }
  
  void ChromeContentRendererClient::RunScriptsAtDocumentEnd(
-@@ -1588,6 +1598,9 @@ void ChromeContentRendererClient::RunScriptsAtDocumentEnd(
+@@ -1587,6 +1597,9 @@ void ChromeContentRendererClient::RunScriptsAtDocumentEnd(
    ChromeExtensionsRendererClient::GetInstance()->RunScriptsAtDocumentEnd(
        render_frame);
    // |render_frame| might be dead by now.
@@ -294,7 +294,7 @@ diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer
    static_assert(false, "Compiler error: extensions cannot be enabled with user scripts");
  #endif
    user_scripts::UserScriptsRendererClient* userscript_client =
-@@ -1596,6 +1609,7 @@ void ChromeContentRendererClient::RunScriptsAtDocumentEnd(
+@@ -1595,6 +1608,7 @@ void ChromeContentRendererClient::RunScriptsAtDocumentEnd(
      userscript_client->RunScriptsAtDocumentEnd(
        render_frame);
    }
@@ -302,7 +302,7 @@ diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer
  }
  
  void ChromeContentRendererClient::RunScriptsAtDocumentIdle(
-@@ -1604,6 +1618,9 @@ void ChromeContentRendererClient::RunScriptsAtDocumentIdle(
+@@ -1603,6 +1617,9 @@ void ChromeContentRendererClient::RunScriptsAtDocumentIdle(
    ChromeExtensionsRendererClient::GetInstance()->RunScriptsAtDocumentIdle(
        render_frame);
    // |render_frame| might be dead by now.
@@ -312,7 +312,7 @@ diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer
    static_assert(false, "Compiler error: extensions cannot be enabled with user scripts");
  #endif
    user_scripts::UserScriptsRendererClient* userscript_client =
-@@ -1612,6 +1629,7 @@ void ChromeContentRendererClient::RunScriptsAtDocumentIdle(
+@@ -1611,6 +1628,7 @@ void ChromeContentRendererClient::RunScriptsAtDocumentIdle(
      userscript_client->RunScriptsAtDocumentIdle(
        render_frame);
    }
@@ -323,7 +323,7 @@ diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer
 diff --git a/chrome/renderer/chrome_render_thread_observer.cc b/chrome/renderer/chrome_render_thread_observer.cc
 --- a/chrome/renderer/chrome_render_thread_observer.cc
 +++ b/chrome/renderer/chrome_render_thread_observer.cc
-@@ -261,7 +261,9 @@ void ChromeRenderThreadObserver::SetInitialConfiguration(
+@@ -262,7 +262,9 @@ void ChromeRenderThreadObserver::SetInitialConfiguration(
  void ChromeRenderThreadObserver::SetConfiguration(
      chrome::mojom::DynamicParamsPtr params) {
    *GetDynamicConfigParams() = std::move(*params);

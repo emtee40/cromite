@@ -11,8 +11,8 @@ Subject: Move navigation bar to bottom (add fixup)
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java
 +++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java
-@@ -21,8 +21,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
- import org.chromium.components.browser_ui.styles.ChromeColors;
+@@ -22,8 +22,6 @@ import org.chromium.components.browser_ui.styles.ChromeColors;
+ import org.chromium.ui.base.ViewUtils;
  import org.chromium.ui.modelutil.PropertyKey;
  import org.chromium.ui.modelutil.PropertyModel;
 -import org.chromium.chrome.browser.flags.CachedFeatureFlags;
@@ -20,15 +20,15 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
  
  /**
   * ViewBinder for TabListRecyclerView.
-@@ -59,8 +57,6 @@ class TabListContainerViewBinder {
+@@ -60,8 +58,6 @@ class TabListContainerViewBinder {
              params.topMargin = newTopMargin;
-             view.requestLayout();
+             ViewUtils.requestLayout(view, "TabListContainerViewBinder.bind TOP_MARGIN");
          } else if (BOTTOM_CONTROLS_HEIGHT == propertyKey) {
 -            if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM))
 -                return;
              FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) view.getLayoutParams();
              params.bottomMargin = model.get(BOTTOM_CONTROLS_HEIGHT);
-             view.requestLayout();
+             ViewUtils.requestLayout(view, "TabListContainerViewBinder.bind BOTTOM_CONTROLS_HEIGHT");
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
 +++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
@@ -40,7 +40,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
  import android.content.res.Resources;
  import android.graphics.Bitmap;
  import android.graphics.BitmapFactory;
-@@ -98,6 +99,70 @@ public class TabListCoordinator
+@@ -99,6 +100,70 @@ public class TabListCoordinator
      private boolean mLayoutListenerRegistered;
      private @Nullable TabStripSnapshotter mTabStripSnapshotter;
  
@@ -111,7 +111,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
      /**
       * Construct a coordinator for UI that shows a list of tabs.
       * @param mode Modes of showing the list of tabs. Can be used in GRID or STRIP.
-@@ -258,9 +323,12 @@ public class TabListCoordinator
+@@ -259,9 +324,12 @@ public class TabListCoordinator
              if (mMode == TabListMode.GRID) {
                  GridLayoutManager gridLayoutManager =
                          new GridLayoutManager(context, GRID_LAYOUT_SPAN_COUNT_COMPACT);
@@ -127,7 +127,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
                  mRecyclerView.setLayoutManager(gridLayoutManager);
                  mMediator.registerOrientationListener(gridLayoutManager);
                  mMediator.updateSpanCount(gridLayoutManager,
-@@ -440,6 +508,9 @@ public class TabListCoordinator
+@@ -456,6 +524,9 @@ public class TabListCoordinator
          }
          registerLayoutChangeListener();
          mRecyclerView.prepareTabSwitcherView();
@@ -140,7 +140,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
 +++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
-@@ -760,6 +760,9 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
+@@ -764,6 +764,9 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
      private void setInitialScrollIndexOffset() {
          int offset = mMode == TabListMode.CAROUSEL ? INITIAL_SCROLL_INDEX_OFFSET_CAROUSEL
                                                     : INITIAL_SCROLL_INDEX_OFFSET_GTS;

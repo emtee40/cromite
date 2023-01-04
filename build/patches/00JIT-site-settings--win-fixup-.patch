@@ -23,7 +23,7 @@ Subject: JIT site settings (win fixup)
 diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -3793,6 +3793,25 @@
+@@ -3815,6 +3815,25 @@
      Not allowed to autoplay
    </message>
  
@@ -64,7 +64,7 @@ diff --git a/chrome/browser/resources/settings/icons.html b/chrome/browser/resou
 diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/chrome/browser/resources/settings/privacy_page/privacy_page.html
 --- a/chrome/browser/resources/settings/privacy_page/privacy_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/privacy_page.html
-@@ -1014,4 +1014,26 @@
+@@ -1025,4 +1025,26 @@
            </category-setting-exceptions>
          </settings-subpage>
        </template>
@@ -125,7 +125,7 @@ diff --git a/chrome/browser/resources/settings/site_settings/category_default_se
 diff --git a/chrome/browser/resources/settings/site_settings/constants.ts b/chrome/browser/resources/settings/site_settings/constants.ts
 --- a/chrome/browser/resources/settings/site_settings/constants.ts
 +++ b/chrome/browser/resources/settings/site_settings/constants.ts
-@@ -43,6 +43,7 @@ export enum ContentSettingsTypes {
+@@ -44,6 +44,7 @@ export enum ContentSettingsTypes {
    WINDOW_MANAGEMENT = 'window-placement',
    ZOOM_LEVELS = 'zoom-levels',
    AUTOPLAY = 'autoplay',
@@ -211,7 +211,7 @@ diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.cc b/chrom
 diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2143,6 +2143,13 @@ void AddSiteSettingsStrings(content::WebUIDataSource* html_source,
+@@ -2155,6 +2155,13 @@ void AddSiteSettingsStrings(content::WebUIDataSource* html_source,
      {"siteSettingsAutoplayAllowedExceptions",IDS_SETTINGS_SITE_SETTINGS_AUTOPLAY_ALLOWED_EXCEPTIONS},
      {"siteSettingsAutoplayBlockedExceptions", IDS_SETTINGS_SITE_SETTINGS_AUTOPLAY_BLOCKED_EXCEPTIONS},
      {"siteSettingsAutoplayMidSentence", IDS_SITE_SETTINGS_TYPE_AUTOPLAY},
@@ -228,15 +228,15 @@ diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provide
 diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/browser/ui/webui/settings/site_settings_helper.cc
 --- a/chrome/browser/ui/webui/settings/site_settings_helper.cc
 +++ b/chrome/browser/ui/webui/settings/site_settings_helper.cc
-@@ -115,6 +115,7 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
-      "file-system-access-handles-data"},
-     {ContentSettingsType::FEDERATED_IDENTITY_API, "federated-identity-api"},
+@@ -124,6 +124,7 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
+     {ContentSettingsType::PRIVATE_NETWORK_CHOOSER_DATA,
+      "private-network-devices-data"},
      {ContentSettingsType::AUTOPLAY, "autoplay"},
 +    {ContentSettingsType::JAVASCRIPT_JIT, "javascript-jit"},
  
      // Add new content settings here if a corresponding Javascript string
      // representation for it is not required, for example if the content setting
-@@ -151,7 +152,6 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
+@@ -160,7 +161,6 @@ const ContentSettingsTypeNameEntry kContentSettingsTypeGroupNames[] = {
      {ContentSettingsType::FILE_SYSTEM_LAST_PICKED_DIRECTORY, nullptr},
      {ContentSettingsType::DISPLAY_CAPTURE, nullptr},
      {ContentSettingsType::FEDERATED_IDENTITY_SHARING, nullptr},
@@ -244,7 +244,7 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
      {ContentSettingsType::HTTP_ALLOWED, nullptr},
      {ContentSettingsType::FORMFILL_METADATA, nullptr},
      {ContentSettingsType::FEDERATED_IDENTITY_ACTIVE_SESSION, nullptr},
-@@ -435,6 +435,7 @@ const std::vector<ContentSettingsType>& GetVisiblePermissionCategories() {
+@@ -449,6 +449,7 @@ const std::vector<ContentSettingsType>& GetVisiblePermissionCategories() {
      }
  
      base_types->push_back(ContentSettingsType::AUTOPLAY);
@@ -255,7 +255,7 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -608,7 +608,12 @@ void ContentSettingsRegistry::Init() {
+@@ -560,7 +560,12 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
    Register(ContentSettingsType::JAVASCRIPT_JIT, "javascript-jit",
@@ -266,8 +266,8 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
 +           CONTENT_SETTING_ALLOW,
 +#endif
 +           WebsiteSettingsInfo::UNSYNCABLE,
-            AllowlistedSchemes(),
-            ValidSettings(CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK),
+            /*allowlisted_schemes=*/{},
+            /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
             WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
 --
 2.25.1

@@ -22,14 +22,15 @@ Subject: wip add browser policy
  .../policy/core/common/policy_service_impl.cc |   3 +
  .../policy/core/common/policy_switches.cc     |   2 +
  .../policy/core/common/policy_switches.h      |   1 +
- .../policy/resources/policy_templates.json    |   7 +-
+ .../MetricsReportingEnabled.yaml              |   2 +-
+ .../Miscellaneous/SyncDisabled.yaml           |   2 +-
  .../policy/resources/webui/policy_row.html    |   1 +
  .../policy/resources/webui/policy_row.js      |  12 ++
  components/policy_strings.grdp                |   4 +-
  components/signin/features.gni                |   6 +-
  .../gaia_cookie_manager_service.cc            |   4 +
  google_apis/gaia/gaia_auth_fetcher.cc         |   1 +
- 26 files changed, 300 insertions(+), 39 deletions(-)
+ 27 files changed, 298 insertions(+), 38 deletions(-)
 
 diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 --- a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
@@ -90,7 +91,7 @@ diff --git a/chrome/browser/policy/chrome_browser_policy_connector.cc b/chrome/b
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
-@@ -1799,9 +1799,9 @@ bool AreFuturePoliciesSupported() {
+@@ -1808,9 +1808,9 @@ bool AreFuturePoliciesSupported() {
    // Enable future policies for branded browser tests.
    if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kTestType))
      return true;
@@ -151,7 +152,7 @@ diff --git a/chrome/browser/signin/account_consistency_mode_manager.cc b/chrome/
 diff --git a/chrome/browser/signin/chrome_signin_client.cc b/chrome/browser/signin/chrome_signin_client.cc
 --- a/chrome/browser/signin/chrome_signin_client.cc
 +++ b/chrome/browser/signin/chrome_signin_client.cc
-@@ -147,7 +147,9 @@ void ChromeSigninClient::DoFinalInit() {
+@@ -158,7 +158,9 @@ void ChromeSigninClient::DoFinalInit() {
  bool ChromeSigninClient::ProfileAllowsSigninCookies(Profile* profile) {
    content_settings::CookieSettings* cookie_settings =
        CookieSettingsFactory::GetForProfile(profile).get();
@@ -162,7 +163,7 @@ diff --git a/chrome/browser/signin/chrome_signin_client.cc b/chrome/browser/sign
  }
  
  PrefService* ChromeSigninClient::GetPrefs() { return profile_->GetPrefs(); }
-@@ -255,6 +257,8 @@ void ChromeSigninClient::OnConnectionChanged(
+@@ -266,6 +268,8 @@ void ChromeSigninClient::OnConnectionChanged(
  #endif
  
  void ChromeSigninClient::DelayNetworkCall(base::OnceClosure callback) {
@@ -182,7 +183,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
  #include "base/strings/utf_string_conversions.h"
  #include "base/task/task_traits.h"
  #include "base/task/thread_pool.h"
-@@ -47,11 +48,13 @@
+@@ -49,11 +50,13 @@
  #include "components/enterprise/browser/reporting/common_pref_names.h"
  #include "components/policy/core/browser/configuration_policy_handler_list.h"
  #include "components/policy/core/browser/policy_conversions.h"
@@ -196,7 +197,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
  #include "components/policy/core/common/policy_scheduler.h"
  #include "components/policy/core/common/policy_types.h"
  #include "components/policy/core/common/remote_commands/remote_commands_service.h"
-@@ -149,6 +152,10 @@ void PolicyUIHandler::RegisterMessages() {
+@@ -163,6 +166,10 @@ void PolicyUIHandler::RegisterMessages() {
        "exportPoliciesJSON",
        base::BindRepeating(&PolicyUIHandler::HandleExportPoliciesJson,
                            base::Unretained(this)));
@@ -207,13 +208,13 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
    web_ui()->RegisterMessageCallback(
        "listenPoliciesUpdates",
        base::BindRepeating(&PolicyUIHandler::HandleListenPoliciesUpdates,
-@@ -308,6 +315,100 @@ void PolicyUIHandler::SendPolicies() {
-         "policies-updated",
-         base::Value(
-             policy_value_and_status_aggregator_->GetAggregatedPolicyNames()),
--        base::Value(
--            policy_value_and_status_aggregator_->GetAggregatedPolicyValues()));
-+        base::Value(GetPolicyValues()));
+@@ -309,8 +316,102 @@ void PolicyUIHandler::SendPolicies() {
+       "policies-updated",
+       base::Value(
+           policy_value_and_status_aggregator_->GetAggregatedPolicyNames()),
+-      base::Value(
+-          policy_value_and_status_aggregator_->GetAggregatedPolicyValues()));
++      base::Value(GetPolicyValues()));
 +}
 +
 +base::Value::Dict PolicyUIHandler::GetPolicyValues() {
@@ -310,6 +311,8 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
 +  local_state->SetString(policy::policy_prefs::kDisabledDefaultPoliciesList,
 +                         base::JoinString(disabled_policies, ","));
  }
+ 
+ void PolicyUIHandler::SendStatus() {
 diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.h b/chrome/browser/ui/webui/policy/policy_ui_handler.h
 --- a/chrome/browser/ui/webui/policy/policy_ui_handler.h
 +++ b/chrome/browser/ui/webui/policy/policy_ui_handler.h
@@ -325,15 +328,15 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.h b/chrome/browser
 diff --git a/components/autofill_assistant/browser/features.cc b/components/autofill_assistant/browser/features.cc
 --- a/components/autofill_assistant/browser/features.cc
 +++ b/components/autofill_assistant/browser/features.cc
-@@ -119,7 +119,7 @@ BASE_FEATURE(kAutofillAssistantLoadDFMForTriggerScripts,
+@@ -125,7 +125,7 @@ BASE_FEATURE(kAutofillAssistantPaintInvisibleTabForClick,
  
  BASE_FEATURE(kAutofillAssistantProactiveHelp,
               "AutofillAssistantProactiveHelp",
 -             base::FEATURE_ENABLED_BY_DEFAULT);
 +             base::FEATURE_DISABLED_BY_DEFAULT);
  
- // Enables assistant UI (once the feature is enabled, scripts need to use the
- // USE_ASSISTANT_UI=true flag to use the assistant UI).
+ // Send the Semantic model version in the client context.
+ BASE_FEATURE(kAutofillAssistantSendModelVersionInClientContext,
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
@@ -349,7 +352,7 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
 diff --git a/components/policy/core/browser/browser_policy_connector.cc b/components/policy/core/browser/browser_policy_connector.cc
 --- a/components/policy/core/browser/browser_policy_connector.cc
 +++ b/components/policy/core/browser/browser_policy_connector.cc
-@@ -208,6 +208,9 @@ void BrowserPolicyConnector::RegisterPrefs(PrefRegistrySimple* registry) {
+@@ -136,6 +136,9 @@ void BrowserPolicyConnector::RegisterPrefs(PrefRegistrySimple* registry) {
        CloudPolicyRefreshScheduler::kDefaultRefreshDelayMs);
    registry->RegisterBooleanPref(
        policy_prefs::kCloudManagementEnrollmentMandatory, false);
@@ -423,13 +426,13 @@ diff --git a/components/policy/core/common/policy_loader_command_line.cc b/compo
  
 @@ -21,25 +46,88 @@ PolicyLoaderCommandLine::~PolicyLoaderCommandLine() = default;
  
- std::unique_ptr<PolicyBundle> PolicyLoaderCommandLine::Load() {
-   std::unique_ptr<PolicyBundle> bundle = std::make_unique<PolicyBundle>();
--  if (!command_line_.HasSwitch(switches::kChromePolicy))
+ PolicyBundle PolicyLoaderCommandLine::Load() {
+   PolicyBundle bundle;
+-  if (!command_line_->HasSwitch(switches::kChromePolicy))
 -    return bundle;
  
 -  auto policies = base::JSONReader::ReadAndReturnValueWithError(
--      command_line_.GetSwitchValueASCII(switches::kChromePolicy),
+-      command_line_->GetSwitchValueASCII(switches::kChromePolicy),
 -      base::JSONParserOptions::JSON_ALLOW_TRAILING_COMMAS);
 +  PolicyMap& policy_map =
 +      bundle->Get(PolicyNamespace(POLICY_DOMAIN_CHROME, std::string()));
@@ -444,7 +447,7 @@ diff --git a/components/policy/core/common/policy_loader_command_line.cc b/compo
 -  }
 +  // get disabled policies
 +  std::string disabled_policies =
-+      command_line_.GetSwitchValueASCII(switches::kForceDisabledPolicies);
++      command_line_->GetSwitchValueASCII(switches::kForceDisabledPolicies);
 +  std::vector<std::string> disabled_policies_list =
 +      base::SplitString(disabled_policies, ",",
 +          base::KEEP_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
@@ -520,7 +523,7 @@ diff --git a/components/policy/core/common/policy_loader_command_line.cc b/compo
 +                 policy::POLICY_SOURCE_COMMAND_LINE,
 +                 base::Value(enabled_future_policies.Clone()), nullptr);
  
--  bundle->Get(PolicyNamespace(POLICY_DOMAIN_CHROME, std::string()))
+-  bundle.Get(PolicyNamespace(POLICY_DOMAIN_CHROME, std::string()))
 -      .LoadFrom(policies->GetDict(), POLICY_LEVEL_MANDATORY,
 -                POLICY_SCOPE_MACHINE, POLICY_SOURCE_COMMAND_LINE);
    return bundle;
@@ -536,9 +539,9 @@ diff --git a/components/policy/core/common/policy_pref_names.cc b/components/pol
 +const char kDisabledDefaultPoliciesList[] =
 +    "policy.disabled_default_policies_list";
 +
- // Boolean policy preference to disable the URL parameter
- // filter.
- const char kUrlParamFilterEnabled[] = "policy.url_param_filter_enabled";
+ // Boolean policy to allow isolated apps developer mode.
+ const char kIsolatedAppsDeveloperModeAllowed[] =
+     "policy.isolated_apps_developer_mode_allowed";
 diff --git a/components/policy/core/common/policy_pref_names.h b/components/policy/core/common/policy_pref_names.h
 --- a/components/policy/core/common/policy_pref_names.h
 +++ b/components/policy/core/common/policy_pref_names.h
@@ -547,13 +550,13 @@ diff --git a/components/policy/core/common/policy_pref_names.h b/components/poli
  POLICY_EXPORT extern const char kIntensiveWakeUpThrottlingEnabled[];
  POLICY_EXPORT extern const char kUserAgentClientHintsGREASEUpdateEnabled[];
 +POLICY_EXPORT extern const char kDisabledDefaultPoliciesList[];
- POLICY_EXPORT extern const char kUrlParamFilterEnabled[];
  POLICY_EXPORT extern const char kSetTimeoutWithout1MsClampEnabled[];
  POLICY_EXPORT extern const char kUnthrottledNestedTimeoutEnabled[];
+ #if BUILDFLAG(IS_ANDROID)
 diff --git a/components/policy/core/common/policy_service_impl.cc b/components/policy/core/common/policy_service_impl.cc
 --- a/components/policy/core/common/policy_service_impl.cc
 +++ b/components/policy/core/common/policy_service_impl.cc
-@@ -64,6 +64,9 @@ void IgnoreUserCloudPrecedencePolicies(PolicyMap* policies) {
+@@ -65,6 +65,9 @@ void IgnoreUserCloudPrecedencePolicies(PolicyMap* policies) {
  // Metrics should not be enforced so if this policy is set as mandatory
  // downgrade it to a recommended level policy.
  void DowngradeMetricsReportingToRecommendedPolicy(PolicyMap* policies) {
@@ -586,31 +589,44 @@ diff --git a/components/policy/core/common/policy_switches.h b/components/policy
  #if BUILDFLAG(IS_CHROMEOS_ASH)
  POLICY_EXPORT extern const char kDisablePolicyKeyVerification[];
  #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
-diff --git a/components/policy/resources/policy_templates.json b/components/policy/resources/policy_templates.json
---- a/components/policy/resources/policy_templates.json
-+++ b/components/policy/resources/policy_templates.json
-@@ -3936,8 +3936,9 @@
-       'supported_on': [
-         'chrome.*:8-',
-         'ios:88-',
-+        'android:8-',
-       ],
--      'future_on': ['android', 'fuchsia'],
-+      'future_on': ['fuchsia'],
-       'features': {
-         'can_be_recommended': True,
-         'dynamic_refresh': False,
-@@ -4400,8 +4401,8 @@
-       'owners': ['file://components/policy/resources/OWNERS', 'pastarmovj@chromium.org'],
-       'type': 'main',
-       'schema': { 'type': 'boolean' },
--      'supported_on': ['chrome.*:8-', 'chrome_os:11-', 'ios:96-'],
--      'future_on': ['android', 'fuchsia'],
-+      'supported_on': ['chrome.*:8-', 'chrome_os:11-', 'ios:96-', 'android:8-',],
-+      'future_on': ['fuchsia'],
-       'features': {
-         'dynamic_refresh': True,
-         'per_profile': True,
+diff --git a/components/policy/resources/templates/policy_definitions/Miscellaneous/MetricsReportingEnabled.yaml b/components/policy/resources/templates/policy_definitions/Miscellaneous/MetricsReportingEnabled.yaml
+--- a/components/policy/resources/templates/policy_definitions/Miscellaneous/MetricsReportingEnabled.yaml
++++ b/components/policy/resources/templates/policy_definitions/Miscellaneous/MetricsReportingEnabled.yaml
+@@ -15,7 +15,6 @@ features:
+   dynamic_refresh: false
+   per_profile: false
+ future_on:
+-- android
+ - fuchsia
+ items:
+ - caption: Enable reporting of usage and crash-related data
+@@ -30,6 +29,7 @@ schema:
+ supported_on:
+ - chrome.*:8-
+ - ios:88-
++- android:8-
+ tags:
+ - google-sharing
+ type: main
+diff --git a/components/policy/resources/templates/policy_definitions/Miscellaneous/SyncDisabled.yaml b/components/policy/resources/templates/policy_definitions/Miscellaneous/SyncDisabled.yaml
+--- a/components/policy/resources/templates/policy_definitions/Miscellaneous/SyncDisabled.yaml
++++ b/components/policy/resources/templates/policy_definitions/Miscellaneous/SyncDisabled.yaml
+@@ -13,7 +13,6 @@ features:
+   dynamic_refresh: true
+   per_profile: true
+ future_on:
+-- android
+ - fuchsia
+ items:
+ - caption: Disable <ph name="CHROME_SYNC_NAME">Chrome Sync</ph>
+@@ -30,6 +29,7 @@ supported_on:
+ - chrome.*:8-
+ - chrome_os:11-
+ - ios:96-
++- android:8-
+ tags:
+ - filtering
+ - google-sharing
 diff --git a/components/policy/resources/webui/policy_row.html b/components/policy/resources/webui/policy_row.html
 --- a/components/policy/resources/webui/policy_row.html
 +++ b/components/policy/resources/webui/policy_row.html
@@ -653,7 +669,7 @@ diff --git a/components/policy/resources/webui/policy_row.js b/components/policy
      // Populate the remaining columns with policy scope, level and value if a
      // value has been set. Otherwise, leave them blank.
      if (!this.unset_) {
-@@ -187,6 +194,11 @@ export class PolicyRowElement extends CustomElement {
+@@ -199,6 +206,11 @@ export class PolicyRowElement extends CustomElement {
      }
    }
  
@@ -668,7 +684,7 @@ diff --git a/components/policy/resources/webui/policy_row.js b/components/policy
 diff --git a/components/policy_strings.grdp b/components/policy_strings.grdp
 --- a/components/policy_strings.grdp
 +++ b/components/policy_strings.grdp
-@@ -549,8 +549,8 @@ Additional details:
+@@ -561,8 +561,8 @@ Additional details:
    <message name="IDS_POLICY_SOURCE_DEFAULT" desc="Indicates that a policy is set by default and can be overridden.">
      Default
    </message>
@@ -719,7 +735,7 @@ diff --git a/components/signin/internal/identity_manager/gaia_cookie_manager_ser
 diff --git a/google_apis/gaia/gaia_auth_fetcher.cc b/google_apis/gaia/gaia_auth_fetcher.cc
 --- a/google_apis/gaia/gaia_auth_fetcher.cc
 +++ b/google_apis/gaia/gaia_auth_fetcher.cc
-@@ -590,6 +590,7 @@ void GaiaAuthFetcher::StartListAccounts() {
+@@ -584,6 +584,7 @@ void GaiaAuthFetcher::StartListAccounts() {
              }
            }
          })");

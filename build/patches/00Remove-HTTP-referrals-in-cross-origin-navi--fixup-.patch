@@ -29,7 +29,7 @@ Subject: Remove HTTP referrals in cross origin navi (fixup)
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -658,6 +658,8 @@ chrome_java_resources = [
+@@ -656,6 +656,8 @@ chrome_java_resources = [
    "java/res/xml/phone_as_a_security_key_accessory_filter.xml",
    "java/res/xml/incognito_preferences.xml",
    "java/res/xml/privacy_preferences.xml",
@@ -41,7 +41,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -923,6 +923,8 @@ chrome_java_sources = [
+@@ -916,6 +916,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/privacy/settings/PrivacyPreferencesManagerImpl.java",
    "java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java",
    "java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java",
@@ -380,7 +380,7 @@ new file mode 100644
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -479,6 +479,9 @@ SystemNetworkContextManager::SystemNetworkContextManager(
+@@ -480,6 +480,9 @@ SystemNetworkContextManager::SystemNetworkContextManager(
        base::BindRepeating(&SystemNetworkContextManager::UpdateReferrersEnabled,
                            base::Unretained(this)));
  
@@ -390,7 +390,7 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
    pref_change_registrar_.Add(
        prefs::kExplicitlyAllowedNetworkPorts,
        base::BindRepeating(
-@@ -545,6 +548,7 @@ void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
+@@ -546,6 +549,7 @@ void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
    // the system NetworkContext, and the per-profile pref values are used for
    // the profile NetworkContexts.
    registry->RegisterBooleanPref(prefs::kEnableReferrers, true);
@@ -471,7 +471,7 @@ diff --git a/chrome/browser/ui/prefs/prefs_tab_helper.cc b/chrome/browser/ui/pre
 diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 --- a/chrome/common/pref_names.cc
 +++ b/chrome/common/pref_names.cc
-@@ -1432,6 +1432,9 @@ const char kEnableHyperlinkAuditing[] = "enable_a_ping";
+@@ -1433,6 +1433,9 @@ const char kEnableHyperlinkAuditing[] = "enable_a_ping";
  // Whether to enable sending referrers.
  const char kEnableReferrers[] = "enable_referrers";
  
@@ -484,7 +484,7 @@ diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -442,6 +442,7 @@ extern const char kPinnedTabs[];
+@@ -443,6 +443,7 @@ extern const char kPinnedTabs[];
  extern const char kDisable3DAPIs[];
  extern const char kEnableHyperlinkAuditing[];
  extern const char kEnableReferrers[];
@@ -495,7 +495,7 @@ diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
 --- a/content/browser/renderer_host/navigation_request.cc
 +++ b/content/browser/renderer_host/navigation_request.cc
-@@ -431,8 +431,9 @@ void AddAdditionalRequestHeaders(
+@@ -433,8 +433,9 @@ void AddAdditionalRequestHeaders(
          blink::mojom::Referrer(GURL(), network::mojom::ReferrerPolicy::kNever);
    }
  
