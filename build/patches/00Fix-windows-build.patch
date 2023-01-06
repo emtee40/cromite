@@ -3,9 +3,13 @@ Date: Thu, 13 Oct 2022 10:34:52 +0000
 Subject: Fix windows build
 
 ---
- chrome/browser/browser_process_platform_part_win.cc | 3 +++
- chrome/browser/devtools/devtools_window.cc          | 1 +
- 2 files changed, 4 insertions(+)
+ .../browser_process_platform_part_win.cc      |  3 ++
+ chrome/browser/devtools/devtools_window.cc    |  1 +
+ chrome/browser/ui/profile_picker.cc           |  2 +-
+ .../browser/ui/startup/first_run_service.cc   |  6 +---
+ chrome/browser/updater/BUILD.gn               |  9 -----
+ .../browser/updater/browser_updater_client.cc | 34 +------------------
+ 6 files changed, 7 insertions(+), 48 deletions(-)
 
 diff --git a/chrome/browser/browser_process_platform_part_win.cc b/chrome/browser/browser_process_platform_part_win.cc
 --- a/chrome/browser/browser_process_platform_part_win.cc
@@ -37,5 +41,124 @@ diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtool
  
  // This should be after all other #includes.
  #if defined(_WINDOWS_)  // Detect whether windows.h was included.
+diff --git a/chrome/browser/ui/profile_picker.cc b/chrome/browser/ui/profile_picker.cc
+--- a/chrome/browser/ui/profile_picker.cc
++++ b/chrome/browser/ui/profile_picker.cc
+@@ -104,7 +104,7 @@ ProfilePicker::Params ProfilePicker::Params::ForFirstRun(
+ #endif
+ 
+   Params params(
+-#if BUILDFLAG(ENABLE_DICE_SUPPORT)
++#if (true) // BUILDFLAG(ENABLE_DICE_SUPPORT)
+       EntryPoint::kFirstRun,
+ #elif BUILDFLAG(IS_CHROMEOS_LACROS)
+       EntryPoint::kLacrosPrimaryProfileFirstRun,
+diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/startup/first_run_service.cc
+--- a/chrome/browser/ui/startup/first_run_service.cc
++++ b/chrome/browser/ui/startup/first_run_service.cc
+@@ -76,8 +76,6 @@ bool IsSyncRequired(Profile* profile) {
+ #endif
+ 
+ void SetFirstRunFinished() {
+-  PrefService* local_state = g_browser_process->local_state();
+-  local_state->SetBoolean(prefs::kFirstRunFinished, true);
+ }
+ 
+ // Processes the outcome from the FRE and resumes the user's interrupted task.
+@@ -114,7 +112,6 @@ void OnFirstRunHasExited(ResumeTaskCallback original_intent_callback,
+ 
+ // static
+ void FirstRunService::RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
+-  registry->RegisterBooleanPref(prefs::kFirstRunFinished, false);
+ }
+ 
+ FirstRunService::FirstRunService(Profile* profile) : profile_(profile) {}
+@@ -128,8 +125,7 @@ bool FirstRunService::ShouldOpenFirstRun() const {
+   if (command_line->HasSwitch(switches::kNoFirstRun))
+     return false;
+ 
+-  const PrefService* const pref_service = g_browser_process->local_state();
+-  return !pref_service->GetBoolean(prefs::kFirstRunFinished);
++  return false;
+ }
+ 
+ void FirstRunService::TryMarkFirstRunAlreadyFinished(
+diff --git a/chrome/browser/updater/BUILD.gn b/chrome/browser/updater/BUILD.gn
+--- a/chrome/browser/updater/BUILD.gn
++++ b/chrome/browser/updater/BUILD.gn
+@@ -22,15 +22,6 @@ source_set("browser_updater_client") {
+     "//components/version_info",
+   ]
+ 
+-  if (is_win) {
+-    sources += [ "browser_updater_client_win.cc" ]
+-
+-    deps += [
+-      "//chrome/browser/google",
+-      "//chrome/install_static:install_static_util",
+-    ]
+-  }
+-
+   if (is_mac) {
+     sources += [
+       "browser_updater_client_mac.mm",
+diff --git a/chrome/browser/updater/browser_updater_client.cc b/chrome/browser/updater/browser_updater_client.cc
+--- a/chrome/browser/updater/browser_updater_client.cc
++++ b/chrome/browser/updater/browser_updater_client.cc
+@@ -29,20 +29,6 @@ BrowserUpdaterClient::~BrowserUpdaterClient() = default;
+ 
+ void BrowserUpdaterClient::Register(base::OnceClosure complete) {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  base::ThreadPool::PostTaskAndReplyWithResult(
+-      FROM_HERE, {base::MayBlock()},
+-      base::BindOnce(&BrowserUpdaterClient::GetRegistrationRequest, this),
+-      base::BindOnce(
+-          [](base::OnceCallback<void(int)> callback,
+-             scoped_refptr<updater::UpdateService> update_service,
+-             const updater::RegistrationRequest& request) {
+-            update_service->RegisterApp(request, std::move(callback));
+-          },
+-          base::BindPostTask(
+-              base::SequencedTaskRunner::GetCurrentDefault(),
+-              base::BindOnce(&BrowserUpdaterClient::RegistrationCompleted, this,
+-                             std::move(complete))),
+-          update_service_));
+ }
+ 
+ void BrowserUpdaterClient::RegistrationCompleted(base::OnceClosure complete,
+@@ -74,19 +60,6 @@ void BrowserUpdaterClient::GetUpdaterVersionCompleted(
+ void BrowserUpdaterClient::CheckForUpdate(
+     updater::UpdateService::StateChangeCallback version_updater_callback) {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-
+-  updater::UpdateService::UpdateState update_state;
+-  update_state.state =
+-      updater::UpdateService::UpdateState::State::kCheckingForUpdates;
+-  version_updater_callback.Run(update_state);
+-  update_service_->Update(
+-      GetAppId(), {}, updater::UpdateService::Priority::kForeground,
+-      updater::UpdateService::PolicySameVersionUpdate::kNotAllowed,
+-      base::BindPostTask(base::SequencedTaskRunner::GetCurrentDefault(),
+-                         version_updater_callback),
+-      base::BindPostTask(base::SequencedTaskRunner::GetCurrentDefault(),
+-                         base::BindOnce(&BrowserUpdaterClient::UpdateCompleted,
+-                                        this, version_updater_callback)));
+ }
+ 
+ void BrowserUpdaterClient::UpdateCompleted(
+@@ -134,12 +107,7 @@ void BrowserUpdaterClient::IsBrowserRegisteredCompleted(
+     base::OnceCallback<void(bool)> callback,
+     const std::vector<updater::UpdateService::AppState>& apps) {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  const std::string app_id = GetAppId();
+-  std::move(callback).Run(
+-      std::find_if(apps.begin(), apps.end(),
+-                   [&](const updater::UpdateService::AppState& app) {
+-                     return app.app_id == app_id;
+-                   }) != apps.end());
++  std::move(callback).Run(true);
+ }
+ 
+ scoped_refptr<BrowserUpdaterClient> BrowserUpdaterClient::Create(
 --
 2.25.1

@@ -3,7 +3,7 @@ Date: Wed, 12 Oct 2022 09:52:02 +0000
 Subject: Disable safe browsing (win fixup)
 
 ---
- chrome/browser/BUILD.gn                       |  14 +-
+ chrome/browser/BUILD.gn                       |  16 +-
  .../accuracy_tips/accuracy_service_factory.cc |   6 +-
  .../chrome_browsing_data_remover_delegate.cc  |   2 -
  chrome/browser/chrome_browser_main_win.cc     |   6 -
@@ -20,7 +20,7 @@ Subject: Disable safe browsing (win fixup)
  .../safe_browsing_private_event_router.cc     |  43 ++---
  .../webstore_private/webstore_private_api.cc  |  15 +-
  .../extensions/blocklist_state_fetcher.cc     |  13 +-
- .../chrome_extensions_browser_client.cc       |  27 +--
+ .../chrome_extensions_browser_client.cc       |  41 +----
  .../browser/extensions/extension_allowlist.cc |   9 -
  .../webrtc/display_media_access_handler.cc    |   1 -
  .../safe_browsing/safe_browsing_handler.cc    |   5 +-
@@ -40,8 +40,9 @@ Subject: Disable safe browsing (win fixup)
  chrome/browser/ui/BUILD.gn                    |   6 -
  ...b_modal_dialog_manager_delegate_desktop.cc |   1 -
  .../ui/page_info/chrome_page_info_delegate.cc |   1 -
+ .../chrome_web_contents_view_handle_drop.cc   | 143 ----------------
  .../ui/views/download/download_item_view.cc   |  23 +--
- .../webui/downloads/downloads_dom_handler.cc  |  12 +-
+ .../webui/downloads/downloads_dom_handler.cc  |  21 +--
  .../ui/webui/downloads/downloads_ui.cc        |   5 +-
  chrome/browser/ui/webui/intro/intro_ui.cc     |   6 +-
  chrome/browser/webshare/share_service_impl.cc |   4 +
@@ -52,8 +53,9 @@ Subject: Disable safe browsing (win fixup)
  chrome/test/BUILD.gn                          |   5 -
  .../browser/mojo_safe_browsing_impl.cc        |   1 +
  .../core/common/safe_browsing_prefs.cc        |   2 +-
+ printing/buildflags/buildflags.gni            |   2 +-
  .../tracked_persistent_pref_store_factory.cc  |  10 +-
- 50 files changed, 67 insertions(+), 603 deletions(-)
+ 52 files changed, 68 insertions(+), 772 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
@@ -81,7 +83,15 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/share",
      "//chrome/browser/sharing:buildflags",
      "//chrome/browser/sharing/proto",
-@@ -3732,10 +3725,6 @@ static_library("browser") {
+@@ -3724,18 +3717,12 @@ static_library("browser") {
+       "enterprise/connectors/analysis/analysis_service_settings.h",
+       "enterprise/connectors/analysis/analysis_settings.cc",
+       "enterprise/connectors/analysis/analysis_settings.h",
+-      "enterprise/connectors/analysis/content_analysis_delegate.cc",
+-      "enterprise/connectors/analysis/content_analysis_delegate.h",
+       "enterprise/connectors/analysis/content_analysis_delegate_base.cc",
+       "enterprise/connectors/analysis/content_analysis_delegate_base.h",
+       "enterprise/connectors/analysis/content_analysis_dialog.cc",
        "enterprise/connectors/analysis/content_analysis_dialog.h",
        "enterprise/connectors/analysis/content_analysis_downloads_delegate.cc",
        "enterprise/connectors/analysis/content_analysis_downloads_delegate.h",
@@ -92,7 +102,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "enterprise/connectors/analysis/request_handler_base.cc",
        "enterprise/connectors/analysis/request_handler_base.h",
        "enterprise/connectors/common.cc",
-@@ -8211,7 +8200,6 @@ static_library("test_support") {
+@@ -8211,7 +8198,6 @@ static_library("test_support") {
      ":browser",
      "//chrome/browser/autofill:test_support",
      "//chrome/browser/profiles:profile",
@@ -892,7 +902,7 @@ diff --git a/chrome/browser/extensions/blocklist_state_fetcher.cc b/chrome/brows
 diff --git a/chrome/browser/extensions/chrome_extensions_browser_client.cc b/chrome/browser/extensions/chrome_extensions_browser_client.cc
 --- a/chrome/browser/extensions/chrome_extensions_browser_client.cc
 +++ b/chrome/browser/extensions/chrome_extensions_browser_client.cc
-@@ -658,26 +658,11 @@ void ChromeExtensionsBrowserClient::NotifyExtensionApiTabExecuteScript(
+@@ -658,56 +658,17 @@ void ChromeExtensionsBrowserClient::NotifyExtensionApiTabExecuteScript(
      content::BrowserContext* context,
      const ExtensionId& extension_id,
      const std::string& code) const {
@@ -920,10 +930,23 @@ diff --git a/chrome/browser/extensions/chrome_extensions_browser_client.cc b/chr
  }
  
  void ChromeExtensionsBrowserClient::NotifyExtensionRemoteHostContacted(
-@@ -698,16 +683,6 @@ void ChromeExtensionsBrowserClient::NotifyExtensionRemoteHostContacted(
-   } else {
-     return;
-   }
+     content::BrowserContext* context,
+     const ExtensionId& extension_id,
+     const GURL& url) const {
+-  safe_browsing::RemoteHostInfo::ProtocolType protocol =
+-      safe_browsing::RemoteHostInfo::UNSPECIFIED;
+-  if (base::FeatureList::IsEnabled(
+-          safe_browsing::kExtensionTelemetryReportContactedHosts) &&
+-      url.SchemeIsHTTPOrHTTPS()) {
+-    protocol = safe_browsing::RemoteHostInfo::HTTP_HTTPS;
+-  } else if (base::FeatureList::IsEnabled(
+-                 safe_browsing::
+-                     kExtensionTelemetryReportHostsContactedViaWebSocket) &&
+-             url.SchemeIsWSOrWSS()) {
+-    protocol = safe_browsing::RemoteHostInfo::WEBSOCKET;
+-  } else {
+-    return;
+-  }
 -  auto* telemetry_service =
 -      safe_browsing::ExtensionTelemetryServiceFactory::GetForProfile(
 -          Profile::FromBrowserContext(context));
@@ -1366,6 +1389,163 @@ diff --git a/chrome/browser/ui/page_info/chrome_page_info_delegate.cc b/chrome/b
  }
  
  void ChromePageInfoDelegate::OpenContentSettingsExceptions(
+diff --git a/chrome/browser/ui/tab_contents/chrome_web_contents_view_handle_drop.cc b/chrome/browser/ui/tab_contents/chrome_web_contents_view_handle_drop.cc
+--- a/chrome/browser/ui/tab_contents/chrome_web_contents_view_handle_drop.cc
++++ b/chrome/browser/ui/tab_contents/chrome_web_contents_view_handle_drop.cc
+@@ -21,153 +21,10 @@
+ #include "third_party/abseil-cpp/absl/types/optional.h"
+ #include "ui/base/clipboard/file_info.h"
+ 
+-namespace {
+-
+-void CompletionCallback(
+-    content::DropData drop_data,
+-    std::unique_ptr<enterprise_connectors::FilesScanData> files_scan_data,
+-    content::WebContentsViewDelegate::DropCompletionCallback callback,
+-    const enterprise_connectors::ContentAnalysisDelegate::Data& data,
+-    const enterprise_connectors::ContentAnalysisDelegate::Result& result) {
+-  // If there are no negative results, proceed with just `drop_data`.
+-  bool all_text_results_allowed = !base::Contains(result.text_results, false);
+-  bool all_file_results_allowed = !base::Contains(result.paths_results, false);
+-  if (all_text_results_allowed && all_file_results_allowed) {
+-    std::move(callback).Run(std::move(drop_data));
+-    return;
+-  }
+-
+-  // For text drag-drops, block the drop if any result is negative.
+-  if (!all_text_results_allowed) {
+-    std::move(callback).Run(absl::nullopt);
+-    return;
+-  }
+-
+-  // For file drag-drops, block file paths depending on the verdict obtained for
+-  // child paths.
+-  DCHECK(files_scan_data);
+-  std::set<size_t> file_indexes_to_block =
+-      files_scan_data->IndexesToBlock(result.paths_results);
+-
+-  // If every file path should be blocked, the drop is aborted, otherwise it
+-  // continues by blocking sub-elements of the list.
+-  if (file_indexes_to_block.size() == drop_data.filenames.size()) {
+-    std::move(callback).Run(absl::nullopt);
+-    return;
+-  }
+-
+-  std::vector<ui::FileInfo> final_filenames;
+-  for (size_t i = 0; i < drop_data.filenames.size(); ++i) {
+-    if (file_indexes_to_block.count(i))
+-      continue;
+-    final_filenames.push_back(std::move(drop_data.filenames[i]));
+-  }
+-
+-  drop_data.filenames = std::move(final_filenames);
+-  std::move(callback).Run(std::move(drop_data));
+-}
+-
+-// Helper class to handle WebContents being destroyed while files are opened in
+-// the threadpool. This class deletes itself either when it's no longer needed
+-// when ScanData is called, or when its corresponding web contents is destroyed
+-// so its weak ptrs are invalidated.
+-class HandleDropScanData : public content::WebContentsObserver {
+- public:
+-  HandleDropScanData(
+-      content::WebContents* web_contents,
+-      content::DropData drop_data,
+-      enterprise_connectors::ContentAnalysisDelegate::Data analysis_data,
+-      content::WebContentsViewDelegate::DropCompletionCallback callback)
+-      : content::WebContentsObserver(web_contents),
+-        drop_data_(std::move(drop_data)),
+-        analysis_data_(std::move(analysis_data)),
+-        callback_(std::move(callback)) {}
+-
+-  void ScanData(
+-      std::unique_ptr<enterprise_connectors::FilesScanData> files_scan_data) {
+-    DCHECK(web_contents());
+-    if (files_scan_data) {
+-      for (const auto& path : files_scan_data->expanded_paths()) {
+-        analysis_data_.paths.push_back(path);
+-      }
+-    }
+-    enterprise_connectors::ContentAnalysisDelegate::CreateForWebContents(
+-        web_contents(), std::move(analysis_data_),
+-        base::BindOnce(&CompletionCallback, std::move(drop_data_),
+-                       std::move(files_scan_data), std::move(callback_)),
+-        safe_browsing::DeepScanAccessPoint::DRAG_AND_DROP);
+-
+-    delete this;
+-  }
+-
+-  void WebContentsDestroyed() override { delete this; }
+-
+-  base::WeakPtr<HandleDropScanData> GetWeakPtr() {
+-    return weakptr_factory_.GetWeakPtr();
+-  }
+-
+- private:
+-  content::DropData drop_data_;
+-  enterprise_connectors::ContentAnalysisDelegate::Data analysis_data_;
+-  content::WebContentsViewDelegate::DropCompletionCallback callback_;
+-
+-  base::WeakPtrFactory<HandleDropScanData> weakptr_factory_{this};
+-};
+-
+-}  // namespace
+-
+ void HandleOnPerformDrop(
+     content::WebContents* web_contents,
+     content::DropData drop_data,
+     content::WebContentsViewDelegate::DropCompletionCallback callback) {
+-  enterprise_connectors::ContentAnalysisDelegate::Data data;
+-  Profile* profile =
+-      Profile::FromBrowserContext(web_contents->GetBrowserContext());
+-  auto connector =
+-      drop_data.filenames.empty()
+-          ? enterprise_connectors::AnalysisConnector::BULK_DATA_ENTRY
+-          : enterprise_connectors::AnalysisConnector::FILE_ATTACHED;
+-  if (!enterprise_connectors::ContentAnalysisDelegate::IsEnabled(
+-          profile, web_contents->GetLastCommittedURL(), &data, connector)) {
+     std::move(callback).Run(std::move(drop_data));
+     return;
+-  }
+-
+-  // Collect the data that needs to be scanned.
+-  if (!drop_data.url_title.empty())
+-    data.text.push_back(base::UTF16ToUTF8(drop_data.url_title));
+-  if (drop_data.text)
+-    data.text.push_back(base::UTF16ToUTF8(*drop_data.text));
+-  if (drop_data.html)
+-    data.text.push_back(base::UTF16ToUTF8(*drop_data.html));
+-
+-  // `callback` should only run asynchronously when scanning is blocking.
+-  content::WebContentsViewDelegate::DropCompletionCallback scan_callback =
+-      base::DoNothing();
+-  if (data.settings.block_until_verdict ==
+-      enterprise_connectors::BlockUntilVerdict::kBlock) {
+-    scan_callback = std::move(callback);
+-  }
+-
+-  // `handle_drop_scan_data` is created on the heap to stay alive regardless of
+-  // how long the threadpool work takes or in case `web_contents` is destroyed.
+-  // It deletes itself when `HandleDropScanData::ScanData` is called or when
+-  // `web_contents` gets destroyed.
+-  auto* handle_drop_scan_data = new HandleDropScanData(
+-      web_contents, drop_data, std::move(data), std::move(scan_callback));
+-  if (drop_data.filenames.empty()) {
+-    handle_drop_scan_data->ScanData(/*files_scan_data=*/nullptr);
+-  } else {
+-    auto files_scan_data =
+-        std::make_unique<enterprise_connectors::FilesScanData>(
+-            drop_data.filenames);
+-    auto* files_scan_data_raw = files_scan_data.get();
+-    files_scan_data_raw->ExpandPaths(base::BindOnce(
+-        &HandleDropScanData::ScanData, handle_drop_scan_data->GetWeakPtr(),
+-        std::move(files_scan_data)));
+-  }
+-
+-  if (!callback.is_null()) {
+-    std::move(callback).Run(std::move(drop_data));
+-  }
+ }
 diff --git a/chrome/browser/ui/views/download/download_item_view.cc b/chrome/browser/ui/views/download/download_item_view.cc
 --- a/chrome/browser/ui/views/download/download_item_view.cc
 +++ b/chrome/browser/ui/views/download/download_item_view.cc
@@ -1416,7 +1596,23 @@ diff --git a/chrome/browser/ui/views/download/download_item_view.cc b/chrome/bro
 diff --git a/chrome/browser/ui/webui/downloads/downloads_dom_handler.cc b/chrome/browser/ui/webui/downloads/downloads_dom_handler.cc
 --- a/chrome/browser/ui/webui/downloads/downloads_dom_handler.cc
 +++ b/chrome/browser/ui/webui/downloads/downloads_dom_handler.cc
-@@ -415,11 +415,6 @@ void DownloadsDOMHandler::ReviewDangerousRequiringGesture(
+@@ -197,15 +197,6 @@ void DownloadsDOMHandler::DiscardDangerous(const std::string& id) {
+         !GetMainNotifierManager()->GetBrowserContext()->IsOffTheRecord() &&
+         base::FeatureList::IsEnabled(
+             safe_browsing::kSafeBrowsingCsbrrNewDownloadTrigger)) {
+-      safe_browsing::SafeBrowsingService* sb_service =
+-          g_browser_process->safe_browsing_service();
+-      if (sb_service) {
+-        sb_service->SendDownloadReport(
+-            download,
+-            safe_browsing::ClientSafeBrowsingReportRequest::
+-                DANGEROUS_DOWNLOAD_RECOVERY,
+-            /*did_proceed=*/false, /*show_download_in_folder=*/absl::nullopt);
+-      }
+     }
+   }
+   RemoveDownloadInArgs(id);
+@@ -415,11 +406,6 @@ void DownloadsDOMHandler::ReviewDangerousRequiringGesture(
    }
  
    CountDownloadsDOMEvents(DOWNLOADS_DOM_EVENT_REVIEW_DANGEROUS);
@@ -1428,7 +1624,7 @@ diff --git a/chrome/browser/ui/webui/downloads/downloads_dom_handler.cc b/chrome
  }
  
  // DownloadsDOMHandler, private: --------------------------------------------
-@@ -448,12 +443,7 @@ void DownloadsDOMHandler::FinalizeRemovals() {
+@@ -448,12 +434,7 @@ void DownloadsDOMHandler::FinalizeRemovals() {
  
  void DownloadsDOMHandler::ShowDangerPrompt(
      download::DownloadItem* dangerous_item) {
@@ -1670,6 +1866,18 @@ diff --git a/components/safe_browsing/core/common/safe_browsing_prefs.cc b/compo
    registry->RegisterIntegerPref(
        prefs::kSafeBrowsingEnterpriseRealTimeUrlCheckMode,
        REAL_TIME_CHECK_DISABLED);
+diff --git a/printing/buildflags/buildflags.gni b/printing/buildflags/buildflags.gni
+--- a/printing/buildflags/buildflags.gni
++++ b/printing/buildflags/buildflags.gni
+@@ -44,7 +44,7 @@ declare_args() {
+ 
+   # Enable snapshotting a page when printing for its content to be analyzed for
+   # sensitive content by enterprise users.
+-  enable_print_content_analysis = is_chromeos || is_win || is_linux || is_mac
++  enable_print_content_analysis = false
+ }
+ 
+ declare_args() {
 diff --git a/services/preferences/tracked/tracked_persistent_pref_store_factory.cc b/services/preferences/tracked/tracked_persistent_pref_store_factory.cc
 --- a/services/preferences/tracked/tracked_persistent_pref_store_factory.cc
 +++ b/services/preferences/tracked/tracked_persistent_pref_store_factory.cc
