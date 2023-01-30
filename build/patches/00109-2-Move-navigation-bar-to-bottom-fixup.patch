@@ -1,0 +1,84 @@
+From: Your Name <you@example.com>
+Date: Mon, 30 Jan 2023 15:13:51 +0000
+Subject: 109-2 Move navigation bar to bottom fixup
+
+---
+ .../tasks/tab_management/TabListCoordinator.java  |  8 +++++---
+ .../DropdownItemViewInfoListManager.java          | 15 +++++++++++----
+ 2 files changed, 16 insertions(+), 7 deletions(-)
+
+diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
+--- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
++++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
+@@ -139,8 +139,10 @@ public class TabListCoordinator
+ 
+         @Override
+         public void scrollToPositionWithOffset(int position, int offset) {
+-            mLastPosition = position;
+-            super.scrollToPositionWithOffset(position, getPaddingBottom());
++            if (mIsFirstLayout) {
++                mLastPosition = position;
++                super.scrollToPositionWithOffset(mLastPosition, getPaddingBottom());
++            }
+         }
+ 
+         @Override
+@@ -152,8 +154,8 @@ public class TabListCoordinator
+             if (lastView != null) {
+                 mTopPadding = Math.min(mTopPadding, mRecyclerView.getHeight() - lastView.getHeight());
+                 if (mIsFirstLayout) {
+-                    mIsFirstLayout = false;
+                     scrollToPositionWithOffset(mLastPosition, 0);
++                    mIsFirstLayout = false;
+                 }
+             }
+ 
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
+@@ -11,6 +11,8 @@ import android.view.View;
+ import androidx.annotation.NonNull;
+ import androidx.annotation.Px;
+ 
++import org.chromium.chrome.browser.flags.CachedFeatureFlags;
++import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.chrome.browser.omnibox.OmniboxFeatures;
+ import org.chromium.chrome.browser.omnibox.R;
+ import org.chromium.chrome.browser.ui.theme.BrandedColorScheme;
+@@ -165,6 +167,7 @@ class DropdownItemViewInfoListManager {
+         GroupSection previousSection = null;
+         GroupSection currentSection;
+ 
++        boolean toolbarToBottom = ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled();
+         for (int i = 0; i < mSourceViewInfoList.size(); i++) {
+             final DropdownItemViewInfo item = mSourceViewInfoList.get(i);
+             final PropertyModel model = item.model;
+@@ -180,18 +183,22 @@ class DropdownItemViewInfoListManager {
+                 var topMargin = applyRounding ? groupTopMargin : suggestionVerticalMargin;
+                 var bottomMargin = applyRounding ? groupBottomMargin : suggestionVerticalMargin;
+ 
+-                model.set(DropdownCommonProperties.BG_TOP_CORNER_ROUNDED, applyRounding);
++                model.set(toolbarToBottom ?
++                    DropdownCommonProperties.BG_BOTTOM_CORNER_ROUNDED :
++                    DropdownCommonProperties.BG_TOP_CORNER_ROUNDED, applyRounding);
+                 // Do not have margin for the first suggestion, otherwise the first suggestion will
+                 // have a big gap with the Omnibox.
+-                model.set(DropdownCommonProperties.TOP_MARGIN,
++                model.set(toolbarToBottom ? DropdownCommonProperties.BOTTOM_MARGIN : DropdownCommonProperties.TOP_MARGIN,
+                         previousItem == null
+                                 ? getSuggestionListTopMargin(item.processor.getViewTypeId())
+                                 : topMargin);
+ 
+                 if (previousItem != null) {
+                     previousItem.model.set(
+-                            DropdownCommonProperties.BG_BOTTOM_CORNER_ROUNDED, applyRounding);
+-                    previousItem.model.set(DropdownCommonProperties.BOTTOM_MARGIN, bottomMargin);
++                            toolbarToBottom ?
++                                DropdownCommonProperties.BG_TOP_CORNER_ROUNDED :
++                                DropdownCommonProperties.BG_BOTTOM_CORNER_ROUNDED, applyRounding);
++                    previousItem.model.set(toolbarToBottom ? DropdownCommonProperties.TOP_MARGIN : DropdownCommonProperties.BOTTOM_MARGIN, bottomMargin);
+                 }
+ 
+                 previousItem = item;
+--
+2.25.1
