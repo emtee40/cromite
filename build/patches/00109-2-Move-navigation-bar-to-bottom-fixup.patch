@@ -3,36 +3,32 @@ Date: Mon, 30 Jan 2023 15:13:51 +0000
 Subject: 109-2 Move navigation bar to bottom fixup
 
 ---
- .../tasks/tab_management/TabListCoordinator.java  |  8 +++++---
+ .../tasks/tab_management/TabListCoordinator.java  |  5 +++--
  .../DropdownItemViewInfoListManager.java          | 15 +++++++++++----
- 2 files changed, 16 insertions(+), 7 deletions(-)
+ 2 files changed, 14 insertions(+), 6 deletions(-)
 
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
 +++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
-@@ -139,8 +139,10 @@ public class TabListCoordinator
+@@ -139,15 +139,16 @@ public class TabListCoordinator
  
          @Override
          public void scrollToPositionWithOffset(int position, int offset) {
--            mLastPosition = position;
++            if (offset != 0) return;
+             mLastPosition = position;
 -            super.scrollToPositionWithOffset(position, getPaddingBottom());
-+            if (mIsFirstLayout) {
-+                mLastPosition = position;
-+                super.scrollToPositionWithOffset(mLastPosition, getPaddingBottom());
-+            }
++            super.scrollToPositionWithOffset(mLastPosition, getPaddingBottom());
          }
  
          @Override
-@@ -152,8 +154,8 @@ public class TabListCoordinator
+         public void onLayoutCompleted(RecyclerView.State state) {
+             super.onLayoutCompleted(state);
+ 
+-            if (state.isPreLayout()) return;
++            if (state.isPreLayout() || state.isMeasuring()) return;
+             View lastView = findViewByPosition(findFirstVisibleItemPosition());
              if (lastView != null) {
                  mTopPadding = Math.min(mTopPadding, mRecyclerView.getHeight() - lastView.getHeight());
-                 if (mIsFirstLayout) {
--                    mIsFirstLayout = false;
-                     scrollToPositionWithOffset(mLastPosition, 0);
-+                    mIsFirstLayout = false;
-                 }
-             }
- 
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
