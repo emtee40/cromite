@@ -3,21 +3,43 @@ Date: Mon, 30 Jan 2023 15:13:51 +0000
 Subject: 109-2 Move navigation bar to bottom fixup
 
 ---
- .../tasks/tab_management/TabListCoordinator.java  |  5 +++--
- .../DropdownItemViewInfoListManager.java          | 15 +++++++++++----
- 2 files changed, 14 insertions(+), 6 deletions(-)
+ .../tab_management/TabListCoordinator.java    | 20 +++++++++++--------
+ .../DropdownItemViewInfoListManager.java      | 15 ++++++++++----
+ 2 files changed, 23 insertions(+), 12 deletions(-)
 
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
 +++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
-@@ -139,15 +139,16 @@ public class TabListCoordinator
+@@ -105,7 +105,9 @@ public class TabListCoordinator
  
+         TabListRecyclerView mRecyclerView;
+ 
+-        int mTopPadding = 99999;
++        final int MAX_TOP_PADDING = 99999;
++        int mTopPadding = MAX_TOP_PADDING;
++
+         int mLastPosition = -1;
+         boolean mIsFirstLayout = true;
+ 
+@@ -125,10 +127,10 @@ public class TabListCoordinator
+         @Override
+         public int getPaddingTop() {
+             if (mContext.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+-                mTopPadding = 99999;
++                mTopPadding = MAX_TOP_PADDING;
+                 return 0;
+             }
+-            if (mTopPadding == 99999) return super.getPaddingTop();
++            if (mTopPadding == MAX_TOP_PADDING) return super.getPaddingTop();
+             return mTopPadding;
+         }
+ 
+@@ -140,26 +142,28 @@ public class TabListCoordinator
          @Override
          public void scrollToPositionWithOffset(int position, int offset) {
-+            if (offset != 0) return;
              mLastPosition = position;
 -            super.scrollToPositionWithOffset(position, getPaddingBottom());
-+            super.scrollToPositionWithOffset(mLastPosition, getPaddingBottom());
++            super.scrollToPositionWithOffset(position, offset - getPaddingTop());
          }
  
          @Override
@@ -28,7 +50,24 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 +            if (state.isPreLayout() || state.isMeasuring()) return;
              View lastView = findViewByPosition(findFirstVisibleItemPosition());
              if (lastView != null) {
++                if (mTopPadding == 0) mTopPadding = MAX_TOP_PADDING;
                  mTopPadding = Math.min(mTopPadding, mRecyclerView.getHeight() - lastView.getHeight());
+                 if (mIsFirstLayout) {
+                     mIsFirstLayout = false;
+-                    scrollToPositionWithOffset(mLastPosition, 0);
++                    scrollToPositionWithOffset(mLastPosition, getPaddingTop() + getPaddingBottom());
+                 }
+             }
+ 
+-            if (mLastPosition != -1 && mLastPosition >= state.getItemCount()) {
++            if (mLastPosition >= state.getItemCount()) {
+                 ResetTopPosition();
+-                scrollToPositionWithOffset(state.getItemCount()-getSpanCount(), 0);
++                scrollToPositionWithOffset(state.getItemCount()-getSpanCount(),
++                    getPaddingTop() + getPaddingBottom());
+             }
+         }
+     }
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
