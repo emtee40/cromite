@@ -13,7 +13,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../drawable-xxxhdpi/settings_autoplay.png    | Bin 0 -> 1064 bytes
  .../res/xml/site_settings_preferences.xml     |   4 ++++
  .../ContentSettingsResources.java             |   5 +++-
- .../site_settings/SingleCategorySettings.java |   4 ++++
+ .../site_settings/SingleCategorySettings.java |   8 +++++++
  .../site_settings/SingleWebsiteSettings.java  |  22 ++++++++++++++++++
  .../site_settings/SiteSettingsCategory.java   |   9 +++++--
  .../browser_ui/site_settings/Website.java     |   9 +++++++
@@ -36,7 +36,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../platform/web_content_settings_client.h    |   3 +++
  .../core/html/media/autoplay_policy.cc        |  12 ++++++++++
  .../core/html/media/autoplay_policy.h         |   4 ++++
- 31 files changed, 121 insertions(+), 4 deletions(-)
+ 31 files changed, 125 insertions(+), 4 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/settings_autoplay.png
@@ -46,7 +46,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -171,6 +171,11 @@ android_resources("java_resources") {
+@@ -177,6 +177,11 @@ android_resources("java_resources") {
      "java/res/drawable-mdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-mdpi/permission_background_sync.png",
      "java/res/drawable-mdpi/permission_javascript.png",
@@ -169,7 +169,7 @@ HcmV?d00001
 diff --git a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
 --- a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
 +++ b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
-@@ -67,6 +67,10 @@ found in the LICENSE file.
+@@ -71,6 +71,10 @@ Also add new settings to site_settings_preferences_with_categories.xml!
      <org.chromium.components.browser_ui.settings.ChromeBasePreference
          android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings"
          android:key="protected_content" />
@@ -183,7 +183,7 @@ diff --git a/components/browser_ui/site_settings/android/java/res/xml/site_setti
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
-@@ -105,7 +105,10 @@ public class ContentSettingsResources {
+@@ -108,7 +108,10 @@ public class ContentSettingsResources {
                  return new ResourceItem(R.drawable.infobar_downloading,
                          R.string.automatic_downloads_permission_title, ContentSettingValues.ASK,
                          ContentSettingValues.BLOCK, R.string.website_settings_category_ask, 0);
@@ -198,24 +198,28 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
-@@ -624,6 +624,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-         int resource = 0;
-         if (mCategory.getType() == SiteSettingsCategory.Type.AUTOMATIC_DOWNLOADS) {
-             resource = R.string.website_settings_add_site_description_automatic_downloads;
-+        } else if (mCategory.getType() == SiteSettingsCategory.Type.AUTOPLAY) {
-+            resource = R.string.website_settings_add_site_description_autoplay;
-         } else if (mCategory.getType() == SiteSettingsCategory.Type.BACKGROUND_SYNC) {
-             resource = R.string.website_settings_add_site_description_background_sync;
-         } else if (mCategory.getType() == SiteSettingsCategory.Type.JAVASCRIPT) {
-@@ -756,6 +758,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-         boolean allowSpecifyingExceptions = false;
-         if (mCategory.getType() == SiteSettingsCategory.Type.SOUND) {
-             allowSpecifyingExceptions = true;
+@@ -714,6 +714,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+             case SiteSettingsCategory.Type.BACKGROUND_SYNC:
+                 resource = R.string.website_settings_add_site_description_background_sync;
+                 break;
++            case SiteSettingsCategory.Type.AUTOPLAY:
++                resource = WebsitePreferenceBridge.isCategoryEnabled(
++                                   browserContextHandle, ContentSettingsType.AUTOPLAY)
++                        ? R.string.website_settings_add_site_description_autoplay
++                        : R.string.website_settings_add_site_description_autoplay;
++                break;
+             case SiteSettingsCategory.Type.JAVASCRIPT:
+                 resource = WebsitePreferenceBridge.isCategoryEnabled(
+                                    browserContextHandle, ContentSettingsType.JAVASCRIPT)
+@@ -1135,6 +1141,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+         Preference infoText = screen.findPreference(INFO_TEXT_KEY);
+         if (mCategory.getType() == SiteSettingsCategory.Type.COOKIES) {
+             infoText.setSummary(R.string.website_settings_cookie_info);
 +        } else if (mCategory.getType() == SiteSettingsCategory.Type.AUTOPLAY) {
 +            allowSpecifyingExceptions = true;
-         } else if (mCategory.getType() == SiteSettingsCategory.Type.JAVASCRIPT) {
-             allowSpecifyingExceptions = true;
-         } else if (mCategory.getType() == SiteSettingsCategory.Type.COOKIES) {
+         } else if (mCategory.getType() == SiteSettingsCategory.Type.SITE_DATA) {
+             infoText.setSummary(R.string.website_settings_site_data_page_description);
+         } else if (mCategory.getType() == SiteSettingsCategory.Type.THIRD_PARTY_COOKIES) {
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
@@ -237,7 +241,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              } else if (type == ContentSettingsType.SOUND) {
                  setUpSoundPreference(preference);
              } else if (type == ContentSettingsType.JAVASCRIPT) {
-@@ -1027,6 +1031,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1025,6 +1029,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          setupContentSettingsPreference(preference, currentValue, false /* isEmbargoed */);
      }
  
@@ -265,29 +269,29 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-@@ -43,7 +43,7 @@ public class SiteSettingsCategory {
-             Type.JAVASCRIPT, Type.MICROPHONE, Type.NFC, Type.NOTIFICATIONS, Type.POPUPS,
+@@ -47,7 +47,7 @@ public class SiteSettingsCategory {
              Type.PROTECTED_MEDIA, Type.SENSORS, Type.SOUND, Type.USB, Type.VIRTUAL_REALITY,
              Type.USE_STORAGE, Type.AUTO_DARK_WEB_CONTENT, Type.REQUEST_DESKTOP_SITE,
--            Type.FEDERATED_IDENTITY_API, Type.TIMEZONE_OVERRIDE})
-+            Type.FEDERATED_IDENTITY_API, Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY})
+             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA,
+-            Type.TIMEZONE_OVERRIDE,
++            Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY,
+             Type.NUM_ENTRIES})
      @Retention(RetentionPolicy.SOURCE)
      public @interface Type {
-         // All updates here must also be reflected in {@link #preferenceKey(int)
-@@ -75,10 +75,11 @@ public class SiteSettingsCategory {
-         int REQUEST_DESKTOP_SITE = 24;
-         int FEDERATED_IDENTITY_API = 25;
-         int TIMEZONE_OVERRIDE = 26;
-+        int AUTOPLAY = 27;
+@@ -82,10 +82,11 @@ public class SiteSettingsCategory {
+         int THIRD_PARTY_COOKIES = 26;
+         int SITE_DATA = 27;
+         int TIMEZONE_OVERRIDE = 28;
++        int AUTOPLAY = 29;
          /**
           * Number of handled categories used for calculating array sizes.
           */
--        int NUM_ENTRIES = 27;
-+        int NUM_ENTRIES = 28;
+-        int NUM_ENTRIES = 29;
++        int NUM_ENTRIES = 30;
      }
  
      private final BrowserContextHandle mBrowserContextHandle;
-@@ -191,6 +192,8 @@ public class SiteSettingsCategory {
+@@ -200,6 +201,8 @@ public class SiteSettingsCategory {
                  return ContentSettingsType.NFC;
              case Type.NOTIFICATIONS:
                  return ContentSettingsType.NOTIFICATIONS;
@@ -296,7 +300,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case Type.POPUPS:
                  return ContentSettingsType.POPUPS;
              case Type.PROTECTED_MEDIA:
-@@ -271,6 +274,8 @@ public class SiteSettingsCategory {
+@@ -281,6 +284,8 @@ public class SiteSettingsCategory {
                  return "nfc";
              case Type.NOTIFICATIONS:
                  return "notifications";
@@ -327,7 +331,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
-@@ -64,6 +64,7 @@ public class WebsitePermissionsFetcher {
+@@ -66,6 +66,7 @@ public class WebsitePermissionsFetcher {
              case ContentSettingsType.AUTOMATIC_DOWNLOADS:
              case ContentSettingsType.BACKGROUND_SYNC:
              case ContentSettingsType.BLUETOOTH_SCANNING:
@@ -349,7 +353,7 @@ diff --git a/components/browser_ui/site_settings/android/website_preference_brid
 diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
 --- a/components/browser_ui/strings/android/site_settings.grdp
 +++ b/components/browser_ui/strings/android/site_settings.grdp
-@@ -12,6 +12,15 @@
+@@ -19,6 +19,15 @@
    <message name="IDS_ADS_PERMISSION_TITLE" desc="Title for the ads permission [CHAR_LIMIT=32]">
      Ads
    </message>
@@ -368,7 +372,7 @@ diff --git a/components/browser_ui/strings/android/site_settings.grdp b/componen
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -269,7 +269,7 @@ void ContentSettingsRegistry::Init() {
+@@ -250,7 +250,7 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::PERSISTENT,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
@@ -392,7 +396,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
 --- a/components/content_settings/core/common/content_settings.cc
 +++ b/components/content_settings/core/common/content_settings.cc
-@@ -205,6 +205,7 @@ bool RendererContentSettingRules::IsRendererContentSetting(
+@@ -208,6 +208,7 @@ bool RendererContentSettingRules::IsRendererContentSetting(
    return content_type == ContentSettingsType::IMAGES ||
           content_type == ContentSettingsType::JAVASCRIPT ||
           content_type == ContentSettingsType::POPUPS ||
@@ -400,7 +404,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
           content_type == ContentSettingsType::MIXEDSCRIPT ||
           content_type == ContentSettingsType::AUTO_DARK_WEB_CONTENT ||
           content_type == ContentSettingsType::TIMEZONE_OVERRIDE;
-@@ -218,6 +219,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
+@@ -221,6 +222,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
    FilterRulesForType(mixed_content_rules, outermost_main_frame_url);
    FilterRulesForType(auto_dark_content_rules, outermost_main_frame_url);
    FilterRulesForType(timezone_override_rules, outermost_main_frame_url);
@@ -459,7 +463,7 @@ diff --git a/components/content_settings/core/common/content_settings_mojom_trai
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
 --- a/components/content_settings/renderer/content_settings_agent_impl.cc
 +++ b/components/content_settings/renderer/content_settings_agent_impl.cc
-@@ -396,6 +396,17 @@ bool ContentSettingsAgentImpl::AllowRunningInsecureContent(
+@@ -388,6 +388,17 @@ bool ContentSettingsAgentImpl::AllowRunningInsecureContent(
    return false;
  }
  

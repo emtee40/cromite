@@ -7,13 +7,13 @@ Subject: Revert the removal to block autoplay (win fixup)
  chrome/browser/resources/settings/icons.html  |  2 ++
  .../settings/privacy_page/privacy_page.html   | 22 +++++++++++++++++++
  chrome/browser/resources/settings/route.ts    |  1 +
- .../resources/settings/settings_routes.ts     |  1 +
+ chrome/browser/resources/settings/router.ts   |  1 +
  .../site_settings/category_default_setting.ts |  1 +
  .../settings/site_settings/constants.ts       |  1 +
  .../settings_category_default_radio_group.ts  |  1 +
  .../settings/site_settings/site_details.html  |  5 +++++
- .../recent_site_permissions.ts                |  2 ++
  .../site_settings_page/site_settings_page.ts  |  9 ++++++++
+ .../site_settings_page_util.ts                |  2 ++
  .../views/page_info/page_info_view_factory.cc |  3 +++
  .../settings_localized_strings_provider.cc    |  7 ++++++
  .../ui/webui/settings/site_settings_helper.cc |  4 +++-
@@ -22,7 +22,7 @@ Subject: Revert the removal to block autoplay (win fixup)
 diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -3796,6 +3796,25 @@
+@@ -4003,6 +4003,25 @@
      Control how your browsing history is used to personalize Search and more
    </message>
  
@@ -51,7 +51,7 @@ diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 diff --git a/chrome/browser/resources/settings/icons.html b/chrome/browser/resources/settings/icons.html
 --- a/chrome/browser/resources/settings/icons.html
 +++ b/chrome/browser/resources/settings/icons.html
-@@ -170,6 +170,8 @@ NOTE: Chrome OS icons go in ./chromeos/os_icons.html.
+@@ -177,6 +177,8 @@ NOTE: Chrome OS icons go in ./chromeos/os_icons.html.
        <g id="file-handling"><path d="M8 16h8v2H8v-2zm0-4h8v2H8v-2zm6-10H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" fill="#5F6368"></path></g>
        <g id="file-handling-off"><path d="M13.002 4.001H7.106L5.252 2.148c.232-.094.485-.147.75-.147h8l6 6v8.896l-2-2V9.001h-5v-5z" fill="#5F6368"></path><path d="M16.002 12.001h-.896l.896.896v-.896zM.6 3.45l1.414-1.414 19.94 19.94-1.414 1.414L.6 3.45zM3.986 20.01V6.84l2 2V20.01h11.172l1.765 1.766c-.28.15-.599.234-.937.234H5.976c-1.1 0-1.99-.9-1.99-2z" fill="#5F6368"></path><path d="M9.158 12.01H7.986v2h3.172l-2-2zM13.158 16.01H7.986v2h7.172l-2-2z" fill="#5F6368"></path></g>
        <g id="performance"><path d="M0 0h24v24H0z" fill="none"></path><path d="m20.38 8.57-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"></path></g>
@@ -63,7 +63,7 @@ diff --git a/chrome/browser/resources/settings/icons.html b/chrome/browser/resou
 diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/chrome/browser/resources/settings/privacy_page/privacy_page.html
 --- a/chrome/browser/resources/settings/privacy_page/privacy_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/privacy_page.html
-@@ -1003,4 +1003,26 @@
+@@ -1074,4 +1074,26 @@
            </category-setting-exceptions>
          </settings-subpage>
        </template>
@@ -93,7 +93,7 @@ diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/
 diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resources/settings/route.ts
 --- a/chrome/browser/resources/settings/route.ts
 +++ b/chrome/browser/resources/settings/route.ts
-@@ -100,6 +100,7 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
+@@ -110,6 +110,7 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
        r.SITE_SETTINGS.createChild('windowManagement');
    r.SITE_SETTINGS_FILE_SYSTEM_WRITE = r.SITE_SETTINGS.createChild('filesystem');
    r.SITE_SETTINGS_LOCAL_FONTS = r.SITE_SETTINGS.createChild('localFonts');
@@ -101,15 +101,17 @@ diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resourc
  }
  
  /**
-diff --git a/chrome/browser/resources/settings/settings_routes.ts b/chrome/browser/resources/settings/settings_routes.ts
---- a/chrome/browser/resources/settings/settings_routes.ts
-+++ b/chrome/browser/resources/settings/settings_routes.ts
-@@ -94,4 +94,5 @@ export interface SettingsRoutes {
+diff --git a/chrome/browser/resources/settings/router.ts b/chrome/browser/resources/settings/router.ts
+--- a/chrome/browser/resources/settings/router.ts
++++ b/chrome/browser/resources/settings/router.ts
+@@ -103,6 +103,7 @@ export interface SettingsRoutes {
    SYNC_ADVANCED: Route;
    SYSTEM: Route;
    TRIGGERED_RESET_DIALOG: Route;
 +  SITE_SETTINGS_AUTOPLAY: Route;
  }
+ 
+ /** Class for navigable routes. */
 diff --git a/chrome/browser/resources/settings/site_settings/category_default_setting.ts b/chrome/browser/resources/settings/site_settings/category_default_setting.ts
 --- a/chrome/browser/resources/settings/site_settings/category_default_setting.ts
 +++ b/chrome/browser/resources/settings/site_settings/category_default_setting.ts
@@ -124,14 +126,14 @@ diff --git a/chrome/browser/resources/settings/site_settings/category_default_se
 diff --git a/chrome/browser/resources/settings/site_settings/constants.ts b/chrome/browser/resources/settings/site_settings/constants.ts
 --- a/chrome/browser/resources/settings/site_settings/constants.ts
 +++ b/chrome/browser/resources/settings/site_settings/constants.ts
-@@ -43,6 +43,7 @@ export enum ContentSettingsTypes {
+@@ -45,6 +45,7 @@ export enum ContentSettingsTypes {
    VR = 'vr',
    WINDOW_MANAGEMENT = 'window-placement',
    ZOOM_LEVELS = 'zoom-levels',
 +  AUTOPLAY = 'autoplay',
  
-   // The following item is not in the C++ kContentSettingsTypeGroupNames, but it
-   // is used everywhere where ContentSettingsTypes is used in JS.
+   // The following items are not in the C++ kContentSettingsTypeGroupNames, but
+   // are used everywhere where ContentSettingsTypes is used in JS.
 diff --git a/chrome/browser/resources/settings/site_settings/settings_category_default_radio_group.ts b/chrome/browser/resources/settings/site_settings/settings_category_default_radio_group.ts
 --- a/chrome/browser/resources/settings/site_settings/settings_category_default_radio_group.ts
 +++ b/chrome/browser/resources/settings/site_settings/settings_category_default_radio_group.ts
@@ -156,22 +158,10 @@ diff --git a/chrome/browser/resources/settings/site_settings/site_details.html b
 +          label="$i18n{siteSettingsFederatedIdentityApi}">
 +      </site-details-permission>
      </div>
-diff --git a/chrome/browser/resources/settings/site_settings_page/recent_site_permissions.ts b/chrome/browser/resources/settings/site_settings_page/recent_site_permissions.ts
---- a/chrome/browser/resources/settings/site_settings_page/recent_site_permissions.ts
-+++ b/chrome/browser/resources/settings/site_settings_page/recent_site_permissions.ts
-@@ -196,6 +196,8 @@ export class SettingsRecentSitePermissionsElement extends
-         return this.i18n('siteSettingsFontAccessMidSentence');
-       case ContentSettingsTypes.IDLE_DETECTION:
-         return this.i18n('siteSettingsIdleDetectionMidSentence');
-+      case ContentSettingsTypes.AUTOPLAY:
-+        return this.i18n('siteSettingsAutoplayMidSentence');
-       default:
-         return '';
-     }
 diff --git a/chrome/browser/resources/settings/site_settings_page/site_settings_page.ts b/chrome/browser/resources/settings/site_settings_page/site_settings_page.ts
 --- a/chrome/browser/resources/settings/site_settings_page/site_settings_page.ts
 +++ b/chrome/browser/resources/settings/site_settings_page/site_settings_page.ts
-@@ -313,6 +313,14 @@ function getCategoryItemMap(): Map<ContentSettingsTypes, CategoryListItem> {
+@@ -324,6 +324,14 @@ function getCategoryItemMap(): Map<ContentSettingsTypes, CategoryListItem> {
        label: 'siteSettingsZoomLevels',
        icon: 'settings:zoom-in',
      },
@@ -186,14 +176,26 @@ diff --git a/chrome/browser/resources/settings/site_settings_page/site_settings_
    ];
  
    categoryItemMap = new Map(categoryList.map(item => [item.id, item]));
-@@ -395,6 +403,7 @@ export class SettingsSiteSettingsPageElement extends PolymerElement {
-               Id.PROTECTED_CONTENT,
+@@ -410,6 +418,7 @@ export class SettingsSiteSettingsPageElement extends
                Id.MIXEDSCRIPT,
                Id.FEDERATED_IDENTITY_API,
+               Id.SITE_DATA,
 +              Id.AUTOPLAY,
              ]),
            };
          },
+diff --git a/chrome/browser/resources/settings/site_settings_page/site_settings_page_util.ts b/chrome/browser/resources/settings/site_settings_page/site_settings_page_util.ts
+--- a/chrome/browser/resources/settings/site_settings_page/site_settings_page_util.ts
++++ b/chrome/browser/resources/settings/site_settings_page/site_settings_page_util.ts
+@@ -77,6 +77,8 @@ export function getLocalizationStringForContentType(
+       return 'siteSettingsWindowManagementMidSentence';
+     case ContentSettingsTypes.ZOOM_LEVELS:
+       return 'siteSettingsZoomLevelsMidSentence';
++    case ContentSettingsTypes.AUTOPLAY:
++      return 'siteSettingsAutoplayMidSentence';
+     // The following members do not have a mid-sentence localization.
+     case ContentSettingsTypes.PDF_DOCUMENTS:
+     case ContentSettingsTypes.PRIVATE_NETWORK_DEVICES:
 diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.cc b/chrome/browser/ui/views/page_info/page_info_view_factory.cc
 --- a/chrome/browser/ui/views/page_info/page_info_view_factory.cc
 +++ b/chrome/browser/ui/views/page_info/page_info_view_factory.cc
@@ -210,7 +212,7 @@ diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.cc b/chrom
 diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2148,6 +2148,13 @@ void AddSearchEnginesStrings(content::WebUIDataSource* html_source) {
+@@ -2335,6 +2335,13 @@ void AddSearchEnginesStrings(content::WebUIDataSource* html_source) {
  void AddSiteSettingsStrings(content::WebUIDataSource* html_source,
                              Profile* profile) {
    static constexpr webui::LocalizedString kLocalizedStrings[] = {
@@ -243,7 +245,7 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
      {ContentSettingsType::IMPORTANT_SITE_INFO, nullptr},
      {ContentSettingsType::PERMISSION_AUTOBLOCKER_DATA, nullptr},
      {ContentSettingsType::ADS_DATA, nullptr},
-@@ -448,6 +448,8 @@ const std::vector<ContentSettingsType>& GetVisiblePermissionCategories() {
+@@ -451,6 +451,8 @@ const std::vector<ContentSettingsType>& GetVisiblePermissionCategories() {
        base_types->push_back(ContentSettingsType::PRIVATE_NETWORK_GUARD);
      }
  

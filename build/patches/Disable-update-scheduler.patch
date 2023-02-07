@@ -4,22 +4,20 @@ Subject: Disable update scheduler
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../components/component_updater/UpdateScheduler.java         | 4 +---
- 1 file changed, 1 insertion(+), 3 deletions(-)
+ .../background_task_scheduler/ChromeBackgroundTaskFactory.java  | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/components/component_updater/android/java/src/org/chromium/components/component_updater/UpdateScheduler.java b/components/component_updater/android/java/src/org/chromium/components/component_updater/UpdateScheduler.java
---- a/components/component_updater/android/java/src/org/chromium/components/component_updater/UpdateScheduler.java
-+++ b/components/component_updater/android/java/src/org/chromium/components/component_updater/UpdateScheduler.java
-@@ -33,9 +33,7 @@ public class UpdateScheduler {
- 
-     @CalledByNative
-     /* package */ static boolean isAvailable() {
--        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
--                || ChromiumPlayServicesAvailability.isGooglePlayServicesAvailable(
--                        ContextUtils.getApplicationContext());
-+        return false;
-     }
- 
-     /* package */ void onStartTaskBeforeNativeLoaded(TaskFinishedCallback callback) {
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java b/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
+@@ -67,7 +67,7 @@ public class ChromeBackgroundTaskFactory implements BackgroundTaskFactory {
+             case TaskIds.WEBAPK_UPDATE_JOB_ID:
+                 return new WebApkUpdateTask();
+             case TaskIds.COMPONENT_UPDATE_JOB_ID:
+-                return new UpdateTask();
++                return null;
+             case TaskIds.DEPRECATED_EXPLORE_SITES_REFRESH_JOB_ID:
+             case TaskIds.EXPLORE_SITES_REFRESH_JOB_ID:
+                 return new ExploreSitesBackgroundTask();
 --
 2.25.1

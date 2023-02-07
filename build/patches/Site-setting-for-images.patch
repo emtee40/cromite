@@ -13,9 +13,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../drawable-xxxhdpi/permission_images.png    | Bin 0 -> 532 bytes
  .../res/xml/site_settings_preferences.xml     |   4 ++++
  .../ContentSettingsResources.java             |   4 ++++
- .../site_settings/SingleCategorySettings.java |   4 ++++
+ .../site_settings/SingleCategorySettings.java |   8 +++++++
  .../site_settings/SingleWebsiteSettings.java  |  22 ++++++++++++++++++
- .../site_settings/SiteSettingsCategory.java   |  10 ++++++--
+ .../site_settings/SiteSettingsCategory.java   |   9 +++++--
  .../site_settings/SiteSettingsUtil.java       |   1 +
  .../browser_ui/site_settings/Website.java     |   7 ++++++
  .../WebsitePermissionsFetcher.java            |   1 +
@@ -27,7 +27,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/page_info/page_info.cc             |   7 ++++--
  components/page_info/page_info_ui.cc          |   4 ++--
  components/site_settings_strings.grdp         |  12 +++++-----
- 22 files changed, 84 insertions(+), 19 deletions(-)
+ 22 files changed, 87 insertions(+), 19 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/permission_images.png
@@ -37,7 +37,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -163,6 +163,7 @@ android_resources("java_resources") {
+@@ -169,6 +169,7 @@ android_resources("java_resources") {
    sources = [
      "java/res/drawable-hdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-hdpi/permission_background_sync.png",
@@ -45,7 +45,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-hdpi/permission_javascript.png",
      "java/res/drawable-hdpi/permission_javascript_jit.png",
      "java/res/drawable-hdpi/permission_popups.png",
-@@ -171,6 +172,7 @@ android_resources("java_resources") {
+@@ -177,6 +178,7 @@ android_resources("java_resources") {
      "java/res/drawable-hdpi/web_asset.png",
      "java/res/drawable-mdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-mdpi/permission_background_sync.png",
@@ -53,7 +53,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-mdpi/permission_javascript.png",
      "java/res/drawable-mdpi/permission_javascript_jit.png",
      "java/res/drawable-hdpi/settings_autoplay.png",
-@@ -184,6 +186,7 @@ android_resources("java_resources") {
+@@ -190,6 +192,7 @@ android_resources("java_resources") {
      "java/res/drawable-mdpi/web_asset.png",
      "java/res/drawable-xhdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-xhdpi/permission_background_sync.png",
@@ -61,7 +61,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-xhdpi/permission_javascript.png",
      "java/res/drawable-xhdpi/permission_javascript_jit.png",
      "java/res/drawable-xhdpi/permission_popups.png",
-@@ -192,6 +195,7 @@ android_resources("java_resources") {
+@@ -198,6 +201,7 @@ android_resources("java_resources") {
      "java/res/drawable-xhdpi/web_asset.png",
      "java/res/drawable-xxhdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-xxhdpi/permission_background_sync.png",
@@ -69,7 +69,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-xxhdpi/permission_javascript.png",
      "java/res/drawable-xxhdpi/permission_javascript_jit.png",
      "java/res/drawable-xxhdpi/permission_popups.png",
-@@ -200,6 +204,7 @@ android_resources("java_resources") {
+@@ -206,6 +210,7 @@ android_resources("java_resources") {
      "java/res/drawable-xxhdpi/web_asset.png",
      "java/res/drawable-xxxhdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-xxxhdpi/permission_background_sync.png",
@@ -162,7 +162,7 @@ HcmV?d00001
 diff --git a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
 --- a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
 +++ b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
-@@ -47,6 +47,10 @@ found in the LICENSE file.
+@@ -51,6 +51,10 @@ Also add new settings to site_settings_preferences_with_categories.xml!
      <org.chromium.components.browser_ui.settings.ChromeBasePreference
          android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings"
          android:key="javascript" />
@@ -176,7 +176,7 @@ diff --git a/components/browser_ui/site_settings/android/java/res/xml/site_setti
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
-@@ -126,6 +126,10 @@ public class ContentSettingsResources {
+@@ -129,6 +129,10 @@ public class ContentSettingsResources {
                  return new ResourceItem(R.drawable.settings_bluetooth, 0, ContentSettingValues.ASK,
                          ContentSettingValues.BLOCK, 0, 0);
  
@@ -190,24 +190,28 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
-@@ -643,6 +643,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-                                browserContextHandle, ContentSettingsType.SOUND)
-                     ? R.string.website_settings_add_site_description_sound_block
-                     : R.string.website_settings_add_site_description_sound_allow;
-+        } else if (mCategory.getType() == SiteSettingsCategory.Type.IMAGES) {
-+            resource = R.string.website_settings_add_site_description_images;
-         } else if (mCategory.getType() == SiteSettingsCategory.Type.COOKIES) {
-             if (mRequiresFourStateSetting) {
-                 resource = cookieSettingsExceptionShouldBlock()
-@@ -769,6 +771,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-             allowSpecifyingExceptions = true;
-         } else if (mCategory.getType() == SiteSettingsCategory.Type.JAVASCRIPT_JIT) {
+@@ -738,6 +738,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+                         ? R.string.website_settings_add_site_description_javascript_jit_block
+                         : R.string.website_settings_add_site_description_javascript_jit_allow;
+                 break;
++            case SiteSettingsCategory.Type.IMAGES:
++                resource =  WebsitePreferenceBridge.isCategoryEnabled(
++                                   browserContextHandle, ContentSettingsType.IMAGES)
++                        ? R.string.website_settings_add_site_description_images
++                        : R.string.website_settings_add_site_description_images;
++                break;
+             case SiteSettingsCategory.Type.COOKIES:
+                 resource = getCookieSettingsState() == CookieSettingsState.ALLOW
+                         ? R.string.website_settings_add_site_description_cookies_block
+@@ -1149,6 +1155,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+             infoText.setSummary(R.string.website_settings_cookie_info);
+         } else if (mCategory.getType() == SiteSettingsCategory.Type.AUTOPLAY) {
              allowSpecifyingExceptions = true;
 +        } else if (mCategory.getType() == SiteSettingsCategory.Type.IMAGES) {
 +            allowSpecifyingExceptions = true;
-         } else if (mCategory.getType() == SiteSettingsCategory.Type.COOKIES) {
+         } else if (mCategory.getType() == SiteSettingsCategory.Type.JAVASCRIPT_JIT) {
              allowSpecifyingExceptions = true;
-         } else if (mCategory.getType() == SiteSettingsCategory.Type.BACKGROUND_SYNC
+         } else if (mCategory.getType() == SiteSettingsCategory.Type.SITE_DATA) {
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
@@ -229,7 +233,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              } else if (type == ContentSettingsType.JAVASCRIPT_JIT) {
                  setUpJavascriptJitPreference(preference);
              } else if (type == ContentSettingsType.NOTIFICATIONS) {
-@@ -1144,6 +1148,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1142,6 +1146,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  mSite.isEmbargoed(ContentSettingsType.REQUEST_DESKTOP_SITE));
      }
  
@@ -257,30 +261,29 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-@@ -43,7 +43,8 @@ public class SiteSettingsCategory {
-             Type.JAVASCRIPT, Type.MICROPHONE, Type.NFC, Type.NOTIFICATIONS, Type.POPUPS,
+@@ -47,7 +47,7 @@ public class SiteSettingsCategory {
              Type.PROTECTED_MEDIA, Type.SENSORS, Type.SOUND, Type.USB, Type.VIRTUAL_REALITY,
              Type.USE_STORAGE, Type.AUTO_DARK_WEB_CONTENT, Type.REQUEST_DESKTOP_SITE,
--            Type.FEDERATED_IDENTITY_API, Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT})
-+            Type.FEDERATED_IDENTITY_API, Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT,
-+            Type.IMAGES})
+             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA,
+-            Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT,
++            Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT, Type.IMAGES,
+             Type.NUM_ENTRIES})
      @Retention(RetentionPolicy.SOURCE)
      public @interface Type {
-         // All updates here must also be reflected in {@link #preferenceKey(int)
-@@ -77,10 +78,11 @@ public class SiteSettingsCategory {
-         int TIMEZONE_OVERRIDE = 26;
-         int AUTOPLAY = 27;
-         int JAVASCRIPT_JIT = 28;
-+        int IMAGES = 29;
+@@ -84,10 +84,11 @@ public class SiteSettingsCategory {
+         int TIMEZONE_OVERRIDE = 28;
+         int AUTOPLAY = 29;
+         int JAVASCRIPT_JIT = 30;
++        int IMAGES = 31;
          /**
           * Number of handled categories used for calculating array sizes.
           */
--        int NUM_ENTRIES = 29;
-+        int NUM_ENTRIES = 30;
+-        int NUM_ENTRIES = 31;
++        int NUM_ENTRIES = 32;
      }
  
      private final BrowserContextHandle mBrowserContextHandle;
-@@ -185,6 +187,8 @@ public class SiteSettingsCategory {
+@@ -194,6 +195,8 @@ public class SiteSettingsCategory {
                  return ContentSettingsType.FEDERATED_IDENTITY_API;
              case Type.IDLE_DETECTION:
                  return ContentSettingsType.IDLE_DETECTION;
@@ -289,7 +292,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case Type.JAVASCRIPT:
                  return ContentSettingsType.JAVASCRIPT;
              case Type.JAVASCRIPT_JIT:
-@@ -271,6 +275,8 @@ public class SiteSettingsCategory {
+@@ -281,6 +284,8 @@ public class SiteSettingsCategory {
                  return "idle_detection";
              case Type.JAVASCRIPT:
                  return "javascript";
@@ -329,7 +332,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
-@@ -67,6 +67,7 @@ public class WebsitePermissionsFetcher {
+@@ -69,6 +69,7 @@ public class WebsitePermissionsFetcher {
              case ContentSettingsType.AUTOPLAY:
              case ContentSettingsType.COOKIES:
              case ContentSettingsType.FEDERATED_IDENTITY_API:
@@ -351,7 +354,7 @@ diff --git a/components/browser_ui/site_settings/android/website_preference_brid
 diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
 --- a/components/browser_ui/strings/android/site_settings.grdp
 +++ b/components/browser_ui/strings/android/site_settings.grdp
-@@ -42,6 +42,9 @@
+@@ -70,6 +70,9 @@
    <message name="IDS_WEBSITE_SETTINGS_IDLE_DETECTION" desc="Title of the permission to detect user activity [CHAR_LIMIT=32]">
      Your device use
    </message>
@@ -361,7 +364,7 @@ diff --git a/components/browser_ui/strings/android/site_settings.grdp b/componen
    <message name="IDS_JAVASCRIPT_PERMISSION_TITLE" desc="Title of the permission to run javascript [CHAR_LIMIT=32]">
      JavaScript
    </message>
-@@ -232,6 +235,9 @@
+@@ -260,6 +263,9 @@
    <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_TOAST" desc="The toast shown when a new site has been added to the exception list.">
      Site <ph name="SITE_NAME">%1$s<ex>google.com</ex></ph> added
    </message>
@@ -374,7 +377,7 @@ diff --git a/components/browser_ui/strings/android/site_settings.grdp b/componen
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -100,7 +100,8 @@ void ContentSettingsRegistry::Init() {
+@@ -96,7 +96,8 @@ void ContentSettingsRegistry::Init() {
             {kChromeUIScheme, kChromeDevToolsScheme, kExtensionScheme},
             /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
             WebsiteSettingsInfo::TOP_ORIGIN_WITH_RESOURCE_EXCEPTIONS_SCOPE,

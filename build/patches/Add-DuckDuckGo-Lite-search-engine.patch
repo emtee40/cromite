@@ -6,8 +6,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../search_engines/prepopulated_engines.json  |  10 +
  .../search_engines/search_engine_type.h       |   1 +
- .../template_url_prepopulate_data.cc          | 202 +++++++++---------
- 3 files changed, 112 insertions(+), 101 deletions(-)
+ .../template_url_prepopulate_data.cc          | 184 +++++++++---------
+ 3 files changed, 103 insertions(+), 92 deletions(-)
 
 diff --git a/components/search_engines/prepopulated_engines.json b/components/search_engines/prepopulated_engines.json
 --- a/components/search_engines/prepopulated_engines.json
@@ -49,16 +49,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &yahoo,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &ecosia,
- };
- 
-@@ -51,7 +51,7 @@ const PrepopulatedEngine* const engines_AL[] = {
-     &googleen, &google,
-     &bing,
-     &yahoo,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &yandex_com,
+     &yandex_ru,
  };
  
 @@ -60,7 +60,7 @@ const PrepopulatedEngine* const engines_AR[] = {
@@ -74,9 +65,9 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  const PrepopulatedEngine* const engines_AT[] = {
      &googleen, &google,
      &bing,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &yahoo_at,
+-    &yahoo_at,
++    &yahoo_at, &duckduckgo_light,
+     &duckduckgo,
      &ecosia,
  };
 @@ -78,7 +78,7 @@ const PrepopulatedEngine* const engines_AU[] = {
@@ -121,7 +112,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &yahoo,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &yandex_com,
+     &ecosia,
  };
  
 @@ -123,7 +123,7 @@ const PrepopulatedEngine* const engines_BI[] = {
@@ -157,7 +148,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &yahoo_br,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &ecosia,
+     &yandex_com,
  };
  
 @@ -160,7 +160,7 @@ const PrepopulatedEngine* const engines_BY[] = {
@@ -169,15 +160,6 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  };
  
  // Belize
-@@ -168,7 +168,7 @@ const PrepopulatedEngine* const engines_BZ[] = {
-     &googleen, &google,
-     &bing,
-     &yahoo,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &ecosia,
- };
- 
 @@ -177,7 +177,7 @@ const PrepopulatedEngine* const engines_CA[] = {
      &googleen, &google,
      &bing,
@@ -193,8 +175,8 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &bing,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &ecosia,
      &yahoo_ch,
+     &ecosia,
  };
 @@ -195,7 +195,7 @@ const PrepopulatedEngine* const engines_CL[] = {
      &googleen, &google,
@@ -208,9 +190,9 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
 @@ -214,7 +214,7 @@ const PrepopulatedEngine* const engines_CO[] = {
      &bing,
      &yahoo_co,
-     &ecosia,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
+     &duckduckgo,
+-    &ecosia,
++    &ecosia, &duckduckgo_light,
  };
  
  // Costa Rica
@@ -235,10 +217,10 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
 @@ -240,7 +240,7 @@ const PrepopulatedEngine* const engines_DE[] = {
      &googleen, &google,
      &bing,
-     &ecosia,
+     &yahoo_de,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &yahoo_de,
+     &ecosia,
  };
  
 @@ -249,7 +249,7 @@ const PrepopulatedEngine* const engines_DK[] = {
@@ -268,24 +250,6 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  };
  
  // Ecuador
-@@ -277,7 +277,7 @@ const PrepopulatedEngine* const engines_EC[] = {
-     &bing,
-     &yahoo,
-     &ecosia,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
- };
- 
- // Estonia
-@@ -285,7 +285,7 @@ const PrepopulatedEngine* const engines_EE[] = {
-     &googleen, &google,
-     &bing,
-     &yandex_ru,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &yahoo,
- };
- 
 @@ -295,7 +295,7 @@ const PrepopulatedEngine* const engines_EG[] = {
      &bing,
      &yahoo,
@@ -311,15 +275,6 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
      &yandex_ru,
- };
- 
-@@ -321,7 +321,7 @@ const PrepopulatedEngine* const engines_FO[] = {
-     &googleen, &google,
-     &bing,
-     &yahoo_dk,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &ecosia,
  };
  
 @@ -339,7 +339,7 @@ const PrepopulatedEngine* const engines_GB[] = {
@@ -350,24 +305,15 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  };
  
 @@ -367,7 +367,7 @@ const PrepopulatedEngine* const engines_HK[] = {
-     &yahoo_hk,
      &bing,
+     &yahoo_hk,
      &baidu,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
+-    &so_360,
++    &so_360, &duckduckgo_light,
  };
  
  // Honduras
 @@ -375,7 +375,7 @@ const PrepopulatedEngine* const engines_HN[] = {
-     &googleen, &google,
-     &bing,
-     &yahoo,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &ecosia,
- };
- 
-@@ -384,7 +384,7 @@ const PrepopulatedEngine* const engines_HR[] = {
      &googleen, &google,
      &bing,
      &yahoo,
@@ -385,15 +331,15 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &yandex_com,
  };
  
-@@ -403,7 +403,7 @@ const PrepopulatedEngine* const engines_ID[] = {
-     &yahoo_id,
+@@ -402,7 +402,7 @@ const PrepopulatedEngine* const engines_ID[] = {
+     &googleen, &google,
      &bing,
-     &yandex_com,
+     &yahoo_id,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
+     &yandex_com,
  };
  
- // Ireland
 @@ -411,7 +411,7 @@ const PrepopulatedEngine* const engines_IE[] = {
      &googleen, &google,
      &bing,
@@ -425,17 +371,17 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &bing,
      &yahoo,
      &yandex_tr,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
+-    &petal_search,
++    &petal_search, &duckduckgo_light,
  };
  
  // Iran
 @@ -448,14 +448,14 @@ const PrepopulatedEngine* const engines_IR[] = {
      &bing,
      &yahoo,
-     &ask,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
+     &duckduckgo,
+-    &ask,
++    &ask, &duckduckgo_light,
  };
  
  // Iceland
@@ -465,34 +411,16 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &ecosia,
  };
  
-@@ -483,7 +483,7 @@ const PrepopulatedEngine* const engines_JO[] = {
-     &googleen, &google,
-     &bing,
-     &yahoo,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &yandex_com,
- };
- 
 @@ -492,7 +492,7 @@ const PrepopulatedEngine* const engines_JP[] = {
      &googleen, &google,
-     &yahoo_jp,
      &bing,
+     &yahoo_jp,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
      &baidu,
  };
  
 @@ -501,7 +501,7 @@ const PrepopulatedEngine* const engines_KE[] = {
-     &googleen, &google,
-     &bing,
-     &yahoo,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &ecosia,
- };
- 
-@@ -519,7 +519,7 @@ const PrepopulatedEngine* const engines_KW[] = {
      &googleen, &google,
      &bing,
      &yahoo,
@@ -531,10 +459,10 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
 @@ -555,7 +555,7 @@ const PrepopulatedEngine* const engines_LT[] = {
      &googleen, &google,
      &bing,
-     &yahoo,
+     &yandex_ru,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &yandex_ru,
+     &yahoo,
  };
  
 @@ -563,7 +563,7 @@ const PrepopulatedEngine* const engines_LT[] = {
@@ -558,7 +486,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
 @@ -583,7 +583,7 @@ const PrepopulatedEngine* const engines_LY[] = {
      &bing,
      &yahoo,
-     &yandex_com,
+     &yandex_tr,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
  };
@@ -576,15 +504,15 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  const PrepopulatedEngine* const engines_MC[] = {
      &googleen, &google,
      &bing,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &yahoo_fr,
-     &ecosia,
+-    &yahoo_fr,
++    &yahoo_fr, &duckduckgo_light,
+     &duckduckgo,
+     &qwant,
  };
 @@ -619,7 +619,7 @@ const PrepopulatedEngine* const engines_ME[] = {
      &bing,
-     &yahoo,
      &yandex_ru,
+     &yahoo,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
  };
@@ -596,7 +524,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &yahoo,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &yandex_ru,
+     &yandex_com,
  };
  
 @@ -636,7 +636,7 @@ const PrepopulatedEngine* const engines_MX[] = {
@@ -632,7 +560,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &yahoo_nl,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &ecosia,
+     &yandex_ru,
  };
  
 @@ -672,7 +672,7 @@ const PrepopulatedEngine* const engines_NO[] = {
@@ -651,15 +579,6 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
      &ecosia,
- };
- 
-@@ -690,7 +690,7 @@ const PrepopulatedEngine* const engines_OM[] = {
-     &googleen, &google,
-     &bing,
-     &yahoo,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &petal_search,
  };
  
 @@ -699,7 +699,7 @@ const PrepopulatedEngine* const engines_PA[] = {
@@ -682,7 +601,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  // Philippines
 @@ -718,7 +718,7 @@ const PrepopulatedEngine* const engines_PH[] = {
      &bing,
-     &yahoo,
+     &yahoo_ph,
      &ecosia,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
@@ -762,11 +681,11 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  };
  
 @@ -799,7 +799,7 @@ const PrepopulatedEngine* const engines_RU[] = {
-     &yandex_ru,
-     &mail_ru,
+     &google,
+     &duckduckgo,
      &bing,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
+-    &mail_ru,
++    &mail_ru, &duckduckgo_light,
  };
  
  // Rwanda
@@ -794,16 +713,16 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &yahoo_se,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &ecosia,
+     &yandex_ru,
  };
  
 @@ -834,7 +834,7 @@ const PrepopulatedEngine* const engines_SG[] = {
      &googleen, &google,
      &bing,
      &yahoo_sg,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &baidu,
+-    &baidu,
++    &baidu, &duckduckgo_light,
+     &duckduckgo,
  };
  
 @@ -842,7 +842,7 @@ const PrepopulatedEngine* const engines_SG[] = {
@@ -822,7 +741,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
      &yahoo,
-     &yandex_com,
+     &yandex_ru,
  };
 @@ -861,7 +861,7 @@ const PrepopulatedEngine* const engines_SV[] = {
      &googleen, &google,
@@ -835,8 +754,8 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
  
 @@ -871,7 +871,7 @@ const PrepopulatedEngine* const engines_SY[] = {
      &bing,
+     &yandex_ru,
      &yahoo,
-     &yandex_com,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
  };
@@ -866,14 +785,16 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &yahoo,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &ecosia,
+     &yandex_com,
  };
  
-@@ -916,7 +916,7 @@ const PrepopulatedEngine* const engines_TW[] = {
+@@ -915,8 +915,8 @@ const PrepopulatedEngine* const engines_TW[] = {
+     &googleen, &google,
      &yahoo_tw,
      &bing,
-     &baidu,
+-    &baidu,
 -    &duckduckgo,
++    &baidu, &duckduckgo_light,
 +    &duckduckgo, &duckduckgo_light,
  };
  
@@ -884,16 +805,7 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &yahoo,
 -    &duckduckgo,
 +    &duckduckgo, &duckduckgo_light,
-     &baidu,
- };
- 
-@@ -933,7 +933,7 @@ const PrepopulatedEngine* const engines_UA[] = {
-     &googleen, &google,
-     &yandex_ua,
-     &bing,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &yahoo,
+     &ecosia,
  };
  
 @@ -942,7 +942,7 @@ const PrepopulatedEngine* const engines_US[] = {
@@ -914,21 +826,14 @@ diff --git a/components/search_engines/template_url_prepopulate_data.cc b/compon
      &ecosia,
  };
  
-@@ -960,7 +960,7 @@ const PrepopulatedEngine* const engines_VE[] = {
+@@ -978,8 +978,8 @@ const PrepopulatedEngine* const engines_YE[] = {
      &googleen, &google,
      &bing,
-     &yahoo_es,
--    &duckduckgo,
-+    &duckduckgo, &duckduckgo_light,
-     &ecosia,
- };
- 
-@@ -979,7 +979,7 @@ const PrepopulatedEngine* const engines_YE[] = {
-     &bing,
      &yahoo,
-     &yandex_com,
 -    &duckduckgo,
+-    &yandex_com,
 +    &duckduckgo, &duckduckgo_light,
++    &yandex_com, &duckduckgo_light,
  };
  
  // South Africa

@@ -15,7 +15,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../crash/core/browser/crashes_ui_util.h      |   2 +
  .../crash/core/browser/resources/crashes.css  |  67 ++++++-
  .../crash/core/browser/resources/crashes.html |  17 ++
- .../crash/core/browser/resources/crashes.js   |  40 +++--
+ .../crash/core/browser/resources/crashes.ts   |  40 +++--
  components/crash_strings.grdp                 |  22 ++-
  .../minidump_uploader/CrashFileManager.java   |   7 +-
  .../MinidumpUploadCallable.java               |  21 +--
@@ -28,7 +28,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
-@@ -45,6 +45,11 @@ import java.lang.annotation.Retention;
+@@ -44,6 +44,11 @@ import java.lang.annotation.Retention;
  import java.lang.annotation.RetentionPolicy;
  import java.util.concurrent.atomic.AtomicBoolean;
  
@@ -40,11 +40,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpU
  /**
   * Service that is responsible for uploading crash minidumps to the Google crash server.
   */
-@@ -455,4 +460,21 @@ public class MinidumpUploadServiceImpl extends MinidumpUploadService.Impl {
-             tryUploadCrashDump(renamedMinidumpFile);
-         }
+@@ -92,6 +97,23 @@ public class MinidumpUploadServiceImpl extends MinidumpUploadService.Impl {
+         getService().setIntentRedelivery(true);
      }
-+
+ 
 +    @CalledByNative
 +    public static void requestNewExtraction() {
 +        CrashFileManager crashFileManager =
@@ -61,7 +60,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpU
 +            }
 +        }
 +    }
- }
++
+     /**
+      * Schedules uploading of all pending minidumps, using the JobScheduler API.
+      */
 diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.cc b/chrome/browser/crash_upload_list/crash_upload_list_android.cc
 --- a/chrome/browser/crash_upload_list/crash_upload_list_android.cc
 +++ b/chrome/browser/crash_upload_list/crash_upload_list_android.cc
@@ -140,7 +142,7 @@ diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.h b/chro
 diff --git a/chrome/browser/net/chrome_network_delegate.cc b/chrome/browser/net/chrome_network_delegate.cc
 --- a/chrome/browser/net/chrome_network_delegate.cc
 +++ b/chrome/browser/net/chrome_network_delegate.cc
-@@ -133,6 +133,13 @@ bool IsAccessAllowedAndroid(const base::FilePath& path) {
+@@ -140,6 +140,13 @@ bool IsAccessAllowedAndroid(const base::FilePath& path) {
    if (external_storage_path.IsParent(path))
      return true;
  
@@ -157,7 +159,7 @@ diff --git a/chrome/browser/net/chrome_network_delegate.cc b/chrome/browser/net/
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -642,6 +642,7 @@ static_library("ui") {
+@@ -640,6 +640,7 @@ static_library("ui") {
      "//third_party/re2",
      "//third_party/webrtc_overrides:webrtc_component",
      "//third_party/zlib",
@@ -563,20 +565,20 @@ diff --git a/components/crash/core/browser/resources/crashes.html b/components/c
      </h2>
  
      <div id="crashList">
-diff --git a/components/crash/core/browser/resources/crashes.js b/components/crash/core/browser/resources/crashes.js
---- a/components/crash/core/browser/resources/crashes.js
-+++ b/components/crash/core/browser/resources/crashes.js
-@@ -49,6 +49,7 @@ function updateCrashList({
+diff --git a/components/crash/core/browser/resources/crashes.ts b/components/crash/core/browser/resources/crashes.ts
+--- a/components/crash/core/browser/resources/crashes.ts
++++ b/components/crash/core/browser/resources/crashes.ts
+@@ -70,6 +70,7 @@ function updateCrashList({
  
-   $('disabledMode').hidden = enabled;
-   $('crashUploadStatus').hidden = !enabled || !dynamicBackend;
-+  $('spinner').hidden = true;
+   getRequiredElement('disabledMode').hidden = enabled;
+   getRequiredElement('crashUploadStatus').hidden = !enabled || !dynamicBackend;
++  getRequiredElement('spinner').hidden = true;
  
-   const template = crashList.getElementsByTagName('template')[0];
- 
-@@ -115,22 +116,16 @@ function updateCrashList({
- 
-       uploadTime.querySelector('.value').textContent = crash.upload_time;
+   const template = crashList.querySelector('template');
+   assert(template);
+@@ -150,22 +151,16 @@ function updateCrashList({
+       assert(uploadTimeCell);
+       uploadTimeCell.textContent = crash.upload_time || '';
  
 -      sendNowButton.remove();
 -      fileBugButton.onclick = () => fileBug(crash.id, os, version);
@@ -587,33 +589,33 @@ diff --git a/components/crash/core/browser/resources/crashes.js b/components/cra
        fileBugButton.remove();
 -      // Do not allow crash submission if the Chromium build does not support
 -      // it, or if the user already requested it.
--      if (!manualUploads || crash.state === 'pending_user_requested') {
+-      if (!manualUploads || crash.state === State.PENDING_USER_REQUESTED) {
 -        sendNowButton.remove();
 -      }
--      sendNowButton.onclick = (e) => {
--        e.target.disabled = true;
+-      sendNowButton.onclick = (_e: Event) => {
+-        sendNowButton.disabled = true;
 -        chrome.send('requestSingleCrashUpload', [crash.local_id]);
 -      };
      }
-+    sendNowButton.onclick = (e) => {
-+      e.target.disabled = true;
++    sendNowButton.onclick = (_e: Event) => {
++      sendNowButton.disabled = true;
 +      chrome.send('requestSingleCrashUpload', [crash.local_id]);
 +    };
  
-     const fileSize = crashRow.querySelector('.file-size');
-     if (crash.file_size === '') {
-@@ -203,6 +198,27 @@ function requestCrashUpload() {
+     const fileSize = clone.querySelector('.file-size');
+     assert(fileSize);
+@@ -242,6 +237,27 @@ function requestCrashUpload() {
    refreshCrashListId = setTimeout(requestCrashes, 5000);
  }
  
 +/**
 + * Request new log extraction.
 + */
-+ function requestNewExtraction() {
++function requestNewExtraction() {
 +  chrome.send('requestNewExtraction');
 +
 +  // show spinner
-+  $('spinner').hidden = false;
++  getRequiredElement('spinner').hidden = false;
 +
 +  // Trigger a refresh in 3 seconds.  Clear any previous requests.
 +  clearTimeout(refreshCrashListId);
@@ -630,12 +632,12 @@ diff --git a/components/crash/core/browser/resources/crashes.js b/components/cra
  /**
   * Toggles hiding/showing the developer details of a crash report, depending
   * on the value of the check box.
-@@ -216,5 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
-   addWebUIListener('update-crash-list', updateCrashList);
-   $('uploadCrashes').onclick = requestCrashUpload;
-   $('showDevDetails').onclick = toggleDevDetails;
-+  $('clearAll').onclick = requestClearAll;
-+  $('newExtraction').onclick = requestNewExtraction;
+@@ -256,5 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
+   addWebUiListener('update-crash-list', updateCrashList);
+   getRequiredElement('uploadCrashes').onclick = requestCrashUpload;
+   getRequiredElement('showDevDetails').onclick = toggleDevDetails;
++  getRequiredElement('clearAll').onclick = requestClearAll;
++  getRequiredElement('newExtraction').onclick = requestNewExtraction;
    requestCrashes();
  });
 diff --git a/components/crash_strings.grdp b/components/crash_strings.grdp
@@ -691,7 +693,7 @@ diff --git a/components/crash_strings.grdp b/components/crash_strings.grdp
 diff --git a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/CrashFileManager.java b/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/CrashFileManager.java
 --- a/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/CrashFileManager.java
 +++ b/components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/CrashFileManager.java
-@@ -111,6 +111,8 @@ public class CrashFileManager {
+@@ -109,6 +109,8 @@ public class CrashFileManager {
  
      private static final Pattern TMP_PATTERN = Pattern.compile("\\.tmp\\z");
  
@@ -700,7 +702,7 @@ diff --git a/components/minidump_uploader/android/java/src/org/chromium/componen
      // The maximum number of non-uploaded crashes that may be kept in the crash reports directory.
      // Chosen to attempt to balance between keeping a generous number of crashes, and not using up
      // too much filesystem storage space for obsolete crash reports.
-@@ -120,7 +122,7 @@ public class CrashFileManager {
+@@ -118,7 +120,7 @@ public class CrashFileManager {
      // The maximum age, in days, considered acceptable for a crash report. Reports older than this
      // age will be removed. The constant is chosen to be quite conservative, while still allowing
      // users to eventually reclaim filesystem storage space from obsolete crash reports.
@@ -709,7 +711,7 @@ diff --git a/components/minidump_uploader/android/java/src/org/chromium/componen
  
      // The maximum number of non-uploaded crashes to copy to the crash reports directory. The
      // difference between this value and MAX_CRASH_REPORTS_TO_KEEP is that TO_KEEP is only checked
-@@ -612,6 +614,9 @@ public class CrashFileManager {
+@@ -613,6 +615,9 @@ public class CrashFileManager {
                      && !f.getName().contains(UPLOAD_FORCED_MINIDUMP_SUFFIX)) {
                  continue;
              }

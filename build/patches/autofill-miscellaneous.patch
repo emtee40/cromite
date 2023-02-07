@@ -10,16 +10,34 @@ Do not skip google.com domains for password generation (csagan5)
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
+ chrome/browser/prefs/browser_prefs.cc         |  6 ++--
  .../core/browser/autofill_download_manager.cc | 35 +++----------------
  .../core/browser/autofill_download_manager.h  |  2 --
  .../autofill/core/browser/autofill_manager.cc | 20 -----------
  .../core/browser/browser_autofill_manager.h   |  4 +--
  .../autofill/core/common/autofill_features.cc |  4 +--
- .../autofill/core/common/autofill_prefs.cc    |  4 +--
- .../browser/public/prefs.cc                   |  4 +--
+ .../autofill/core/common/autofill_prefs.cc    |  8 ++---
  .../password_generation_frame_helper.cc       |  4 ---
- 8 files changed, 13 insertions(+), 64 deletions(-)
+ 8 files changed, 16 insertions(+), 67 deletions(-)
 
+diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -1066,11 +1066,11 @@ void RegisterProfilePrefsForMigration(
+ #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+ 
+   // Deprecated 11/2022.
+-  registry->RegisterBooleanPref(kAutofillAssistantEnabled, true);
++  registry->RegisterBooleanPref(kAutofillAssistantEnabled, false);
+   registry->RegisterBooleanPref(kAutofillAssistantConsent, false);
+-  registry->RegisterBooleanPref(kAutofillAssistantTriggerScriptsEnabled, true);
++  registry->RegisterBooleanPref(kAutofillAssistantTriggerScriptsEnabled, false);
+   registry->RegisterBooleanPref(kAutofillAssistantTriggerScriptsIsFirstTimeUser,
+-                                true);
++                                false);
+ }
+ 
+ }  // namespace
 diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/components/autofill/core/browser/autofill_download_manager.cc
 --- a/components/autofill/core/browser/autofill_download_manager.cc
 +++ b/components/autofill/core/browser/autofill_download_manager.cc
@@ -131,7 +149,7 @@ diff --git a/components/autofill/core/browser/autofill_manager.cc b/components/a
 diff --git a/components/autofill/core/browser/browser_autofill_manager.h b/components/autofill/core/browser/browser_autofill_manager.h
 --- a/components/autofill/core/browser/browser_autofill_manager.h
 +++ b/components/autofill/core/browser/browser_autofill_manager.h
-@@ -747,9 +747,9 @@ class BrowserAutofillManager : public AutofillManager,
+@@ -737,9 +737,9 @@ class BrowserAutofillManager : public AutofillManager,
    std::unique_ptr<CreditCardFormEventLogger> credit_card_form_event_logger_;
  
    // Have we logged whether Autofill is enabled for this page load?
@@ -146,7 +164,7 @@ diff --git a/components/autofill/core/browser/browser_autofill_manager.h b/compo
 diff --git a/components/autofill/core/common/autofill_features.cc b/components/autofill/core/common/autofill_features.cc
 --- a/components/autofill/core/common/autofill_features.cc
 +++ b/components/autofill/core/common/autofill_features.cc
-@@ -501,8 +501,8 @@ const base::FeatureParam<int> kAutofillServerBehaviorsParam{
+@@ -448,8 +448,8 @@ const base::FeatureParam<int> kAutofillServerBehaviorsParam{
  // "upload" resources.
  // i.e., https://other.autofill.server:port/tbproxy/af/
  BASE_FEATURE(kAutofillServerCommunication,
@@ -169,7 +187,7 @@ diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/auto
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterIntegerPref(
        prefs::kAutofillLastVersionDeduped, 0,
-@@ -122,7 +122,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -122,10 +122,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
        prefs::kAutofillLastVersionDisusedAddressesDeleted, 0,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterBooleanPref(
@@ -177,23 +195,20 @@ diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/auto
 +      prefs::kAutofillCreditCardEnabled, false,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterBooleanPref(
-       prefs::kAutofillIBANEnabled, true,
-diff --git a/components/autofill_assistant/browser/public/prefs.cc b/components/autofill_assistant/browser/public/prefs.cc
---- a/components/autofill_assistant/browser/public/prefs.cc
-+++ b/components/autofill_assistant/browser/public/prefs.cc
-@@ -24,10 +24,10 @@ const char kDeprecatedAutofillAssistantTriggerScriptsIsFirstTimeUser[] =
-     "Chrome.AutofillAssistant.LiteScriptFirstTimeUser";
+-      prefs::kAutofillIBANEnabled, true,
++      prefs::kAutofillIBANEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
  
- void RegisterProfilePrefs(PrefRegistrySimple* registry) {
--  registry->RegisterBooleanPref(prefs::kAutofillAssistantEnabled, true);
-+  registry->RegisterBooleanPref(prefs::kAutofillAssistantEnabled, false);
-   registry->RegisterBooleanPref(prefs::kAutofillAssistantConsent, false);
-   registry->RegisterBooleanPref(prefs::kAutofillAssistantTriggerScriptsEnabled,
--                                true);
-+                                false);
+   // Non-synced prefs. Used for per-device choices, e.g., signin promo.
+@@ -153,7 +153,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+ 
+   // Deprecated prefs registered for migration.
    registry->RegisterBooleanPref(
-       prefs::kAutofillAssistantTriggerScriptsIsFirstTimeUser, true);
+-      prefs::kAutofillEnabledDeprecated, true,
++      prefs::kAutofillEnabledDeprecated, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
  }
+ 
 diff --git a/components/password_manager/core/browser/password_generation_frame_helper.cc b/components/password_manager/core/browser/password_generation_frame_helper.cc
 --- a/components/password_manager/core/browser/password_generation_frame_helper.cc
 +++ b/components/password_manager/core/browser/password_generation_frame_helper.cc

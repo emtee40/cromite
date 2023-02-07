@@ -7,22 +7,23 @@ Subject: Add webRTC site settings (win fixup)
  chrome/browser/resources/settings/icons.html  |  2 ++
  .../settings/privacy_page/privacy_page.html   | 22 +++++++++++++++++++
  chrome/browser/resources/settings/route.ts    |  1 +
- .../resources/settings/settings_routes.ts     |  1 +
+ chrome/browser/resources/settings/router.ts   |  1 +
  .../site_settings/category_default_setting.ts |  1 +
  .../settings/site_settings/constants.ts       |  1 +
  .../settings_category_default_radio_group.ts  |  1 +
  .../settings/site_settings/site_details.html  |  5 +++++
- .../recent_site_permissions.ts                |  2 ++
+ .../recent_site_permissions.ts                | 16 --------------
  .../site_settings_page/site_settings_page.ts  |  9 ++++++++
+ .../site_settings_page_util.ts                |  2 ++
  .../views/page_info/page_info_view_factory.cc |  3 +++
  .../settings_localized_strings_provider.cc    |  7 ++++++
  .../ui/webui/settings/site_settings_helper.cc |  1 +
- 14 files changed, 75 insertions(+)
+ 15 files changed, 75 insertions(+), 16 deletions(-)
 
 diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -3872,6 +3872,25 @@
+@@ -4079,6 +4079,25 @@
      Not allowed to use webgl
    </message>
  
@@ -51,7 +52,7 @@ diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 diff --git a/chrome/browser/resources/settings/icons.html b/chrome/browser/resources/settings/icons.html
 --- a/chrome/browser/resources/settings/icons.html
 +++ b/chrome/browser/resources/settings/icons.html
-@@ -178,6 +178,8 @@ NOTE: Chrome OS icons go in ./chromeos/os_icons.html.
+@@ -185,6 +185,8 @@ NOTE: Chrome OS icons go in ./chromeos/os_icons.html.
        <g id="timezone-override-off"><path d="M7.95,5.12l0.73-0.8C8.88,4.11,9.15,4,9.42,4c0.27,0,0.54,0.11,0.74,0.32L12,6.34l1.85-2.01C14.04,4.11,14.31,4,14.58,4 c0.27,0,0.54,0.11,0.74,0.32l6.42,7c0.35,0.38,0.35,0.97,0,1.35l-2.98,3.25l-1.42-1.42l2.3-2.51l-5.06-5.52l-1.23,1.34l3.21,3.51 c0.35,0.38,0.35,0.97,0,1.35l-0.51,0.56L7.95,5.12z M19.78,22.61l-3.73-3.73l-0.73,0.8c-0.2,0.22-0.47,0.32-0.74,0.32 c-0.27,0-0.54-0.11-0.74-0.32L12,17.66l-1.85,2.01C9.96,19.89,9.69,20,9.42,20c-0.27,0-0.54-0.11-0.74-0.32l-6.42-7 c-0.35-0.38-0.35-0.97,0-1.35l2.98-3.25L1.39,4.22l1.41-1.41l18.38,18.38L19.78,22.61z M10.64,16.18l-3.21-3.51 c-0.35-0.38-0.35-0.97,0-1.35l0.51-0.56L6.66,9.49L4.36,12l5.06,5.52L10.64,16.18z"></path></g>
        <g id="webgl"><path d="M8 16h8v2H8v-2zm0-4h8v2H8v-2zm6-10H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" fill="#5F6368"></path></g>
        <g id="webgl-off"><path d="M13.002 4.001H7.106L5.252 2.148c.232-.094.485-.147.75-.147h8l6 6v8.896l-2-2V9.001h-5v-5z" fill="#5F6368"></path><path d="M16.002 12.001h-.896l.896.896v-.896zM.6 3.45l1.414-1.414 19.94 19.94-1.414 1.414L.6 3.45zM3.986 20.01V6.84l2 2V20.01h11.172l1.765 1.766c-.28.15-.599.234-.937.234H5.976c-1.1 0-1.99-.9-1.99-2z" fill="#5F6368"></path><path d="M9.158 12.01H7.986v2h3.172l-2-2zM13.158 16.01H7.986v2h7.172l-2-2z" fill="#5F6368"></path></g>
@@ -63,7 +64,7 @@ diff --git a/chrome/browser/resources/settings/icons.html b/chrome/browser/resou
 diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/chrome/browser/resources/settings/privacy_page/privacy_page.html
 --- a/chrome/browser/resources/settings/privacy_page/privacy_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/privacy_page.html
-@@ -1091,4 +1091,26 @@
+@@ -1162,4 +1162,26 @@
            </category-setting-exceptions>
          </settings-subpage>
        </template>
@@ -93,7 +94,7 @@ diff --git a/chrome/browser/resources/settings/privacy_page/privacy_page.html b/
 diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resources/settings/route.ts
 --- a/chrome/browser/resources/settings/route.ts
 +++ b/chrome/browser/resources/settings/route.ts
-@@ -104,6 +104,7 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
+@@ -114,6 +114,7 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
    r.SITE_SETTINGS_JAVASCRIPT_JIT = r.SITE_SETTINGS.createChild('javascript-jit');
    r.SITE_SETTINGS_TIMEZONE_OVERRIDE = r.SITE_SETTINGS.createChild('timezone-override');
    r.SITE_SETTINGS_WEBGL = r.SITE_SETTINGS.createChild('webgl');
@@ -101,15 +102,17 @@ diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resourc
  }
  
  /**
-diff --git a/chrome/browser/resources/settings/settings_routes.ts b/chrome/browser/resources/settings/settings_routes.ts
---- a/chrome/browser/resources/settings/settings_routes.ts
-+++ b/chrome/browser/resources/settings/settings_routes.ts
-@@ -98,4 +98,5 @@ export interface SettingsRoutes {
+diff --git a/chrome/browser/resources/settings/router.ts b/chrome/browser/resources/settings/router.ts
+--- a/chrome/browser/resources/settings/router.ts
++++ b/chrome/browser/resources/settings/router.ts
+@@ -107,6 +107,7 @@ export interface SettingsRoutes {
    SITE_SETTINGS_JAVASCRIPT_JIT: Route;
    SITE_SETTINGS_TIMEZONE_OVERRIDE: Route;
    SITE_SETTINGS_WEBGL: Route;
 +  SITE_SETTINGS_WEBRTC: Route;
  }
+ 
+ /** Class for navigable routes. */
 diff --git a/chrome/browser/resources/settings/site_settings/category_default_setting.ts b/chrome/browser/resources/settings/site_settings/category_default_setting.ts
 --- a/chrome/browser/resources/settings/site_settings/category_default_setting.ts
 +++ b/chrome/browser/resources/settings/site_settings/category_default_setting.ts
@@ -124,14 +127,14 @@ diff --git a/chrome/browser/resources/settings/site_settings/category_default_se
 diff --git a/chrome/browser/resources/settings/site_settings/constants.ts b/chrome/browser/resources/settings/site_settings/constants.ts
 --- a/chrome/browser/resources/settings/site_settings/constants.ts
 +++ b/chrome/browser/resources/settings/site_settings/constants.ts
-@@ -47,6 +47,7 @@ export enum ContentSettingsTypes {
+@@ -49,6 +49,7 @@ export enum ContentSettingsTypes {
    JAVASCRIPT_JIT = 'javascript-jit',
    TIMEZONE_OVERRIDE = 'timezone-override',
    WEBGL = 'webgl',
 +  WEBRTC = 'webrtc',
  
-   // The following item is not in the C++ kContentSettingsTypeGroupNames, but it
-   // is used everywhere where ContentSettingsTypes is used in JS.
+   // The following items are not in the C++ kContentSettingsTypeGroupNames, but
+   // are used everywhere where ContentSettingsTypes is used in JS.
 diff --git a/chrome/browser/resources/settings/site_settings/settings_category_default_radio_group.ts b/chrome/browser/resources/settings/site_settings/settings_category_default_radio_group.ts
 --- a/chrome/browser/resources/settings/site_settings/settings_category_default_radio_group.ts
 +++ b/chrome/browser/resources/settings/site_settings/settings_category_default_radio_group.ts
@@ -159,19 +162,39 @@ diff --git a/chrome/browser/resources/settings/site_settings/site_details.html b
 diff --git a/chrome/browser/resources/settings/site_settings_page/recent_site_permissions.ts b/chrome/browser/resources/settings/site_settings_page/recent_site_permissions.ts
 --- a/chrome/browser/resources/settings/site_settings_page/recent_site_permissions.ts
 +++ b/chrome/browser/resources/settings/site_settings_page/recent_site_permissions.ts
-@@ -204,6 +204,8 @@ export class SettingsRecentSitePermissionsElement extends
-         return this.i18n('siteSettingsTimezoneOverrideMidSentence');
-       case ContentSettingsTypes.WEBGL:
-         return this.i18n('siteSettingsWebglMidSentence');
-+      case ContentSettingsTypes.WEBRTC:
-+        return this.i18n('siteSettingsWebRTCMidSentence');
-       default:
-         return '';
+@@ -207,28 +207,12 @@ export class SettingsRecentSitePermissionsElement extends
      }
+     if (exceptions.length === 2) {
+       return this.i18n(`recentPermission${setting}TwoItems`, ...typeStrings);
+-<<<<<<< found
+     }
+ 
+     return this.i18n(
+         `recentPermission${setting}MoreThanTwoItems`, typeStrings[0],
+         exceptions.length - 1);
+   }
+-||||||| expected
+-      case ContentSettingsTypes.TIMEZONE_OVERRIDE:
+-        return this.i18n('siteSettingsTimezoneOverrideMidSentence');
+-      default:
+-        return '';
+-    }
+-=======
+-      case ContentSettingsTypes.TIMEZONE_OVERRIDE:
+-        return this.i18n('siteSettingsTimezoneOverrideMidSentence');
+-      case ContentSettingsTypes.WEBGL:
+-        return this.i18n('siteSettingsWebglMidSentence');
+-      default:
+-        return '';
+-    }
+->>>>>>> replacement
+ 
+   /**
+    * @return the correct CSS class to apply depending on this recent site
 diff --git a/chrome/browser/resources/settings/site_settings_page/site_settings_page.ts b/chrome/browser/resources/settings/site_settings_page/site_settings_page.ts
 --- a/chrome/browser/resources/settings/site_settings_page/site_settings_page.ts
 +++ b/chrome/browser/resources/settings/site_settings_page/site_settings_page.ts
-@@ -345,6 +345,14 @@ function getCategoryItemMap(): Map<ContentSettingsTypes, CategoryListItem> {
+@@ -356,6 +356,14 @@ function getCategoryItemMap(): Map<ContentSettingsTypes, CategoryListItem> {
        enabledLabel: 'siteSettingsWebglAllowed',
        disabledLabel: 'siteSettingsWebglBlocked',
      },
@@ -186,7 +209,7 @@ diff --git a/chrome/browser/resources/settings/site_settings_page/site_settings_
    ];
  
    categoryItemMap = new Map(categoryList.map(item => [item.id, item]));
-@@ -431,6 +439,7 @@ export class SettingsSiteSettingsPageElement extends PolymerElement {
+@@ -446,6 +454,7 @@ export class SettingsSiteSettingsPageElement extends
                Id.JAVASCRIPT_JIT,
                Id.TIMEZONE_OVERRIDE,
                Id.WEBGL,
@@ -194,6 +217,18 @@ diff --git a/chrome/browser/resources/settings/site_settings_page/site_settings_
              ]),
            };
          },
+diff --git a/chrome/browser/resources/settings/site_settings_page/site_settings_page_util.ts b/chrome/browser/resources/settings/site_settings_page/site_settings_page_util.ts
+--- a/chrome/browser/resources/settings/site_settings_page/site_settings_page_util.ts
++++ b/chrome/browser/resources/settings/site_settings_page/site_settings_page_util.ts
+@@ -85,6 +85,8 @@ export function getLocalizationStringForContentType(
+       return 'siteSettingsTimezoneOverrideMidSentence';
+     case ContentSettingsTypes.WEBGL:
+       return 'siteSettingsWebglMidSentence';
++    case ContentSettingsTypes.WEBRTC:
++      return 'siteSettingsWebRTCMidSentence';
+     // The following members do not have a mid-sentence localization.
+     case ContentSettingsTypes.PDF_DOCUMENTS:
+     case ContentSettingsTypes.PRIVATE_NETWORK_DEVICES:
 diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.cc b/chrome/browser/ui/views/page_info/page_info_view_factory.cc
 --- a/chrome/browser/ui/views/page_info/page_info_view_factory.cc
 +++ b/chrome/browser/ui/views/page_info/page_info_view_factory.cc
@@ -210,7 +245,7 @@ diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.cc b/chrom
 diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2176,6 +2176,13 @@ void AddSiteSettingsStrings(content::WebUIDataSource* html_source,
+@@ -2363,6 +2363,13 @@ void AddSiteSettingsStrings(content::WebUIDataSource* html_source,
      {"siteSettingsWebglAllowedExceptions",IDS_SETTINGS_SITE_SETTINGS_WEBGL_ALLOWED_EXCEPTIONS},
      {"siteSettingsWebglBlockedExceptions", IDS_SETTINGS_SITE_SETTINGS_WEBGL_BLOCKED_EXCEPTIONS},
      {"siteSettingsWebglMidSentence", IDS_SITE_SETTINGS_WEBGL_TITLE},

@@ -15,7 +15,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../SearchActivityLocationBarLayout.java      |  42 +------
  .../browser/toolbar/ToolbarManager.java       |   6 -
  .../chrome/browser/ui/RootUiCoordinator.java  |  23 +---
- chrome/browser/ui/android/omnibox/BUILD.gn    |   6 -
+ chrome/browser/ui/android/omnibox/BUILD.gn    |   5 -
  .../chrome/browser/omnibox/LocationBar.java   |   6 -
  .../omnibox/LocationBarCoordinator.java       |  13 ---
  .../browser/omnibox/LocationBarMediator.java  | 110 +-----------------
@@ -23,12 +23,12 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../suggestions/AutocompleteController.java   |  21 ----
  .../suggestions/AutocompleteCoordinator.java  |   8 --
  .../suggestions/AutocompleteMediator.java     |   9 --
- 19 files changed, 12 insertions(+), 356 deletions(-)
+ 19 files changed, 12 insertions(+), 355 deletions(-)
 
 diff --git a/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java b/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
 --- a/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
 +++ b/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
-@@ -434,8 +434,7 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
+@@ -446,8 +446,7 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
  
              // Initialize
              // Note that isVoiceSearchEnabled will return false in incognito mode.
@@ -38,7 +38,7 @@ diff --git a/chrome/android/features/start_surface/java/src/org/chromium/chrome/
              boolean shouldShowLensButton = mOmniboxStub.isLensEnabled(LensEntryPoint.TASKS_SURFACE);
              LensMetrics.recordShown(LensEntryPoint.TASKS_SURFACE, shouldShowLensButton);
              mPropertyModel.set(IS_LENS_BUTTON_VISIBLE, shouldShowLensButton);
-@@ -1177,10 +1176,6 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
+@@ -1228,10 +1227,6 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
          // incorrect state if check synchronously.
          ThreadUtils.postOnUiThread(() -> {
              if (mOmniboxStub != null) {
@@ -73,7 +73,7 @@ diff --git a/chrome/android/features/start_surface/java/src/org/chromium/chrome/
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java b/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
-@@ -67,7 +67,6 @@ import org.chromium.chrome.browser.metrics.PackageMetrics;
+@@ -65,7 +65,6 @@ import org.chromium.chrome.browser.metrics.PackageMetrics;
  import org.chromium.chrome.browser.metrics.WebApkUninstallUmaTracker;
  import org.chromium.chrome.browser.notifications.channels.ChannelsUpdater;
  import org.chromium.chrome.browser.offlinepages.measurements.OfflineMeasurementsBackgroundTask;
@@ -81,7 +81,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessIni
  import org.chromium.chrome.browser.optimization_guide.OptimizationGuideBridgeFactory;
  import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
  import org.chromium.chrome.browser.photo_picker.DecoderService;
-@@ -427,10 +426,6 @@ public class ProcessInitializationHandler {
+@@ -431,10 +430,6 @@ public class ProcessInitializationHandler {
          deferredStartupHandler.addDeferredTask(
                  () -> OfflineMeasurementsBackgroundTask.clearPersistedDataFromPrefs());
          deferredStartupHandler.addDeferredTask(() -> QueryTileUtils.isQueryTilesEnabledOnNTP());
@@ -287,7 +287,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/search/Sear
      public void onFinishNativeInitialization() {
 -        mAssistantVoiceSearchService = new AssistantVoiceSearchService(mContext,
 -                ExternalAuthUtils.getInstance(), TemplateUrlServiceFactory.get(),
--                GSAState.getInstance(mContext), this, SharedPreferencesManager.getInstance(),
+-                GSAState.getInstance(), this, SharedPreferencesManager.getInstance(),
 -                IdentityServicesProvider.get().getIdentityManager(
 -                        Profile.getLastUsedRegularProfile()),
 -                AccountManagerFacadeProvider.getInstance());
@@ -339,7 +339,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/searchwidget/Se
  import org.chromium.chrome.browser.privacy.settings.PrivacyPreferencesManagerImpl;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.tab.Tab;
-@@ -343,14 +342,12 @@ public class SearchActivity extends AsyncInitializationActivity
+@@ -354,14 +353,12 @@ public class SearchActivity extends AsyncInitializationActivity
          //                will navigate to Tabbed mode.  Investigate whether this can inflate
          //                the tabbed mode layout in the background instead of CCTs.
          CustomTabsConnection.getInstance().warmup(0);
@@ -355,7 +355,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/searchwidget/Se
          RecordUserAction.record("SearchWidget.WidgetSelected");
  
          getActivityDelegate().onFinishDeferredInitialization();
-@@ -421,8 +418,7 @@ public class SearchActivity extends AsyncInitializationActivity
+@@ -432,8 +429,7 @@ public class SearchActivity extends AsyncInitializationActivity
          if (isFromQuickActionSearchWidget()) {
              recordQuickActionSearchType(searchType);
          }
@@ -482,7 +482,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
  import org.chromium.chrome.browser.page_info.ChromePageInfo;
  import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
  import org.chromium.chrome.browser.privacy.settings.PrivacyPreferencesManagerImpl;
-@@ -2071,11 +2070,6 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+@@ -2076,11 +2075,6 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
          return mLocationBar.getOmniboxStub();
      }
  
@@ -497,7 +497,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
-@@ -90,8 +90,6 @@ import org.chromium.chrome.browser.messages.MessagesResourceMapperInitializer;
+@@ -88,8 +88,6 @@ import org.chromium.chrome.browser.messages.MessagesResourceMapperInitializer;
  import org.chromium.chrome.browser.omnibox.OmniboxFocusReason;
  import org.chromium.chrome.browser.omnibox.geo.GeolocationHeader;
  import org.chromium.chrome.browser.omnibox.suggestions.OmniboxPedalDelegate;
@@ -506,7 +506,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
  import org.chromium.chrome.browser.paint_preview.DemoPaintPreview;
  import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
  import org.chromium.chrome.browser.profiles.Profile;
-@@ -271,7 +269,6 @@ public class RootUiCoordinator
+@@ -269,7 +267,6 @@ public class RootUiCoordinator
      protected OneshotSupplierImpl<Boolean> mPromoShownOneshotSupplier = new OneshotSupplierImpl<>();
      protected Supplier<Tab> mStartSurfaceParentTabSupplier;
      @Nullable
@@ -514,7 +514,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
      private MediaCaptureOverlayController mCaptureController;
      private @Nullable ScrollCaptureManager mScrollCaptureManager;
      protected final ActivityLifecycleDispatcher mActivityLifecycleDispatcher;
-@@ -546,9 +543,6 @@ public class RootUiCoordinator
+@@ -544,9 +541,6 @@ public class RootUiCoordinator
          }
  
          if (mToolbarManager != null) {
@@ -524,7 +524,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
              mToolbarManager.destroy();
              mToolbarManager = null;
          }
-@@ -1089,19 +1083,11 @@ public class RootUiCoordinator
+@@ -1080,19 +1074,11 @@ public class RootUiCoordinator
                      new VoiceToolbarButtonController.VoiceSearchDelegate() {
                          @Override
                          public boolean isVoiceSearchEnabled() {
@@ -545,7 +545,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
                          }
                      };
              VoiceToolbarButtonController voiceToolbarButtonController =
-@@ -1151,13 +1137,6 @@ public class RootUiCoordinator
+@@ -1142,13 +1128,6 @@ public class RootUiCoordinator
              if (!mSupportsAppMenuSupplier.getAsBoolean()) {
                  mToolbarManager.getToolbar().disableMenuButton();
              }
@@ -562,13 +562,12 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
 diff --git a/chrome/browser/ui/android/omnibox/BUILD.gn b/chrome/browser/ui/android/omnibox/BUILD.gn
 --- a/chrome/browser/ui/android/omnibox/BUILD.gn
 +++ b/chrome/browser/ui/android/omnibox/BUILD.gn
-@@ -127,12 +127,6 @@ android_library("java") {
+@@ -128,11 +128,6 @@ android_library("java") {
      "java/src/org/chromium/chrome/browser/omnibox/suggestions/tail/TailSuggestionView.java",
      "java/src/org/chromium/chrome/browser/omnibox/suggestions/tail/TailSuggestionViewBinder.java",
      "java/src/org/chromium/chrome/browser/omnibox/suggestions/tail/TailSuggestionViewProperties.java",
 -    "java/src/org/chromium/chrome/browser/omnibox/voice/AssistantVoiceSearchConsentBottomSheet.java",
 -    "java/src/org/chromium/chrome/browser/omnibox/voice/AssistantVoiceSearchConsentController.java",
--    "java/src/org/chromium/chrome/browser/omnibox/voice/AssistantVoiceSearchConsentModal.java",
 -    "java/src/org/chromium/chrome/browser/omnibox/voice/AssistantVoiceSearchConsentUi.java",
 -    "java/src/org/chromium/chrome/browser/omnibox/voice/AssistantVoiceSearchService.java",
 -    "java/src/org/chromium/chrome/browser/omnibox/voice/VoiceRecognitionHandler.java",
@@ -601,7 +600,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
-@@ -40,7 +40,6 @@ import org.chromium.chrome.browser.omnibox.suggestions.OmniboxPedalDelegate;
+@@ -39,7 +39,6 @@ import org.chromium.chrome.browser.omnibox.suggestions.OmniboxPedalDelegate;
  import org.chromium.chrome.browser.omnibox.suggestions.OmniboxSuggestionsDropdownEmbedder;
  import org.chromium.chrome.browser.omnibox.suggestions.OmniboxSuggestionsDropdownScrollListener;
  import org.chromium.chrome.browser.omnibox.suggestions.basic.BasicSuggestionProcessor.BookmarkState;
@@ -647,7 +646,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
  import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
  import org.chromium.chrome.browser.prefetch.settings.PreloadPagesSettingsBridge;
  import org.chromium.chrome.browser.prefetch.settings.PreloadPagesState;
-@@ -88,8 +86,7 @@ import java.util.List;
+@@ -89,8 +87,7 @@ import java.util.function.BooleanSupplier;
   * currently, migration of this logic out of LocationBarLayout is in progress.
   */
  class LocationBarMediator
@@ -657,7 +656,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
                     UrlBarDelegate, OnKeyListener, ComponentCallbacks,
                     TemplateUrlService.TemplateUrlServiceObserver, BackPressHandler {
      private static final int ICON_FADE_ANIMATION_DURATION_MS = 150;
-@@ -145,10 +142,7 @@ class LocationBarMediator
+@@ -146,10 +143,7 @@ class LocationBarMediator
              };
  
      private final LocationBarLayout mLocationBarLayout;
@@ -668,7 +667,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      private StatusCoordinator mStatusCoordinator;
      private AutocompleteCoordinator mAutocompleteCoordinator;
      private OmniboxPrerender mOmniboxPrerender;
-@@ -213,10 +207,6 @@ class LocationBarMediator
+@@ -214,10 +208,6 @@ class LocationBarMediator
          mLocationBarDataProvider.addObserver(this);
          mOverrideUrlLoadingDelegate = overrideUrlLoadingDelegate;
          mLocaleManager = localeManager;
@@ -679,7 +678,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
          mProfileSupplier = profileSupplier;
          mProfileSupplier.addObserver(mCallbackController.makeCancelable(this::setProfile));
          mPrivacyPreferencesManager = privacyPreferencesManager;
-@@ -251,9 +241,6 @@ class LocationBarMediator
+@@ -252,9 +242,6 @@ class LocationBarMediator
      }
  
      /*package */ void destroy() {
@@ -689,7 +688,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
          if (mTemplateUrlServiceSupplier.hasValue()) {
              mTemplateUrlServiceSupplier.get().removeObserver(this);
          }
-@@ -261,8 +248,6 @@ class LocationBarMediator
+@@ -262,8 +249,6 @@ class LocationBarMediator
          mAutocompleteCoordinator = null;
          mUrlCoordinator = null;
          mPrivacyPreferencesManager = null;
@@ -698,13 +697,13 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
          mLocationBarDataProvider.removeObserver(this);
          mDeferredNativeRunnables.clear();
          mUrlFocusChangeListeners.clear();
-@@ -320,13 +305,6 @@ class LocationBarMediator
+@@ -321,13 +306,6 @@ class LocationBarMediator
          if (templateUrlService != null) {
              templateUrlService.addObserver(this);
          }
 -        mAssistantVoiceSearchServiceSupplier.set(new AssistantVoiceSearchService(mContext,
--                ExternalAuthUtils.getInstance(), templateUrlService, GSAState.getInstance(mContext),
--                this, SharedPreferencesManager.getInstance(),
+-                ExternalAuthUtils.getInstance(), templateUrlService, GSAState.getInstance(), this,
+-                SharedPreferencesManager.getInstance(),
 -                IdentityServicesProvider.get().getIdentityManager(
 -                        Profile.getLastUsedRegularProfile()),
 -                AccountManagerFacadeProvider.getInstance()));
@@ -712,7 +711,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
          mLocationBarLayout.onFinishNativeInitialization();
          setProfile(mProfileSupplier.get());
          onPrimaryColorChanged();
-@@ -375,17 +353,6 @@ class LocationBarMediator
+@@ -376,17 +354,6 @@ class LocationBarMediator
          mLocationBarLayout.setUnfocusedWidth(unfocusedWidth);
      }
  
@@ -730,7 +729,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      /* package */ void setLensControllerForTesting(LensController lensController) {
          mLensController = lensController;
      }
-@@ -394,11 +361,6 @@ class LocationBarMediator
+@@ -395,11 +362,6 @@ class LocationBarMediator
          sLastCachedIsLensOnOmniboxEnabled = null;
      }
  
@@ -742,7 +741,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      /* package */ void setIsUrlBarFocusedWithoutAnimationsForTesting(
              boolean isUrlBarFocusedWithoutAnimations) {
          mUrlFocusedWithoutAnimations = isUrlBarFocusedWithoutAnimations;
-@@ -591,8 +553,6 @@ class LocationBarMediator
+@@ -592,8 +554,6 @@ class LocationBarMediator
      /* package */ void micButtonClicked(View view) {
          if (!mNativeInitialized) return;
          RecordUserAction.record("MobileOmniboxVoiceSearch");
@@ -751,7 +750,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      }
  
      /** package */ void lensButtonClicked(View view) {
-@@ -938,28 +898,6 @@ class LocationBarMediator
+@@ -939,28 +899,6 @@ class LocationBarMediator
          }
      }
  
@@ -780,7 +779,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      /**
       * Update visuals to use a correct color scheme depending on the primary color.
       */
-@@ -1046,8 +984,7 @@ class LocationBarMediator
+@@ -1047,8 +985,7 @@ class LocationBarMediator
  
      private boolean shouldShowMicButton() {
          if (shouldShowDeleteButton()) return false;
@@ -790,7 +789,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
              return false;
          }
          boolean isToolbarMicEnabled = mIsToolbarMicEnabledSupplier.getAsBoolean();
-@@ -1241,9 +1178,6 @@ class LocationBarMediator
+@@ -1243,9 +1180,6 @@ class LocationBarMediator
      public void onPrimaryColorChanged() {
          // This method needs to be called first as it computes |mBrandedColorScheme|.
          updateBrandedColorScheme();
@@ -800,7 +799,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      }
  
      @Override
-@@ -1315,16 +1249,6 @@ class LocationBarMediator
+@@ -1317,16 +1251,6 @@ class LocationBarMediator
          }
      }
  
@@ -817,7 +816,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      @Override
      public void addUrlFocusChangeListener(UrlFocusChangeListener listener) {
          mUrlFocusChangeListeners.addObserver(listener);
-@@ -1340,37 +1264,10 @@ class LocationBarMediator
+@@ -1342,37 +1266,10 @@ class LocationBarMediator
          return mUrlHasFocus;
      }
  
@@ -855,7 +854,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      public void setSearchQuery(String query) {
          if (TextUtils.isEmpty(query)) return;
  
-@@ -1389,17 +1286,14 @@ class LocationBarMediator
+@@ -1391,17 +1288,14 @@ class LocationBarMediator
          mUrlCoordinator.setKeyboardVisibility(true, false);
      }
  
@@ -979,7 +978,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.share.ShareDelegate;
  import org.chromium.chrome.browser.tab.Tab;
-@@ -399,14 +398,6 @@ class AutocompleteMediator implements OnSuggestionsReceivedListener,
+@@ -401,14 +400,6 @@ class AutocompleteMediator implements OnSuggestionsReceivedListener,
          mShouldPreventOmniboxAutocomplete = prevent;
      }
  
