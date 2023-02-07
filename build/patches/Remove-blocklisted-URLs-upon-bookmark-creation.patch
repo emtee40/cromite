@@ -45,15 +45,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/TabBo
 @@ -97,6 +103,13 @@ public class TabBookmarker {
  
          // Defense in depth against the UI being erroneously enabled.
-         BookmarkModel bridge = mBookmarkModelSupplier.get();
-+	// remove blocklisted URL from most visited sites
-+	if (mMostVisitedSites == null) {
+         final BookmarkModel bookmarkModel = mBookmarkModelSupplier.get();
++	       // remove blocklisted URL from most visited sites
++	       if (mMostVisitedSites == null) {
 +            mMostVisitedSites =
 +                SuggestionsDependencyFactory.getInstance().createMostVisitedSites(Profile.getLastUsedRegularProfile());
 +        }
 +        mMostVisitedSites.removeBlocklistedUrl(tabToBookmark.getOriginalUrl());
 +
-         if (bridge == null || !bridge.isEditBookmarksEnabled()) {
+         if (bookmarkModel == null || !bookmarkModel.isEditBookmarksEnabled()) {
              assert false;
              return;
 --

@@ -10,7 +10,7 @@ Subject: Disable conversion measurement api (add fixup)
 diff --git a/content/browser/attribution_reporting/attribution_report_network_sender.cc b/content/browser/attribution_reporting/attribution_report_network_sender.cc
 --- a/content/browser/attribution_reporting/attribution_report_network_sender.cc
 +++ b/content/browser/attribution_reporting/attribution_report_network_sender.cc
-@@ -76,6 +76,9 @@ void AttributionReportNetworkSender::SendReport(AttributionDebugReport report) {
+@@ -80,6 +80,9 @@ void AttributionReportNetworkSender::SendReport(
  void AttributionReportNetworkSender::SendReport(GURL url,
                                                  base::ValueView report_body,
                                                  UrlLoaderCallback callback) {
@@ -20,7 +20,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
    auto resource_request = std::make_unique<network::ResourceRequest>();
    resource_request->url = std::move(url);
    resource_request->method = net::HttpRequestHeaders::kPostMethod;
-@@ -132,8 +135,9 @@ void AttributionReportNetworkSender::SendReport(GURL url,
+@@ -140,8 +143,9 @@ void AttributionReportNetworkSender::SendReport(GURL url,
                     network::SimpleURLLoader::RETRY_ON_NAME_NOT_RESOLVED;
    simple_url_loader_ptr->SetRetryOptions(/*max_retries=*/1, retry_mode);
  
@@ -35,10 +35,10 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
 diff --git a/content/renderer/render_thread_impl.cc b/content/renderer/render_thread_impl.cc
 --- a/content/renderer/render_thread_impl.cc
 +++ b/content/renderer/render_thread_impl.cc
-@@ -1823,7 +1823,7 @@ RenderThreadImpl::GetOsSupportForAttributionReporting() {
+@@ -1835,7 +1835,7 @@ RenderThreadImpl::GetOsSupportForAttributionReporting() {
  
  void RenderThreadImpl::SetOsSupportForAttributionReporting(
-     blink::mojom::AttributionOsSupport attribution_os_support) {
+     attribution_reporting::mojom::OsSupport attribution_os_support) {
 -  attribution_os_support_ = attribution_os_support;
 +  attribution_os_support_ = blink::mojom::AttributionOsSupport::kDisabled;
  }

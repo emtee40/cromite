@@ -14,10 +14,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
 +++ b/chrome/android/java/res/xml/privacy_preferences.xml
-@@ -48,6 +48,19 @@ found in the LICENSE file.
+@@ -49,6 +49,19 @@ found in the LICENSE file.
          android:key="privacy_sandbox"
          android:title="@string/prefs_privacy_sandbox"
-         android:fragment="org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxSettingsFragment"/>
+         android:fragment="org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxSettingsFragmentV3"/>
 +    <PreferenceCategory
 +        android:key="services_category"
 +        android:title="@string/services_category_title">
@@ -37,7 +37,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -39,6 +39,12 @@ import org.chromium.components.user_prefs.UserPrefs;
+@@ -45,6 +45,12 @@ import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.ui.text.NoUnderlineClickableSpan;
  import org.chromium.ui.text.SpanApplier;
  
@@ -50,9 +50,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  /**
   * Fragment to keep track of the all the privacy related preferences.
   */
-@@ -54,6 +60,16 @@ public class PrivacySettings
-     private static final String PREF_PRIVACY_GUIDE = "privacy_guide";
+@@ -61,6 +67,16 @@ public class PrivacySettings
      private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
+     private static final String PREF_THIRD_PARTY_COOKIES = "third_party_cookies";
  
 +    // moved from SyncAndServicesSettings.java
 +    private static final String PREF_SERVICES_CATEGORY = "services_category";
@@ -67,7 +67,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      private ManagedPreferenceDelegate mManagedPreferenceDelegate;
      private IncognitoLockSettings mIncognitoLockSettings;
  
-@@ -93,6 +109,16 @@ public class PrivacySettings
+@@ -111,6 +127,16 @@ public class PrivacySettings
  
          mManagedPreferenceDelegate = createManagedPreferenceDelegate();
  
@@ -84,7 +84,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
          canMakePaymentPref.setOnPreferenceChangeListener(this);
-@@ -121,6 +147,9 @@ public class PrivacySettings
+@@ -147,6 +173,9 @@ public class PrivacySettings
          } else if (PREF_HTTPS_FIRST_MODE.equals(key)) {
              UserPrefs.get(Profile.getLastUsedRegularProfile())
                      .setBoolean(Pref.HTTPS_ONLY_MODE_ENABLED, (boolean) newValue);
@@ -94,7 +94,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          }
          return true;
      }
-@@ -135,7 +164,7 @@ public class PrivacySettings
+@@ -161,7 +190,7 @@ public class PrivacySettings
       * Updates the preferences.
       */
      public void updatePreferences() {

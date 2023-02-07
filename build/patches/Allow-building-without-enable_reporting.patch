@@ -24,16 +24,16 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/content/browser/devtools/protocol/network_handler.cc b/content/browser/devtools/protocol/network_handler.cc
 --- a/content/browser/devtools/protocol/network_handler.cc
 +++ b/content/browser/devtools/protocol/network_handler.cc
-@@ -1291,6 +1291,7 @@ String BuildReportStatus(const net::ReportingReport::Status status) {
+@@ -1303,6 +1303,7 @@ String BuildReportStatus(const net::ReportingReport::Status status) {
    }
  }
  
 +#if BUILDFLAG(ENABLE_REPORTING)
  std::vector<GURL> ComputeReportingURLs(RenderFrameHostImpl* frame_host) {
    std::vector<GURL> urls;
-   base::queue<FrameTreeNode*> queue;
-@@ -1308,6 +1309,7 @@ std::vector<GURL> ComputeReportingURLs(RenderFrameHostImpl* frame_host) {
-   }
+   frame_host->ForEachRenderFrameHostWithAction(
+@@ -1316,6 +1317,7 @@ std::vector<GURL> ComputeReportingURLs(RenderFrameHostImpl* frame_host) {
+       });
    return urls;
  }
 +#endif  // BUILDFLAG(ENABLE_REPORTING)
@@ -184,7 +184,7 @@ diff --git a/content/browser/network/reporting_service_proxy.cc b/content/browse
 diff --git a/content/browser/renderer_host/render_frame_host_impl.cc b/content/browser/renderer_host/render_frame_host_impl.cc
 --- a/content/browser/renderer_host/render_frame_host_impl.cc
 +++ b/content/browser/renderer_host/render_frame_host_impl.cc
-@@ -11993,12 +11993,6 @@ void RenderFrameHostImpl::MaybeGenerateCrashReport(
+@@ -12108,12 +12108,6 @@ void RenderFrameHostImpl::MaybeGenerateCrashReport(
    base::Value::Dict body;
    if (!reason.empty())
      body.Set("reason", reason);
@@ -246,7 +246,7 @@ diff --git a/net/reporting/reporting_service.cc b/net/reporting/reporting_servic
 diff --git a/services/network/network_context.h b/services/network/network_context.h
 --- a/services/network/network_context.h
 +++ b/services/network/network_context.h
-@@ -465,10 +465,10 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
+@@ -450,10 +450,10 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
        const absl::optional<base::UnguessableToken>& reporting_source,
        const net::NetworkAnonymizationKey& network_anonymization_key,
        const absl::optional<std::string>& user_agent,
@@ -262,7 +262,7 @@ diff --git a/services/network/network_context.h b/services/network/network_conte
 diff --git a/services/network/public/mojom/BUILD.gn b/services/network/public/mojom/BUILD.gn
 --- a/services/network/public/mojom/BUILD.gn
 +++ b/services/network/public/mojom/BUILD.gn
-@@ -1168,7 +1168,6 @@ mojom("mojom") {
+@@ -1176,7 +1176,6 @@ mojom("mojom") {
      export_define_blink = "BLINK_PLATFORM_IMPLEMENTATION=1"
      export_header_blink = "third_party/blink/public/platform/web_common.h"
      if (enable_reporting) {
@@ -273,7 +273,7 @@ diff --git a/services/network/public/mojom/BUILD.gn b/services/network/public/mo
 diff --git a/services/network/public/mojom/network_context.mojom b/services/network/public/mojom/network_context.mojom
 --- a/services/network/public/mojom/network_context.mojom
 +++ b/services/network/public/mojom/network_context.mojom
-@@ -1072,6 +1072,7 @@ interface NetworkContext {
+@@ -1064,6 +1064,7 @@ interface NetworkContext {
    // provided |network_isolation_key|.
    //
    // Spec: https://w3c.github.io/reporting/#concept-reports
@@ -281,7 +281,7 @@ diff --git a/services/network/public/mojom/network_context.mojom b/services/netw
    QueueReport(string type,
                string group,
                url.mojom.Url url,
-@@ -1085,6 +1086,7 @@ interface NetworkContext {
+@@ -1077,6 +1078,7 @@ interface NetworkContext {
    // Note that this queued report will never be delivered if no reporting
    // endpoint matching is registered for with the provided
    // |network_isolation_key|.
@@ -300,7 +300,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
  #include "services/data_decoder/public/mojom/resource_snapshot_for_web_bundle.mojom-blink.h"
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/mojom/content_security_policy.mojom-blink.h"
-@@ -2328,9 +2329,11 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
+@@ -2329,9 +2330,11 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
    return base::UnguessableToken::Null();
  }
  
@@ -324,9 +324,9 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/b
  #include "mojo/public/cpp/bindings/pending_receiver.h"
 +#include "net/net_buildflags.h"
  #include "services/device/public/mojom/device_posture_provider.mojom-blink-forward.h"
+ #include "services/metrics/public/cpp/ukm_source_id.h"
  #include "services/network/public/mojom/fetch_api.mojom-blink-forward.h"
- #include "third_party/blink/public/common/frame/frame_ad_evidence.h"
-@@ -596,9 +596,9 @@ class CORE_EXPORT LocalFrame final
+@@ -600,9 +600,9 @@ class CORE_EXPORT LocalFrame final
    }
  
    SmoothScrollSequencer& GetSmoothScrollSequencer();

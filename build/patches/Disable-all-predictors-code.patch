@@ -32,7 +32,7 @@ diff --git a/chrome/browser/optimization_guide/chrome_hints_manager.cc b/chrome/
 diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 --- a/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
 +++ b/chrome/browser/optimization_guide/optimization_guide_keyed_service.cc
-@@ -318,7 +318,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
+@@ -326,7 +326,6 @@ void OptimizationGuideKeyedService::RemoveObserverForOptimizationTargetModel(
  void OptimizationGuideKeyedService::RegisterOptimizationTypes(
      const std::vector<optimization_guide::proto::OptimizationType>&
          optimization_types) {
@@ -43,7 +43,7 @@ diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.
 diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
 --- a/chrome/common/chrome_features.cc
 +++ b/chrome/common/chrome_features.cc
-@@ -889,8 +889,8 @@ BASE_FEATURE(kPermissionAuditing,
+@@ -891,8 +891,8 @@ BASE_FEATURE(kPermissionAuditing,
  // Enables using the prediction service for permission prompts. We will keep
  // this feature in order to allow us to update the holdback chance via finch.
  BASE_FEATURE(kPermissionPredictions,
@@ -54,7 +54,7 @@ diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
  
  // The holdback chance is 30% but it can also be configured/updated
  // through finch if needed.
-@@ -901,8 +901,8 @@ const base::FeatureParam<double> kPermissionPredictionsHoldbackChance(
+@@ -903,8 +903,8 @@ const base::FeatureParam<double> kPermissionPredictionsHoldbackChance(
  
  // Enables using the prediction service for geolocation permission prompts.
  BASE_FEATURE(kPermissionGeolocationPredictions,
@@ -95,7 +95,7 @@ diff --git a/components/optimization_guide/core/hints_manager.cc b/components/op
  
    // This set contains URLs that require some information to be fetched, whether
    // that be a URL-keyed hint or a host-keyed hint.
-@@ -1263,6 +1265,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
+@@ -1264,6 +1266,9 @@ OptimizationTypeDecision HintsManager::CanApplyOptimization(
      proto::OptimizationType optimization_type,
      OptimizationMetadata* optimization_metadata) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -185,7 +185,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  
  BASE_FEATURE(kPageContentAnnotationsValidation,
               "PageContentAnnotationsValidation",
-@@ -414,7 +410,7 @@ size_t MaxURLKeyedHintCacheSize() {
+@@ -418,7 +414,7 @@ size_t MaxURLKeyedHintCacheSize() {
  
  bool ShouldPersistHintsToDisk() {
    return GetFieldTrialParamByFeatureAsBool(kOptimizationHints,
@@ -197,7 +197,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
 diff --git a/components/optimization_guide/core/prediction_model_download_manager.cc b/components/optimization_guide/core/prediction_model_download_manager.cc
 --- a/components/optimization_guide/core/prediction_model_download_manager.cc
 +++ b/components/optimization_guide/core/prediction_model_download_manager.cc
-@@ -45,7 +45,7 @@ constexpr char kGoogApiKey[] = "X-Goog-Api-Key";
+@@ -47,7 +47,7 @@ constexpr char kGoogApiKey[] = "X-Goog-Api-Key";
  // we require models to come from.
  constexpr uint8_t kPublisherKeyHash[] = {
      0x66, 0xa1, 0xd9, 0x3e, 0x4e, 0x5a, 0x66, 0x8a, 0x0f, 0xd3, 0xfa,
@@ -206,16 +206,16 @@ diff --git a/components/optimization_guide/core/prediction_model_download_manage
      0x5c, 0x7f, 0xd0, 0x0c, 0xa1, 0x6e, 0xef, 0xdd, 0x63, 0x7a};
  const net::NetworkTrafficAnnotationTag
      kOptimizationGuidePredictionModelsTrafficAnnotation =
-@@ -93,7 +93,7 @@ PredictionModelDownloadManager::PredictionModelDownloadManager(
-     const base::FilePath& models_dir_path,
+@@ -106,7 +106,7 @@ PredictionModelDownloadManager::PredictionModelDownloadManager(
+     const proto::ModelCacheKey& model_cache_key,
      scoped_refptr<base::SequencedTaskRunner> background_task_runner)
      : download_service_(download_service),
 -      is_available_for_downloads_(true),
 +      is_available_for_downloads_(false),
        api_key_(features::GetOptimizationGuideServiceAPIKey()),
        models_dir_path_(models_dir_path),
-       background_task_runner_(background_task_runner) {}
-@@ -103,6 +103,7 @@ PredictionModelDownloadManager::~PredictionModelDownloadManager() = default;
+       prediction_model_store_(prediction_model_store),
+@@ -118,6 +118,7 @@ PredictionModelDownloadManager::~PredictionModelDownloadManager() = default;
  void PredictionModelDownloadManager::StartDownload(
      const GURL& download_url,
      proto::OptimizationTarget optimization_target) {
@@ -223,7 +223,7 @@ diff --git a/components/optimization_guide/core/prediction_model_download_manage
    download::DownloadParams download_params;
    download_params.client =
        download::DownloadClient::OPTIMIZATION_GUIDE_PREDICTION_MODELS;
-@@ -239,6 +240,7 @@ void PredictionModelDownloadManager::OnDownloadFailed(
+@@ -254,6 +255,7 @@ void PredictionModelDownloadManager::OnDownloadFailed(
  absl::optional<std::pair<base::FilePath, base::FilePath>>
  PredictionModelDownloadManager::VerifyDownload(const base::FilePath& file_path,
                                                 bool delete_file_on_error) {
@@ -259,7 +259,7 @@ diff --git a/components/optimization_guide/features.gni b/components/optimizatio
 diff --git a/components/permissions/features.cc b/components/permissions/features.cc
 --- a/components/permissions/features.cc
 +++ b/components/permissions/features.cc
-@@ -85,12 +85,12 @@ BASE_FEATURE(kPermissionChipRequestTypeSensitive,
+@@ -78,12 +78,12 @@ const base::FeatureParam<int> kPermissionChipAutoDismissDelay{
  // When enabled, use the value of the `service_url` FeatureParam as the url
  // for the Web Permission Predictions Service.
  BASE_FEATURE(kPermissionPredictionServiceUseUrlOverride,

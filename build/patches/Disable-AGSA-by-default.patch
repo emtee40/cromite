@@ -21,7 +21,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -420,7 +420,6 @@ if (current_toolchain == default_toolchain) {
+@@ -417,7 +417,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/first_run/android:java",
        "//chrome/browser/flags:java",
        "//chrome/browser/fullscreen/android:java",
@@ -29,7 +29,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/history_clusters:java",
        "//chrome/browser/history_clusters:java_resources",
        "//chrome/browser/image_descriptions:java",
-@@ -1015,7 +1014,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1002,7 +1001,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/flags:flags_junit_tests",
        "//chrome/browser/flags:java",
        "//chrome/browser/fullscreen/android:java",
@@ -37,7 +37,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/history_clusters:java",
        "//chrome/browser/image_descriptions:java",
        "//chrome/browser/image_editor/public:java",
-@@ -1531,7 +1529,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1519,7 +1517,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/first_run/android:java",
        "//chrome/browser/flags:java",
        "//chrome/browser/fullscreen/android:java",
@@ -48,7 +48,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/AppHooks.java b/chrome/android/java/src/org/chromium/chrome/browser/AppHooks.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/AppHooks.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/AppHooks.java
-@@ -17,7 +17,6 @@ import org.chromium.chrome.browser.directactions.DirectActionCoordinator;
+@@ -15,7 +15,6 @@ import org.chromium.chrome.browser.directactions.DirectActionCoordinator;
  import org.chromium.chrome.browser.feedback.FeedbackReporter;
  import org.chromium.chrome.browser.feedback.HelpAndFeedbackLauncher;
  import org.chromium.chrome.browser.feedback.HelpAndFeedbackLauncherImpl;
@@ -108,18 +108,18 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
      // TODO(972867): Pull MenuOrKeyboardActionController out of ChromeActivity.
      private List<MenuOrKeyboardActionController.MenuOrKeyboardActionHandler> mMenuActionHandlers =
              new ArrayList<>();
-@@ -1189,10 +1183,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -1172,10 +1166,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
  
      @Override
      public void onStopWithNative() {
--        if (GSAState.getInstance(this).isGsaAvailable() && !SysUtils.isLowEndDevice()) {
+-        if (GSAState.getInstance().isGsaAvailable() && !SysUtils.isLowEndDevice()) {
 -            if (mGSAAccountChangeListener != null) mGSAAccountChangeListener.disconnect();
 -        }
 -
          super.onStopWithNative();
      }
  
-@@ -1284,23 +1274,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -1267,23 +1257,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
                      .recordUserFontPrefOnStartup();
          });
  
@@ -127,7 +127,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
 -        if (!SysUtils.isLowEndDevice()) {
 -            if (isActivityFinishingOrDestroyed()) return;
 -            DeferredStartupHandler.getInstance().addDeferredTask(() -> {
--                if (!GSAState.getInstance(this).isGsaAvailable()) {
+-                if (!GSAState.getInstance().isGsaAvailable()) {
 -                    ContextReporter.reportStatus(ContextReporter.STATUS_GSA_NOT_AVAILABLE);
 -                    return;
 -                }
@@ -158,7 +158,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/contextmenu/Chr
                      LensMetrics.LensSupportStatus.ACTIVITY_NOT_ACCESSIBLE);
              return false;
          }
--        if (GSAState.getInstance(mContext).isAgsaVersionBelowMinimum(
+-        if (GSAState.getInstance().isAgsaVersionBelowMinimum(
 -                    versionName, LensUtils.getMinimumAgsaVersionForLensSupport())) {
 -            LensMetrics.recordLensSupportStatus(
 -                    LENS_SUPPORT_STATUS_HISTOGRAM_NAME, LensMetrics.LensSupportStatus.OUT_OF_DATE);
@@ -195,7 +195,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/Cust
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java b/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
-@@ -356,14 +356,6 @@ public class ProcessInitializationHandler {
+@@ -360,14 +360,6 @@ public class ProcessInitializationHandler {
              }
          });
  
@@ -236,7 +236,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/share/LensUtils
              if (context == null) {
                  return "";
              }
--            String agsaVersion = GSAState.getInstance(context).getAgsaVersionName();
+-            String agsaVersion = GSAState.getInstance().getAgsaVersionName();
 -            if (agsaVersion == null) {
                  return "";
 -            } else {
@@ -261,7 +261,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/share/LensUtils
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -750,8 +750,8 @@ BASE_FEATURE(kDuetTabStripIntegrationAndroid,
+@@ -737,8 +737,8 @@ BASE_FEATURE(kDuetTabStripIntegrationAndroid,
               base::FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kExperimentsForAgsa,
@@ -275,7 +275,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 diff --git a/chrome/browser/ui/android/omnibox/BUILD.gn b/chrome/browser/ui/android/omnibox/BUILD.gn
 --- a/chrome/browser/ui/android/omnibox/BUILD.gn
 +++ b/chrome/browser/ui/android/omnibox/BUILD.gn
-@@ -146,7 +146,6 @@ android_library("java") {
+@@ -147,7 +147,6 @@ android_library("java") {
      "//chrome/browser/device:java",
      "//chrome/browser/feature_engagement:java",
      "//chrome/browser/flags:java",
@@ -283,7 +283,7 @@ diff --git a/chrome/browser/ui/android/omnibox/BUILD.gn b/chrome/browser/ui/andr
      "//chrome/browser/history_clusters:java",
      "//chrome/browser/language/android:java",
      "//chrome/browser/lens:java",
-@@ -441,7 +440,6 @@ robolectric_library("junit") {
+@@ -440,7 +439,6 @@ robolectric_library("junit") {
      "//chrome/browser/commerce/merchant_viewer/android:java",
      "//chrome/browser/device:java",
      "//chrome/browser/flags:java",

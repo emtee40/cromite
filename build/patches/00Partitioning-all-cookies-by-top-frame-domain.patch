@@ -49,7 +49,7 @@ diff --git a/content/browser/browsing_data/same_site_data_remover_impl.cc b/cont
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -282,16 +282,16 @@ BASE_FEATURE(kCookieSameSiteConsidersRedirectChain,
+@@ -255,16 +255,16 @@ BASE_FEATURE(kCookieSameSiteConsidersRedirectChain,
               base::FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kSamePartyCookiesConsideredFirstParty,
@@ -72,7 +72,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
  
  BASE_FEATURE(kNoncedPartitionedCookies,
               "NoncedPartitionedCookies",
-@@ -314,8 +314,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
+@@ -283,8 +283,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kCookieDomainRejectNonASCII,
@@ -86,7 +86,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
 diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
 --- a/net/cookies/canonical_cookie.cc
 +++ b/net/cookies/canonical_cookie.cc
-@@ -1485,8 +1485,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
+@@ -1465,8 +1465,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
    if (IsPartitioned()) {
      if (CookiePartitionKey::HasNonce(partition_key_))
        return true;
@@ -95,7 +95,7 @@ diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
    }
  
    return true;
-@@ -1733,7 +1731,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
+@@ -1713,7 +1711,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
      return true;
    if (partition_has_nonce)
      return true;
@@ -128,7 +128,7 @@ diff --git a/net/cookies/parsed_cookie.h b/net/cookies/parsed_cookie.h
  #include "net/base/net_export.h"
  #include "net/cookies/cookie_constants.h"
  
-@@ -88,7 +89,11 @@ class NET_EXPORT ParsedCookie {
+@@ -83,7 +84,11 @@ class NET_EXPORT ParsedCookie {
        CookieSameSiteString* samesite_string = nullptr) const;
    CookiePriority Priority() const;
    bool IsSameParty() const { return same_party_index_ != 0; }
@@ -144,7 +144,7 @@ diff --git a/net/cookies/parsed_cookie.h b/net/cookies/parsed_cookie.h
 diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
 --- a/net/extras/sqlite/sqlite_persistent_cookie_store.cc
 +++ b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
-@@ -872,6 +872,16 @@ bool SQLitePersistentCookieStore::Backend::DoInitializeDatabase() {
+@@ -861,6 +861,16 @@ bool SQLitePersistentCookieStore::Backend::DoInitializeDatabase() {
    if (!restore_old_session_cookies_)
      DeleteSessionCookiesOnStartup();
  
@@ -164,7 +164,7 @@ diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sq
 diff --git a/services/network/cookie_settings.cc b/services/network/cookie_settings.cc
 --- a/services/network/cookie_settings.cc
 +++ b/services/network/cookie_settings.cc
-@@ -34,6 +34,11 @@ bool IsExplicitSetting(const ContentSettingPatternSource& setting) {
+@@ -35,6 +35,11 @@ bool IsExplicitSetting(const ContentSettingPatternSource& setting) {
           !setting.secondary_pattern.MatchesAllHosts();
  }
  
@@ -176,7 +176,7 @@ diff --git a/services/network/cookie_settings.cc b/services/network/cookie_setti
  const ContentSettingPatternSource* FindMatchingSetting(
      const GURL& primary_url,
      const GURL& secondary_url,
-@@ -222,11 +227,14 @@ bool CookieSettings::BlockDueToThirdPartyCookieBlockingSetting(
+@@ -192,11 +197,14 @@ net::NetworkDelegate::PrivacySetting CookieSettings::IsPrivacyModeEnabled(
  
  CookieSettings::ThirdPartyBlockingOutcome
  CookieSettings::GetThirdPartyBlockingScope(const GURL& first_party_url) const {
@@ -196,9 +196,9 @@ diff --git a/services/network/cookie_settings.cc b/services/network/cookie_setti
 diff --git a/services/network/restricted_cookie_manager.cc b/services/network/restricted_cookie_manager.cc
 --- a/services/network/restricted_cookie_manager.cc
 +++ b/services/network/restricted_cookie_manager.cc
-@@ -762,6 +762,9 @@ void RestrictedCookieManager::SetCookieFromString(
-     callback = base::DoNothing();
-   }
+@@ -734,6 +734,9 @@ void RestrictedCookieManager::SetCookieFromString(
+   std::move(callback).Run(site_for_cookies_ok, top_frame_origin_ok);
+   callback = base::DoNothing();
  
 +  // https://bugs.chromium.org/p/chromium/issues/detail?id=911299
 +  if (!site_for_cookies_ok || !top_frame_origin_ok) return;

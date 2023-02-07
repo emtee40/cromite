@@ -61,7 +61,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -2392,6 +2392,7 @@ static_library("browser") {
+@@ -2381,6 +2381,7 @@ static_library("browser") {
      "//services/device/public/cpp:device_features",
      "//services/device/public/cpp/serial:switches",
      "//services/device/public/cpp/usb",
@@ -72,16 +72,16 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -218,6 +218,8 @@
- #include "ui/native_theme/native_theme_features.h"
+@@ -219,6 +219,8 @@
  #include "ui/ui_features.h"
+ #include "url/url_features.h"
  
 +#include "third_party/ungoogled/ungoogled_switches.h"
 +
  #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
  #include "base/allocator/buildflags.h"
  #endif
-@@ -3715,6 +3717,20 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -3387,6 +3389,20 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kWebrtcUseMinMaxVEADimensionsName,
       flag_descriptions::kWebrtcUseMinMaxVEADimensionsDescription, kOsAll,
       FEATURE_VALUE_TYPE(blink::features::kWebRtcUseMinMaxVEADimensions)},
@@ -105,7 +105,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -248,6 +248,7 @@ source_set("browser") {
+@@ -246,6 +246,7 @@ source_set("browser") {
      "//third_party/libyuv",
      "//third_party/re2",
      "//third_party/sqlite",
@@ -124,7 +124,7 @@ diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content
  #if BUILDFLAG(IS_ANDROID)
  #include "base/android/child_process_binding_types.h"
  #include "content/browser/android/java_interfaces_impl.h"
-@@ -3265,6 +3266,9 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+@@ -3312,6 +3313,9 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
      switches::kDisableBreakpad,
      switches::kDisableDatabases,
      switches::kDisableFileSystem,
@@ -195,7 +195,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  #include "base/notreached.h"
  #include "base/ranges/algorithm.h"
  #include "base/time/time.h"
-@@ -824,6 +825,15 @@ Document::Document(const DocumentInit& initializer,
+@@ -825,6 +826,15 @@ Document::Document(const DocumentInit& initializer,
                : nullptr),
        data_(MakeGarbageCollected<DocumentData>(GetExecutionContext())) {
    DCHECK(agent_);
@@ -211,7 +211,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
    if (base::FeatureList::IsEnabled(features::kDelayAsyncScriptExecution))
      script_runner_delayer_->Activate();
  
-@@ -2252,6 +2262,14 @@ void Document::UpdateStyleAndLayoutTreeForThisDocument() {
+@@ -2254,6 +2264,14 @@ void Document::UpdateStyleAndLayoutTreeForThisDocument() {
  #endif
  }
  
@@ -240,7 +240,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/
    AtomicString visibilityState() const;
    bool IsPageVisible() const;
    bool hidden() const;
-@@ -2333,6 +2337,9 @@ class CORE_EXPORT Document : public ContainerNode,
+@@ -2338,6 +2342,9 @@ class CORE_EXPORT Document : public ContainerNode,
  
    base::ElapsedTimer start_time_;
  
@@ -253,7 +253,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/
 diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/renderer/core/dom/element.cc
 --- a/third_party/blink/renderer/core/dom/element.cc
 +++ b/third_party/blink/renderer/core/dom/element.cc
-@@ -2065,6 +2065,7 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
+@@ -2068,6 +2068,7 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
        quads.push_back(element_layout_object->LocalToAbsoluteQuad(
            gfx::QuadF(element_layout_object->ObjectBoundingBox())));
      }
@@ -261,7 +261,7 @@ diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/
      return;
    }
  
-@@ -2072,6 +2073,11 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
+@@ -2075,6 +2076,11 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
    if (element_layout_object->IsBoxModelObject() ||
        element_layout_object->IsBR())
      element_layout_object->AbsoluteQuads(quads);
@@ -273,7 +273,7 @@ diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/
  }
  
  DOMRectList* Element::getClientRects() {
-@@ -2110,6 +2116,9 @@ gfx::RectF Element::GetBoundingClientRectNoLifecycleUpdate() const {
+@@ -2113,6 +2119,9 @@ gfx::RectF Element::GetBoundingClientRectNoLifecycleUpdate() const {
    DCHECK(element_layout_object);
    GetDocument().AdjustRectForScrollAndAbsoluteZoom(result,
                                                     *element_layout_object);
@@ -286,7 +286,7 @@ diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/
 diff --git a/third_party/blink/renderer/core/dom/range.cc b/third_party/blink/renderer/core/dom/range.cc
 --- a/third_party/blink/renderer/core/dom/range.cc
 +++ b/third_party/blink/renderer/core/dom/range.cc
-@@ -1604,6 +1604,12 @@ DOMRectList* Range::getClientRects() const {
+@@ -1612,6 +1612,12 @@ DOMRectList* Range::getClientRects() const {
    Vector<gfx::QuadF> quads;
    GetBorderAndTextQuads(quads);
  
@@ -299,7 +299,7 @@ diff --git a/third_party/blink/renderer/core/dom/range.cc b/third_party/blink/re
    return MakeGarbageCollected<DOMRectList>(quads);
  }
  
-@@ -1743,7 +1749,11 @@ gfx::RectF Range::BoundingRect() const {
+@@ -1751,7 +1757,11 @@ gfx::RectF Range::BoundingRect() const {
  
    // If all rects are empty, return the first rect.
    if (result.IsEmpty() && !quads.empty())
@@ -323,7 +323,7 @@ diff --git a/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creat
  #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
  #include "third_party/blink/renderer/platform/graphics/unaccelerated_static_bitmap_image.h"
  #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
-@@ -262,6 +263,10 @@ CanvasAsyncBlobCreator::CanvasAsyncBlobCreator(
+@@ -208,6 +209,10 @@ CanvasAsyncBlobCreator::CanvasAsyncBlobCreator(
                           std::min(info.height(), max_dimension));
        src_data_.reset(info, src_data_.addr(), src_data_.rowBytes());
      }
@@ -464,7 +464,7 @@ diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/t
 diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc b/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
 --- a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
 +++ b/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
-@@ -30,6 +30,7 @@
+@@ -31,6 +31,7 @@
  #include "third_party/blink/renderer/modules/webcodecs/video_frame.h"
  #include "third_party/blink/renderer/platform/graphics/bitmap_image.h"
  #include "third_party/blink/renderer/platform/graphics/graphics_context.h"
@@ -472,7 +472,7 @@ diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_c
  #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
  #include "third_party/blink/renderer/platform/graphics/stroke_data.h"
  #include "third_party/blink/renderer/platform/graphics/video_frame_image_util.h"
-@@ -2079,6 +2080,10 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
+@@ -2057,6 +2058,10 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
            snapshot->PaintImageForCurrentFrame().GetSkImageInfo().bounds();
        DCHECK(!bounds.intersect(SkIRect::MakeXYWH(sx, sy, sw, sh)));
      }
@@ -486,7 +486,7 @@ diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_c
 diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/canvas_rendering_context_2d.cc b/third_party/blink/renderer/modules/canvas/canvas2d/canvas_rendering_context_2d.cc
 --- a/third_party/blink/renderer/modules/canvas/canvas2d/canvas_rendering_context_2d.cc
 +++ b/third_party/blink/renderer/modules/canvas/canvas2d/canvas_rendering_context_2d.cc
-@@ -929,9 +929,15 @@ TextMetrics* CanvasRenderingContext2D::measureText(const String& text) {
+@@ -938,9 +938,15 @@ TextMetrics* CanvasRenderingContext2D::measureText(const String& text) {
    TextDirection direction =
        ToTextDirection(GetState().GetDirection(), canvas());
  
@@ -506,7 +506,7 @@ diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/canvas_rendering
 diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/renderer/platform/BUILD.gn
 --- a/third_party/blink/renderer/platform/BUILD.gn
 +++ b/third_party/blink/renderer/platform/BUILD.gn
-@@ -1613,7 +1613,9 @@ component("platform") {
+@@ -1641,7 +1641,9 @@ component("platform") {
      "//third_party/blink/renderer:non_test_config",
    ]
  
@@ -517,7 +517,7 @@ diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/re
  
    allow_circular_includes_from = [
      "//third_party/blink/renderer/platform/blob",
-@@ -1682,6 +1684,7 @@ component("platform") {
+@@ -1710,6 +1712,7 @@ component("platform") {
      "//third_party/blink/public/strings",
      "//third_party/blink/renderer/platform/wtf",
      "//third_party/ced",
@@ -761,7 +761,7 @@ diff --git a/third_party/blink/renderer/platform/graphics/static_bitmap_image.h 
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -1514,6 +1514,15 @@
+@@ -1536,6 +1536,15 @@
        // No plan to support complex UI for date/time INPUT types on Android.
        status: {"Android": "test", "default": "stable"},
      },

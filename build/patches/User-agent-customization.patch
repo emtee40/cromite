@@ -73,8 +73,8 @@ diff --git a/base/base_switches.h b/base/base_switches.h
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -657,4 +657,6 @@ chrome_java_resources = [
-   "java/res/xml/privacy_preferences.xml",
+@@ -662,4 +662,6 @@ chrome_java_resources = [
+   "java/res/xml/privacy_preferences_v2.xml",
    "java/res/xml/search_widget_info.xml",
    "java/res/xml/tracing_preferences.xml",
 +  "java/res/xml/useragent_preferences.xml",
@@ -83,7 +83,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -891,6 +891,7 @@ chrome_java_sources = [
+@@ -883,6 +883,7 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/payments/ui/DimmingDialog.java",
    "java/src/org/chromium/chrome/browser/payments/ui/LineItem.java",
    "java/src/org/chromium/chrome/browser/payments/ui/PaymentAppComparator.java",
@@ -256,7 +256,7 @@ new file mode 100644
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeBrowserInitializer.java b/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeBrowserInitializer.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeBrowserInitializer.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeBrowserInitializer.java
-@@ -50,6 +50,7 @@ import org.chromium.content_public.browser.DeviceUtils;
+@@ -49,6 +49,7 @@ import org.chromium.content_public.browser.DeviceUtils;
  import org.chromium.content_public.browser.SpeechRecognition;
  import org.chromium.content_public.browser.UiThreadTaskTraits;
  import org.chromium.net.NetworkChangeNotifier;
@@ -264,7 +264,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeBrow
  
  import java.io.File;
  import java.util.ArrayList;
-@@ -319,11 +320,13 @@ public class ChromeBrowserInitializer {
+@@ -316,11 +317,13 @@ public class ChromeBrowserInitializer {
  
                          @Override
                          public void onSuccess() {
@@ -1069,7 +1069,7 @@ diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -1255,6 +1255,14 @@ extern const char kDesktopSharingHubEnabled[];
+@@ -1267,6 +1267,14 @@ extern const char kDesktopSharingHubEnabled[];
  #if !BUILDFLAG(IS_ANDROID)
  extern const char kLastWhatsNewVersion[];
  #endif
@@ -1108,7 +1108,7 @@ diff --git a/components/browser_ui/widget/android/java/src/org/chromium/componen
 diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
 --- a/components/embedder_support/user_agent_utils.cc
 +++ b/components/embedder_support/user_agent_utils.cc
-@@ -430,6 +430,13 @@ std::string GetUserAgent(
+@@ -443,6 +443,13 @@ std::string GetUserAgent(
  
  std::string GetReducedUserAgent(
      ForceMajorVersionToMinorPosition force_major_to_minor) {
@@ -1122,7 +1122,7 @@ diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedd
    return content::GetReducedUserAgent(
        base::CommandLine::ForCurrentProcess()->HasSwitch(
            switches::kUseMobileUserAgent),
-@@ -602,6 +609,10 @@ blink::UserAgentMetadata GetUserAgentMetadata(const PrefService* pref_service) {
+@@ -615,6 +622,10 @@ blink::UserAgentMetadata GetUserAgentMetadata(const PrefService* pref_service) {
            policy::policy_prefs::kUserAgentClientHintsGREASEUpdateEnabled);
      ua_options.force_major_to_minor = GetMajorToMinorFromPrefs(pref_service);
    }
@@ -1133,7 +1133,7 @@ diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedd
    metadata.brand_version_list = GetBrandMajorVersionList(
        enable_updated_grease_by_policy, ua_options.force_major_to_minor);
    metadata.brand_full_version_list = GetBrandFullVersionList(
-@@ -639,7 +650,9 @@ void SetDesktopUserAgentOverride(content::WebContents* web_contents,
+@@ -652,7 +663,9 @@ void SetDesktopUserAgentOverride(content::WebContents* web_contents,
  
    blink::UserAgentOverride spoofed_ua;
    spoofed_ua.ua_string_override = content::BuildUserAgentFromOSAndProduct(
@@ -1147,7 +1147,7 @@ diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedd
 diff --git a/content/browser/renderer_host/navigation_controller_android.cc b/content/browser/renderer_host/navigation_controller_android.cc
 --- a/content/browser/renderer_host/navigation_controller_android.cc
 +++ b/content/browser/renderer_host/navigation_controller_android.cc
-@@ -255,6 +255,7 @@ NavigationControllerAndroid::LoadUrl(
+@@ -252,6 +252,7 @@ NavigationControllerAndroid::LoadUrl(
      jboolean can_load_local_resources,
      jboolean is_renderer_initiated,
      jboolean should_replace_current_entry,
@@ -1155,7 +1155,7 @@ diff --git a/content/browser/renderer_host/navigation_controller_android.cc b/co
      const JavaParamRef<jobject>& j_initiator_origin,
      jboolean has_user_gesture,
      jboolean should_clear_history_list,
-@@ -327,6 +328,9 @@ NavigationControllerAndroid::LoadUrl(
+@@ -324,6 +325,9 @@ NavigationControllerAndroid::LoadUrl(
  
    params.navigation_ui_data = std::move(navigation_ui_data);
  
@@ -1179,7 +1179,7 @@ diff --git a/content/browser/renderer_host/navigation_controller_android.h b/con
 diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content/browser/renderer_host/render_process_host_impl.cc
 --- a/content/browser/renderer_host/render_process_host_impl.cc
 +++ b/content/browser/renderer_host/render_process_host_impl.cc
-@@ -3451,6 +3451,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+@@ -3500,6 +3500,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
      switches::kLacrosUseChromeosProtectedMedia,
      switches::kLacrosUseChromeosProtectedAv1,
  #endif
@@ -1198,7 +1198,7 @@ diff --git a/content/browser/web_contents/web_contents_impl.cc b/content/browser
  #include "base/bind.h"
  #include "base/check_op.h"
  #include "base/command_line.h"
-@@ -2822,6 +2823,9 @@ const blink::web_pref::WebPreferences WebContentsImpl::ComputeWebPreferences() {
+@@ -2882,6 +2883,9 @@ const blink::web_pref::WebPreferences WebContentsImpl::ComputeWebPreferences() {
          !renderer_preferences_.user_agent_override.ua_metadata_override->mobile)
  #endif
        prefs.viewport_meta_enabled = false;
@@ -1231,10 +1231,10 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/frameh
 diff --git a/content/renderer/render_thread_impl.cc b/content/renderer/render_thread_impl.cc
 --- a/content/renderer/render_thread_impl.cc
 +++ b/content/renderer/render_thread_impl.cc
-@@ -922,7 +922,6 @@ void RenderThreadImpl::InitializeRenderer(
+@@ -911,7 +911,6 @@ void RenderThreadImpl::InitializeRenderer(
      const blink::UserAgentMetadata& user_agent_metadata,
      const std::vector<std::string>& cors_exempt_header_list,
-     blink::mojom::AttributionOsSupport attribution_os_support) {
+     attribution_reporting::mojom::OsSupport attribution_os_support) {
 -  DCHECK(user_agent_.IsNull());
    DCHECK(reduced_user_agent_.IsNull());
    DCHECK(full_user_agent_.IsNull());

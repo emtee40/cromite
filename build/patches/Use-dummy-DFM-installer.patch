@@ -5,7 +5,7 @@ Subject: Use dummy DFM installer
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  components/module_installer/android/BUILD.gn  |  2 -
- .../engine/SplitCompatEngine.java             | 53 ++++---------------
+ .../engine/SplitCompatEngine.java             | 52 ++++---------------
  .../engine/SplitCompatEngineFacade.java       | 28 +++-------
  .../module_installer/logger/Logger.java       | 16 ++----
  .../logger/PlayCoreLogger.java                | 36 ++-----------
@@ -13,7 +13,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../logger/SplitInstallStatusLogger.java      | 30 +----------
  .../module_installer/util/ModuleUtil.java     |  5 --
  .../util/SplitCompatInitializer.java          |  6 ---
- 9 files changed, 25 insertions(+), 179 deletions(-)
+ 9 files changed, 25 insertions(+), 178 deletions(-)
 
 diff --git a/components/module_installer/android/BUILD.gn b/components/module_installer/android/BUILD.gn
 --- a/components/module_installer/android/BUILD.gn
@@ -47,7 +47,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
  import org.chromium.base.ThreadUtils;
  
  import java.util.ArrayList;
-@@ -28,7 +23,6 @@ import java.util.Set;
+@@ -27,7 +22,6 @@ import java.util.Set;
   */
  class SplitCompatEngine implements InstallEngine {
      private final SplitCompatEngineFacade mFacade;
@@ -55,7 +55,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
      private static final Map<String, List<InstallListener>> sSessions = new HashMap<>();
  
      public SplitCompatEngine() {
-@@ -46,49 +40,20 @@ class SplitCompatEngine implements InstallEngine {
+@@ -45,48 +39,20 @@ class SplitCompatEngine implements InstallEngine {
  
      @Override
      public boolean isInstalled(String moduleName) {
@@ -74,16 +74,17 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
      public void install(String moduleName, InstallListener listener) {
          ThreadUtils.assertOnUiThread();
 -
--        if (sSessions.containsKey(moduleName)) {
--            sSessions.get(moduleName).add(listener);
+-        List<InstallListener> listeners = sSessions.get(moduleName);
+-        if (listeners != null) {
+-            listeners.add(listener);
 -            return;
 -        }
 -
 -        registerUpdateListener();
 -
--        sSessions.put(moduleName, new ArrayList<InstallListener>() {
--            { add(listener); }
--        });
+-        listeners = new ArrayList<>();
+-        listeners.add(listener);
+-        sSessions.put(moduleName, listeners);
 -
 -        SplitInstallRequest request = mFacade.createSplitInstallRequest(moduleName);
 -
@@ -94,8 +95,6 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
 -                    ex instanceof SplitInstallException
 -                            ? ((SplitInstallException) ex).getErrorCode()
 -                            : mFacade.getLogger().getUnknownRequestErrorCode());
--
--            String message = String.format(Locale.US, "Request Exception: %s", ex.getMessage());
 -            notifyListeners(moduleName, false);
 -        });
 -
@@ -107,7 +106,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
          return state -> {
              assert !state.moduleNames().isEmpty();
  
-@@ -112,12 +77,12 @@ class SplitCompatEngine implements InstallEngine {
+@@ -110,12 +76,12 @@ class SplitCompatEngine implements InstallEngine {
                  mFacade.getLogger().logStatus(moduleName, status);
              }
          };
@@ -123,7 +122,7 @@ diff --git a/components/module_installer/android/java/src/org/chromium/component
  
          sSessions.remove(moduleName);
  
-@@ -133,15 +98,15 @@ class SplitCompatEngine implements InstallEngine {
+@@ -131,15 +97,15 @@ class SplitCompatEngine implements InstallEngine {
      }
  
      private void registerUpdateListener() {

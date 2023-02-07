@@ -79,15 +79,15 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../permission_prompt_android.h               |  2 +
  .../android/permissions_android_strings.grd   | 17 ++++
  .../geolocation_permission_context_android.cc | 35 ++++++--
- .../geolocation_permission_context_android.h  | 13 ++-
- .../permissions/permission_context_base.cc    | 49 ++++++++++-
- .../permissions/permission_context_base.h     | 24 +++++-
+ .../geolocation_permission_context_android.h  | 14 +++-
+ .../permissions/permission_context_base.cc    | 55 +++++++++++--
+ .../permissions/permission_context_base.h     | 25 +++++-
  components/permissions/permission_prompt.h    |  3 +-
  components/permissions/permission_request.cc  | 34 +++++++-
  components/permissions/permission_request.h   | 17 +++-
  .../permissions/permission_request_manager.cc | 37 ++++++---
  .../permissions/permission_request_manager.h  | 11 ++-
- 35 files changed, 472 insertions(+), 56 deletions(-)
+ 35 files changed, 478 insertions(+), 58 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -181,7 +181,7 @@ diff --git a/chrome/browser/permissions/last_tab_standing_tracker_factory.cc b/c
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -415,10 +415,7 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -411,10 +411,7 @@ void ChromeBrowserMainExtraPartsProfiles::
    FirstRunServiceFactory::GetInstance();
  #endif
    LanguageModelManagerFactory::GetInstance();
@@ -196,14 +196,14 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -487,6 +487,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -480,6 +480,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
    PolicyAuditorBridge::CreateForWebContents(web_contents);
    PluginObserverAndroid::CreateForWebContents(web_contents);
    video_tutorials::VideoTutorialTabHelper::CreateForWebContents(web_contents);
 +  LastTabStandingTrackerTabHelper::CreateForWebContents(web_contents);
  #else
-   if (accuracy_tips::AccuracyWebContentsObserver::IsEnabled(web_contents)) {
-     accuracy_tips::AccuracyWebContentsObserver::CreateForWebContents(
+   if (web_app::AreWebAppsUserInstallable(profile))
+     webapps::AppBannerManagerDesktop::CreateForWebContents(web_contents);
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
@@ -270,7 +270,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      private void setUpClearDataPreference() {
          ClearWebsiteStorage preference = findPreference(PREF_CLEAR_DATA);
          long usage = mSite.getTotalUsage();
-@@ -970,6 +976,10 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -967,6 +973,10 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          if (contentType == mHighlightedPermission) {
              switchPreference.setBackgroundColor(mHighlightColor);
          }
@@ -345,7 +345,7 @@ diff --git a/components/browser_ui/site_settings/android/website_preference_brid
 diff --git a/components/browser_ui/strings/android/browser_ui_strings.grd b/components/browser_ui/strings/android/browser_ui_strings.grd
 --- a/components/browser_ui/strings/android/browser_ui_strings.grd
 +++ b/components/browser_ui/strings/android/browser_ui_strings.grd
-@@ -608,6 +608,11 @@
+@@ -605,6 +605,11 @@
        <message name="IDS_PAGE_INFO_URL_TRUNCATED" desc="Accessibility announcement when the URL in PageInfo switches from full to truncated display">
          URL truncated
        </message>
@@ -421,7 +421,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.h b
 +    LifetimeMode lifetime_mode);
 +
  // Get a timestamp with week-precision.
- base::Time GetCoarseTime(base::Time time);
+ base::Time GetCoarseVisitedTime(base::Time time);
  
 diff --git a/components/content_settings/core/common/content_settings_constraints.h b/components/content_settings/core/common/content_settings_constraints.h
 --- a/components/content_settings/core/common/content_settings_constraints.h
@@ -565,7 +565,7 @@ diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.
 diff --git a/components/page_info/page_info.h b/components/page_info/page_info.h
 --- a/components/page_info/page_info.h
 +++ b/components/page_info/page_info.h
-@@ -181,6 +181,7 @@ class PageInfo : private content_settings::CookieControlsView {
+@@ -182,6 +182,7 @@ class PageInfo : private content_settings::CookieControlsView {
      content_settings::SettingSource source =
          content_settings::SETTING_SOURCE_NONE;
      bool is_one_time = false;
@@ -829,15 +829,15 @@ diff --git a/components/permissions/android/permissions_android_strings.grd b/co
 diff --git a/components/permissions/contexts/geolocation_permission_context_android.cc b/components/permissions/contexts/geolocation_permission_context_android.cc
 --- a/components/permissions/contexts/geolocation_permission_context_android.cc
 +++ b/components/permissions/contexts/geolocation_permission_context_android.cc
-@@ -157,6 +157,19 @@ void GeolocationPermissionContextAndroid::NotifyPermissionSet(
-     ContentSetting content_setting,
-     bool is_one_time) {
+@@ -159,7 +159,20 @@ void GeolocationPermissionContextAndroid::NotifyPermissionSet(
+     bool is_final_decision) {
    DCHECK(!is_one_time);
+   DCHECK(is_final_decision);
 +  NotifyPermissionSetWithLifetime(id, requesting_origin, embedding_origin,
-+    std::move(callback), persist, content_setting, is_one_time,
++    std::move(callback), persist, content_setting, is_one_time, is_final_decision,
 +    content_settings::LifetimeMode::Always);
 +}
-+
+ 
 +void GeolocationPermissionContextAndroid::NotifyPermissionSetWithLifetime(
 +    const PermissionRequestID& id,
 +    const GURL& requesting_origin,
@@ -845,11 +845,12 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
 +    BrowserPermissionCallback callback,
 +    bool persist,
 +    ContentSetting content_setting,
-+    bool is_one_time, content_settings::LifetimeMode lifetime_option) {
++    bool is_one_time, bool is_final_decision,
++    content_settings::LifetimeMode lifetime_option) {
    bool is_default_search = IsRequestingOriginDSE(requesting_origin);
    if (content_setting == CONTENT_SETTING_ALLOW &&
        !location_settings_->IsSystemLocationSettingEnabled()) {
-@@ -169,7 +182,8 @@ void GeolocationPermissionContextAndroid::NotifyPermissionSet(
+@@ -172,7 +185,8 @@ void GeolocationPermissionContextAndroid::NotifyPermissionSet(
      if (IsInLocationSettingsBackOff(is_default_search)) {
        FinishNotifyPermissionSet(id, requesting_origin, embedding_origin,
                                  std::move(callback), false /* persist */,
@@ -859,7 +860,7 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
        LogLocationSettingsMetric(
            kLocationSettingsSuppressMetricBase, is_default_search,
            LocationSettingsBackOffLevel(is_default_search));
-@@ -193,7 +207,8 @@ void GeolocationPermissionContextAndroid::NotifyPermissionSet(
+@@ -196,7 +210,8 @@ void GeolocationPermissionContextAndroid::NotifyPermissionSet(
          !location_settings_dialog_callback_.is_null()) {
        FinishNotifyPermissionSet(id, requesting_origin, embedding_origin,
                                  std::move(callback), false /* persist */,
@@ -869,7 +870,7 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
        // This case should be very rare, so just pretend it was a denied prompt
        // for metrics purposes.
        LogLocationSettingsMetric(
-@@ -210,12 +225,13 @@ void GeolocationPermissionContextAndroid::NotifyPermissionSet(
+@@ -213,12 +228,13 @@ void GeolocationPermissionContextAndroid::NotifyPermissionSet(
          base::BindOnce(
              &GeolocationPermissionContextAndroid::OnLocationSettingsDialogShown,
              weak_factory_.GetWeakPtr(), requesting_origin, embedding_origin,
@@ -885,7 +886,7 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
  }
  
  PermissionResult
-@@ -382,6 +398,7 @@ void GeolocationPermissionContextAndroid::OnLocationSettingsDialogShown(
+@@ -385,6 +401,7 @@ void GeolocationPermissionContextAndroid::OnLocationSettingsDialogShown(
      const GURL& embedding_origin,
      bool persist,
      ContentSetting content_setting,
@@ -893,7 +894,7 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
      LocationSettingsDialogOutcome prompt_outcome) {
    bool is_default_search = IsRequestingOriginDSE(requesting_origin);
    if (prompt_outcome == GRANTED) {
-@@ -405,7 +422,8 @@ void GeolocationPermissionContextAndroid::OnLocationSettingsDialogShown(
+@@ -408,7 +425,8 @@ void GeolocationPermissionContextAndroid::OnLocationSettingsDialogShown(
  
    FinishNotifyPermissionSet(
        location_settings_dialog_request_id_, requesting_origin, embedding_origin,
@@ -903,7 +904,7 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
  
    location_settings_dialog_request_id_ =
        PermissionRequestID(content::GlobalRenderFrameHostId(0, 0),
-@@ -418,10 +436,11 @@ void GeolocationPermissionContextAndroid::FinishNotifyPermissionSet(
+@@ -421,10 +439,11 @@ void GeolocationPermissionContextAndroid::FinishNotifyPermissionSet(
      const GURL& embedding_origin,
      BrowserPermissionCallback callback,
      bool persist,
@@ -913,18 +914,18 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
 +    bool is_one_time, content_settings::LifetimeMode lifetime_option) {
 +  GeolocationPermissionContext::NotifyPermissionSetWithLifetime(
        id, requesting_origin, embedding_origin, std::move(callback), persist,
--      content_setting, /*is_one_time=*/false);
-+      content_setting, is_one_time, lifetime_option);
+-      content_setting, /*is_one_time=*/false, /*is_final_decision=*/true);
++      content_setting, is_one_time, lifetime_option, /*is_final_decision=*/true);
  }
  
  void GeolocationPermissionContextAndroid::SetLocationSettingsForTesting(
 diff --git a/components/permissions/contexts/geolocation_permission_context_android.h b/components/permissions/contexts/geolocation_permission_context_android.h
 --- a/components/permissions/contexts/geolocation_permission_context_android.h
 +++ b/components/permissions/contexts/geolocation_permission_context_android.h
-@@ -87,6 +87,14 @@ class GeolocationPermissionContextAndroid
-                            bool persist,
+@@ -88,6 +88,15 @@ class GeolocationPermissionContextAndroid
                             ContentSetting content_setting,
-                            bool is_one_time) override;
+                            bool is_one_time,
+                            bool is_final_decision) override;
 +  void NotifyPermissionSetWithLifetime(const PermissionRequestID& id,
 +                           const GURL& requesting_origin,
 +                           const GURL& embedding_origin,
@@ -932,11 +933,12 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
 +                           bool persist,
 +                           ContentSetting content_setting,
 +                           bool is_one_time,
++                           bool is_final_decision,
 +                           content_settings::LifetimeMode lifetime_option) override;
    PermissionResult UpdatePermissionStatusWithDeviceStatus(
        PermissionResult result,
        const GURL& requesting_origin,
-@@ -129,6 +137,7 @@ class GeolocationPermissionContextAndroid
+@@ -130,6 +139,7 @@ class GeolocationPermissionContextAndroid
        const GURL& embedding_origin,
        bool persist,
        ContentSetting content_setting,
@@ -944,7 +946,7 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
        LocationSettingsDialogOutcome prompt_outcome);
  
    void FinishNotifyPermissionSet(const PermissionRequestID& id,
-@@ -136,7 +145,9 @@ class GeolocationPermissionContextAndroid
+@@ -137,7 +147,9 @@ class GeolocationPermissionContextAndroid
                                   const GURL& embedding_origin,
                                   BrowserPermissionCallback callback,
                                   bool persist,
@@ -958,7 +960,7 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
 diff --git a/components/permissions/permission_context_base.cc b/components/permissions/permission_context_base.cc
 --- a/components/permissions/permission_context_base.cc
 +++ b/components/permissions/permission_context_base.cc
-@@ -226,6 +226,20 @@ PermissionContextBase::CreatePermissionRequest(
+@@ -227,6 +227,20 @@ PermissionContextBase::CreatePermissionRequest(
        std::move(delete_callback));
  }
  
@@ -979,35 +981,42 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
  PermissionResult PermissionContextBase::GetPermissionStatus(
      content::RenderFrameHost* render_frame_host,
      const GURL& requesting_origin,
-@@ -405,7 +419,8 @@ void PermissionContextBase::PermissionDecided(
-     const GURL& embedding_origin,
-     BrowserPermissionCallback callback,
-     ContentSetting content_setting,
--    bool is_one_time) {
-+    bool is_one_time,
-+    content_settings::LifetimeMode lifetime_option) {
+@@ -406,7 +420,8 @@ void PermissionContextBase::PermissionDecided(const PermissionRequestID& id,
+                                               const GURL& embedding_origin,
+                                               ContentSetting content_setting,
+                                               bool is_one_time,
+-                                              bool is_final_decision) {
++                                              bool is_final_decision,
++                                              content_settings::LifetimeMode lifetime_option) {
    DCHECK(content_setting == CONTENT_SETTING_ALLOW ||
           content_setting == CONTENT_SETTING_BLOCK ||
           content_setting == CONTENT_SETTING_DEFAULT);
-@@ -413,9 +428,9 @@ void PermissionContextBase::PermissionDecided(
-                              content_setting);
- 
-   bool persist = content_setting != CONTENT_SETTING_DEFAULT;
--  NotifyPermissionSet(id, requesting_origin, embedding_origin,
-+  NotifyPermissionSetWithLifetime(id, requesting_origin, embedding_origin,
-                       std::move(callback), persist, content_setting,
--                      is_one_time);
-+                      is_one_time, lifetime_option);
+@@ -421,13 +436,14 @@ void PermissionContextBase::PermissionDecided(const PermissionRequestID& id,
+   // missing if a permission prompt was preignored and we already notified an
+   // origin about it.
+   if (request->second.second) {
+-    NotifyPermissionSet(id, requesting_origin, embedding_origin,
++    NotifyPermissionSetWithLifetime(id, requesting_origin, embedding_origin,
+                         std::move(request->second.second), persist,
+-                        content_setting, is_one_time, is_final_decision);
++                        content_setting, is_one_time, is_final_decision,
++                        lifetime_option);
+   } else {
+-    NotifyPermissionSet(id, requesting_origin, embedding_origin,
++    NotifyPermissionSetWithLifetime(id, requesting_origin, embedding_origin,
+                         base::DoNothing(), persist, content_setting,
+-                        is_one_time, is_final_decision);
++                        is_one_time, is_final_decision, lifetime_option);
+   }
  }
  
- content::BrowserContext* PermissionContextBase::browser_context() const {
-@@ -465,11 +480,26 @@ void PermissionContextBase::NotifyPermissionSet(
-     bool persist,
+@@ -479,11 +495,27 @@ void PermissionContextBase::NotifyPermissionSet(
      ContentSetting content_setting,
-     bool is_one_time) {
+     bool is_one_time,
+     bool is_final_decision) {
 +  DCHECK(is_one_time == false);
 +  NotifyPermissionSetWithLifetime(id, requesting_origin, embedding_origin, std::move(callback),
-+     persist, content_setting, is_one_time,
++     persist, content_setting, is_one_time, is_final_decision,
 +     content_settings::LifetimeMode::Always);
 +}
 +
@@ -1019,6 +1028,7 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
 +    bool persist,
 +    ContentSetting content_setting,
 +    bool is_one_time,
++    bool is_final_decision,
 +    content_settings::LifetimeMode lifetime_option) {
    DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
  
@@ -1028,8 +1038,8 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
 +                         is_one_time, lifetime_option);
    }
  
-   UpdateTabContext(id, requesting_origin,
-@@ -490,6 +520,15 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
+   if (is_final_decision) {
+@@ -506,6 +538,15 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
                                                   const GURL& embedding_origin,
                                                   ContentSetting content_setting,
                                                   bool is_one_time) {
@@ -1045,7 +1055,7 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
    DCHECK_EQ(requesting_origin, requesting_origin.DeprecatedGetOriginAsURL());
    DCHECK_EQ(embedding_origin, embedding_origin.DeprecatedGetOriginAsURL());
    DCHECK(content_setting == CONTENT_SETTING_ALLOW ||
-@@ -498,6 +537,8 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
+@@ -514,6 +555,8 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
    content_settings::ContentSettingConstraints constraints = {
        base::Time(), is_one_time ? content_settings::SessionModel::OneTime
                                  : content_settings::SessionModel::Durable};
@@ -1057,7 +1067,7 @@ diff --git a/components/permissions/permission_context_base.cc b/components/perm
 diff --git a/components/permissions/permission_context_base.h b/components/permissions/permission_context_base.h
 --- a/components/permissions/permission_context_base.h
 +++ b/components/permissions/permission_context_base.h
-@@ -138,6 +138,14 @@ class PermissionContextBase : public content_settings::Observer {
+@@ -138,6 +138,15 @@ class PermissionContextBase : public content_settings::Observer {
  
    // Updates stored content setting if persist is set, updates tab indicators
    // and runs the callback to finish the request.
@@ -1068,11 +1078,12 @@ diff --git a/components/permissions/permission_context_base.h b/components/permi
 +                                   bool persist,
 +                                   ContentSetting content_setting,
 +                                   bool is_one_time,
++                                   bool is_final_decision,
 +                                   content_settings::LifetimeMode lifetime_option);
    virtual void NotifyPermissionSet(const PermissionRequestID& id,
                                     const GURL& requesting_origin,
                                     const GURL& embedding_origin,
-@@ -158,6 +166,11 @@ class PermissionContextBase : public content_settings::Observer {
+@@ -159,6 +168,11 @@ class PermissionContextBase : public content_settings::Observer {
    // Store the decided permission as a content setting.
    // virtual since the permission might be stored with different restrictions
    // (for example for desktop notifications).
@@ -1084,7 +1095,7 @@ diff --git a/components/permissions/permission_context_base.h b/components/permi
    virtual void UpdateContentSetting(const GURL& requesting_origin,
                                      const GURL& embedding_origin,
                                      ContentSetting content_setting,
-@@ -190,6 +203,14 @@ class PermissionContextBase : public content_settings::Observer {
+@@ -191,6 +205,14 @@ class PermissionContextBase : public content_settings::Observer {
        PermissionRequest::PermissionDecidedCallback permission_decided_callback,
        base::OnceClosure delete_callback) const;
  
@@ -1099,12 +1110,12 @@ diff --git a/components/permissions/permission_context_base.h b/components/permi
    ContentSettingsType content_settings_type() const {
      return content_settings_type_;
    }
-@@ -216,7 +237,8 @@ class PermissionContextBase : public content_settings::Observer {
+@@ -217,7 +239,8 @@ class PermissionContextBase : public content_settings::Observer {
                           const GURL& embedding_origin,
-                          BrowserPermissionCallback callback,
                           ContentSetting content_setting,
--                         bool is_one_time);
-+                         bool is_one_time,
+                          bool is_one_time,
+-                         bool is_final_decision);
++                         bool is_final_decision,
 +                         content_settings::LifetimeMode lifetime_option);
  
    raw_ptr<content::BrowserContext> browser_context_;
@@ -1126,7 +1137,7 @@ diff --git a/components/permissions/permission_prompt.h b/components/permissions
 diff --git a/components/permissions/permission_request.cc b/components/permissions/permission_request.cc
 --- a/components/permissions/permission_request.cc
 +++ b/components/permissions/permission_request.cc
-@@ -31,6 +31,18 @@ PermissionRequest::PermissionRequest(
+@@ -27,6 +27,18 @@ PermissionRequest::PermissionRequest(
        permission_decided_callback_(std::move(permission_decided_callback)),
        delete_callback_(std::move(delete_callback)) {}
  
@@ -1145,7 +1156,7 @@ diff --git a/components/permissions/permission_request.cc b/components/permissio
  PermissionRequest::~PermissionRequest() {
    DCHECK(delete_callback_.is_null());
  }
-@@ -235,17 +247,35 @@ std::u16string PermissionRequest::GetMessageTextFragment() const {
+@@ -229,19 +241,37 @@ std::u16string PermissionRequest::GetMessageTextFragment() const {
  }
  #endif
  
@@ -1158,7 +1169,8 @@ diff --git a/components/permissions/permission_request.cc b/components/permissio
 +    return;
 +  }
    std::move(permission_decided_callback_)
-       .Run(CONTENT_SETTING_ALLOW, is_one_time);
+       .Run(CONTENT_SETTING_ALLOW, is_one_time,
+            /*is_final_decision=*/true);
  }
  
 -void PermissionRequest::PermissionDenied() {
@@ -1170,25 +1182,26 @@ diff --git a/components/permissions/permission_request.cc b/components/permissio
 +    return;
 +  }
    std::move(permission_decided_callback_)
-       .Run(CONTENT_SETTING_BLOCK, /*is_one_time=*/false);
+       .Run(CONTENT_SETTING_BLOCK, /*is_one_time=*/false,
+            /*is_final_decision=*/true);
  }
  
- void PermissionRequest::Cancelled() {
+ void PermissionRequest::Cancelled(bool is_final_decision) {
 +  if (permission_decided_callback_withlifetime_) {
 +    std::move(permission_decided_callback_withlifetime_)
 +        .Run(CONTENT_SETTING_DEFAULT, false,
 +             content_settings::LifetimeMode::Always);
 +    return;
 +  }
-   std::move(permission_decided_callback_)
-       .Run(CONTENT_SETTING_DEFAULT, /*is_one_time=*/false);
+   permission_decided_callback_.Run(CONTENT_SETTING_DEFAULT,
+                                    /*is_one_time=*/false, is_final_decision);
  }
 diff --git a/components/permissions/permission_request.h b/components/permissions/permission_request.h
 --- a/components/permissions/permission_request.h
 +++ b/components/permissions/permission_request.h
-@@ -39,6 +39,10 @@ class PermissionRequest {
-   using PermissionDecidedCallback =
-       base::OnceCallback<void(ContentSetting /*result*/, bool /*is_one_time*/)>;
+@@ -42,6 +42,10 @@ class PermissionRequest {
+                                    bool /*is_one_time*/,
+                                    bool /*is_final_decision*/)>;
  
 +  using PermissionDecidedCallbackWithLifetime =
 +      base::OnceCallback<void(ContentSetting /*result*/, bool /*is_one_time*/,
@@ -1197,7 +1210,7 @@ diff --git a/components/permissions/permission_request.h b/components/permission
    // `permission_decided_callback` is called when the permission request is
    // resolved by the user (see comment on PermissionDecidedCallback above).
    // `delete_callback` is called when the permission request is no longer needed
-@@ -54,6 +58,12 @@ class PermissionRequest {
+@@ -57,6 +61,12 @@ class PermissionRequest {
                      PermissionDecidedCallback permission_decided_callback,
                      base::OnceClosure delete_callback);
  
@@ -1210,7 +1223,7 @@ diff --git a/components/permissions/permission_request.h b/components/permission
    PermissionRequest(const PermissionRequest&) = delete;
    PermissionRequest& operator=(const PermissionRequest&) = delete;
  
-@@ -106,10 +116,10 @@ class PermissionRequest {
+@@ -109,10 +119,10 @@ class PermissionRequest {
    // If |is_one_time| is true the permission will last until all tabs of
    // |origin| are closed or navigated away from, and then the permission will
    // automatically expire after 1 day.
@@ -1223,7 +1236,7 @@ diff --git a/components/permissions/permission_request.h b/components/permission
  
    // Called when the user has cancelled the permission request. This
    // corresponds to a denial, but is segregated in case the context needs to
-@@ -147,6 +157,9 @@ class PermissionRequest {
+@@ -160,6 +170,9 @@ class PermissionRequest {
    // Called once a decision is made about the permission.
    PermissionDecidedCallback permission_decided_callback_;
  
@@ -1254,7 +1267,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
      }
      request->RequestFinished();
      return;
-@@ -541,14 +541,15 @@ void PermissionRequestManager::Accept() {
+@@ -532,14 +532,15 @@ void PermissionRequestManager::Accept() {
                                  (*requests_iter)->request_type(),
                                  PermissionAction::GRANTED);
      PermissionGrantedIncludingDuplicates(*requests_iter,
@@ -1272,7 +1285,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    if (ignore_callbacks_from_prompt_)
      return;
    DCHECK(view_);
-@@ -559,7 +560,8 @@ void PermissionRequestManager::AcceptThisTime() {
+@@ -550,7 +551,8 @@ void PermissionRequestManager::AcceptThisTime() {
                                  (*requests_iter)->request_type(),
                                  PermissionAction::GRANTED_ONCE);
      PermissionGrantedIncludingDuplicates(*requests_iter,
@@ -1282,7 +1295,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    }
  
    NotifyRequestDecided(PermissionAction::GRANTED_ONCE);
-@@ -567,6 +569,15 @@ void PermissionRequestManager::AcceptThisTime() {
+@@ -558,6 +560,15 @@ void PermissionRequestManager::AcceptThisTime() {
  }
  
  void PermissionRequestManager::Deny() {
@@ -1298,7 +1311,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    if (ignore_callbacks_from_prompt_)
      return;
    DCHECK(view_);
-@@ -589,7 +600,7 @@ void PermissionRequestManager::Deny() {
+@@ -580,7 +591,7 @@ void PermissionRequestManager::Deny() {
      StorePermissionActionForUMA((*requests_iter)->requesting_origin(),
                                  (*requests_iter)->request_type(),
                                  PermissionAction::DENIED);
@@ -1307,7 +1320,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    }
  
    NotifyRequestDecided(PermissionAction::DENIED);
-@@ -971,25 +982,25 @@ PermissionRequest* PermissionRequestManager::GetExistingRequest(
+@@ -996,25 +1007,25 @@ PermissionRequest* PermissionRequestManager::GetExistingRequest(
  
  void PermissionRequestManager::PermissionGrantedIncludingDuplicates(
      PermissionRequest* request,
@@ -1339,7 +1352,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
  }
  
  void PermissionRequestManager::CancelledIncludingDuplicates(
-@@ -1215,7 +1226,7 @@ void PermissionRequestManager::LogWarningToConsole(const char* message) {
+@@ -1241,7 +1252,7 @@ void PermissionRequestManager::LogWarningToConsole(const char* message) {
  void PermissionRequestManager::DoAutoResponseForTesting() {
    switch (auto_response_for_test_) {
      case ACCEPT_ONCE:
@@ -1351,7 +1364,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
 diff --git a/components/permissions/permission_request_manager.h b/components/permissions/permission_request_manager.h
 --- a/components/permissions/permission_request_manager.h
 +++ b/components/permissions/permission_request_manager.h
-@@ -155,8 +155,10 @@ class PermissionRequestManager
+@@ -157,8 +157,10 @@ class PermissionRequestManager
    GURL GetRequestingOrigin() const override;
    GURL GetEmbeddingOrigin() const override;
    void Accept() override;
@@ -1362,8 +1375,8 @@ diff --git a/components/permissions/permission_request_manager.h b/components/pe
 +  void DenyThisTime(content_settings::LifetimeMode lifetime_option) override;
    void Dismiss() override;
    void Ignore() override;
-   bool WasCurrentRequestAlreadyDisplayed() override;
-@@ -317,9 +319,12 @@ class PermissionRequestManager
+   void PreIgnoreQuietPrompt() override;
+@@ -326,9 +328,12 @@ class PermissionRequestManager
  
    // Calls PermissionGranted on a request and all its duplicates.
    void PermissionGrantedIncludingDuplicates(PermissionRequest* request,
@@ -1376,7 +1389,7 @@ diff --git a/components/permissions/permission_request_manager.h b/components/pe
 +                                           bool is_one_time,
 +                                           content_settings::LifetimeMode lifetime_option);
    // Calls Cancelled on a request and all its duplicates.
-   void CancelledIncludingDuplicates(PermissionRequest* request);
-   // Calls RequestFinished on a request and all its duplicates.
+   void CancelledIncludingDuplicates(PermissionRequest* request,
+                                     bool is_final_decision = true);
 --
 2.25.1

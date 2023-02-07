@@ -38,7 +38,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -92,6 +92,9 @@ android_library("java") {
+@@ -93,6 +93,9 @@ android_library("java") {
      "java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java",
      "java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSetting.java",
    ]
@@ -152,25 +152,25 @@ new file mode 100644
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-@@ -44,7 +44,7 @@ public class SiteSettingsCategory {
-             Type.PROTECTED_MEDIA, Type.SENSORS, Type.SOUND, Type.USB, Type.VIRTUAL_REALITY,
+@@ -48,7 +48,7 @@ public class SiteSettingsCategory {
              Type.USE_STORAGE, Type.AUTO_DARK_WEB_CONTENT, Type.REQUEST_DESKTOP_SITE,
-             Type.FEDERATED_IDENTITY_API, Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT,
--            Type.IMAGES})
-+            Type.IMAGES, Type.WEBGL})
+             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA,
+             Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT, Type.IMAGES,
+-            Type.NUM_ENTRIES})
++            Type.NUM_ENTRIES, Type.WEBGL})
      @Retention(RetentionPolicy.SOURCE)
      public @interface Type {
          // All updates here must also be reflected in {@link #preferenceKey(int)
-@@ -79,10 +79,11 @@ public class SiteSettingsCategory {
-         int AUTOPLAY = 27;
-         int JAVASCRIPT_JIT = 28;
-         int IMAGES = 29;
-+        int WEBGL = 30;
+@@ -85,10 +85,11 @@ public class SiteSettingsCategory {
+         int AUTOPLAY = 29;
+         int JAVASCRIPT_JIT = 30;
+         int IMAGES = 31;
++        int WEBGL = 32;
          /**
           * Number of handled categories used for calculating array sizes.
           */
--        int NUM_ENTRIES = 30;
-+        int NUM_ENTRIES = 31;
+-        int NUM_ENTRIES = 32;
++        int NUM_ENTRIES = 33;
      }
  
      private final BrowserContextHandle mBrowserContextHandle;
@@ -211,7 +211,7 @@ new file mode 100644
 diff --git a/components/components_strings.grd b/components/components_strings.grd
 --- a/components/components_strings.grd
 +++ b/components/components_strings.grd
-@@ -338,6 +338,7 @@
+@@ -337,6 +337,7 @@
        <part file="version_ui_strings.grdp" />
        <part file="webapps_strings.grdp" />
  
@@ -222,7 +222,7 @@ diff --git a/components/components_strings.grd b/components/components_strings.g
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -633,6 +633,20 @@ void ContentSettingsRegistry::Init() {
+@@ -613,6 +613,20 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::PERSISTENT,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
@@ -258,7 +258,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
 --- a/components/content_settings/core/common/content_settings.cc
 +++ b/components/content_settings/core/common/content_settings.cc
-@@ -208,7 +208,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
+@@ -211,7 +211,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
           content_type == ContentSettingsType::AUTOPLAY ||
           content_type == ContentSettingsType::MIXEDSCRIPT ||
           content_type == ContentSettingsType::AUTO_DARK_WEB_CONTENT ||
@@ -268,7 +268,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
  }
  
  void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-@@ -220,6 +221,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
+@@ -223,6 +224,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
    FilterRulesForType(auto_dark_content_rules, outermost_main_frame_url);
    FilterRulesForType(timezone_override_rules, outermost_main_frame_url);
    FilterRulesForType(autoplay_rules, outermost_main_frame_url);
@@ -339,7 +339,7 @@ diff --git a/components/content_settings/core/common/content_settings_types.h b/
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
 --- a/components/content_settings/renderer/content_settings_agent_impl.cc
 +++ b/components/content_settings/renderer/content_settings_agent_impl.cc
-@@ -449,6 +449,15 @@ void ContentSettingsAgentImpl::ClearBlockedContentSettings() {
+@@ -441,6 +441,15 @@ void ContentSettingsAgentImpl::ClearBlockedContentSettings() {
    cached_script_permissions_.clear();
  }
  
@@ -381,7 +381,7 @@ diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/t
 diff --git a/third_party/blink/renderer/core/execution_context/execution_context.cc b/third_party/blink/renderer/core/execution_context/execution_context.cc
 --- a/third_party/blink/renderer/core/execution_context/execution_context.cc
 +++ b/third_party/blink/renderer/core/execution_context/execution_context.cc
-@@ -67,6 +67,29 @@
+@@ -68,6 +68,29 @@
  
  namespace blink {
  
@@ -414,7 +414,7 @@ diff --git a/third_party/blink/renderer/core/execution_context/execution_context
 diff --git a/third_party/blink/renderer/core/execution_context/execution_context.h b/third_party/blink/renderer/core/execution_context/execution_context.h
 --- a/third_party/blink/renderer/core/execution_context/execution_context.h
 +++ b/third_party/blink/renderer/core/execution_context/execution_context.h
-@@ -101,6 +101,7 @@ class SecurityOrigin;
+@@ -102,6 +102,7 @@ class SecurityOrigin;
  class ScriptState;
  class ScriptWrappable;
  class TrustedTypePolicyFactory;
@@ -422,7 +422,7 @@ diff --git a/third_party/blink/renderer/core/execution_context/execution_context
  
  enum ReasonForCallingCanExecuteScripts {
    kAboutToExecuteScript,
-@@ -109,6 +110,10 @@ enum ReasonForCallingCanExecuteScripts {
+@@ -110,6 +111,10 @@ enum ReasonForCallingCanExecuteScripts {
  
  enum ReferrerPolicySource { kPolicySourceHttpHeader, kPolicySourceMetaTag };
  
@@ -492,7 +492,7 @@ diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_ba
 diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.h b/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.h
 --- a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.h
 +++ b/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.h
-@@ -1920,6 +1920,8 @@ class MODULES_EXPORT WebGLRenderingContextBase : public CanvasRenderingContext,
+@@ -1923,6 +1923,8 @@ class MODULES_EXPORT WebGLRenderingContextBase : public CanvasRenderingContext,
                          DOMArrayBufferView* pixels,
                          int64_t offset);
  

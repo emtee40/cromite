@@ -22,9 +22,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -9187,6 +9187,9 @@ const FeatureEntry kFeatureEntries[] = {
-      flag_descriptions::kPervasiveSystemAccentColorDescription, kOsWin,
-      SINGLE_VALUE_TYPE(switches::kPervasiveSystemAccentColor)},
+@@ -8666,6 +8666,9 @@ const FeatureEntry kFeatureEntries[] = {
+      flag_descriptions::kVCPortraitRelightingDescription, kOsCrOS,
+      FEATURE_VALUE_TYPE(ash::features::kVCPortraitRelighting)},
  #endif
 +    {"enable-search-ready-omnibox", flag_descriptions::kSearchReadyOmniboxName,
 +     flag_descriptions::kSearchReadyOmniboxDescription, kOsAndroid,
@@ -35,7 +35,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
 --- a/chrome/browser/flag-metadata.json
 +++ b/chrome/browser/flag-metadata.json
-@@ -2808,6 +2808,11 @@
+@@ -2793,6 +2793,11 @@
      //  with neural net palm detection.
      "expiry_milestone": 90
    },
@@ -50,7 +50,7 @@ diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.js
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -4013,6 +4013,11 @@ const char kSendTabToSelfV2Description[] =
+@@ -3993,6 +3993,11 @@ const char kSendTabToSelfV2Description[] =
      "Enables new received tab "
      "UI shown next to the profile icon instead of using system notifications.";
  
@@ -65,7 +65,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -2304,6 +2304,9 @@ extern const char kShowScrollableMVTOnNTPAndroidDescription[];
+@@ -2289,6 +2289,9 @@ extern const char kShowScrollableMVTOnNTPAndroidDescription[];
  extern const char kSendTabToSelfV2Name[];
  extern const char kSendTabToSelfV2Description[];
  
@@ -78,7 +78,7 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -268,6 +268,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+@@ -266,6 +266,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
      &kReachedCodeProfiler,
      &kReaderModeInCCT,
      &kReengagementNotification,
@@ -86,7 +86,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
      &kRelatedSearches,
      &kRelatedSearchesInBar,
      &kRelatedSearchesUi,
-@@ -830,6 +831,10 @@ BASE_FEATURE(kOpaqueOriginForIncomingIntents,
+@@ -821,6 +822,10 @@ BASE_FEATURE(kOpaqueOriginForIncomingIntents,
               "OpaqueOriginForIncomingIntents",
               base::FEATURE_ENABLED_BY_DEFAULT);
  
@@ -96,11 +96,11 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 +
  BASE_FEATURE(kOptimizeGeolocationHeaderGeneration,
               "OptimizeGeolocationHeaderGeneration",
-              base::FEATURE_DISABLED_BY_DEFAULT);
+              base::FEATURE_ENABLED_BY_DEFAULT);
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -133,6 +133,7 @@ BASE_DECLARE_FEATURE(kSearchEnginePromoExistingDevice);
+@@ -134,6 +134,7 @@ BASE_DECLARE_FEATURE(kSearchEnginePromoExistingDevice);
  BASE_DECLARE_FEATURE(kSearchEnginePromoExistingDeviceV2);
  BASE_DECLARE_FEATURE(kSearchEnginePromoNewDevice);
  BASE_DECLARE_FEATURE(kSearchEnginePromoNewDeviceV2);
@@ -111,7 +111,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -382,6 +382,7 @@ public abstract class ChromeFeatureList {
+@@ -383,6 +383,7 @@ public abstract class ChromeFeatureList {
      public static final String MESSAGES_FOR_ANDROID_STACKING_ANIMATION =
              "MessagesForAndroidStackingAnimation";
      public static final String MESSAGES_FOR_ANDROID_SYNC_ERROR = "MessagesForAndroidSyncError";
@@ -141,7 +141,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
 @@ -99,8 +101,10 @@ class DropdownItemViewInfoListBuilder {
              mDividerLineProcessor = new DividerLineProcessor(context);
          }
-         mHeaderProcessor = new HeaderProcessor(context, host, delegate);
+         mHeaderProcessor = new HeaderProcessor(context);
 -        registerSuggestionProcessor(new EditUrlSuggestionProcessor(
 -                context, host, delegate, mFaviconFetcher, mActivityTabSupplier, shareSupplier));
 +        mEditUrlSuggestionProcessor = new EditUrlSuggestionProcessor(
