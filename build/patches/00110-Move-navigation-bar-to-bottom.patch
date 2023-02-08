@@ -1,0 +1,89 @@
+From: Your Name <you@example.com>
+Date: Wed, 8 Feb 2023 13:17:43 +0000
+Subject: 110 Move navigation bar to bottom
+
+---
+ .../chrome/browser/toolbar/ToolbarManager.java       | 12 ++++++------
+ .../browser/ui/system/StatusBarColorController.java  |  5 +++--
+ .../chromium/chrome/browser/ui/appmenu/AppMenu.java  |  1 +
+ 3 files changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+@@ -1310,14 +1310,14 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+         return mLocationBar.getOmniboxStub().isUrlBarFocused();
+     }
+ 
+-    View bottomRoot;
++    View mBottomRoot;
+ 
+     private void MoveBottomBarOverTopBar() {
+-        if (bottomRoot != null &&
++        if (mBottomRoot != null &&
+                 ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // move up the container view of the ui
+             // below there is the toolbar
+-            bottomRoot.setTranslationY(-mBrowserControlsSizer.getTopControlsHeight());
++            mBottomRoot.setTranslationY(-mBrowserControlsSizer.getTopControlsHeight());
+         }
+     }
+ 
+@@ -1325,10 +1325,10 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+      * Enable the bottom controls.
+      */
+     public void enableBottomControls() {
+-        bottomRoot = ((ViewStub) mActivity.findViewById(R.id.bottom_controls_stub)).inflate();
++        mBottomRoot = ((ViewStub) mActivity.findViewById(R.id.bottom_controls_stub)).inflate();
+         MoveBottomBarOverTopBar();
+         mTabGroupUi = TabManagementModuleProvider.getDelegate().createTabGroupUi(mActivity,
+-                bottomRoot.findViewById(R.id.bottom_container_slot), mIncognitoStateProvider,
++                mBottomRoot.findViewById(R.id.bottom_container_slot), mIncognitoStateProvider,
+                 mScrimCoordinator, mOmniboxFocusStateSupplier, mBottomSheetController,
+                 mActivityLifecycleDispatcher, mIsWarmOnResumeSupplier, mTabModelSelector,
+                 mTabContentManager, mCompositorViewHolder,
+@@ -1336,7 +1336,7 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+                 mShareDelegateSupplier, mLayoutStateProviderSupplier, mSnackbarManager);
+         var bottomControlsCoordinator = new BottomControlsCoordinator(mActivity, mWindowAndroid,
+                 mLayoutManager, mCompositorViewHolder.getResourceManager(), mBrowserControlsSizer,
+-                mFullscreenManager, (ScrollingBottomViewResourceFrameLayout) root, mTabGroupUi,
++                mFullscreenManager, (ScrollingBottomViewResourceFrameLayout) mBottomRoot, mTabGroupUi,
+                 mTabObscuringHandler, mOverlayPanelVisibilitySupplier, mConstraintsProxy,
+                 mTopUiThemeColorProvider, mActivityTabProvider);
+         mBottomControlsCoordinatorSupplier.set(bottomControlsCoordinator);
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/system/StatusBarColorController.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/system/StatusBarColorController.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ui/system/StatusBarColorController.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/system/StatusBarColorController.java
+@@ -8,6 +8,7 @@ import android.content.Context;
+ import android.graphics.Color;
+ import android.view.View;
+ import android.view.Window;
++import android.os.Build;
+ 
+ import androidx.annotation.ColorInt;
+ import androidx.annotation.Nullable;
+@@ -435,9 +436,9 @@ public class StatusBarColorController
+         ApiCompatibilityUtils.setStatusBarColor(window, color);
+         if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled() &&
+                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+-            UiUtils.setNavigationBarIconColor(mWindow.getDecorView().getRootView(),
++            UiUtils.setNavigationBarIconColor(window.getDecorView().getRootView(),
+                 needsDarkStatusBarIcons);
+-            mWindow.setNavigationBarColor(color);
++            window.setNavigationBarColor(color);
+         }
+     }
+ 
+diff --git a/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java b/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java
+--- a/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java
++++ b/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java
+@@ -12,6 +12,7 @@ import android.graphics.Color;
+ import android.graphics.Rect;
+ import android.graphics.drawable.ColorDrawable;
+ import android.graphics.drawable.Drawable;
++import android.os.Build;
+ import android.os.SystemClock;
+ import android.text.TextUtils;
+ import android.view.Gravity;
+--
+2.25.1

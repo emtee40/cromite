@@ -1,0 +1,39 @@
+From: Your Name <you@example.com>
+Date: Wed, 8 Feb 2023 13:21:50 +0000
+Subject: 110 Disable safe browsing
+
+---
+ .../chrome/browser/privacy_guide/PrivacyGuideUtils.java     | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideUtils.java b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideUtils.java
+--- a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideUtils.java
++++ b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideUtils.java
+@@ -7,7 +7,6 @@ package org.chromium.chrome.browser.privacy_guide;
+ import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.browser.safe_browsing.SafeBrowsingBridge;
+ import org.chromium.chrome.browser.safe_browsing.SafeBrowsingState;
+-import org.chromium.chrome.browser.signin.services.UnifiedConsentServiceBridge;
+ import org.chromium.chrome.browser.sync.SyncService;
+ import org.chromium.components.content_settings.CookieControlsMode;
+ import org.chromium.components.content_settings.PrefNames;
+@@ -24,15 +23,14 @@ import java.util.Set;
+  */
+ class PrivacyGuideUtils {
+     public static boolean isMsbbEnabled() {
+-        return UnifiedConsentServiceBridge.isUrlKeyedAnonymizedDataCollectionEnabled(
+-                Profile.getLastUsedRegularProfile());
++        return false;
+     }
+     public static boolean isHistorySyncEnabled() {
+         Set<Integer> syncTypes = SyncService.get().getSelectedTypes();
+         return syncTypes.contains(UserSelectableType.HISTORY);
+     }
+     public static @SafeBrowsingState int getSafeBrowsingState() {
+-        return SafeBrowsingBridge.getSafeBrowsingState();
++        return SafeBrowsingState.NO_SAFE_BROWSING;
+     }
+     public static @CookieControlsMode int getCookieControlsMode() {
+         return UserPrefs.get(Profile.getLastUsedRegularProfile())
+--
+2.25.1

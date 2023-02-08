@@ -1,0 +1,85 @@
+From: Your Name <you@example.com>
+Date: Wed, 8 Feb 2023 13:26:26 +0000
+Subject: 110 Content settings infrastructure
+
+---
+ .../BromiteCustomContentSettingImpl.java           |  1 +
+ .../site_settings/SingleCategorySettings.java      | 14 +++++---------
+ .../site_settings/SiteSettingsCategory.java        |  5 ++---
+ .../site_settings/WebsitePreferenceBridge.java     |  1 -
+ 4 files changed, 8 insertions(+), 13 deletions(-)
+
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
+--- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
+@@ -83,6 +83,7 @@ public abstract class BromiteCustomContentSettingImpl {
+                 return cs.getContentSetting();
+             }
+         }
++        assert false;
+         return ContentSettingsType.DEFAULT; // Conversion unavailable.
+     }
+ 
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
+--- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
+@@ -917,12 +917,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+             default:
+                 break;
+         }
+-        if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
+-            allowSpecifyingExceptions = true;
+-        } else {
+-            Boolean allow = BromiteCustomContentSettingImpl.allowSpecifyingExceptions(mCategory);
+-            if (allow != null) allowSpecifyingExceptions = (boolean)allow;
+-        }
++        Boolean allow = BromiteCustomContentSettingImpl.allowSpecifyingExceptions(mCategory);
++        if (allow != null) allowSpecifyingExceptions = (boolean)allow;
+         if (allowSpecifyingExceptions) {
+             getPreferenceScreen().addPreference(new AddExceptionPreference(getStyledContext(),
+                     ADD_EXCEPTION_KEY, getAddExceptionDialogMessage(), mCategory, this));
+@@ -1462,12 +1458,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+         @ContentSettingValues
+         Integer value = site.getContentSetting(browserContextHandle, contentSettingsType);
+ 
+-        AlertDialog.Builder alertDialog =
++        AlertDialog.Builder alertDialogBuilder =
+             BromiteCustomContentSettingImpl.buildPreferenceDialog(site, contentSettingsType,
+                 browserContextHandle, getContext(),
+                 (dialog, which) -> { getInfoForOrigins(); });
+-        if (alertDialog != null) {
+-            return alertDialog;
++        if (alertDialogBuilder != null) {
++            return alertDialogBuilder.create();
+         }
+ 
+         AlertDialog alertDialog =
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
+--- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
+@@ -231,10 +231,9 @@ public class SiteSettingsCategory {
+                 return ContentSettingsType.TIMEZONE_OVERRIDE;
+             case Type.ALL_SITES:
+             case Type.USE_STORAGE:
+-                return BromiteCustomContentSettingImpl.contentSettingsType(type);
++                return ContentSettingsType.DEFAULT; // Conversion unavailable.
+         }
+-        assert false;
+-        return ContentSettingsType.DEFAULT;
++        return BromiteCustomContentSettingImpl.contentSettingsType(type);
+     }
+ 
+     /**
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
+--- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
+@@ -263,7 +263,6 @@ public class WebsitePreferenceBridge {
+ 
+     public static boolean isCategoryEnabled(BrowserContextHandle browserContextHandle,
+             @ContentSettingsType int contentSettingsType) {
+-        assert !requiresTriStateContentSetting(contentSettingsType);
+         return isContentSettingEnabled(browserContextHandle, contentSettingsType);
+     }
+ 
+--
+2.25.1

@@ -1,0 +1,23 @@
+From: Your Name <you@example.com>
+Date: Wed, 8 Feb 2023 16:50:58 +0000
+Subject: 110 Fix windows build
+
+---
+ chrome/browser/ui/startup/first_run_service.cc | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/startup/first_run_service.cc
+--- a/chrome/browser/ui/startup/first_run_service.cc
++++ b/chrome/browser/ui/startup/first_run_service.cc
+@@ -150,7 +150,9 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
+   if (ProfilePicker::IsFirstRunOpen())
+     return;
+ 
++#if BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(ENABLE_DICE_SUPPORT)
+   auto* identity_manager = IdentityManagerFactory::GetForProfile(profile_);
++#endif
+ #if BUILDFLAG(IS_CHROMEOS_LACROS)
+   if (identity_manager->HasPrimaryAccount(signin::ConsentLevel::kSync)) {
+     ProfileMetrics::LogLacrosPrimaryProfileFirstRunOutcome(
+--
+2.25.1

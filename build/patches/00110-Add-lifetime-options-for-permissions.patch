@@ -1,0 +1,65 @@
+From: Your Name <you@example.com>
+Date: Wed, 8 Feb 2023 13:20:30 +0000
+Subject: 110 Add lifetime options for permissions
+
+---
+ .../contexts/geolocation_permission_context_android.cc      | 2 +-
+ components/permissions/permission_request.cc                | 6 +++---
+ components/permissions/permission_request.h                 | 1 +
+ 3 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/components/permissions/contexts/geolocation_permission_context_android.cc b/components/permissions/contexts/geolocation_permission_context_android.cc
+--- a/components/permissions/contexts/geolocation_permission_context_android.cc
++++ b/components/permissions/contexts/geolocation_permission_context_android.cc
+@@ -443,7 +443,7 @@ void GeolocationPermissionContextAndroid::FinishNotifyPermissionSet(
+     bool is_one_time, content_settings::LifetimeMode lifetime_option) {
+   GeolocationPermissionContext::NotifyPermissionSetWithLifetime(
+       id, requesting_origin, embedding_origin, std::move(callback), persist,
+-      content_setting, is_one_time, lifetime_option, /*is_final_decision=*/true);
++      content_setting, is_one_time, /*is_final_decision=*/true, lifetime_option);
+ }
+ 
+ void GeolocationPermissionContextAndroid::SetLocationSettingsForTesting(
+diff --git a/components/permissions/permission_request.cc b/components/permissions/permission_request.cc
+--- a/components/permissions/permission_request.cc
++++ b/components/permissions/permission_request.cc
+@@ -245,7 +245,7 @@ void PermissionRequest::PermissionGranted(bool is_one_time,
+                             content_settings::LifetimeMode lifetime_option) {
+   if (permission_decided_callback_withlifetime_) {
+     std::move(permission_decided_callback_withlifetime_)
+-        .Run(CONTENT_SETTING_ALLOW, is_one_time, lifetime_option);
++        .Run(CONTENT_SETTING_ALLOW, is_one_time, /*is_final_decision=*/true, lifetime_option);
+     return;
+   }
+   std::move(permission_decided_callback_)
+@@ -257,7 +257,7 @@ void PermissionRequest::PermissionDenied(bool is_one_time,
+                             content_settings::LifetimeMode lifetime_option) {
+   if (permission_decided_callback_withlifetime_) {
+     std::move(permission_decided_callback_withlifetime_)
+-        .Run(CONTENT_SETTING_BLOCK, is_one_time, lifetime_option);
++        .Run(CONTENT_SETTING_BLOCK, is_one_time, /*is_final_decision=*/true, lifetime_option);
+     return;
+   }
+   std::move(permission_decided_callback_)
+@@ -268,7 +268,7 @@ void PermissionRequest::PermissionDenied(bool is_one_time,
+ void PermissionRequest::Cancelled(bool is_final_decision) {
+   if (permission_decided_callback_withlifetime_) {
+     std::move(permission_decided_callback_withlifetime_)
+-        .Run(CONTENT_SETTING_DEFAULT, false,
++        .Run(CONTENT_SETTING_DEFAULT, false, is_final_decision,
+              content_settings::LifetimeMode::Always);
+     return;
+   }
+diff --git a/components/permissions/permission_request.h b/components/permissions/permission_request.h
+--- a/components/permissions/permission_request.h
++++ b/components/permissions/permission_request.h
+@@ -44,6 +44,7 @@ class PermissionRequest {
+ 
+   using PermissionDecidedCallbackWithLifetime =
+       base::OnceCallback<void(ContentSetting /*result*/, bool /*is_one_time*/,
++        bool /*is_final_decision*/,
+         content_settings::LifetimeMode /*lifetime_option*/)>;
+ 
+   // `permission_decided_callback` is called when the permission request is
+--
+2.25.1
