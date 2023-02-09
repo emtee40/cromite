@@ -11,6 +11,7 @@ Subject: Eyeo Adblock Remove
  .../adblock_telemetry_service_factory.h       |   56 -
  .../adblock/subscription_service_factory.cc   |    2 +-
  ...hrome_browser_main_extra_parts_profiles.cc |    2 -
+ chrome/browser/ui/tab_helpers.cc              |    2 +
  chrome/test/BUILD.gn                          |    1 -
  components/adblock/android/BUILD.gn           |    2 +-
  .../layout/adblock_filter_lists_list_item.xml |   10 +
@@ -39,7 +40,7 @@ Subject: Eyeo Adblock Remove
  .../core/subscription/subscription_config.cc  |    8 +-
  .../subscription_downloader_impl.cc           |   15 +-
  .../subscription_persistent_storage_impl.cc   |    4 +
- .../subscription/subscription_service_impl.cc |    4 +-
+ .../subscription/subscription_service_impl.cc |    2 +-
  .../subscription/subscription_updater_impl.cc |    8 +-
  .../subscription_validator_impl.cc            |    4 +-
  components/adblock/features.gni               |   44 -
@@ -52,7 +53,7 @@ Subject: Eyeo Adblock Remove
  .../blink/renderer/core/css/style_engine.cc   |    8 +
  .../blink/renderer/core/css/style_engine.h    |    1 +
  .../renderer/core/exported/web_document.cc    |   13 +-
- 49 files changed, 3277 insertions(+), 903 deletions(-)
+ 50 files changed, 3279 insertions(+), 901 deletions(-)
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.cc
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.h
  rename components/adblock/android/java/res/xml/{adblock_preferences.xml => eyeo_adblock_preferences.xml} (100%)
@@ -365,6 +366,18 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
    adblock::ResourceClassificationRunnerFactory::GetInstance();
    adblock::SessionStatsFactory::GetInstance();
    adblock::SitekeyStorageFactory::GetInstance();
+diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
+--- a/chrome/browser/ui/tab_helpers.cc
++++ b/chrome/browser/ui/tab_helpers.cc
+@@ -328,6 +328,8 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+   }
+ #endif
+ 
++  adblock::AdblockControllerFactory::GetForBrowserContext(
++      web_contents->GetBrowserContext());
+   AdblockWebContentObserver::CreateForWebContents(
+       web_contents,
+       adblock::SubscriptionServiceFactory::GetForBrowserContext(
 diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 --- a/chrome/test/BUILD.gn
 +++ b/chrome/test/BUILD.gn
@@ -1501,15 +1514,6 @@ diff --git a/components/adblock/core/subscription/subscription_service_impl.cc b
            << (config->IsEnabled() ? " enabled" : " disabled");
    if (config->IsEnabled()) {
      // Enable the configuration by creating a new
-@@ -126,8 +126,6 @@ void SubscriptionServiceImpl::OnEnabledStateChanged(
-     // frees all associated memory.
-     it->second.reset();
-   }
--}
--
- void SubscriptionServiceImpl::OnSubscriptionUpdated(
-     const GURL& subscription_url) {
-   for (auto& observer : observers_)
 diff --git a/components/adblock/core/subscription/subscription_updater_impl.cc b/components/adblock/core/subscription/subscription_updater_impl.cc
 --- a/components/adblock/core/subscription/subscription_updater_impl.cc
 +++ b/components/adblock/core/subscription/subscription_updater_impl.cc

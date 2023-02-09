@@ -6,10 +6,10 @@ Subject: Fix windows build
  .../browser_process_platform_part_win.cc      |  3 ++
  chrome/browser/devtools/devtools_window.cc    |  1 +
  chrome/browser/ui/profile_picker.cc           |  2 +-
- .../browser/ui/startup/first_run_service.cc   |  6 +---
+ .../browser/ui/startup/first_run_service.cc   |  8 ++---
  chrome/browser/updater/BUILD.gn               |  9 -----
  .../browser/updater/browser_updater_client.cc | 34 +------------------
- 6 files changed, 7 insertions(+), 48 deletions(-)
+ 6 files changed, 9 insertions(+), 48 deletions(-)
 
 diff --git a/chrome/browser/browser_process_platform_part_win.cc b/chrome/browser/browser_process_platform_part_win.cc
 --- a/chrome/browser/browser_process_platform_part_win.cc
@@ -83,6 +83,16 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
  }
  
  void FirstRunService::TryMarkFirstRunAlreadyFinished(
+@@ -154,7 +150,9 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
+   if (ProfilePicker::IsFirstRunOpen())
+     return;
+ 
++#if BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(ENABLE_DICE_SUPPORT)
+   auto* identity_manager = IdentityManagerFactory::GetForProfile(profile_);
++#endif
+ #if BUILDFLAG(IS_CHROMEOS_LACROS)
+   if (identity_manager->HasPrimaryAccount(signin::ConsentLevel::kSync)) {
+     ProfileMetrics::LogLacrosPrimaryProfileFirstRunOutcome(
 diff --git a/chrome/browser/updater/BUILD.gn b/chrome/browser/updater/BUILD.gn
 --- a/chrome/browser/updater/BUILD.gn
 +++ b/chrome/browser/updater/BUILD.gn

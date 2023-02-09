@@ -12,11 +12,11 @@ Subject: Disable safe browsing (win fixup)
  .../analysis/content_analysis_delegate.cc     | 164 +-----------------
  .../analysis/content_analysis_delegate.h      |   7 -
  .../analysis/request_handler_base.cc          |  20 ---
- .../reporting/realtime_reporting_client.cc    |   2 +-
+ .../reporting/realtime_reporting_client.cc    |   3 +-
  chrome/browser/extensions/BUILD.gn            |   5 -
  .../extensions/api/cookies/cookies_api.cc     |  35 ----
  .../safe_browsing_private_api.cc              |   3 +-
- .../safe_browsing_private_event_router.cc     |  43 ++---
+ .../safe_browsing_private_event_router.cc     |  44 ++---
  .../webstore_private/webstore_private_api.cc  |  15 +-
  .../extensions/blocklist_state_fetcher.cc     |  13 +-
  .../chrome_extensions_browser_client.cc       |  41 +----
@@ -54,7 +54,7 @@ Subject: Disable safe browsing (win fixup)
  .../core/common/safe_browsing_prefs.cc        |   2 +-
  printing/buildflags/buildflags.gni            |   2 +-
  .../tracked_persistent_pref_store_factory.cc  |  10 +-
- 51 files changed, 67 insertions(+), 791 deletions(-)
+ 51 files changed, 68 insertions(+), 792 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
@@ -612,7 +612,15 @@ diff --git a/chrome/browser/enterprise/connectors/analysis/request_handler_base.
 diff --git a/chrome/browser/enterprise/connectors/reporting/realtime_reporting_client.cc b/chrome/browser/enterprise/connectors/reporting/realtime_reporting_client.cc
 --- a/chrome/browser/enterprise/connectors/reporting/realtime_reporting_client.cc
 +++ b/chrome/browser/enterprise/connectors/reporting/realtime_reporting_client.cc
-@@ -400,7 +400,7 @@ void RealtimeReportingClient::ReportRealtimeEvent(
+@@ -335,6 +335,7 @@ void RealtimeReportingClient::ReportRealtimeEvent(
+     const std::string& name,
+     const enterprise_connectors::ReportingSettings& settings,
+     base::Value::Dict event) {
++  if ((true)) return;
+   if (rejected_dm_token_timers_.contains(settings.dm_token)) {
+     return;
+   }
+@@ -400,7 +401,7 @@ void RealtimeReportingClient::ReportRealtimeEvent(
  }
  
  std::string RealtimeReportingClient::GetProfileUserName() const {
@@ -822,7 +830,15 @@ diff --git a/chrome/browser/extensions/api/safe_browsing_private/safe_browsing_p
    // The scan ID can be empty when the reported dangerous download is from a
    // Safe Browsing verdict.
    if (!scan_id.empty()) {
-@@ -1010,7 +987,7 @@ void SafeBrowsingPrivateEventRouter::SetIdentityManagerForTesting(
+@@ -997,7 +974,6 @@ void SafeBrowsingPrivateEventRouter::OnUrlFilteringInterstitial(
+             event_result == safe_browsing::EventResult::BYPASSED);
+   event.Set(kKeyThreatType, threat_type);
+   AddTriggeredRuleInfoToUrlFilteringInterstitialEvent(response, event);
+-  event.Set(kKeyEventResult, safe_browsing::EventResultToString(event_result));
+ 
+   reporting_client_->ReportRealtimeEvent(kKeyUrlFilteringInterstitialEvent,
+                                          std::move(settings.value()),
+@@ -1010,7 +986,7 @@ void SafeBrowsingPrivateEventRouter::SetIdentityManagerForTesting(
  }
  
  std::string SafeBrowsingPrivateEventRouter::GetProfileUserName() const {

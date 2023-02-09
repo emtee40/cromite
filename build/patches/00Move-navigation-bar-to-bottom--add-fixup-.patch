@@ -3,11 +3,71 @@ Date: Tue, 27 Dec 2022 16:58:28 +0000
 Subject: Move navigation bar to bottom (add fixup)
 
 ---
+ .../start_surface/StartSurfaceMediator.java   |  2 +-
+ .../tab_management/TabGroupUiToolbarView.java |  2 +-
  .../TabListContainerViewBinder.java           |  4 -
- .../tab_management/TabListCoordinator.java    | 77 ++++++++++++++++++-
- .../tab_management/TabSwitcherMediator.java   |  3 +
- 3 files changed, 77 insertions(+), 7 deletions(-)
+ .../tab_management/TabListCoordinator.java    | 81 ++++++++++++++++++-
+ .../tab_management/TabListRecyclerView.java   |  6 +-
+ .../tab_management/TabSwitcherMediator.java   |  9 ++-
+ .../ChromeAccessibilitySettingsDelegate.java  |  2 +-
+ .../chrome/browser/app/ChromeActivity.java    |  2 +-
+ .../compositor/CompositorViewHolder.java      |  2 +-
+ .../layouts/LayoutManagerChrome.java          |  2 +-
+ .../layouts/ToolbarSwipeLayout.java           |  4 +-
+ .../strip/StripLayoutHelperManager.java       |  2 +-
+ .../scene_layer/StaticTabSceneLayer.java      |  2 +-
+ .../scene_layer/TabListSceneLayer.java        |  4 +-
+ .../scene_layer/TabStripSceneLayer.java       |  2 +-
+ .../browser/findinpage/FindToolbarTablet.java |  2 +-
+ .../fullscreen/BrowserControlsManager.java    |  4 +-
+ .../messages/MessageContainerCoordinator.java |  4 +-
+ .../chrome/browser/ntp/NewTabPage.java        |  2 +-
+ .../chrome/browser/ntp/RecentTabsPage.java    |  6 +-
+ .../browser/searchwidget/SearchActivity.java  |  2 +-
+ .../StatusIndicatorCoordinator.java           |  2 +-
+ .../StatusIndicatorSceneLayer.java            |  2 +-
+ .../browser/toolbar/ToolbarManager.java       | 16 ++--
+ .../chrome/browser/ui/BottomContainer.java    |  6 +-
+ .../ui/system/StatusBarColorController.java   |  7 +-
+ .../BrowserControlsMarginSupplier.java        |  2 +-
+ .../chrome/browser/ui/appmenu/AppMenu.java    |  9 ++-
+ .../ui/appmenu/AppMenuHandlerImpl.java        |  2 +-
+ .../browser/omnibox/UrlBarCoordinator.java    |  2 +-
+ .../suggestions/AutocompleteCoordinator.java  |  2 +-
+ .../suggestions/AutocompleteMediator.java     |  2 +-
+ .../DropdownItemViewInfoListManager.java      | 15 +++-
+ .../OmniboxSuggestionsDropdown.java           |  4 +-
+ .../toolbar/LocationBarFocusScrimHandler.java |  2 +-
+ .../bottom/BottomControlsMediator.java        |  2 +-
+ .../bottom/ScrollingBottomViewSceneLayer.java |  2 +-
+ .../toolbar/top/ToolbarControlContainer.java  |  2 +-
+ .../toolbar/top/TopToolbarSceneLayer.java     |  2 +-
+ 39 files changed, 155 insertions(+), 72 deletions(-)
 
+diff --git a/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java b/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
+--- a/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
++++ b/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
+@@ -1163,7 +1163,7 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
+     }
+ 
+     private void setTopMargin(int topMargin) {
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM))
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled())
+             topMargin = 0;
+         mPropertyModel.set(TOP_MARGIN, topMargin);
+     }
+diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabGroupUiToolbarView.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabGroupUiToolbarView.java
+--- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabGroupUiToolbarView.java
++++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabGroupUiToolbarView.java
+@@ -177,7 +177,7 @@ public class TabGroupUiToolbarView extends FrameLayout {
+     }
+ 
+     void setPrimaryColorAndApplyTint(int color) {
+-        if (!CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM))
++        if (!ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled())
+             return;
+ 
+         // change the background color of the bottom bar if the top toolbar is below
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java
 +++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListContainerViewBinder.java
@@ -40,7 +100,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
  import android.content.res.Resources;
  import android.graphics.Bitmap;
  import android.graphics.BitmapFactory;
-@@ -99,6 +100,70 @@ public class TabListCoordinator
+@@ -99,6 +100,74 @@ public class TabListCoordinator
      private boolean mLayoutListenerRegistered;
      private @Nullable TabStripSnapshotter mTabStripSnapshotter;
  
@@ -49,7 +109,9 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 +
 +        TabListRecyclerView mRecyclerView;
 +
-+        int mTopPadding = 99999;
++        final int MAX_TOP_PADDING = 99999;
++        int mTopPadding = MAX_TOP_PADDING;
++
 +        int mLastPosition = -1;
 +        boolean mIsFirstLayout = true;
 +
@@ -69,10 +131,10 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 +        @Override
 +        public int getPaddingTop() {
 +            if (mContext.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-+                mTopPadding = 99999;
++                mTopPadding = MAX_TOP_PADDING;
 +                return 0;
 +            }
-+            if (mTopPadding == 99999) return super.getPaddingTop();
++            if (mTopPadding == MAX_TOP_PADDING) return super.getPaddingTop();
 +            return mTopPadding;
 +        }
 +
@@ -84,26 +146,28 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 +        @Override
 +        public void scrollToPositionWithOffset(int position, int offset) {
 +            mLastPosition = position;
-+            super.scrollToPositionWithOffset(position, getPaddingBottom());
++            super.scrollToPositionWithOffset(position, offset - getPaddingTop());
 +        }
 +
 +        @Override
 +        public void onLayoutCompleted(RecyclerView.State state) {
 +            super.onLayoutCompleted(state);
 +
-+            if (state.isPreLayout()) return;
++            if (state.isPreLayout() || state.isMeasuring()) return;
 +            View lastView = findViewByPosition(findFirstVisibleItemPosition());
 +            if (lastView != null) {
++                if (mTopPadding == 0) mTopPadding = MAX_TOP_PADDING;
 +                mTopPadding = Math.min(mTopPadding, mRecyclerView.getHeight() - lastView.getHeight());
 +                if (mIsFirstLayout) {
 +                    mIsFirstLayout = false;
-+                    scrollToPositionWithOffset(mLastPosition, 0);
++                    scrollToPositionWithOffset(mLastPosition, getPaddingTop() + getPaddingBottom());
 +                }
 +            }
 +
-+            if (mLastPosition != -1 && mLastPosition >= state.getItemCount()) {
++            if (mLastPosition >= state.getItemCount()) {
 +                ResetTopPosition();
-+                scrollToPositionWithOffset(state.getItemCount()-getSpanCount(), 0);
++                scrollToPositionWithOffset(state.getItemCount()-getSpanCount(),
++                    getPaddingTop() + getPaddingBottom());
 +            }
 +        }
 +    }
@@ -111,14 +175,14 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
      /**
       * Construct a coordinator for UI that shows a list of tabs.
       * @param mode Modes of showing the list of tabs. Can be used in GRID or STRIP.
-@@ -259,9 +324,12 @@ public class TabListCoordinator
+@@ -259,9 +328,12 @@ public class TabListCoordinator
              if (mMode == TabListMode.GRID) {
                  GridLayoutManager gridLayoutManager =
                          new GridLayoutManager(context, GRID_LAYOUT_SPAN_COUNT_COMPACT);
 -                // invert the order if the toolbar is at bottom
 -                if (titleProvider != null && CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM))
 -                    gridLayoutManager.setReverseLayout(true);
-+                if (titleProvider != null && CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++                if (titleProvider != null && ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
 +                    gridLayoutManager =
 +                        new GridLayoutManagerDockBottom(context, GRID_LAYOUT_SPAN_COUNT_COMPACT);
 +                    ((GridLayoutManagerDockBottom)gridLayoutManager)
@@ -127,7 +191,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
                  mRecyclerView.setLayoutManager(gridLayoutManager);
                  mMediator.registerOrientationListener(gridLayoutManager);
                  mMediator.updateSpanCount(gridLayoutManager,
-@@ -456,6 +524,9 @@ public class TabListCoordinator
+@@ -456,6 +528,9 @@ public class TabListCoordinator
          }
          registerLayoutChangeListener();
          mRecyclerView.prepareTabSwitcherView();
@@ -137,18 +201,675 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
          mMediator.prepareTabSwitcherView();
          mMediator.registerOnScrolledListener(mRecyclerView);
      }
+diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListRecyclerView.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListRecyclerView.java
+--- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListRecyclerView.java
++++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListRecyclerView.java
+@@ -232,7 +232,7 @@ class TabListRecyclerView
+     }
+ 
+     void setShadowVisibility(boolean shouldShowShadow) {
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()
+                 && mIsVisible) {
+             // always show shadow
+             shouldShowShadow = true;
+@@ -250,7 +250,7 @@ class TabListRecyclerView
+                 // Add shadow for grid tab switcher.
+                 FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                         LayoutParams.MATCH_PARENT, shadowHeight,
+-                        (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM) ?
++                        (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled() ?
+                             Gravity.BOTTOM :
+                             Gravity.TOP));
+                 mShadowImageView.setLayoutParams(params);
+@@ -279,7 +279,7 @@ class TabListRecyclerView
+ 
+     void setShadowTopOffset(int shadowTopOffset) {
+         mShadowTopOffset = shadowTopOffset;
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // invert the offset since Gravity is set to BOTTOM
+             mShadowTopOffset = -mShadowTopOffset;
+         }
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
 +++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
+@@ -474,7 +474,7 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
+             updateTopControlsProperties();
+             mContainerViewModel.set(
+                     BOTTOM_CONTROLS_HEIGHT, browserControlsStateProvider.getBottomControlsHeight());
+-            if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++            if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                 mContainerViewModel.set(
+                     BOTTOM_CONTROLS_HEIGHT, mContainerViewModel.get(BOTTOM_CONTROLS_HEIGHT) +
+                         mBrowserControlsStateProvider.getContentOffset());
+@@ -484,7 +484,7 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
+         if (mMode == TabListMode.GRID) {
+             mContainerViewModel.set(BOTTOM_PADDING,
+                     (int) context.getResources().getDimension(R.dimen.tab_grid_bottom_padding));
+-            if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++            if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                 // adjust the bottom margin so as not to cover the top toolbar at the bottom
+                 mContainerViewModel.set(
+                     BOTTOM_PADDING, mContainerViewModel.get(BOTTOM_PADDING) +
+@@ -617,7 +617,7 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
+         final int contentOffset = mBrowserControlsStateProvider.getContentOffset();
+ 
+         mContainerViewModel.set(TOP_MARGIN, contentOffset);
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // move the view up since the toolbar is at the bottom
+             mContainerViewModel.set(TOP_MARGIN, 0);
+         }
 @@ -777,6 +777,9 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
      private void setInitialScrollIndexOffset() {
          int offset = mMode == TabListMode.CAROUSEL ? INITIAL_SCROLL_INDEX_OFFSET_CAROUSEL
                                                     : INITIAL_SCROLL_INDEX_OFFSET_GTS;
-+        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
 +            offset = 0;
 +        }
          int initialPosition = Math.max(
                  mTabModelSelector.getTabModelFilterProvider().getCurrentTabModelFilter().index()
                          - offset,
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
+@@ -104,7 +104,7 @@ public class ChromeAccessibilitySettingsDelegate implements AccessibilitySetting
+     private static class MoveTopToolbarToBottomDelegate implements BooleanPreferenceDelegate {
+         @Override
+         public boolean isEnabled() {
+-            return CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM);
++            return ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled();
+         }
+ 
+         @Override
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
+@@ -763,7 +763,7 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+                     ImageView shadowImage = findViewById(R.id.toolbar_hairline);
+                     if (shadowImage != null) {
+                         // Invert the shadown if the top toolbar is at the bottom
+-                        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++                        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                             ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams)shadowImage.getLayoutParams();
+                             marginParams.setMargins(marginParams.leftMargin, 0,
+                                 marginParams.rightMargin, marginParams.bottomMargin);
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java
+@@ -323,7 +323,7 @@ public class CompositorViewHolder extends FrameLayout
+                         WebContents webContents = mTabVisible.getWebContents();
+                         if (webContents == null) return;
+                         EventForwarder forwarder = webContents.getEventForwarder();
+-                        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++                        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                             // no need to adjust the touch offsets, since the content view is never moved
+                             top = 0;
+                         }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java
+@@ -259,7 +259,7 @@ public class LayoutManagerChrome
+     @Override
+     public SwipeHandler createToolbarSwipeHandler(boolean supportSwipeDown) {
+         boolean move_top_toolbar =
+-            CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM);
++            ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled();
+         return new ToolbarSwipeHandler(supportSwipeDown && !move_top_toolbar,
+                                        supportSwipeDown && move_top_toolbar);
+     }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/ToolbarSwipeLayout.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/ToolbarSwipeLayout.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/ToolbarSwipeLayout.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/ToolbarSwipeLayout.java
+@@ -411,7 +411,7 @@ public class ToolbarSwipeLayout extends Layout {
+                 mLeftToolbarOverlay.setXOffset(leftX * dpToPx);
+             }
+             mLeftTab.setX(leftX);
+-            if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++            if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                 mLeftTab.setY(0);
+             } else {
+                 mLeftTab.setY(mBrowserControlsStateProvider.getContentOffset() / dpToPx);
+@@ -428,7 +428,7 @@ public class ToolbarSwipeLayout extends Layout {
+                 mRightToolbarOverlay.setXOffset(rightX * dpToPx);
+             }
+             mRightTab.setX(rightX);
+-            if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++            if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                 mRightTab.setY(0);
+             } else {
+                 mRightTab.setY(mBrowserControlsStateProvider.getContentOffset() / dpToPx);
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/overlays/strip/StripLayoutHelperManager.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/overlays/strip/StripLayoutHelperManager.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/overlays/strip/StripLayoutHelperManager.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/overlays/strip/StripLayoutHelperManager.java
+@@ -420,7 +420,7 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
+                 mWidth, mHeight, orientationChanged, LayoutManagerImpl.time());
+ 
+         float top = 0;
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM) &&
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled() &&
+             mBrowserControlsManagerSupplier.get() != null) {
+             // move the rectangle to grab the touch events as the tab list (in tablet mode)
+             // is down and is following the toolbar offset as it moves.
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/StaticTabSceneLayer.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/StaticTabSceneLayer.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/StaticTabSceneLayer.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/StaticTabSceneLayer.java
+@@ -48,7 +48,7 @@ public class StaticTabSceneLayer extends SceneLayer {
+         float x = model.get(LayoutTab.RENDER_X) * LayoutTab.sDpToPx;
+         float y = model.get(LayoutTab.CONTENT_OFFSET)
+                 + model.get(LayoutTab.RENDER_Y) * LayoutTab.sDpToPx;
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // the page content window never moves, it is fixed at the top
+             y = 0;
+         }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabListSceneLayer.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabListSceneLayer.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabListSceneLayer.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabListSceneLayer.java
+@@ -86,7 +86,7 @@ public class TabListSceneLayer extends SceneLayer {
+ 
+         TabListSceneLayerJni.get().beginBuildingFrame(mNativePtr, TabListSceneLayer.this);
+ 
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // the tabs list content window is fixed at the top, where the top toolbar used to be
+             viewport.top = 0;
+             backgroundTopOffset = 0;
+@@ -126,7 +126,7 @@ public class TabListSceneLayer extends SceneLayer {
+                 contentOffset = browserControls.getContentOffset();
+             }
+ 
+-            if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++            if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                 toolbarYOffset = 0;
+                 contentOffset = 0;
+             }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabStripSceneLayer.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabStripSceneLayer.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabStripSceneLayer.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabStripSceneLayer.java
+@@ -84,7 +84,7 @@ public class TabStripSceneLayer extends SceneOverlayLayer {
+         if (mNativePtr == 0) return;
+ 
+         boolean visible = yOffset > -layoutHelper.getHeight();
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+            // the list of open tabs (in tablet mode) is moved down, above the top
+            // toolbar which is also below.
+            // values are in pixel.
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/findinpage/FindToolbarTablet.java b/chrome/android/java/src/org/chromium/chrome/browser/findinpage/FindToolbarTablet.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/findinpage/FindToolbarTablet.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/findinpage/FindToolbarTablet.java
+@@ -169,7 +169,7 @@ public class FindToolbarTablet extends FindToolbar {
+ 
+         if (show && getVisibility() != View.VISIBLE && mCurrentAnimation != mAnimationEnter) {
+             View anchorView = getRootView().findViewById(R.id.toolbar);
+-            if (!CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++            if (!ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) getLayoutParams();
+                 lp.topMargin = anchorView.getBottom() - mYInsetPx;
+                 setLayoutParams(lp);
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/fullscreen/BrowserControlsManager.java b/chrome/android/java/src/org/chromium/chrome/browser/fullscreen/BrowserControlsManager.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/fullscreen/BrowserControlsManager.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/fullscreen/BrowserControlsManager.java
+@@ -400,7 +400,7 @@ public class BrowserControlsManager
+ 
+     @Override
+     public int getTopControlsHeightRealOffset() {
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM))
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled())
+             return 0;
+         else
+             return mTopControlContainerHeight;
+@@ -472,7 +472,7 @@ public class BrowserControlsManager
+ 
+     @Override
+     public float getTopVisibleContentOffset() {
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM))
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled())
+             return 0;
+         return getTopControlsHeight() + getTopControlOffset();
+     }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/messages/MessageContainerCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/messages/MessageContainerCoordinator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/messages/MessageContainerCoordinator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/messages/MessageContainerCoordinator.java
+@@ -64,7 +64,7 @@ public class MessageContainerCoordinator implements BrowserControlsStateProvider
+         }
+         CoordinatorLayout.LayoutParams params =
+                 (CoordinatorLayout.LayoutParams) mContainer.getLayoutParams();
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             params.gravity = Gravity.START | Gravity.BOTTOM;
+             params.bottomMargin = getContainerTopOffset();
+         } else {
+@@ -129,7 +129,7 @@ public class MessageContainerCoordinator implements BrowserControlsStateProvider
+ 
+     /** @return Offset of the message container from the top of the screen. */
+     private int getContainerTopOffset() {
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             return mControlsManager.getContentOffset()
+                      + (mControlsManager.getBottomControlsHeight() - mControlsManager.getBottomControlOffset())
+                      + mContainer.getMessageShadowTopMargin();
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java b/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java
+@@ -565,7 +565,7 @@ public class NewTabPage implements NativePage, InvalidationAwareThumbnailProvide
+ 
+         int bottomMargin = mBrowserControlsStateProvider.getBottomControlsHeight()
+                 - mBrowserControlsStateProvider.getBottomControlOffset();
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // move the margin of the new tab page up if the top toolbar is at the bottom
+             bottomMargin += mBrowserControlsStateProvider.getTopControlsHeight();
+             topMargin = -mBrowserControlsStateProvider.getTopControlsHeight();
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsPage.java b/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsPage.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsPage.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ntp/RecentTabsPage.java
+@@ -91,7 +91,7 @@ public class RecentTabsPage
+         mView.addOnAttachStateChangeListener(this);
+ 
+         if (!DeviceFormFactor.isNonMultiDisplayContextOnTablet(mActivity) ||
+-                CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++                ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             mBrowserControlsStateProvider = browserControlsStateProvider;
+             mBrowserControlsStateProvider.addObserver(this);
+             onBottomControlsHeightChanged(mBrowserControlsStateProvider.getBottomControlsHeight(),
+@@ -289,7 +289,7 @@ public class RecentTabsPage
+ 
+         // If the content offset is different from the margin, we use translationY to position the
+         // view in line with the content offset.
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             topMargin = 0;
+             recentTabsRoot.setTranslationY(0);
+         } else {
+@@ -297,7 +297,7 @@ public class RecentTabsPage
+         }
+ 
+         int bottomMargin = mBrowserControlsStateProvider.getBottomControlsHeight();
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             bottomMargin += mBrowserControlsStateProvider.getTopControlsHeight();
+         }
+         if (topMargin != layoutParams.topMargin || bottomMargin != layoutParams.bottomMargin) {
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/searchwidget/SearchActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/searchwidget/SearchActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/searchwidget/SearchActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/searchwidget/SearchActivity.java
+@@ -195,7 +195,7 @@ public class SearchActivity extends AsyncInitializationActivity
+         mSearchBox = (SearchActivityLocationBarLayout) mContentView.findViewById(
+                 R.id.search_location_bar);
+         mAnchorView = mContentView.findViewById(R.id.toolbar);
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams)
+                 mAnchorView.getLayoutParams();
+             layoutParams.gravity = Gravity.START | Gravity.BOTTOM;
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/status_indicator/StatusIndicatorCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/status_indicator/StatusIndicatorCoordinator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/status_indicator/StatusIndicatorCoordinator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/status_indicator/StatusIndicatorCoordinator.java
+@@ -179,7 +179,7 @@ public class StatusIndicatorCoordinator {
+     private void initialize() {
+         final ViewStub stub = mActivity.findViewById(R.id.status_indicator_stub);
+         final ViewResourceFrameLayout root = (ViewResourceFrameLayout) stub.inflate();
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // status messages (such as the offline indicator) are docked at the bottom
+             CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams)root.getLayoutParams();
+             layoutParams.gravity = Gravity.START | Gravity.BOTTOM;
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/status_indicator/StatusIndicatorSceneLayer.java b/chrome/android/java/src/org/chromium/chrome/browser/status_indicator/StatusIndicatorSceneLayer.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/status_indicator/StatusIndicatorSceneLayer.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/status_indicator/StatusIndicatorSceneLayer.java
+@@ -80,7 +80,7 @@ class StatusIndicatorSceneLayer extends SceneOverlayLayer implements SceneOverla
+     public SceneOverlayLayer getUpdatedSceneOverlayTree(
+             RectF viewport, RectF visibleViewport, ResourceManager resourceManager, float yOffset) {
+         int offset = mBrowserControlsStateProvider.getTopControlsMinHeightOffset();
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             offset = (int)viewport.bottom - offset;
+         }
+         StatusIndicatorSceneLayerJni.get().updateStatusIndicatorLayer(
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+@@ -1310,14 +1310,14 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+         return mLocationBar.getOmniboxStub().isUrlBarFocused();
+     }
+ 
+-    View bottomRoot;
++    View mBottomRoot;
+ 
+     private void MoveBottomBarOverTopBar() {
+-        if (bottomRoot != null &&
+-                CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (mBottomRoot != null &&
++                ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // move up the container view of the ui
+             // below there is the toolbar
+-            bottomRoot.setTranslationY(-mBrowserControlsSizer.getTopControlsHeight());
++            mBottomRoot.setTranslationY(-mBrowserControlsSizer.getTopControlsHeight());
+         }
+     }
+ 
+@@ -1325,10 +1325,10 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+      * Enable the bottom controls.
+      */
+     public void enableBottomControls() {
+-        bottomRoot = ((ViewStub) mActivity.findViewById(R.id.bottom_controls_stub)).inflate();
++        mBottomRoot = ((ViewStub) mActivity.findViewById(R.id.bottom_controls_stub)).inflate();
+         MoveBottomBarOverTopBar();
+         mTabGroupUi = TabManagementModuleProvider.getDelegate().createTabGroupUi(mActivity,
+-                bottomRoot.findViewById(R.id.bottom_container_slot), mIncognitoStateProvider,
++                mBottomRoot.findViewById(R.id.bottom_container_slot), mIncognitoStateProvider,
+                 mScrimCoordinator, mOmniboxFocusStateSupplier, mBottomSheetController,
+                 mActivityLifecycleDispatcher, mIsWarmOnResumeSupplier, mTabModelSelector,
+                 mTabContentManager, mCompositorViewHolder,
+@@ -1336,7 +1336,7 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+                 mShareDelegateSupplier, mLayoutStateProviderSupplier, mSnackbarManager);
+         var bottomControlsCoordinator = new BottomControlsCoordinator(mActivity, mWindowAndroid,
+                 mLayoutManager, mCompositorViewHolder.getResourceManager(), mBrowserControlsSizer,
+-                mFullscreenManager, (ScrollingBottomViewResourceFrameLayout) root, mTabGroupUi,
++                mFullscreenManager, (ScrollingBottomViewResourceFrameLayout) mBottomRoot, mTabGroupUi,
+                 mTabObscuringHandler, mOverlayPanelVisibilitySupplier, mConstraintsProxy,
+                 mTopUiThemeColorProvider, mActivityTabProvider);
+         mBottomControlsCoordinatorSupplier.set(bottomControlsCoordinator);
+@@ -2128,7 +2128,7 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+     private void setControlContainerTopMargin(int margin) {
+         final ViewGroup.MarginLayoutParams layoutParams =
+                 ((ViewGroup.MarginLayoutParams) mControlContainer.getLayoutParams());
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             if (layoutParams.bottomMargin == margin) {
+                 return;
+             }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/BottomContainer.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/BottomContainer.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ui/BottomContainer.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/BottomContainer.java
+@@ -66,13 +66,13 @@ public class BottomContainer
+ 
+     @Override
+     public void onTopControlsHeightChanged(int topControlsHeight, int topControlsMinHeight) {
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM))
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled())
+             setTranslationY(mBaseYOffset);
+     }
+ 
+     @Override
+     public void onAndroidVisibilityChanged(int visibility) {
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM))
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled())
+             setTranslationY(mBaseYOffset);
+     }
+ 
+@@ -80,7 +80,7 @@ public class BottomContainer
+     public void setTranslationY(float y) {
+         mBaseYOffset = y;
+ 
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // the snackbar container is moved up because there is the top toolbar at the bottom
+             mBaseYOffset = -(mBrowserControlsStateProvider.getTopControlsHeight()
+                              + mBrowserControlsStateProvider.getTopControlOffset());
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/system/StatusBarColorController.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/system/StatusBarColorController.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ui/system/StatusBarColorController.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/system/StatusBarColorController.java
+@@ -8,6 +8,7 @@ import android.content.Context;
+ import android.graphics.Color;
+ import android.view.View;
+ import android.view.Window;
++import android.os.Build;
+ 
+ import androidx.annotation.ColorInt;
+ import androidx.annotation.Nullable;
+@@ -433,11 +434,11 @@ public class StatusBarColorController
+         boolean needsDarkStatusBarIcons = !ColorUtils.shouldUseLightForegroundOnBackground(color);
+         ApiCompatibilityUtils.setStatusBarIconColor(root, needsDarkStatusBarIcons);
+         ApiCompatibilityUtils.setStatusBarColor(window, color);
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM) &&
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled() &&
+                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+-            UiUtils.setNavigationBarIconColor(mWindow.getDecorView().getRootView(),
++            UiUtils.setNavigationBarIconColor(window.getDecorView().getRootView(),
+                 needsDarkStatusBarIcons);
+-            mWindow.setNavigationBarColor(color);
++            window.setNavigationBarColor(color);
+         }
+     }
+ 
+diff --git a/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsMarginSupplier.java b/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsMarginSupplier.java
+--- a/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsMarginSupplier.java
++++ b/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsMarginSupplier.java
+@@ -54,7 +54,7 @@ public class BrowserControlsMarginSupplier extends ObservableSupplierImpl<Rect>
+                 + mBrowserControlsStateProvider.getTopControlOffset();
+         int bottomMargin = mBrowserControlsStateProvider.getBottomControlsHeight()
+                 - mBrowserControlsStateProvider.getBottomControlOffset();
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             bottomMargin += topMargin;
+             topMargin = 0;
+         }
+diff --git a/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java b/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java
+--- a/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java
++++ b/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java
+@@ -12,6 +12,7 @@ import android.graphics.Color;
+ import android.graphics.Rect;
+ import android.graphics.drawable.ColorDrawable;
+ import android.graphics.drawable.Drawable;
++import android.os.Build;
+ import android.os.SystemClock;
+ import android.text.TextUtils;
+ import android.view.Gravity;
+@@ -260,7 +261,7 @@ class AppMenu implements OnItemClickListener, OnKeyListener, AppMenuClickHandler
+         }
+ 
+         mListView = (ListView) contentView.findViewById(R.id.app_menu_list);
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // always scroll to the bottom to show new items
+             mListView.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
+             // fill content starting from the bottom of the view
+@@ -304,7 +305,7 @@ class AppMenu implements OnItemClickListener, OnKeyListener, AppMenuClickHandler
+         if (popupHeight + popupPosition[1] > visibleDisplayFrame.bottom) {
+             mPopup.setHeight(visibleDisplayFrame.height());
+         }
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // due to some unknown behaviour, the popup must be resized to
+             // allow selection without leaving touch
+             mPopup.setHeight(popupHeight-1);
+@@ -356,7 +357,7 @@ class AppMenu implements OnItemClickListener, OnKeyListener, AppMenuClickHandler
+         int anchorViewX = tempLocation[0];
+         int anchorViewY = tempLocation[1];
+ 
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // moves the view offset up by the height of the popup
+             anchorViewY -= popupHeight;
+             // fix it if it goes offscreen
+@@ -554,7 +555,7 @@ class AppMenu implements OnItemClickListener, OnKeyListener, AppMenuClickHandler
+         }
+         int availableScreenSpace = Math.max(
+                 anchorViewY, appDimensions.height() - anchorViewY - anchorViewImpactHeight);
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // use all available space
+             availableScreenSpace = appDimensions.height() - anchorViewImpactHeight;
+             if (Build.VERSION.SDK_INT == Build.VERSION_CODES.N) {
+diff --git a/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenuHandlerImpl.java b/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenuHandlerImpl.java
+--- a/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenuHandlerImpl.java
++++ b/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenuHandlerImpl.java
+@@ -184,7 +184,7 @@ class AppMenuHandlerImpl
+         }),
+                 this);
+ 
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // reverses the order of items in the menu
+             ModelList modelListReversed = new ModelList();
+             for (int i = 0; i < modelList.size(); i++) {
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java
+@@ -239,7 +239,7 @@ public class UrlBarCoordinator implements UrlBarEditingTextStateProvider, UrlFoc
+         // to show or hide keyboard anyway. This may happen when we schedule keyboard hide, and
+         // receive a second request to hide the keyboard instantly.
+         if (showKeyboard) {
+-            if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++            if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                 // probably due to an android bug, fix the size rather than pan the view.
+                 // with the pan the bar may not always follow the focus if not at the first input by the user
+                 setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE, /* delay */ false);
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteCoordinator.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteCoordinator.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteCoordinator.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteCoordinator.java
+@@ -236,7 +236,7 @@ public class AutocompleteCoordinator implements UrlFocusChangeListener, UrlTextC
+                 ViewGroup container = (ViewGroup) ((ViewStub) mParent.getRootView().findViewById(
+                                                            R.id.omnibox_results_container_stub))
+                                               .inflate();
+-                if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++                if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                     // make margins works
+                     dropdown.getViewGroup().setClipToPadding(true);
+                     container.bringToFront();
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteMediator.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteMediator.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteMediator.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteMediator.java
+@@ -1017,7 +1017,7 @@ class AutocompleteMediator implements OnSuggestionsReceivedListener,
+     @Override
+     public void onSuggestionDropdownScroll() {
+         mSuggestionsListScrolled = true;
+-        if (!CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (!ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             mDelegate.setKeyboardVisibility(false, false);
+         }
+     }
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListManager.java
+@@ -11,6 +11,8 @@ import android.view.View;
+ import androidx.annotation.NonNull;
+ import androidx.annotation.Px;
+ 
++import org.chromium.chrome.browser.flags.CachedFeatureFlags;
++import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.chrome.browser.omnibox.OmniboxFeatures;
+ import org.chromium.chrome.browser.omnibox.R;
+ import org.chromium.chrome.browser.ui.theme.BrandedColorScheme;
+@@ -165,6 +167,7 @@ class DropdownItemViewInfoListManager {
+         GroupSection previousSection = null;
+         GroupSection currentSection;
+ 
++        boolean toolbarToBottom = ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled();
+         for (int i = 0; i < mSourceViewInfoList.size(); i++) {
+             final DropdownItemViewInfo item = mSourceViewInfoList.get(i);
+             final PropertyModel model = item.model;
+@@ -180,18 +183,22 @@ class DropdownItemViewInfoListManager {
+                 var topMargin = applyRounding ? groupTopMargin : suggestionVerticalMargin;
+                 var bottomMargin = applyRounding ? groupBottomMargin : suggestionVerticalMargin;
+ 
+-                model.set(DropdownCommonProperties.BG_TOP_CORNER_ROUNDED, applyRounding);
++                model.set(toolbarToBottom ?
++                    DropdownCommonProperties.BG_BOTTOM_CORNER_ROUNDED :
++                    DropdownCommonProperties.BG_TOP_CORNER_ROUNDED, applyRounding);
+                 // Do not have margin for the first suggestion, otherwise the first suggestion will
+                 // have a big gap with the Omnibox.
+-                model.set(DropdownCommonProperties.TOP_MARGIN,
++                model.set(toolbarToBottom ? DropdownCommonProperties.BOTTOM_MARGIN : DropdownCommonProperties.TOP_MARGIN,
+                         previousItem == null
+                                 ? getSuggestionListTopMargin(item.processor.getViewTypeId())
+                                 : topMargin);
+ 
+                 if (previousItem != null) {
+                     previousItem.model.set(
+-                            DropdownCommonProperties.BG_BOTTOM_CORNER_ROUNDED, applyRounding);
+-                    previousItem.model.set(DropdownCommonProperties.BOTTOM_MARGIN, bottomMargin);
++                            toolbarToBottom ?
++                                DropdownCommonProperties.BG_TOP_CORNER_ROUNDED :
++                                DropdownCommonProperties.BG_BOTTOM_CORNER_ROUNDED, applyRounding);
++                    previousItem.model.set(toolbarToBottom ? DropdownCommonProperties.TOP_MARGIN : DropdownCommonProperties.BOTTOM_MARGIN, bottomMargin);
+                 }
+ 
+                 previousItem = item;
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdown.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdown.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdown.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdown.java
+@@ -265,7 +265,7 @@ public class OmniboxSuggestionsDropdown extends RecyclerView {
+         final Resources resources = context.getResources();
+         int paddingBottom =
+                 resources.getDimensionPixelOffset(R.dimen.omnibox_suggestion_list_padding_bottom);
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // reverse the layout so that the items are at the bottom (in reverse order)
+             // and anchored to the bottom edge
+             mLayoutScrollListener.setReverseLayout(true);
+@@ -496,7 +496,7 @@ public class OmniboxSuggestionsDropdown extends RecyclerView {
+     }
+ 
+     private int calculateAnchorBottomRelativeToContent() {
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM))
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled())
+             return 0;
+         View contentView =
+                 mEmbedder.getAnchorView().getRootView().findViewById(android.R.id.content);
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/LocationBarFocusScrimHandler.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/LocationBarFocusScrimHandler.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/LocationBarFocusScrimHandler.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/LocationBarFocusScrimHandler.java
+@@ -58,7 +58,7 @@ public class LocationBarFocusScrimHandler implements UrlFocusChangeListener {
+ 
+         Resources resources = context.getResources();
+         int topMargin = resources.getDimensionPixelSize(R.dimen.tab_strip_height);
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // since the top bar is at the bottom, we need to cover the whole page
+             topMargin = 0;
+         }
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/BottomControlsMediator.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/BottomControlsMediator.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/BottomControlsMediator.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/BottomControlsMediator.java
+@@ -105,7 +105,7 @@ class BottomControlsMediator implements BrowserControlsStateProvider.Observer,
+     void setBottomControlsVisible(boolean visible) {
+         if (visible == true
+                 && mIsBottomControlsVisible == false
+-                && CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++                && ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // always show the toolbar if the bottom controls are visible, so as not to leave the hole below.
+             mBrowserControlsSizer.getBrowserVisibilityDelegate().showControlsTransient();
+         }
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/ScrollingBottomViewSceneLayer.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/ScrollingBottomViewSceneLayer.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/ScrollingBottomViewSceneLayer.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/ScrollingBottomViewSceneLayer.java
+@@ -127,7 +127,7 @@ public class ScrollingBottomViewSceneLayer extends SceneOverlayLayer implements
+         boolean isShadowVisible = mBottomView.getVisibility() != View.VISIBLE;
+ 
+         float offsetPy = viewport.height() + mCurrentYOffsetPx;
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // fix the offset of the fake bottom controls, used only for animations
+             offsetPy -= (mBottomView.getHeight() - mCurrentYOffsetPx + mTopControlsMinHeightOffset);
+         }
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
+@@ -110,7 +110,7 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
+     @Override
+     public void initWithToolbar(int toolbarLayoutId) {
+         try (TraceEvent te = TraceEvent.scoped("ToolbarControlContainer.initWithToolbar")) {
+-            if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++            if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+                 // the top toolbar is docked at the bottom
+                 CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams)getLayoutParams();
+                 layoutParams.gravity = Gravity.START | Gravity.BOTTOM;
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/TopToolbarSceneLayer.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/TopToolbarSceneLayer.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/TopToolbarSceneLayer.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/TopToolbarSceneLayer.java
+@@ -41,7 +41,7 @@ class TopToolbarSceneLayer extends SceneOverlayLayer {
+     private void pushProperties(PropertyModel model) {
+         if (mResourceManagerSupplier.get() == null) return;
+         float offsetY = model.get(TopToolbarOverlayProperties.Y_OFFSET);
+-        if (CachedFeatureFlags.isEnabled(ChromeFeatureList.MOVE_TOP_TOOLBAR_TO_BOTTOM)) {
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+             // fix the offset of the fake top controls, used only for animations
+             offsetY = model.get(TopToolbarOverlayProperties.VIEWPORT_HEIGHT) -
+                       model.get(TopToolbarOverlayProperties.TOOLBAR_HEIGHT) -
 --
 2.25.1
