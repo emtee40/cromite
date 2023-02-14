@@ -1673,7 +1673,7 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  #include "content/public/browser/browser_task_traits.h"
  #include "content/public/browser/browser_thread.h"
  #include "content/public/browser/disallow_activation_reason.h"
-@@ -142,6 +144,7 @@ void ShowFileSystemAccessRestrictedDirectoryDialogOnUIThread(
+@@ -144,6 +146,7 @@ void ShowFileSystemAccessRestrictedDirectoryDialogOnUIThread(
        origin, handle_type, std::move(callback), web_contents);
  }
  
@@ -1681,15 +1681,15 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  void ShowFileSystemAccessDangerousFileDialogOnUIThread(
      content::GlobalRenderFrameHostId frame_id,
      const url::Origin& origin,
-@@ -170,6 +173,7 @@ void ShowFileSystemAccessDangerousFileDialogOnUIThread(
+@@ -172,6 +175,7 @@ void ShowFileSystemAccessDangerousFileDialogOnUIThread(
    ShowFileSystemAccessDangerousFileDialog(origin, path, std::move(callback),
                                            web_contents);
  }
 +#endif
  
- // Sentinel used to indicate that no PathService key is specified for a path in
- // the struct below.
-@@ -336,6 +340,7 @@ bool ShouldBlockAccessToPath(const base::FilePath& check_path,
+ #if BUILDFLAG(IS_WIN)
+ bool ContainsInvalidDNSCharacter(base::FilePath::StringType hostname) {
+@@ -387,6 +391,7 @@ bool ShouldBlockAccessToPath(const base::FilePath& check_path,
    return true;
  }
  
@@ -1697,7 +1697,7 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  void DoSafeBrowsingCheckOnUIThread(
      content::GlobalRenderFrameHostId frame_id,
      std::unique_ptr<content::FileSystemAccessWriteItem> item,
-@@ -414,6 +419,7 @@ InterpretSafeBrowsingResult(safe_browsing::DownloadCheckResult result) {
+@@ -465,6 +470,7 @@ InterpretSafeBrowsingResult(safe_browsing::DownloadCheckResult result) {
    NOTREACHED();
    return ChromeFileSystemAccessPermissionContext::AfterWriteCheckResult::kBlock;
  }
@@ -1705,7 +1705,7 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  
  std::string GenerateLastPickedDirectoryKey(const std::string& id) {
    return id.empty() ? kDefaultLastPickedDirectoryKey
-@@ -1257,6 +1263,7 @@ void ChromeFileSystemAccessPermissionContext::CheckPathAgainstBlocklist(
+@@ -1308,6 +1314,7 @@ void ChromeFileSystemAccessPermissionContext::CheckPathAgainstBlocklist(
        std::move(callback));
  }
  
@@ -1713,7 +1713,7 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  void ChromeFileSystemAccessPermissionContext::PerformAfterWriteChecks(
      std::unique_ptr<content::FileSystemAccessWriteItem> item,
      content::GlobalRenderFrameHostId frame_id,
-@@ -1279,6 +1286,7 @@ void ChromeFileSystemAccessPermissionContext::PerformAfterWriteChecks(
+@@ -1330,6 +1337,7 @@ void ChromeFileSystemAccessPermissionContext::PerformAfterWriteChecks(
                base::SequencedTaskRunner::GetCurrentDefault(),
                std::move(callback))));
  }
@@ -1721,7 +1721,7 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  
  void ChromeFileSystemAccessPermissionContext::DidCheckPathAgainstBlocklist(
      const url::Origin& origin,
-@@ -1289,7 +1297,7 @@ void ChromeFileSystemAccessPermissionContext::DidCheckPathAgainstBlocklist(
+@@ -1340,7 +1348,7 @@ void ChromeFileSystemAccessPermissionContext::DidCheckPathAgainstBlocklist(
      base::OnceCallback<void(SensitiveEntryResult)> callback,
      bool should_block) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -1730,7 +1730,7 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
    if (user_action == UserAction::kNone) {
      std::move(callback).Run(should_block ? SensitiveEntryResult::kAbort
                                           : SensitiveEntryResult::kAllowed);
-@@ -1320,7 +1328,7 @@ void ChromeFileSystemAccessPermissionContext::DidCheckPathAgainstBlocklist(
+@@ -1371,7 +1379,7 @@ void ChromeFileSystemAccessPermissionContext::DidCheckPathAgainstBlocklist(
                         frame_id, origin, path, std::move(result_callback)));
      return;
    }
@@ -1750,7 +1750,7 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  #include "content/public/browser/file_system_access_permission_context.h"
  #include "third_party/blink/public/mojom/file_system_access/file_system_access_manager.mojom-forward.h"
  #include "third_party/blink/public/mojom/permissions/permission_status.mojom.h"
-@@ -85,10 +86,6 @@ class ChromeFileSystemAccessPermissionContext
+@@ -90,10 +91,6 @@ class ChromeFileSystemAccessPermissionContext
        UserAction user_action,
        content::GlobalRenderFrameHostId frame_id,
        base::OnceCallback<void(SensitiveEntryResult)> callback) override;
