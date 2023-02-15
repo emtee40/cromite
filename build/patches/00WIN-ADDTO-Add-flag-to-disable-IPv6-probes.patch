@@ -1,0 +1,121 @@
+From: Your Name <you@example.com>
+Date: Wed, 12 Oct 2022 11:34:42 +0000
+Subject: WIN ADDTO Add flag to disable IPv6 probes
+
+---
+ chrome/browser/about_flags.cc                              | 2 +-
+ components/subresource_filter/tools/BUILD.gn               | 6 ------
+ components/url_formatter/spoof_checks/top_domains/BUILD.gn | 3 +--
+ net/BUILD.gn                                               | 1 +
+ net/base/features.cc                                       | 4 ++++
+ net/base/features.h                                        | 3 +++
+ net/dns/host_resolver_manager.cc                           | 2 +-
+ 7 files changed, 11 insertions(+), 10 deletions(-)
+
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -5851,7 +5851,7 @@ const FeatureEntry kFeatureEntries[] = {
+     {"ipv6-probing",
+      flag_descriptions::kIPv6ProbingName,
+      flag_descriptions::kIPv6ProbingDescription, kOsAll,
+-     FEATURE_VALUE_TYPE(network::features::kIPv6Probing)},
++     FEATURE_VALUE_TYPE(net::features::kIPv6Probing)},
+ #endif  // BUILDFLAG(IS_ANDROID)
+ 
+     {"shopping-list", commerce::flag_descriptions::kShoppingListName,
+diff --git a/components/subresource_filter/tools/BUILD.gn b/components/subresource_filter/tools/BUILD.gn
+--- a/components/subresource_filter/tools/BUILD.gn
++++ b/components/subresource_filter/tools/BUILD.gn
+@@ -50,8 +50,6 @@ if (!is_ios) {
+     deps = [
+       ":tools_lib",
+       "//base",
+-      "//components/network_session_configurator/common",
+-      "//services/network/public/cpp"
+     ]
+   }
+ 
+@@ -63,8 +61,6 @@ if (!is_ios) {
+       ":tools_lib",
+       "../core/common",
+       "//base",
+-      "//components/network_session_configurator/common",
+-      "//services/network/public/cpp",
+     ]
+   }
+ 
+@@ -74,8 +70,6 @@ if (!is_ios) {
+       "ruleset_converter:support",
+       "//base",
+       "//third_party/protobuf:protobuf_lite",
+-      "//components/network_session_configurator/common",
+-      "//services/network/public/cpp"
+     ]
+   }
+ 
+diff --git a/components/url_formatter/spoof_checks/top_domains/BUILD.gn b/components/url_formatter/spoof_checks/top_domains/BUILD.gn
+--- a/components/url_formatter/spoof_checks/top_domains/BUILD.gn
++++ b/components/url_formatter/spoof_checks/top_domains/BUILD.gn
+@@ -89,8 +89,7 @@ executable("make_top_domain_list_variables") {
+     "//base:i18n",
+     "//components/url_formatter/spoof_checks/common_words:common",
+     "//third_party/icu",
+-    "//components/network_session_configurator/common",
+-    "//services/network/public/cpp",
++    "//components/network_session_configurator/common"
+   ]
+   if (is_ios) {
+     frameworks = [ "UIKit.framework" ]
+diff --git a/net/BUILD.gn b/net/BUILD.gn
+--- a/net/BUILD.gn
++++ b/net/BUILD.gn
+@@ -1074,6 +1074,7 @@ component("net") {
+     "//build:chromeos_buildflags",
+     "//net/data/ssl/chrome_root_store:gen_root_store_inc",
+     "//net/http:transport_security_state_generated_files",
++    "//components/network_session_configurator/common"
+   ]
+ 
+   public_deps = [
+diff --git a/net/base/features.cc b/net/base/features.cc
+--- a/net/base/features.cc
++++ b/net/base/features.cc
+@@ -39,6 +39,10 @@ BASE_FEATURE(kUseDnsHttpsSvcb,
+ const base::FeatureParam<bool> kUseDnsHttpsSvcbEnforceSecureResponse{
+     &kUseDnsHttpsSvcb, "UseDnsHttpsSvcbEnforceSecureResponse", false};
+ 
++BASE_FEATURE(kIPv6Probing,
++             "IPv6Probing",
++             base::FEATURE_ENABLED_BY_DEFAULT);
++
+ const base::FeatureParam<base::TimeDelta> kUseDnsHttpsSvcbInsecureExtraTimeMax{
+     &kUseDnsHttpsSvcb, "UseDnsHttpsSvcbInsecureExtraTimeMax",
+     base::Milliseconds(50)};
+diff --git a/net/base/features.h b/net/base/features.h
+--- a/net/base/features.h
++++ b/net/base/features.h
+@@ -53,6 +53,9 @@ NET_EXPORT BASE_DECLARE_FEATURE(kUseDnsHttpsSvcb);
+ NET_EXPORT extern const base::FeatureParam<bool>
+     kUseDnsHttpsSvcbEnforceSecureResponse;
+ 
++// Enable IPv6 ping probes to RIPE DNS.
++NET_EXPORT BASE_DECLARE_FEATURE(kIPv6Probing);
++
+ // If we are still waiting for an HTTPS transaction after all the
+ // other transactions in an insecure DnsTask have completed, we will compute a
+ // timeout for the remaining transaction. The timeout will be
+diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
+--- a/net/dns/host_resolver_manager.cc
++++ b/net/dns/host_resolver_manager.cc
+@@ -3774,7 +3774,7 @@ bool HostResolverManager::IsIPv6Reachable(const NetLogWithSource& net_log) {
+       (tick_clock_->NowTicks() - last_ipv6_probe_time_).InMilliseconds() >
+           kIPv6ProbePeriodMs) {
+ 
+-    if (!base::FeatureList::IsEnabled(network::features::kIPv6Probing)) {
++    if (!base::FeatureList::IsEnabled(net::features::kIPv6Probing)) {
+       // pretend IPv6 connectivy probe is successful when probing is disabled
+       SetLastIPv6ProbeResult(true);
+     } else {
+--
+2.25.1

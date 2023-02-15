@@ -1,0 +1,174 @@
+From: Your Name <you@example.com>
+Date: Thu, 13 Oct 2022 10:34:52 +0000
+Subject: WIN Fix windows build
+
+---
+ .../browser_process_platform_part_win.cc      |  3 ++
+ chrome/browser/devtools/devtools_window.cc    |  1 +
+ chrome/browser/ui/profile_picker.cc           |  2 +-
+ .../browser/ui/startup/first_run_service.cc   |  8 ++---
+ chrome/browser/updater/BUILD.gn               |  9 -----
+ .../browser/updater/browser_updater_client.cc | 34 +------------------
+ 6 files changed, 9 insertions(+), 48 deletions(-)
+
+diff --git a/chrome/browser/browser_process_platform_part_win.cc b/chrome/browser/browser_process_platform_part_win.cc
+--- a/chrome/browser/browser_process_platform_part_win.cc
++++ b/chrome/browser/browser_process_platform_part_win.cc
+@@ -5,12 +5,15 @@
+ #include "chrome/browser/browser_process_platform_part_win.h"
+ 
+ #include "chrome/browser/active_use_util.h"
++#include "chrome/install_static/buildflags.h"
+ 
+ BrowserProcessPlatformPart::BrowserProcessPlatformPart() = default;
+ BrowserProcessPlatformPart::~BrowserProcessPlatformPart() = default;
+ 
+ void BrowserProcessPlatformPart::PlatformSpecificCommandLineProcessing(
+     const base::CommandLine& command_line) {
++#if BUILDFLAG(USE_GOOGLE_UPDATE_INTEGRATION)
+   if (!did_run_updater_ && ShouldRecordActiveUse(command_line))
+     did_run_updater_.emplace();
++#endif
+ }
+diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtools/devtools_window.cc
+--- a/chrome/browser/devtools/devtools_window.cc
++++ b/chrome/browser/devtools/devtools_window.cc
+@@ -81,6 +81,7 @@
+ #include "ui/events/keycodes/dom/keycode_converter.h"
+ #include "ui/events/keycodes/keyboard_code_conversion.h"
+ #include "ui/events/keycodes/keyboard_codes.h"
++#include "net/cert/x509_certificate.h"
+ 
+ // This should be after all other #includes.
+ #if defined(_WINDOWS_)  // Detect whether windows.h was included.
+diff --git a/chrome/browser/ui/profile_picker.cc b/chrome/browser/ui/profile_picker.cc
+--- a/chrome/browser/ui/profile_picker.cc
++++ b/chrome/browser/ui/profile_picker.cc
+@@ -103,7 +103,7 @@ ProfilePicker::Params ProfilePicker::Params::ForFirstRun(
+ #endif
+ 
+   Params params(
+-#if BUILDFLAG(ENABLE_DICE_SUPPORT)
++#if (true) // BUILDFLAG(ENABLE_DICE_SUPPORT)
+       EntryPoint::kFirstRun,
+ #elif BUILDFLAG(IS_CHROMEOS_LACROS)
+       EntryPoint::kLacrosPrimaryProfileFirstRun,
+diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/startup/first_run_service.cc
+--- a/chrome/browser/ui/startup/first_run_service.cc
++++ b/chrome/browser/ui/startup/first_run_service.cc
+@@ -80,8 +80,6 @@ bool IsSyncRequired(Profile* profile) {
+ #endif
+ 
+ void SetFirstRunFinished() {
+-  PrefService* local_state = g_browser_process->local_state();
+-  local_state->SetBoolean(prefs::kFirstRunFinished, true);
+ }
+ 
+ // Processes the outcome from the FRE and resumes the user's interrupted task.
+@@ -110,7 +108,6 @@ void OnFirstRunHasExited(ResumeTaskCallback original_intent_callback,
+ 
+ // static
+ void FirstRunService::RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
+-  registry->RegisterBooleanPref(prefs::kFirstRunFinished, false);
+ }
+ 
+ FirstRunService::FirstRunService(Profile* profile) : profile_(profile) {}
+@@ -137,8 +134,7 @@ bool FirstRunService::ShouldOpenFirstRun() const {
+   if (command_line->HasSwitch(switches::kNoFirstRun))
+     return false;
+ 
+-  const PrefService* const pref_service = g_browser_process->local_state();
+-  return !pref_service->GetBoolean(prefs::kFirstRunFinished);
++  return false;
+ }
+ 
+ void FirstRunService::TryMarkFirstRunAlreadyFinished(
+@@ -154,7 +150,9 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
+   if (ProfilePicker::IsFirstRunOpen())
+     return;
+ 
++#if BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(ENABLE_DICE_SUPPORT)
+   auto* identity_manager = IdentityManagerFactory::GetForProfile(profile_);
++#endif
+ #if BUILDFLAG(IS_CHROMEOS_LACROS)
+   if (identity_manager->HasPrimaryAccount(signin::ConsentLevel::kSync)) {
+     ProfileMetrics::LogLacrosPrimaryProfileFirstRunOutcome(
+diff --git a/chrome/browser/updater/BUILD.gn b/chrome/browser/updater/BUILD.gn
+--- a/chrome/browser/updater/BUILD.gn
++++ b/chrome/browser/updater/BUILD.gn
+@@ -22,15 +22,6 @@ source_set("browser_updater_client") {
+     "//components/version_info",
+   ]
+ 
+-  if (is_win) {
+-    sources += [ "browser_updater_client_win.cc" ]
+-
+-    deps += [
+-      "//chrome/browser/google",
+-      "//chrome/install_static:install_static_util",
+-    ]
+-  }
+-
+   if (is_mac) {
+     sources += [
+       "browser_updater_client_mac.mm",
+diff --git a/chrome/browser/updater/browser_updater_client.cc b/chrome/browser/updater/browser_updater_client.cc
+--- a/chrome/browser/updater/browser_updater_client.cc
++++ b/chrome/browser/updater/browser_updater_client.cc
+@@ -29,20 +29,6 @@ BrowserUpdaterClient::~BrowserUpdaterClient() = default;
+ 
+ void BrowserUpdaterClient::Register(base::OnceClosure complete) {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  base::ThreadPool::PostTaskAndReplyWithResult(
+-      FROM_HERE, {base::MayBlock()},
+-      base::BindOnce(&BrowserUpdaterClient::GetRegistrationRequest, this),
+-      base::BindOnce(
+-          [](base::OnceCallback<void(int)> callback,
+-             scoped_refptr<updater::UpdateService> update_service,
+-             const updater::RegistrationRequest& request) {
+-            update_service->RegisterApp(request, std::move(callback));
+-          },
+-          base::BindPostTask(
+-              base::SequencedTaskRunner::GetCurrentDefault(),
+-              base::BindOnce(&BrowserUpdaterClient::RegistrationCompleted, this,
+-                             std::move(complete))),
+-          update_service_));
+ }
+ 
+ void BrowserUpdaterClient::RegistrationCompleted(base::OnceClosure complete,
+@@ -74,19 +60,6 @@ void BrowserUpdaterClient::GetUpdaterVersionCompleted(
+ void BrowserUpdaterClient::CheckForUpdate(
+     updater::UpdateService::StateChangeCallback version_updater_callback) {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-
+-  updater::UpdateService::UpdateState update_state;
+-  update_state.state =
+-      updater::UpdateService::UpdateState::State::kCheckingForUpdates;
+-  version_updater_callback.Run(update_state);
+-  update_service_->Update(
+-      GetAppId(), {}, updater::UpdateService::Priority::kForeground,
+-      updater::UpdateService::PolicySameVersionUpdate::kNotAllowed,
+-      base::BindPostTask(base::SequencedTaskRunner::GetCurrentDefault(),
+-                         version_updater_callback),
+-      base::BindPostTask(base::SequencedTaskRunner::GetCurrentDefault(),
+-                         base::BindOnce(&BrowserUpdaterClient::UpdateCompleted,
+-                                        this, version_updater_callback)));
+ }
+ 
+ void BrowserUpdaterClient::UpdateCompleted(
+@@ -134,12 +107,7 @@ void BrowserUpdaterClient::IsBrowserRegisteredCompleted(
+     base::OnceCallback<void(bool)> callback,
+     const std::vector<updater::UpdateService::AppState>& apps) {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  const std::string app_id = GetAppId();
+-  std::move(callback).Run(
+-      std::find_if(apps.begin(), apps.end(),
+-                   [&](const updater::UpdateService::AppState& app) {
+-                     return app.app_id == app_id;
+-                   }) != apps.end());
++  std::move(callback).Run(true);
+ }
+ 
+ scoped_refptr<BrowserUpdaterClient> BrowserUpdaterClient::Create(
+--
+2.25.1

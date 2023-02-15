@@ -1,0 +1,97 @@
+From: Your Name <you@example.com>
+Date: Wed, 8 Feb 2023 13:19:15 +0000
+Subject: 110 ADDTO Logcat crash reports UI
+
+---
+ .../crash/core/browser/resources/crashes.ts   | 54 +------------------
+ 1 file changed, 1 insertion(+), 53 deletions(-)
+
+diff --git a/components/crash/core/browser/resources/crashes.ts b/components/crash/core/browser/resources/crashes.ts
+--- a/components/crash/core/browser/resources/crashes.ts
++++ b/components/crash/core/browser/resources/crashes.ts
+@@ -12,7 +12,7 @@ import './strings.m.js';
+ import {assert} from 'chrome://resources/js/assert_ts.js';
+ import {addWebUiListener} from 'chrome://resources/js/cr.js';
+ import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
+-import {appendParam, getRequiredElement} from 'chrome://resources/js/util_ts.js';
++import {getRequiredElement} from 'chrome://resources/js/util_ts.js';
+ 
+ /* Id for tracking automatic refresh of crash list.  */
+ let refreshCrashListId: number|undefined = undefined;
+@@ -44,10 +44,7 @@ interface CrashData {
+ interface UpdateCrashListParams {
+   enabled: boolean;
+   dynamicBackend: boolean;
+-  manualUploads: boolean;
+   crashes: CrashData[];
+-  version: string;
+-  os: string;
+   isGoogleAccount: boolean;
+ }
+ 
+@@ -57,10 +54,7 @@ interface UpdateCrashListParams {
+ function updateCrashList({
+   enabled,
+   dynamicBackend,
+-  manualUploads,
+   crashes,
+-  version,
+-  os,
+   isGoogleAccount,
+ }: UpdateCrashListParams) {
+   getRequiredElement('crashesCount').textContent = loadTimeData.getStringF(
+@@ -178,52 +172,6 @@ function updateCrashList({
+   getRequiredElement('noCrashes').hidden = crashes.length !== 0;
+ }
+ 
+-/**
+- * Opens a new tab/window to report the crash to crbug.
+- * @param The crash report ID.
+- * @param The OS name.
+- * @param The product version.
+- */
+-function fileBug(crashId: string, os: string, version: string) {
+-  const commentLines = [
+-    'IMPORTANT: Your crash has already been automatically reported ' +
+-        'to our crash system. Please file this bug only if you can provide ' +
+-        'more information about it.',
+-    '',
+-    '',
+-    'Chrome Version: ' + version,
+-    'Operating System: ' + os,
+-    '',
+-    'URL (if applicable) where crash occurred:',
+-    '',
+-    'Can you reproduce this crash?',
+-    '',
+-    'What steps will reproduce this crash? (If it\'s not ' +
+-        'reproducible, what were you doing just before the crash?)',
+-    '1.',
+-    '2.',
+-    '3.',
+-    '',
+-    '****DO NOT CHANGE BELOW THIS LINE****',
+-    'Crash ID: crash/' + crashId,
+-  ];
+-  const params: {[key: string]: string} = {
+-    template: 'Crash Report',
+-    comment: commentLines.join('\n'),
+-    // TODO(scottmg): Use add_labels to add 'User-Submitted' rather than
+-    // duplicating the template's labels (the first two) once
+-    // https://bugs.chromium.org/p/monorail/issues/detail?id=1488 is done.
+-    labels:
+-        'Restrict-View-EditIssue,Stability-Crash,User-Submitted,Pri-3,Type-Bug',
+-  };
+-  let href = 'https://bugs.chromium.org/p/chromium/issues/entry';
+-  for (const param in params) {
+-    href = appendParam(href, param, params[param]!);
+-  }
+-
+-  window.open(href);
+-}
+-
+ /**
+  * Request crashes get uploaded in the background.
+  */
+--
+2.25.1
