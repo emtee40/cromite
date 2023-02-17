@@ -11,7 +11,7 @@ Subject: Add setting to clear data on exit
  chrome/app/settings_strings.grdp              |  3 +
  .../browsing_data/browsing_data_bridge.cc     |  2 +-
  .../chrome_browsing_data_lifetime_manager.cc  | 22 +++++-
- .../chrome_browsing_data_remover_delegate.cc  |  7 ++
+ .../chrome_browsing_data_remover_delegate.cc  | 11 +++
  .../api/settings_private/prefs_util.cc        | 17 +++++
  .../browser/profiles/ProfileManagerUtils.java |  5 ++
  .../profiles/android/profile_manager_utils.cc |  5 ++
@@ -25,7 +25,7 @@ Subject: Add setting to clear data on exit
  .../core/clear_browsing_data_tab.h            |  2 +-
  components/browsing_data/core/pref_names.cc   | 35 +++++++++
  components/browsing_data/core/pref_names.h    |  9 +++
- 22 files changed, 294 insertions(+), 6 deletions(-)
+ 22 files changed, 298 insertions(+), 6 deletions(-)
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragmentAtStart.java
 
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
@@ -57,7 +57,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
 -                    CipherFactory.getInstance().restoreFromBundle(getSavedInstanceState());
 +                    CipherFactory.getInstance().restoreFromBundle(getSavedInstanceState()); //
 +            if (!hadCipherData) {
-+                Log.i(TAG, "Removing browsing data");
++                Log.i(TAG, "Removing browing data");
 +                ProfileManagerUtils.removeBrowsingDataAtStart();
 +            }
  
@@ -293,6 +293,20 @@ diff --git a/chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.
      base::ThreadPool::PostTaskAndReply(
          FROM_HERE, {base::TaskPriority::USER_VISIBLE, base::MayBlock()},
          base::BindOnce(
+@@ -586,9 +593,13 @@ void ChromeBrowsingDataRemoverDelegate::RemoveEmbedderData(
+           CreateTaskCompletionClosure(TracingDataType::kExploreSites));
+     }
+ #endif
++  }
+ 
++  if ((remove_mask & constants::DATA_TYPE_HISTORY) && may_delete_history) {
+     CreateCrashUploadList()->Clear(delete_begin_, delete_end_);
++  }
+ 
++  if (remove_mask & content::BrowsingDataRemover::DATA_TYPE_CACHE) {
+     FindBarStateFactory::GetForBrowserContext(profile_)->SetLastSearchText(
+         std::u16string());
+ 
 diff --git a/chrome/browser/extensions/api/settings_private/prefs_util.cc b/chrome/browser/extensions/api/settings_private/prefs_util.cc
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
