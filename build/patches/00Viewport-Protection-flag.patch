@@ -9,6 +9,7 @@ Subject: Viewport Protection flag
  third_party/blink/common/features.cc          |  4 +
  third_party/blink/public/common/features.h    |  3 +
  .../common/widget/device_emulation_params.h   |  6 +-
+ .../blink/renderer/core/css/media_values.cc   |  2 +-
  .../core/css/resolver/style_resolver.cc       |  7 +-
  .../blink/renderer/core/events/mouse_event.h  | 19 ++++-
  .../renderer/core/events/pointer_event.h      | 11 +++
@@ -23,7 +24,8 @@ Subject: Viewport Protection flag
  .../blink/renderer/core/input/touch.cc        | 17 ++++-
  third_party/blink/renderer/core/page/page.cc  | 76 +++++++++++++++++++
  third_party/blink/renderer/core/page/page.h   |  7 ++
- 20 files changed, 239 insertions(+), 16 deletions(-)
+ .../platform/runtime_enabled_features.json5   |  2 +-
+ 22 files changed, 241 insertions(+), 18 deletions(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
@@ -119,6 +121,18 @@ diff --git a/third_party/blink/public/common/widget/device_emulation_params.h b/
  }
  
  inline bool operator!=(const DeviceEmulationParams& a,
+diff --git a/third_party/blink/renderer/core/css/media_values.cc b/third_party/blink/renderer/core/css/media_values.cc
+--- a/third_party/blink/renderer/core/css/media_values.cc
++++ b/third_party/blink/renderer/core/css/media_values.cc
+@@ -176,7 +176,7 @@ bool MediaValues::CalculateStrictMode(LocalFrame* frame) {
+ }
+ 
+ float MediaValues::CalculateDevicePixelRatio(LocalFrame* frame) {
+-  return frame->DevicePixelRatio();
++  return frame->DevicePixelRatio(false);
+ }
+ 
+ bool MediaValues::CalculateDeviceSupportsHDR(LocalFrame* frame) {
 diff --git a/third_party/blink/renderer/core/css/resolver/style_resolver.cc b/third_party/blink/renderer/core/css/resolver/style_resolver.cc
 --- a/third_party/blink/renderer/core/css/resolver/style_resolver.cc
 +++ b/third_party/blink/renderer/core/css/resolver/style_resolver.cc
@@ -629,5 +643,17 @@ diff --git a/third_party/blink/renderer/core/page/page.h b/third_party/blink/ren
    // If the page is hosted inside an MPArch fenced frame, this tracks the
    // mode that the fenced frame is set to. This will always be set to kDefault
    // for the ShadowDOM implementation of fenced frames.
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -1413,7 +1413,7 @@
+       // assume that screen dimensions match window.innerWidth/innerHeight while
+       // a page is fullscreen, but that is not always true. crbug.com/1367416
+       name: "FullscreenScreenSizeMatchesDisplay",
+-      status: "experimental",
++      status: "stable",
+       base_feature: "FullscreenScreenSizeMatchesDisplay",
+     },
+     {
 --
 2.25.1
