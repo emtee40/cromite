@@ -6,19 +6,19 @@ Truncate base latency precision to two digits
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/browser/about_flags.cc                 |  4 ++++
- chrome/browser/flag_descriptions.cc           |  5 ++++
- chrome/browser/flag_descriptions.h            |  3 +++
- third_party/blink/common/features.cc          |  4 ++++
- third_party/blink/public/common/features.h    |  2 ++
- .../renderer/modules/webaudio/audio_buffer.cc | 24 +++++++++++++++----
- .../renderer/modules/webaudio/audio_buffer.h  |  7 +++---
- .../modules/webaudio/audio_buffer.idl         |  4 ++--
- .../modules/webaudio/audio_context.cc         |  5 +++-
- .../modules/webaudio/base_audio_context.cc    | 12 ++++++++++
- .../modules/webaudio/base_audio_context.h     |  2 ++
- .../modules/webaudio/realtime_analyser.cc     |  9 +++++++
- 12 files changed, 71 insertions(+), 10 deletions(-)
+ chrome/browser/about_flags.cc                      |  4 ++++
+ chrome/browser/flag_descriptions.cc                |  5 +++++
+ chrome/browser/flag_descriptions.h                 |  3 +++
+ third_party/blink/common/features.cc               |  4 ++++
+ third_party/blink/public/common/features.h         |  2 ++
+ .../renderer/modules/webaudio/audio_buffer.cc      | 14 ++++++++++++++
+ .../blink/renderer/modules/webaudio/audio_buffer.h |  2 ++
+ .../renderer/modules/webaudio/audio_context.cc     |  5 ++++-
+ .../modules/webaudio/base_audio_context.cc         | 12 ++++++++++++
+ .../renderer/modules/webaudio/base_audio_context.h |  2 ++
+ .../modules/webaudio/offline_audio_context.cc      |  1 +
+ .../renderer/modules/webaudio/realtime_analyser.cc |  7 +++++++
+ 12 files changed, 60 insertions(+), 1 deletion(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
@@ -91,112 +91,39 @@ diff --git a/third_party/blink/public/common/features.h b/third_party/blink/publ
 diff --git a/third_party/blink/renderer/modules/webaudio/audio_buffer.cc b/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
 --- a/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
 +++ b/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
-@@ -30,6 +30,7 @@
- 
- #include <memory>
- 
-+#include "third_party/blink/public/common/features.h"
- #include "third_party/blink/renderer/bindings/modules/v8/v8_audio_buffer_options.h"
- #include "third_party/blink/renderer/modules/webaudio/base_audio_context.h"
- #include "third_party/blink/renderer/platform/audio/audio_bus.h"
-@@ -197,6 +198,7 @@ AudioBuffer::AudioBuffer(AudioBus* bus)
+@@ -196,6 +196,20 @@ AudioBuffer::AudioBuffer(AudioBus* bus)
+   }
  }
  
- NotShared<DOMFloat32Array> AudioBuffer::getChannelData(
-+    ScriptState* script_state,
-     unsigned channel_index,
-     ExceptionState& exception_state) {
-   if (channel_index >= channels_.size()) {
-@@ -208,7 +210,16 @@ NotShared<DOMFloat32Array> AudioBuffer::getChannelData(
-     return NotShared<DOMFloat32Array>(nullptr);
-   }
- 
--  return getChannelData(channel_index);
-+  NotShared<DOMFloat32Array> array = getChannelData(channel_index);
-+  DOMFloat32Array* destination_array = array.Get();
-+  size_t len = destination_array->length();
-+  if (len > 0) {
-+    float* destination = destination_array->Data();
-+    for (unsigned i = 0; i < len; ++i) {
-+      destination[i] = BaseAudioContext::ShuffleAudioData(destination[i], i);
++void AudioBuffer::ShuffleAudioData() {
++  for (unsigned i = 0; i < channels_.size(); ++i) {
++    if (NotShared<DOMFloat32Array> array = getChannelData(i)) {
++      size_t len = array->length();
++      if (len > 0) {
++        float* destination = array->Data();
++        for (unsigned j = 0; j < len; ++j) {
++          destination[j] = BaseAudioContext::ShuffleAudioData(destination[j], j);
++        }
++      }
 +    }
 +  }
-+  return array;
- }
- 
- NotShared<DOMFloat32Array> AudioBuffer::getChannelData(unsigned channel_index) {
-@@ -219,13 +230,15 @@ NotShared<DOMFloat32Array> AudioBuffer::getChannelData(unsigned channel_index) {
-   return NotShared<DOMFloat32Array>(channels_[channel_index].Get());
- }
- 
--void AudioBuffer::copyFromChannel(NotShared<DOMFloat32Array> destination,
-+void AudioBuffer::copyFromChannel(ScriptState* script_state,
-+                                  NotShared<DOMFloat32Array> destination,
-                                   int32_t channel_number,
-                                   ExceptionState& exception_state) {
--  return copyFromChannel(destination, channel_number, 0, exception_state);
-+  return copyFromChannel(script_state, destination, channel_number, 0, exception_state);
- }
- 
--void AudioBuffer::copyFromChannel(NotShared<DOMFloat32Array> destination,
-+void AudioBuffer::copyFromChannel(ScriptState* script_state,
-+                                  NotShared<DOMFloat32Array> destination,
-                                   int32_t channel_number,
-                                   size_t buffer_offset,
-                                   ExceptionState& exception_state) {
-@@ -266,6 +279,9 @@ void AudioBuffer::copyFromChannel(NotShared<DOMFloat32Array> destination,
-   DCHECK_LE(buffer_offset + count, data_length);
- 
-   memmove(dst, src + buffer_offset, count * sizeof(*src));
-+  for (unsigned i = 0; i < count; i++) {
-+    dst[i] = BaseAudioContext::ShuffleAudioData(dst[i], i);
-+  }
- }
- 
- void AudioBuffer::copyToChannel(NotShared<DOMFloat32Array> source,
++}
++
+ NotShared<DOMFloat32Array> AudioBuffer::getChannelData(
+     unsigned channel_index,
+     ExceptionState& exception_state) {
 diff --git a/third_party/blink/renderer/modules/webaudio/audio_buffer.h b/third_party/blink/renderer/modules/webaudio/audio_buffer.h
 --- a/third_party/blink/renderer/modules/webaudio/audio_buffer.h
 +++ b/third_party/blink/renderer/modules/webaudio/audio_buffer.h
-@@ -44,6 +44,7 @@ class AudioBus;
- class AudioBufferOptions;
- class ExceptionState;
- class SharedAudioBuffer;
-+class ScriptState;
+@@ -115,6 +115,8 @@ class MODULES_EXPORT AudioBuffer final : public ScriptWrappable {
  
- class MODULES_EXPORT AudioBuffer final : public ScriptWrappable {
-   DEFINE_WRAPPERTYPEINFO();
-@@ -88,13 +89,13 @@ class MODULES_EXPORT AudioBuffer final : public ScriptWrappable {
+   std::unique_ptr<SharedAudioBuffer> CreateSharedAudioBuffer();
  
-   // Channel data access
-   unsigned numberOfChannels() const { return channels_.size(); }
--  NotShared<DOMFloat32Array> getChannelData(unsigned channel_index,
-+  NotShared<DOMFloat32Array> getChannelData(ScriptState*, unsigned channel_index,
-                                             ExceptionState&);
-   NotShared<DOMFloat32Array> getChannelData(unsigned channel_index);
--  void copyFromChannel(NotShared<DOMFloat32Array>,
-+  void copyFromChannel(ScriptState*, NotShared<DOMFloat32Array>,
-                        int32_t channel_number,
-                        ExceptionState&);
--  void copyFromChannel(NotShared<DOMFloat32Array>,
-+  void copyFromChannel(ScriptState*, NotShared<DOMFloat32Array>,
-                        int32_t channel_number,
-                        size_t buffer_offset,
-                        ExceptionState&);
-diff --git a/third_party/blink/renderer/modules/webaudio/audio_buffer.idl b/third_party/blink/renderer/modules/webaudio/audio_buffer.idl
---- a/third_party/blink/renderer/modules/webaudio/audio_buffer.idl
-+++ b/third_party/blink/renderer/modules/webaudio/audio_buffer.idl
-@@ -37,9 +37,9 @@
- 
-     // Channel access
-     readonly attribute unsigned long numberOfChannels;
--    [HighEntropy=Direct, Measure, RaisesException] Float32Array getChannelData(
-+    [CallWith=ScriptState, HighEntropy=Direct, Measure, RaisesException] Float32Array getChannelData(
-         unsigned long channelIndex);
--    [HighEntropy, Measure, RaisesException] void copyFromChannel(
-+    [CallWith=ScriptState, HighEntropy, Measure, RaisesException] void copyFromChannel(
-         Float32Array destination,
-         unsigned long channelNumber,
-         optional unsigned long bufferOffset = 0);
++  void ShuffleAudioData();
++
+  private:
+   static DOMFloat32Array* CreateFloat32ArrayOrNull(
+       uint32_t length,
 diff --git a/third_party/blink/renderer/modules/webaudio/audio_context.cc b/third_party/blink/renderer/modules/webaudio/audio_context.cc
 --- a/third_party/blink/renderer/modules/webaudio/audio_context.cc
 +++ b/third_party/blink/renderer/modules/webaudio/audio_context.cc
@@ -260,20 +187,29 @@ diff --git a/third_party/blink/renderer/modules/webaudio/base_audio_context.h b/
   protected:
    enum ContextType { kRealtimeContext, kOfflineContext };
  
+diff --git a/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc b/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
+--- a/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
++++ b/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
+@@ -368,6 +368,7 @@ void OfflineAudioContext::FireCompletionEvent() {
+     if (!rendered_buffer) {
+       return;
+     }
++    rendered_buffer->ShuffleAudioData();
+ 
+     // Call the offline rendering completion event listener and resolve the
+     // promise too.
 diff --git a/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc b/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc
 --- a/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc
 +++ b/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc
-@@ -29,6 +29,9 @@
+@@ -29,6 +29,7 @@
  #include <algorithm>
  #include <complex>
  
-+#include "third_party/blink/public/common/features.h"
-+#include "third_party/blink/renderer/modules/webaudio/realtime_analyser.h"
 +#include "third_party/blink/renderer/modules/webaudio/base_audio_context.h"
  #include "third_party/blink/renderer/platform/audio/audio_bus.h"
  #include "third_party/blink/renderer/platform/audio/audio_utilities.h"
  #include "third_party/blink/renderer/platform/audio/vector_math.h"
-@@ -154,6 +157,7 @@ void RealtimeAnalyser::GetFloatTimeDomainData(
+@@ -154,6 +155,7 @@ void RealtimeAnalyser::GetFloatTimeDomainData(
            input_buffer[(i + write_index - fft_size + kInputBufferSize) %
                         kInputBufferSize];
  
@@ -281,7 +217,7 @@ diff --git a/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc b/
        destination[i] = value;
      }
    }
-@@ -181,6 +185,8 @@ void RealtimeAnalyser::GetByteTimeDomainData(DOMUint8Array* destination_array) {
+@@ -181,6 +183,8 @@ void RealtimeAnalyser::GetByteTimeDomainData(DOMUint8Array* destination_array) {
            input_buffer[(i + write_index - fft_size + kInputBufferSize) %
                         kInputBufferSize];
  
@@ -290,7 +226,7 @@ diff --git a/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc b/
        // Scale from nominal -1 -> +1 to unsigned byte.
        double scaled_value = 128 * (value + 1);
  
-@@ -300,6 +306,8 @@ void RealtimeAnalyser::ConvertToByteData(DOMUint8Array* destination_array) {
+@@ -300,6 +304,8 @@ void RealtimeAnalyser::ConvertToByteData(DOMUint8Array* destination_array) {
        double scaled_value =
            UCHAR_MAX * (db_mag - min_decibels) * range_scale_factor;
  
@@ -299,7 +235,7 @@ diff --git a/third_party/blink/renderer/modules/webaudio/realtime_analyser.cc b/
        // Clip to valid range.
        destination[i] =
            static_cast<unsigned char>(ClampTo(scaled_value, 0, UCHAR_MAX));
-@@ -319,6 +327,7 @@ void RealtimeAnalyser::ConvertFloatToDb(DOMFloat32Array* destination_array) {
+@@ -319,6 +325,7 @@ void RealtimeAnalyser::ConvertFloatToDb(DOMFloat32Array* destination_array) {
        float linear_value = source[i];
        double db_mag = audio_utilities::LinearToDecibels(linear_value);
        destination[i] = static_cast<float>(db_mag);
