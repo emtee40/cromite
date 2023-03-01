@@ -3,9 +3,9 @@ Date: Wed, 8 Feb 2023 13:29:03 +0000
 Subject: 110 ADDTO Timezone customization
 
 ---
- .../site_settings/SingleCategorySettings.java | 33 +++++++++++--------
+ .../site_settings/SingleCategorySettings.java | 36 +++++++++++--------
  ...imezoneOverrideSiteSettingsPreference.java |  3 +-
- 2 files changed, 21 insertions(+), 15 deletions(-)
+ 2 files changed, 24 insertions(+), 15 deletions(-)
 
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
@@ -48,7 +48,15 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
  
          if (mGlobalToggleLayout != GlobalToggleLayout.BINARY_TOGGLE) {
              screen.removePreference(binaryToggle);
-@@ -1153,6 +1159,10 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1148,11 +1154,18 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+         if (mGlobalToggleLayout != GlobalToggleLayout.FOUR_STATE_COOKIE_TOGGLE) {
+             screen.removePreference(fourStateCookieToggle);
+         }
++        if (contentType != SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
++            screen.removePreference(screen.findPreference(TIMEOVERRIDE_INFO_TEXT));
++        }
+         switch (mGlobalToggleLayout) {
+             case GlobalToggleLayout.BINARY_TOGGLE:
                  configureBinaryToggle(binaryToggle, contentType);
                  break;
              case GlobalToggleLayout.TRI_STATE_TOGGLE:
@@ -59,7 +67,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
                  configureTriStateToggle(triStateToggle, contentType);
                  break;
              case GlobalToggleLayout.TRI_STATE_COOKIE_TOGGLE:
-@@ -1179,6 +1189,13 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1179,6 +1192,13 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          } else {
              screen.removePreference(infoText);
          }
@@ -73,7 +81,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          BromiteCustomContentSettingImpl.configureGlobalToggles(mCategory, screen);
  
          if (permissionBlockedByOs) {
-@@ -1249,18 +1266,6 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1249,18 +1269,6 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
              mListView.setFocusable(true);
          }
  
