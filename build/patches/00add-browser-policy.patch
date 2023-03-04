@@ -89,7 +89,7 @@ diff --git a/chrome/browser/policy/chrome_browser_policy_connector.cc b/chrome/b
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
-@@ -1840,9 +1840,9 @@ bool AreFuturePoliciesSupported() {
+@@ -1856,9 +1856,9 @@ bool AreFuturePoliciesSupported() {
    // Enable future policies for branded browser tests.
    if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kTestType))
      return true;
@@ -150,7 +150,7 @@ diff --git a/chrome/browser/signin/account_consistency_mode_manager.cc b/chrome/
 diff --git a/chrome/browser/signin/chrome_signin_client.cc b/chrome/browser/signin/chrome_signin_client.cc
 --- a/chrome/browser/signin/chrome_signin_client.cc
 +++ b/chrome/browser/signin/chrome_signin_client.cc
-@@ -159,7 +159,9 @@ void ChromeSigninClient::DoFinalInit() {
+@@ -157,7 +157,9 @@ void ChromeSigninClient::DoFinalInit() {
  bool ChromeSigninClient::ProfileAllowsSigninCookies(Profile* profile) {
    content_settings::CookieSettings* cookie_settings =
        CookieSettingsFactory::GetForProfile(profile).get();
@@ -161,7 +161,7 @@ diff --git a/chrome/browser/signin/chrome_signin_client.cc b/chrome/browser/sign
  }
  
  PrefService* ChromeSigninClient::GetPrefs() { return profile_->GetPrefs(); }
-@@ -272,6 +274,8 @@ void ChromeSigninClient::OnConnectionChanged(
+@@ -260,6 +262,8 @@ void ChromeSigninClient::OnConnectionChanged(
  #endif
  
  void ChromeSigninClient::DelayNetworkCall(base::OnceClosure callback) {
@@ -195,7 +195,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
  #include "components/policy/core/common/policy_scheduler.h"
  #include "components/policy/core/common/policy_types.h"
  #include "components/policy/core/common/remote_commands/remote_commands_service.h"
-@@ -163,6 +166,10 @@ void PolicyUIHandler::RegisterMessages() {
+@@ -167,6 +170,10 @@ void PolicyUIHandler::RegisterMessages() {
        "exportPoliciesJSON",
        base::BindRepeating(&PolicyUIHandler::HandleExportPoliciesJson,
                            base::Unretained(this)));
@@ -206,7 +206,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
    web_ui()->RegisterMessageCallback(
        "listenPoliciesUpdates",
        base::BindRepeating(&PolicyUIHandler::HandleListenPoliciesUpdates,
-@@ -309,8 +316,102 @@ void PolicyUIHandler::SendPolicies() {
+@@ -330,8 +337,102 @@ void PolicyUIHandler::SendPolicies() {
        "policies-updated",
        base::Value(
            policy_value_and_status_aggregator_->GetAggregatedPolicyNames()),
@@ -326,19 +326,19 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.h b/chrome/browser
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
-@@ -125,7 +125,7 @@ BASE_FEATURE(kCommercePriceTracking,
+@@ -134,7 +134,7 @@ BASE_FEATURE(kCommercePriceTracking,
  const base::FeatureParam<bool> kDeleteAllMerchantsOnClearBrowsingHistory{
      &kCommerceMerchantViewer, "delete_all_merchants_on_clear_history", false};
  
 -BASE_FEATURE(kShoppingList, "ShoppingList", base::FEATURE_DISABLED_BY_DEFAULT);
 +BASE_FEATURE(kShoppingList, "ShoppingList", base::FEATURE_DISABLED_BY_DEFAULT); // guard this
- 
- BASE_FEATURE(kShoppingListEnableDesyncResolution,
-              "ShoppingListEnableDesyncResolution",
+ #if BUILDFLAG(IS_ANDROID)
+ BASE_FEATURE(kShoppingListRegionLaunched,
+              "ShoppingListRegionLaunched",
 diff --git a/components/policy/core/browser/browser_policy_connector.cc b/components/policy/core/browser/browser_policy_connector.cc
 --- a/components/policy/core/browser/browser_policy_connector.cc
 +++ b/components/policy/core/browser/browser_policy_connector.cc
-@@ -137,6 +137,9 @@ void BrowserPolicyConnector::RegisterPrefs(PrefRegistrySimple* registry) {
+@@ -125,6 +125,9 @@ void BrowserPolicyConnector::RegisterPrefs(PrefRegistrySimple* registry) {
        CloudPolicyRefreshScheduler::kDefaultRefreshDelayMs);
    registry->RegisterBooleanPref(
        policy_prefs::kCloudManagementEnrollmentMandatory, false);
@@ -518,7 +518,7 @@ diff --git a/components/policy/core/common/policy_loader_command_line.cc b/compo
 diff --git a/components/policy/core/common/policy_pref_names.cc b/components/policy/core/common/policy_pref_names.cc
 --- a/components/policy/core/common/policy_pref_names.cc
 +++ b/components/policy/core/common/policy_pref_names.cc
-@@ -94,6 +94,9 @@ const char kBackForwardCacheEnabled[] = "policy.back_forward_cache_enabled";
+@@ -95,6 +95,9 @@ const char kBackForwardCacheEnabled[] = "policy.back_forward_cache_enabled";
  const char kUserAgentClientHintsGREASEUpdateEnabled[] =
      "policy.user_agent_client_hints_grease_update_enabled";
  
@@ -651,7 +651,7 @@ diff --git a/components/policy/resources/webui/policy_row.js b/components/policy
 diff --git a/components/policy_strings.grdp b/components/policy_strings.grdp
 --- a/components/policy_strings.grdp
 +++ b/components/policy_strings.grdp
-@@ -582,8 +582,8 @@ Additional details:
+@@ -585,8 +585,8 @@ Additional details:
    <message name="IDS_POLICY_SOURCE_DEFAULT" desc="Indicates that a policy is set by default and can be overridden.">
      Default
    </message>

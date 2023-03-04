@@ -81,7 +81,7 @@ diff --git a/components/omnibox/browser/autocomplete_input.cc b/components/omnib
    return url::FindAndCompareScheme(utf8_input, scheme, nullptr);
  }
  
-@@ -574,7 +579,8 @@ void AutocompleteInput::ParseForEmphasizeComponents(
+@@ -575,7 +580,8 @@ void AutocompleteInput::ParseForEmphasizeComponents(
    // For the view-source and blob schemes, we should emphasize the host of the
    // URL qualified by the view-source or blob prefix.
    if ((base::EqualsCaseInsensitiveASCII(scheme_str, kViewSourceScheme) ||
@@ -108,7 +108,7 @@ diff --git a/components/url_formatter/url_fixer.cc b/components/url_formatter/ur
 diff --git a/content/browser/child_process_security_policy_impl.cc b/content/browser/child_process_security_policy_impl.cc
 --- a/content/browser/child_process_security_policy_impl.cc
 +++ b/content/browser/child_process_security_policy_impl.cc
-@@ -756,6 +756,7 @@ ChildProcessSecurityPolicyImpl::ChildProcessSecurityPolicyImpl()
+@@ -786,6 +786,7 @@ ChildProcessSecurityPolicyImpl::ChildProcessSecurityPolicyImpl()
    RegisterPseudoScheme(url::kJavaScriptScheme);
    RegisterPseudoScheme(kViewSourceScheme);
    RegisterPseudoScheme(kGoogleChromeScheme);
@@ -119,7 +119,7 @@ diff --git a/content/browser/child_process_security_policy_impl.cc b/content/bro
 diff --git a/net/BUILD.gn b/net/BUILD.gn
 --- a/net/BUILD.gn
 +++ b/net/BUILD.gn
-@@ -1037,6 +1037,8 @@ component("net") {
+@@ -1039,6 +1039,8 @@ component("net") {
      "url_request/url_request_http_job.cc",
      "url_request/url_request_http_job.h",
      "url_request/url_request_interceptor.cc",
@@ -203,8 +203,8 @@ diff --git a/net/url_request/url_request.cc b/net/url_request/url_request.cc
 +#include "base/strings/string_util.h"
  #include "base/synchronization/lock.h"
  #include "base/task/single_thread_task_runner.h"
- #include "base/values.h"
-@@ -46,6 +47,7 @@
+ #include "base/types/pass_key.h"
+@@ -47,6 +48,7 @@
  #include "net/url_request/url_request_redirect_job.h"
  #include "url/gurl.h"
  #include "url/origin.h"
@@ -212,7 +212,7 @@ diff --git a/net/url_request/url_request.cc b/net/url_request/url_request.cc
  
  namespace net {
  
-@@ -594,6 +596,12 @@ URLRequest::URLRequest(const GURL& url,
+@@ -596,6 +598,12 @@ URLRequest::URLRequest(base::PassKey<URLRequestContext> pass_key,
    // Sanity check out environment.
    DCHECK(base::SingleThreadTaskRunner::HasCurrentDefault());
  
@@ -228,7 +228,7 @@ diff --git a/net/url_request/url_request.cc b/net/url_request/url_request.cc
 diff --git a/net/url_request/url_request_context_builder.cc b/net/url_request/url_request_context_builder.cc
 --- a/net/url_request/url_request_context_builder.cc
 +++ b/net/url_request/url_request_context_builder.cc
-@@ -47,6 +47,7 @@
+@@ -48,6 +48,7 @@
  #include "net/socket/network_binding_client_socket_factory.h"
  #include "net/ssl/ssl_config_service_defaults.h"
  #include "net/url_request/static_http_user_agent_settings.h"
@@ -236,7 +236,7 @@ diff --git a/net/url_request/url_request_context_builder.cc b/net/url_request/ur
  #include "net/url_request/url_request_context.h"
  #include "net/url_request/url_request_job_factory.h"
  #include "net/url_request/url_request_throttler_manager.h"
-@@ -570,6 +571,8 @@ std::unique_ptr<URLRequestContext> URLRequestContextBuilder::Build() {
+@@ -571,6 +572,8 @@ std::unique_ptr<URLRequestContext> URLRequestContextBuilder::Build() {
      job_factory->SetProtocolHandler(scheme_handler.first,
                                      std::move(scheme_handler.second));
    }

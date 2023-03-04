@@ -7,7 +7,7 @@ Disable domain reliability detection
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../domain_reliability/service_factory.cc     |  24 +-
+ .../domain_reliability/service_factory.cc     |  33 +--
  .../from_gws_page_load_metrics_observer.cc    |   6 +-
  components/domain_reliability/BUILD.gn        |  42 ++-
  .../domain_reliability/bake_in_configs.py     |   2 +-
@@ -22,12 +22,12 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/search_engines/template_url.cc     |   6 +-
  net/base/url_util.cc                          |  21 --
  services/network/network_context.cc           |   2 +-
- 15 files changed, 41 insertions(+), 389 deletions(-)
+ 15 files changed, 42 insertions(+), 397 deletions(-)
 
 diff --git a/chrome/browser/domain_reliability/service_factory.cc b/chrome/browser/domain_reliability/service_factory.cc
 --- a/chrome/browser/domain_reliability/service_factory.cc
 +++ b/chrome/browser/domain_reliability/service_factory.cc
-@@ -11,34 +11,12 @@
+@@ -14,40 +14,11 @@
  
  namespace domain_reliability {
  
@@ -40,18 +40,25 @@ diff --git a/chrome/browser/domain_reliability/service_factory.cc b/chrome/brows
 -const char kFieldTrialName[] = "DomRel-Enable";
 -const char kFieldTrialValueEnable[] = "enable";
 -
+-bool IsDomainReliabilityAllowed() {
+-  return g_browser_process->local_state()->GetBoolean(
+-      prefs::kDomainReliabilityAllowedByPolicy);
+-}
+-
 -}  // namespace
 -
- // Identifies Chrome as the source of Domain Reliability uploads it sends.
- const char DomainReliabilityServiceFactory::kUploadReporterString[] = "chrome";
++// Identifies Chrome as the source of Domain Reliability uploads it sends.
+ const char kUploadReporterString[] = "chrome";
  
- // static
- bool DomainReliabilityServiceFactory::ShouldCreateService() {
+ bool ShouldCreateService() {
 -  base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
 -  if (command_line->HasSwitch(switches::kDisableDomainReliability))
 -    return false;
 -  if (command_line->HasSwitch(switches::kEnableDomainReliability))
 -    return true;
+-  if (!IsDomainReliabilityAllowed()) {
+-    return false;
+-  }
 -  if (!ChromeMetricsServiceAccessor::IsMetricsAndCrashReportingEnabled())
 -    return false;
 -  if (base::FieldTrialList::TrialExists(kFieldTrialName)) {
@@ -66,7 +73,7 @@ diff --git a/chrome/browser/domain_reliability/service_factory.cc b/chrome/brows
 diff --git a/chrome/browser/page_load_metrics/observers/from_gws_page_load_metrics_observer.cc b/chrome/browser/page_load_metrics/observers/from_gws_page_load_metrics_observer.cc
 --- a/chrome/browser/page_load_metrics/observers/from_gws_page_load_metrics_observer.cc
 +++ b/chrome/browser/page_load_metrics/observers/from_gws_page_load_metrics_observer.cc
-@@ -394,8 +394,7 @@ FromGWSPageLoadMetricsLogger::~FromGWSPageLoadMetricsLogger() = default;
+@@ -392,8 +392,7 @@ FromGWSPageLoadMetricsLogger::~FromGWSPageLoadMetricsLogger() = default;
  void FromGWSPageLoadMetricsLogger::SetPreviouslyCommittedUrl(const GURL& url) {
    if (page_load_metrics::IsGoogleSearchResultUrl(url)) {
      previously_committed_url_is_search_results_ = true;
@@ -76,7 +83,7 @@ diff --git a/chrome/browser/page_load_metrics/observers/from_gws_page_load_metri
    }
    previously_committed_url_is_search_redirector_ =
        page_load_metrics::IsGoogleSearchRedirectorUrl(url);
-@@ -412,8 +411,7 @@ void FromGWSPageLoadMetricsLogger::SetNavigationStateForSidePanel(
+@@ -410,8 +409,7 @@ void FromGWSPageLoadMetricsLogger::SetNavigationStateForSidePanel(
    initiating_side_panel_url_ = initiating_side_panel_url;
    navigation_initiated_via_link_ = navigation_initiated_via_link;
    if (page_load_metrics::IsGoogleSearchResultUrl(initiating_side_panel_url)) {
@@ -638,7 +645,7 @@ diff --git a/components/page_load_metrics/common/page_load_metrics_util.cc b/com
 diff --git a/components/search_engines/template_url.cc b/components/search_engines/template_url.cc
 --- a/components/search_engines/template_url.cc
 +++ b/components/search_engines/template_url.cc
-@@ -535,11 +535,7 @@ std::u16string TemplateURLRef::SearchTermToString16(
+@@ -536,11 +536,7 @@ std::u16string TemplateURLRef::SearchTermToString16(
  bool TemplateURLRef::HasGoogleBaseURLs(
      const SearchTermsData& search_terms_data) const {
    ParseIfNecessary(search_terms_data);
@@ -654,7 +661,7 @@ diff --git a/components/search_engines/template_url.cc b/components/search_engin
 diff --git a/net/base/url_util.cc b/net/base/url_util.cc
 --- a/net/base/url_util.cc
 +++ b/net/base/url_util.cc
-@@ -485,27 +485,6 @@ bool HasGoogleHost(const GURL& url) {
+@@ -486,27 +486,6 @@ bool HasGoogleHost(const GURL& url) {
  }
  
  bool IsGoogleHost(base::StringPiece host) {
@@ -685,7 +692,7 @@ diff --git a/net/base/url_util.cc b/net/base/url_util.cc
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -2561,7 +2561,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
+@@ -2570,7 +2570,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
    }
  #endif  // BUILDFLAG(IS_CT_SUPPORTED)
  

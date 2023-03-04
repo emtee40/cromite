@@ -60,7 +60,7 @@ diff --git a/components/embedder_support/origin_trials/origin_trial_policy_impl.
 diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
 --- a/content/browser/renderer_host/navigation_request.cc
 +++ b/content/browser/renderer_host/navigation_request.cc
-@@ -7598,7 +7598,6 @@ void NavigationRequest::RestartBackForwardCachedNavigationImpl() {
+@@ -7765,7 +7765,6 @@ void NavigationRequest::RestartBackForwardCachedNavigationImpl() {
  void NavigationRequest::ForceEnableOriginTrials(
      const std::vector<std::string>& trials) {
    DCHECK(!HasCommitted());
@@ -71,7 +71,7 @@ diff --git a/content/browser/renderer_host/navigation_request.cc b/content/brows
 diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_frame_impl.cc
 --- a/content/renderer/render_frame_impl.cc
 +++ b/content/renderer/render_frame_impl.cc
-@@ -477,10 +477,6 @@ void FillNavigationParamsRequest(
+@@ -476,10 +476,6 @@ void FillNavigationParamsRequest(
          common_params.initiator_origin.value();
    }
  
@@ -82,7 +82,7 @@ diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_fra
    navigation_params->was_discarded = commit_params.was_discarded;
    navigation_params->document_ukm_source_id =
        commit_params.document_ukm_source_id;
-@@ -512,12 +508,6 @@ void FillNavigationParamsRequest(
+@@ -511,12 +507,6 @@ void FillNavigationParamsRequest(
    navigation_params->web_bundle_claimed_url =
        commit_params.web_bundle_claimed_url;
  
@@ -95,7 +95,7 @@ diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_fra
    if (!commit_params.early_hints_preloaded_resources.empty()) {
      navigation_params->early_hints_preloaded_resources = WebVector<WebURL>();
      for (const auto& resource : commit_params.early_hints_preloaded_resources) {
-@@ -571,11 +561,6 @@ blink::mojom::CommonNavigationParamsPtr MakeCommonNavigationParams(
+@@ -577,11 +567,6 @@ blink::mojom::CommonNavigationParamsPtr MakeCommonNavigationParams(
            info->url_request.GetURLRequestExtraData().get());
    DCHECK(url_request_extra_data);
  
@@ -107,7 +107,7 @@ diff --git a/content/renderer/render_frame_impl.cc b/content/renderer/render_fra
    blink::NavigationDownloadPolicy download_policy;
    download_policy.ApplyDownloadFramePolicy(
        info->is_opener_navigation, info->url_request.HasUserGesture(),
-@@ -593,7 +578,7 @@ blink::mojom::CommonNavigationParamsPtr MakeCommonNavigationParams(
+@@ -603,7 +588,7 @@ blink::mojom::CommonNavigationParamsPtr MakeCommonNavigationParams(
        info->url_request.HasUserGesture(),
        info->url_request.HasTextFragmentToken(),
        info->should_check_main_world_content_security_policy,
@@ -192,7 +192,7 @@ diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_p
    return result;
  }
  
-@@ -2730,10 +2717,6 @@ void DocumentLoader::CreateParserPostCommit() {
+@@ -2744,10 +2731,6 @@ void DocumentLoader::CreateParserPostCommit() {
            OriginTrialFeature::kTouchEventFeatureDetection);
      }
  
@@ -218,7 +218,7 @@ diff --git a/third_party/blink/renderer/core/loader/http_equiv.cc b/third_party/
 diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc b/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
 --- a/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
 +++ b/third_party/blink/renderer/core/origin_trials/origin_trial_context.cc
-@@ -314,6 +314,9 @@ void OriginTrialContext::AddToken(const String& token) {
+@@ -315,6 +315,9 @@ void OriginTrialContext::AddToken(const String& token) {
  void OriginTrialContext::AddTokenFromExternalScript(
      const String& token,
      const Vector<scoped_refptr<SecurityOrigin>>& external_origins) {
@@ -228,7 +228,7 @@ diff --git a/third_party/blink/renderer/core/origin_trials/origin_trial_context.
    Vector<OriginInfo> script_origins;
    for (const scoped_refptr<SecurityOrigin>& origin : external_origins) {
      OriginInfo origin_info = {.origin = origin,
-@@ -441,8 +444,6 @@ bool OriginTrialContext::InstallSettingFeature(
+@@ -450,8 +453,6 @@ bool OriginTrialContext::InstallSettingFeature(
  }
  
  void OriginTrialContext::AddFeature(OriginTrialFeature feature) {

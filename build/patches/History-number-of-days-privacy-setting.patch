@@ -162,9 +162,9 @@ diff --git a/chrome/browser/history/history_service_factory.cc b/chrome/browser/
 diff --git a/chrome/browser/preferences/BUILD.gn b/chrome/browser/preferences/BUILD.gn
 --- a/chrome/browser/preferences/BUILD.gn
 +++ b/chrome/browser/preferences/BUILD.gn
-@@ -46,6 +46,7 @@ java_cpp_strings("java_pref_names_srcjar") {
-     "//components/safe_browsing/core/common/safe_browsing_prefs.cc",
+@@ -47,6 +47,7 @@ java_cpp_strings("java_pref_names_srcjar") {
      "//components/signin/public/base/signin_pref_names.cc",
+     "//components/supervised_user/core/common/pref_names.cc",
      "//components/translate/core/browser/translate_pref_names.cc",
 +    "//components/history/core/common/pref_names.cc",
    ]
@@ -184,7 +184,7 @@ diff --git a/chrome/browser/profiles/profile_impl.cc b/chrome/browser/profiles/p
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1433,6 +1433,18 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1273,6 +1273,18 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_CLEAR_HISTORY_TITLE" desc="Title for Clear History in Clear Browsing Data dialog">
          Browsing history
        </message>
@@ -356,7 +356,7 @@ diff --git a/components/history/core/browser/expire_history_backend.h b/componen
 diff --git a/components/history/core/browser/history_backend.cc b/components/history/core/browser/history_backend.cc
 --- a/components/history/core/browser/history_backend.cc
 +++ b/components/history/core/browser/history_backend.cc
-@@ -161,7 +161,7 @@ const int kMaxRedirectCount = 32;
+@@ -159,7 +159,7 @@ const int kMaxRedirectCount = 32;
  
  // The number of days old a history entry can be before it is considered "old"
  // and is deleted.
@@ -365,7 +365,7 @@ diff --git a/components/history/core/browser/history_backend.cc b/components/his
  
  // The maximum number of days for which domain visit metrics are computed
  // each time HistoryBackend::GetDomainDiversity() is called.
-@@ -1163,6 +1163,19 @@ void HistoryBackend::InitImpl(
+@@ -1158,6 +1158,19 @@ void HistoryBackend::InitImpl(
    LOCAL_HISTOGRAM_TIMES("History.InitTime", TimeTicks::Now() - beginning_time);
  }
  
@@ -400,7 +400,7 @@ diff --git a/components/history/core/browser/history_backend.h b/components/hist
 diff --git a/components/history/core/browser/history_service.cc b/components/history/core/browser/history_service.cc
 --- a/components/history/core/browser/history_service.cc
 +++ b/components/history/core/browser/history_service.cc
-@@ -34,6 +34,9 @@
+@@ -35,6 +35,9 @@
  #include "base/time/time.h"
  #include "base/trace_event/trace_event.h"
  #include "build/build_config.h"
@@ -410,7 +410,7 @@ diff --git a/components/history/core/browser/history_service.cc b/components/his
  #include "components/history/core/browser/download_row.h"
  #include "components/history/core/browser/history_backend.h"
  #include "components/history/core/browser/history_backend_client.h"
-@@ -1146,6 +1149,9 @@ void HistoryService::Cleanup() {
+@@ -1186,6 +1189,9 @@ void HistoryService::Cleanup() {
      return;
    }
  
@@ -420,7 +420,7 @@ diff --git a/components/history/core/browser/history_service.cc b/components/his
    NotifyHistoryServiceBeingDeleted();
  
    weak_ptr_factory_.InvalidateWeakPtrs();
-@@ -1213,6 +1219,33 @@ bool HistoryService::Init(
+@@ -1253,6 +1259,33 @@ bool HistoryService::Init(
    return true;
  }
  
@@ -475,7 +475,7 @@ diff --git a/components/history/core/browser/history_service.h b/components/hist
    // Triggers the backend to load if it hasn't already, and then returns whether
    // it's finished loading.
    // Note: Virtual needed for mocking.
-@@ -1044,6 +1048,10 @@ class HistoryService : public KeyedService {
+@@ -1065,6 +1069,10 @@ class HistoryService : public KeyedService {
  
    base::OnceClosure origin_queried_closure_for_testing_;
  

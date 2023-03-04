@@ -39,7 +39,7 @@ diff --git a/third_party/blink/renderer/core/html/parser/html_srcset_parser.cc b
 diff --git a/third_party/blink/renderer/core/inspector/inspector_network_agent.cc b/third_party/blink/renderer/core/inspector/inspector_network_agent.cc
 --- a/third_party/blink/renderer/core/inspector/inspector_network_agent.cc
 +++ b/third_party/blink/renderer/core/inspector/inspector_network_agent.cc
-@@ -2256,7 +2256,7 @@ bool InspectorNetworkAgent::FetchResourceContent(Document* document,
+@@ -2257,7 +2257,7 @@ bool InspectorNetworkAgent::FetchResourceContent(Document* document,
    Resource* cached_resource = document->Fetcher()->CachedResource(url);
    if (!cached_resource) {
      cached_resource = MemoryCache::Get()->ResourceForURL(
@@ -79,7 +79,7 @@ diff --git a/third_party/blink/renderer/core/loader/image_loader.cc b/third_part
 diff --git a/third_party/blink/renderer/platform/loader/fetch/memory_cache.cc b/third_party/blink/renderer/platform/loader/fetch/memory_cache.cc
 --- a/third_party/blink/renderer/platform/loader/fetch/memory_cache.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/memory_cache.cc
-@@ -199,7 +199,7 @@ void MemoryCache::RemoveInternal(ResourceMap* resource_map,
+@@ -200,7 +200,7 @@ void MemoryCache::RemoveInternal(ResourceMap* resource_map,
  }
  
  bool MemoryCache::Contains(const Resource* resource) const {
@@ -88,7 +88,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/memory_cache.cc b/
      return false;
  
    const auto resource_maps_it =
-@@ -215,12 +215,9 @@ bool MemoryCache::Contains(const Resource* resource) const {
+@@ -216,12 +216,9 @@ bool MemoryCache::Contains(const Resource* resource) const {
    return resource == resources_it->value->GetResource();
  }
  
@@ -105,7 +105,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/memory_cache.cc b/
 diff --git a/third_party/blink/renderer/platform/loader/fetch/memory_cache.h b/third_party/blink/renderer/platform/loader/fetch/memory_cache.h
 --- a/third_party/blink/renderer/platform/loader/fetch/memory_cache.h
 +++ b/third_party/blink/renderer/platform/loader/fetch/memory_cache.h
-@@ -116,9 +116,7 @@ class PLATFORM_EXPORT MemoryCache final : public GarbageCollected<MemoryCache>,
+@@ -117,9 +117,7 @@ class PLATFORM_EXPORT MemoryCache final : public GarbageCollected<MemoryCache>,
      TypeStatistic other;
    };
  
@@ -115,7 +115,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/memory_cache.h b/t
  
    void Add(Resource*);
    void Remove(Resource*);
-@@ -163,6 +161,8 @@ class PLATFORM_EXPORT MemoryCache final : public GarbageCollected<MemoryCache>,
+@@ -164,6 +162,8 @@ class PLATFORM_EXPORT MemoryCache final : public GarbageCollected<MemoryCache>,
        base::MemoryPressureListener::MemoryPressureLevel) override;
  
   private:
@@ -127,7 +127,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/memory_cache.h b/t
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 --- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.cc
-@@ -671,7 +671,8 @@ Resource* ResourceFetcher::CreateResourceForStaticData(
+@@ -695,7 +695,8 @@ Resource* ResourceFetcher::CreateResourceForStaticData(
    if (!archive_ && factory.GetType() == ResourceType::kRaw)
      return nullptr;
  
@@ -137,7 +137,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
    // Most off-main-thread resource fetches use Resource::kRaw and don't reach
    // this point, but off-main-thread module fetches might.
    if (IsMainThread()) {
-@@ -1154,7 +1155,9 @@ Resource* ResourceFetcher::RequestResource(FetchParameters& params,
+@@ -1179,7 +1180,9 @@ Resource* ResourceFetcher::RequestResource(FetchParameters& params,
          resource = nullptr;
        } else {
          resource = MemoryCache::Get()->ResourceForURL(
@@ -148,7 +148,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
        }
        if (resource) {
          policy = DetermineRevalidationPolicy(resource_type, params, *resource,
-@@ -1383,7 +1386,8 @@ Resource* ResourceFetcher::CreateResourceForLoading(
+@@ -1408,7 +1411,8 @@ Resource* ResourceFetcher::CreateResourceForLoading(
      const FetchParameters& params,
      const ResourceFactory& factory) {
    const String cache_identifier =
@@ -158,7 +158,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
    if (!base::FeatureList::IsEnabled(
            blink::features::kScopeMemoryCachePerContext)) {
      DCHECK(!IsMainThread() || params.IsStaleRevalidation() ||
-@@ -2342,13 +2346,16 @@ void ResourceFetcher::UpdateAllImageResourcePriorities() {
+@@ -2381,13 +2385,16 @@ void ResourceFetcher::UpdateAllImageResourcePriorities() {
    to_be_removed.clear();
  }
  
@@ -178,7 +178,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
  
    // Requests that can be satisfied via `archive_` (i.e. MHTML) or
    // `subresource_web_bundles_` should not participate in the global caching,
-@@ -2360,7 +2367,7 @@ String ResourceFetcher::GetCacheIdentifier(const KURL& url) const {
+@@ -2399,7 +2406,7 @@ String ResourceFetcher::GetCacheIdentifier(const KURL& url) const {
    if (bundle)
      return bundle->GetCacheIdentifier();
  
@@ -190,7 +190,7 @@ diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.c
 diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
 --- a/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
 +++ b/third_party/blink/renderer/platform/loader/fetch/resource_fetcher.h
-@@ -248,7 +248,8 @@ class PLATFORM_EXPORT ResourceFetcher
+@@ -250,7 +250,8 @@ class PLATFORM_EXPORT ResourceFetcher
                           uint32_t inflight_keepalive_bytes);
    blink::mojom::ControllerServiceWorkerMode IsControlledByServiceWorker() const;
  

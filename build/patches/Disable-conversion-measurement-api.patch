@@ -27,7 +27,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -510,8 +510,8 @@ BASE_FEATURE(kAppMenuMobileSiteOption,
+@@ -487,8 +487,8 @@ BASE_FEATURE(kAppMenuMobileSiteOption,
               base::FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kAppToWebAttribution,
@@ -103,18 +103,18 @@ diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
-@@ -168,6 +168,7 @@ void AttributionHost::DidRedirectNavigation(
+@@ -178,6 +178,7 @@ void AttributionHost::DidRedirectNavigation(
      return;
    }
  
 +  if ((true)) return;
    AttributionManager* attribution_manager =
        AttributionManager::FromWebContents(web_contents());
-   if (!attribution_manager)
+   if (!attribution_manager) {
 diff --git a/content/browser/attribution_reporting/attribution_report_network_sender.cc b/content/browser/attribution_reporting/attribution_report_network_sender.cc
 --- a/content/browser/attribution_reporting/attribution_report_network_sender.cc
 +++ b/content/browser/attribution_reporting/attribution_report_network_sender.cc
-@@ -140,9 +140,8 @@ void AttributionReportNetworkSender::SendReport(GURL url,
+@@ -143,9 +143,8 @@ void AttributionReportNetworkSender::SendReport(GURL url,
                     network::SimpleURLLoader::RETRY_ON_NAME_NOT_RESOLVED;
    simple_url_loader_ptr->SetRetryOptions(/*max_retries=*/1, retry_mode);
  
@@ -126,7 +126,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
  }
  
  void AttributionReportNetworkSender::OnReportSent(
-@@ -151,6 +150,12 @@ void AttributionReportNetworkSender::OnReportSent(
+@@ -154,6 +153,12 @@ void AttributionReportNetworkSender::OnReportSent(
      ReportSentCallback sent_callback,
      UrlLoaderList::iterator it,
      scoped_refptr<net::HttpResponseHeaders> headers) {
@@ -142,7 +142,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
 diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
 --- a/content/browser/attribution_reporting/attribution_storage_sql.cc
 +++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
-@@ -485,6 +485,8 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
+@@ -432,6 +432,8 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
    return user_data_directory.Append(kDatabasePath);
  }
  
@@ -151,7 +151,7 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
  }  // namespace
  
  // static
-@@ -496,9 +498,9 @@ bool AttributionStorageSql::DeleteStorageForTesting(
+@@ -443,9 +445,9 @@ bool AttributionStorageSql::DeleteStorageForTesting(
  AttributionStorageSql::AttributionStorageSql(
      const base::FilePath& user_data_directory,
      std::unique_ptr<AttributionStorageDelegate> delegate)
@@ -167,7 +167,7 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -1342,12 +1342,7 @@ void StoragePartitionImpl::Initialize(
+@@ -1338,12 +1338,7 @@ void StoragePartitionImpl::Initialize(
  
    bucket_manager_ = std::make_unique<BucketManager>(this);
  
@@ -184,7 +184,7 @@ diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage
 diff --git a/content/public/browser/navigation_controller.cc b/content/public/browser/navigation_controller.cc
 --- a/content/public/browser/navigation_controller.cc
 +++ b/content/public/browser/navigation_controller.cc
-@@ -39,7 +39,6 @@ NavigationController::LoadURLParams::LoadURLParams(const OpenURLParams& input)
+@@ -40,7 +40,6 @@ NavigationController::LoadURLParams::LoadURLParams(const OpenURLParams& input)
        blob_url_loader_factory(input.blob_url_loader_factory),
        href_translate(input.href_translate),
        reload_type(input.reload_type),
@@ -221,7 +221,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
 +      name: "DisabledForBromite",
 +    },
      {
-       name: "AbortSignalThrowIfAborted",
-       status: "stable",
+       name: "AbortSignalAny",
+       status: "experimental",
 --
 2.25.1

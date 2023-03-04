@@ -10,11 +10,11 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../firstrun/ChildAccountStatusSupplier.java  |  14 +-
  .../browser/firstrun/FirstRunActivity.java    |  42 +----
  .../firstrun/FirstRunActivityBase.java        |  11 +-
- .../firstrun/FirstRunFlowSequencer.java       |  60 ++-----
+ .../firstrun/FirstRunFlowSequencer.java       |  55 ++----
  .../browser/firstrun/FirstRunUtils.java       |  16 +-
  .../firstrun/ToSAndUMAFirstRunFragment.java   | 166 +++++-------------
  .../strings/android_chrome_strings.grd        |  27 ++-
- 8 files changed, 87 insertions(+), 253 deletions(-)
+ 8 files changed, 83 insertions(+), 252 deletions(-)
 
 diff --git a/chrome/android/java/res/layout/fre_tosanduma.xml b/chrome/android/java/res/layout/fre_tosanduma.xml
 --- a/chrome/android/java/res/layout/fre_tosanduma.xml
@@ -68,7 +68,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildA
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
-@@ -31,9 +31,6 @@ import org.chromium.chrome.browser.customtabs.CustomTabActivity;
+@@ -29,9 +29,6 @@ import org.chromium.chrome.browser.customtabs.CustomTabActivity;
  import org.chromium.chrome.browser.fonts.FontPreloader;
  import org.chromium.chrome.browser.metrics.UmaUtils;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
@@ -78,7 +78,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  import org.chromium.components.browser_ui.modaldialog.AppModalPresenter;
  import org.chromium.components.metrics.LowEntropySource;
  import org.chromium.ui.base.LocalizationUtils;
-@@ -146,18 +143,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -135,18 +132,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      /** Creates first page and sets up adapter. Should result UI being shown on the screen. */
      private void createFirstPage() {
          BooleanSupplier showWelcomePage = () -> !FirstRunStatus.shouldSkipWelcomePage();
@@ -98,7 +98,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          mFreProgressStates.add(MobileFreProgress.WELCOME_SHOWN);
          mPagerAdapter = new FirstRunPagerAdapter(FirstRunActivity.this, mPages);
          mPager.setAdapter(mPagerAdapter);
-@@ -165,15 +151,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -154,15 +140,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
          // native and policy service have been initialized.
      }
  
@@ -114,7 +114,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      /**
       * Create the page sequence which requires native initialized, and policies loaded if any
       * on-device policies may exists.
-@@ -188,13 +165,11 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -177,13 +154,11 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
          //
          // TODO(b/245912657): explicitly sign in supervised users in {@link
          // SigninFirstRunMediator#handleContinueWithNative} rather than relying on SigninChecker.
@@ -128,7 +128,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          // An optional page to select a default search engine.
          if (showSearchEnginePromo.getAsBoolean()) {
-@@ -203,11 +178,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -192,11 +167,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
              mFreProgressStates.add(MobileFreProgress.DEFAULT_SEARCH_ENGINE_SHOWN);
          }
  
@@ -140,7 +140,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          if (mPagerAdapter != null) {
              mPagerAdapter.notifyDataSetChanged();
          }
-@@ -252,10 +222,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -241,10 +211,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
  
      @Override
      public void triggerLayoutInflation() {
@@ -151,7 +151,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          super.triggerLayoutInflation();
  
          initializeStateFromLaunchData();
-@@ -265,7 +231,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -254,7 +220,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
          setFinishOnTouchOutside(true);
  
          setContentView(createContentView());
@@ -160,7 +160,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
              // SigninFirstRunFragment doesn't use getProperties() and can be shown right away,
              // without waiting for FirstRunFlowSequencer.
              createFirstPage();
-@@ -547,10 +513,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -530,10 +496,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      public void acceptTermsOfService(boolean allowMetricsAndCrashUploading) {
          assert mNativeInitializationPromise.isFulfilled();
  
@@ -174,16 +174,16 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
-@@ -25,8 +25,6 @@ import org.chromium.chrome.browser.metrics.UmaUtils;
- import org.chromium.chrome.browser.policy.PolicyServiceFactory;
+@@ -31,8 +31,6 @@ import org.chromium.chrome.browser.policy.PolicyServiceFactory;
  import org.chromium.chrome.browser.profiles.ProfileManagerUtils;
+ import org.chromium.components.browser_ui.widget.gesture.BackPressHandler;
  import org.chromium.components.policy.PolicyService;
 -import org.chromium.components.signin.AccountManagerFacade;
 -import org.chromium.components.signin.AccountManagerFacadeProvider;
  
  /** Base class for First Run Experience. */
- public abstract class FirstRunActivityBase extends AsyncInitializationActivity {
-@@ -88,14 +86,7 @@ public abstract class FirstRunActivityBase extends AsyncInitializationActivity {
+ public abstract class FirstRunActivityBase
+@@ -100,14 +98,7 @@ public abstract class FirstRunActivityBase
      @Override
      @CallSuper
      public void triggerLayoutInflation() {
@@ -198,18 +198,17 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 +        mChildAccountStatusSupplier = new ChildAccountStatusSupplier();
      }
  
-     // Activity:
+     @Override
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
-@@ -26,16 +26,10 @@ import org.chromium.chrome.browser.flags.ChromeSwitches;
+@@ -26,15 +26,9 @@ import org.chromium.chrome.browser.flags.ChromeSwitches;
  import org.chromium.chrome.browser.locale.LocaleManager;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.SearchEnginePromoType;
 -import org.chromium.chrome.browser.signin.services.FREMobileIdentityConsistencyFieldTrial;
 -import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
 -import org.chromium.chrome.browser.signin.services.SigninManager;
- import org.chromium.chrome.browser.vr.VrModuleProvider;
  import org.chromium.components.crash.CrashKeyIndex;
  import org.chromium.components.crash.CrashKeys;
  import org.chromium.components.embedder_support.util.UrlConstants;
@@ -219,7 +218,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
  import java.util.List;
  
-@@ -60,27 +54,7 @@ public abstract class FirstRunFlowSequencer  {
+@@ -59,27 +53,7 @@ public abstract class FirstRunFlowSequencer  {
          /** Returns true if the sync consent promo page should be shown. */
          boolean shouldShowSyncConsentPage(
                  Activity activity, List<Account> accounts, boolean isChild) {
@@ -247,7 +246,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          }
  
          /** @return true if the Search Engine promo page should be shown. */
-@@ -95,10 +69,7 @@ public abstract class FirstRunFlowSequencer  {
+@@ -94,10 +68,7 @@ public abstract class FirstRunFlowSequencer  {
          /** @return true if Sync is allowed for the current user. */
          @VisibleForTesting
          protected boolean isSyncAllowed() {
@@ -259,7 +258,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          }
  
          /** @return true if first use hints should be skipped. */
-@@ -150,12 +121,8 @@ public abstract class FirstRunFlowSequencer  {
+@@ -149,12 +120,8 @@ public abstract class FirstRunFlowSequencer  {
       *                                  method.
       */
      void start() {
@@ -274,7 +273,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      }
  
      @VisibleForTesting
-@@ -180,14 +147,10 @@ public abstract class FirstRunFlowSequencer  {
+@@ -179,14 +146,10 @@ public abstract class FirstRunFlowSequencer  {
      }
  
      private void maybeProcessFreEnvironmentPreNative() {
@@ -289,7 +288,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          onFlowIsKnown(freProperties);
      }
-@@ -198,8 +161,8 @@ public abstract class FirstRunFlowSequencer  {
+@@ -197,8 +160,8 @@ public abstract class FirstRunFlowSequencer  {
       * @param freProperties Resulting FRE properties bundle.
       */
      public void updateFirstRunProperties(Bundle freProperties) {
@@ -300,27 +299,14 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          freProperties.putBoolean(
                  FirstRunActivity.SHOW_SEARCH_ENGINE_PAGE, shouldShowSearchEnginePage());
      }
-@@ -258,6 +221,7 @@ public abstract class FirstRunFlowSequencer  {
-                         || FirstRunStatus.getLightweightFirstRunFlowComplete())) {
-             return false;
-         }
-+
-         return true;
-     }
- 
-@@ -306,15 +270,21 @@ public abstract class FirstRunFlowSequencer  {
-                 freIntent =
-                         VrModuleProvider.getIntentDelegate().setupVrFreIntent(caller, freIntent);
-                 // We cannot access Chrome right now, e.g. because the VR module is not installed.
--                if (freIntent == null) return true;
-+                if (freIntent == null) {
-+                   throw new RuntimeException("Cannot access Bromite right now");
-+                }
-+            }
-+            if (!IntentUtils.safeStartActivity(caller, freIntent)) {
-+              throw new RuntimeException("Cannot start FirstRunExperience activity");
+@@ -299,13 +262,17 @@ public abstract class FirstRunFlowSequencer  {
+             if (!(caller instanceof Activity)) {
+                 freIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
              }
 -            IntentUtils.safeStartActivity(caller, freIntent);
++            if (!IntentUtils.safeStartActivity(caller, freIntent)) {
++              throw new RuntimeException("Cannot start FirstRunExperience activity");
++            }
          } else {
              // First Run requires that the Intent contains NEW_TASK so that it doesn't sit on top
              // of something else.
@@ -671,7 +657,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAnd
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3221,11 +3221,30 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -3070,11 +3070,30 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
        <message name="IDS_LIGHTWEIGHT_FRE_ASSOCIATED_APP_TOS_AND_PRIVACY_CHILD_ACCOUNT" desc="Message explaining that use of Chrome is governed by Chrome's terms of service, and the Google Privacy Policy.">
          <ph name="APP_NAME">%1$s<ex>Google Maps</ex></ph> will open in Chrome. By continuing, you agree to the <ph name="BEGIN_LINK1">&lt;LINK1&gt;</ph>Google Terms of Service<ph name="END_LINK1">&lt;/LINK1&gt;</ph>, and the <ph name="BEGIN_LINK2">&lt;LINK2&gt;</ph>Google Chrome and ChromeOS Additional Terms of Service<ph name="END_LINK2">&lt;/LINK2&gt;</ph>. The <ph name="BEGIN_LINK3">&lt;LINK3&gt;</ph>Privacy Policy<ph name="END_LINK3">&lt;/LINK3&gt;</ph> also applies.
        </message>

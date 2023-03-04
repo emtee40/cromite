@@ -22,20 +22,20 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -8666,6 +8666,9 @@ const FeatureEntry kFeatureEntries[] = {
-      flag_descriptions::kVCPortraitRelightingDescription, kOsCrOS,
-      FEATURE_VALUE_TYPE(ash::features::kVCPortraitRelighting)},
+@@ -8418,6 +8418,9 @@ const FeatureEntry kFeatureEntries[] = {
+      flag_descriptions::kDesksTemplatesDescription, kOsCrOS,
+      FEATURE_VALUE_TYPE(ash::features::kDesksTemplates)},
  #endif
 +    {"enable-search-ready-omnibox", flag_descriptions::kSearchReadyOmniboxName,
 +     flag_descriptions::kSearchReadyOmniboxDescription, kOsAndroid,
 +     FEATURE_VALUE_TYPE(chrome::android::kSearchReadyOmniboxFeature)},
  
  #if BUILDFLAG(IS_CHROMEOS_ASH)
-     {"use-multiple-overlays", flag_descriptions::kUseMultipleOverlaysName,
+     {"default-link-capturing-in-browser",
 diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
 --- a/chrome/browser/flag-metadata.json
 +++ b/chrome/browser/flag-metadata.json
-@@ -2793,6 +2793,11 @@
+@@ -2855,6 +2855,11 @@
      //  with neural net palm detection.
      "expiry_milestone": 90
    },
@@ -50,7 +50,7 @@ diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.js
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -3993,6 +3993,11 @@ const char kSendTabToSelfV2Description[] =
+@@ -4008,6 +4008,11 @@ const char kSendTabToSelfV2Description[] =
      "Enables new received tab "
      "UI shown next to the profile icon instead of using system notifications.";
  
@@ -65,7 +65,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -2289,6 +2289,9 @@ extern const char kShowScrollableMVTOnNTPAndroidDescription[];
+@@ -2298,6 +2298,9 @@ extern const char kShowScrollableMVTOnNTPAndroidDescription[];
  extern const char kSendTabToSelfV2Name[];
  extern const char kSendTabToSelfV2Description[];
  
@@ -78,7 +78,7 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -267,6 +267,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+@@ -250,6 +250,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
      &kReaderModeInCCT,
      &kRecordSuppressionMetrics,
      &kReengagementNotification,
@@ -86,7 +86,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
      &kRelatedSearches,
      &kRelatedSearchesInBar,
      &kRelatedSearchesUi,
-@@ -822,6 +823,10 @@ BASE_FEATURE(kOpaqueOriginForIncomingIntents,
+@@ -761,6 +762,10 @@ BASE_FEATURE(kOpaqueOriginForIncomingIntents,
               "OpaqueOriginForIncomingIntents",
               base::FEATURE_ENABLED_BY_DEFAULT);
  
@@ -100,10 +100,10 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -135,6 +135,7 @@ BASE_DECLARE_FEATURE(kSearchEnginePromoExistingDevice);
- BASE_DECLARE_FEATURE(kSearchEnginePromoExistingDeviceV2);
- BASE_DECLARE_FEATURE(kSearchEnginePromoNewDevice);
- BASE_DECLARE_FEATURE(kSearchEnginePromoNewDeviceV2);
+@@ -134,6 +134,7 @@ BASE_DECLARE_FEATURE(kRequestDesktopSiteOptInControlSynthetic);
+ BASE_DECLARE_FEATURE(kRequestDesktopSiteOptInSynthetic);
+ BASE_DECLARE_FEATURE(kRequestDesktopSiteDefaultsDowngrade);
+ BASE_DECLARE_FEATURE(kRequestDesktopSitePerSiteIph);
 +BASE_DECLARE_FEATURE(kSearchReadyOmniboxFeature);
  BASE_DECLARE_FEATURE(kSharingHubLinkToggle);
  BASE_DECLARE_FEATURE(kShowScrollableMVTOnNTPAndroid);
@@ -111,14 +111,14 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -383,6 +383,7 @@ public abstract class ChromeFeatureList {
-     public static final String MESSAGES_FOR_ANDROID_STACKING_ANIMATION =
+@@ -366,6 +366,7 @@ public abstract class ChromeFeatureList {
              "MessagesForAndroidStackingAnimation";
      public static final String MESSAGES_FOR_ANDROID_SYNC_ERROR = "MessagesForAndroidSyncError";
+     public static final String METRICS_SETTINGS_ANDROID = "MetricsSettingsAndroid";
 +    public static final String SEARCH_READY_OMNIBOX = "SearchReadyOmnibox";
      public static final String MODAL_PERMISSION_DIALOG_VIEW = "ModalPermissionDialogView";
-     public static final String METRICS_SETTINGS_ANDROID = "MetricsSettingsAndroid";
-     public static final String NEW_TAB_PAGE_TILES_TITLE_WRAP_AROUND =
+     public static final String NOTIFICATION_PERMISSION_VARIANT = "NotificationPermissionVariant";
+     public static final String NOTIFICATION_PERMISSION_BOTTOM_SHEET =
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListBuilder.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListBuilder.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListBuilder.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/DropdownItemViewInfoListBuilder.java
