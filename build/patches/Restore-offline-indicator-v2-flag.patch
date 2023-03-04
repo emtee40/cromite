@@ -7,7 +7,6 @@ Reverts acc8b6f4542703211e5f3c5181914fd3374c9e84
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../indicator/OfflineDetector.java            | 38 ++++++++++++++++++-
- .../indicator/OfflineIndicatorController.java |  3 +-
  .../tabbed_mode/TabbedRootUiCoordinator.java  |  8 +++-
  chrome/browser/about_flags.cc                 |  3 ++
  chrome/browser/flag-metadata.json             |  5 +++
@@ -16,7 +15,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../flags/android/chrome_feature_list.cc      |  5 +++
  .../flags/android/chrome_feature_list.h       |  1 +
  .../browser/flags/ChromeFeatureList.java      |  1 +
- 10 files changed, 67 insertions(+), 4 deletions(-)
+ 9 files changed, 65 insertions(+), 3 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineDetector.java b/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineDetector.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineDetector.java
@@ -87,23 +86,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/in
 +        return defaultValue;
 +    }
  }
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineIndicatorController.java b/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineIndicatorController.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineIndicatorController.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineIndicatorController.java
-@@ -90,7 +90,8 @@ public class OfflineIndicatorController implements ConnectivityDetector.Observer
-     public static void initialize() {
-         // No need to create the singleton if the feature is not enabled. Also, if V2 is enabled,
-         // this version will be disabled.
--        if (!ChromeFeatureList.isEnabled(ChromeFeatureList.OFFLINE_INDICATOR)) {
-+        if (!ChromeFeatureList.isEnabled(ChromeFeatureList.OFFLINE_INDICATOR)
-+                || ChromeFeatureList.isEnabled(ChromeFeatureList.OFFLINE_INDICATOR_V2)) {
-             return;
-         }
- 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
-@@ -798,7 +798,8 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -829,7 +829,8 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
      private void initStatusIndicatorCoordinator(LayoutManagerImpl layoutManager) {
          // TODO(crbug.com/1035584): Disable on tablets for now as we need to do one or two extra
          // things for tablets.
@@ -113,7 +99,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
              return;
          }
  
-@@ -820,6 +821,11 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -851,6 +852,11 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
          mStatusIndicatorCoordinator.addObserver(mStatusIndicatorObserver);
          mStatusIndicatorCoordinator.addObserver(mStatusBarColorController);
  
@@ -128,7 +114,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -4577,6 +4577,9 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -4481,6 +4481,9 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kOfflinePagesLivePageSharingName,
       flag_descriptions::kOfflinePagesLivePageSharingDescription, kOsAndroid,
       FEATURE_VALUE_TYPE(offline_pages::kOfflinePagesLivePageSharingFeature)},
@@ -141,7 +127,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
 --- a/chrome/browser/flag-metadata.json
 +++ b/chrome/browser/flag-metadata.json
-@@ -5002,6 +5002,11 @@
+@@ -5097,6 +5097,11 @@
      "owners": [ "adamta", "sczs" ],
      "expiry_milestone": 115
    },
@@ -156,9 +142,9 @@ diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.js
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -3822,6 +3822,10 @@ const char kNotificationPermissionRationaleDescription[] =
-     "Configure the dialog shown before requesting notification permission. "
-     "Only works with builds targeting Android T.";
+@@ -3837,6 +3837,10 @@ const char kNotificationPermissionRationaleBottomSheetDescription[] =
+     "flow. "
+     "Only works with builds targeting Android T+.";
  
 +const char kOfflineIndicatorV2Name[] = "Offline indicator V2";
 +const char kOfflineIndicatorV2Description[] =
@@ -170,28 +156,28 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -2196,6 +2196,9 @@ extern const char kNewWindowAppMenuDescription[];
+@@ -2202,6 +2202,9 @@ extern const char kNetworkServiceInProcessDescription[];
  extern const char kNotificationPermissionRationaleName[];
  extern const char kNotificationPermissionRationaleDescription[];
  
 +extern const char kOfflineIndicatorV2Name[];
 +extern const char kOfflineIndicatorV2Description[];
 +
- extern const char kOfflinePagesLivePageSharingName[];
- extern const char kOfflinePagesLivePageSharingDescription[];
+ extern const char kNotificationPermissionRationaleBottomSheetName[];
+ extern const char kNotificationPermissionRationaleBottomSheetDescription[];
  
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -256,6 +256,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
-     &kNewTabPageTilesTitleWrapAround,
-     &kNewWindowAppMenu,
+@@ -239,6 +239,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+     &kLensOnQuickActionSearchWidget,
      &kNotificationPermissionVariant,
+     &kNotificationPermissionBottomSheet,
 +    &kOfflineIndicatorV2,
      &kPageAnnotationsService,
      &kInlineUpdateFlow,
      &kBookmarksImprovedSaveFlow,
-@@ -733,6 +734,10 @@ BASE_FEATURE(kDownloadAutoResumptionThrottling,
+@@ -700,6 +701,10 @@ BASE_FEATURE(kDownloadAutoResumptionThrottling,
  BASE_FEATURE(kDownloadHomeForExternalApp,
               "DownloadHomeForExternalApp",
               base::FEATURE_ENABLED_BY_DEFAULT);
@@ -199,27 +185,27 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 +             "OfflineIndicatorV2",
 +             base::FEATURE_ENABLED_BY_DEFAULT);
 +
- BASE_FEATURE(kDuetTabStripIntegrationAndroid,
-              "DuetTabStripIntegrationAndroid",
-              base::FEATURE_DISABLED_BY_DEFAULT);
+ BASE_FEATURE(kExperimentsForAgsa,
+              "ExperimentsForAgsa",                 // disabled by default
+              base::FEATURE_DISABLED_BY_DEFAULT);   // in Bromite
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -106,6 +106,7 @@ BASE_DECLARE_FEATURE(kLanguagesPreference);
+@@ -101,6 +101,7 @@ BASE_DECLARE_FEATURE(kLanguagesPreference);
  BASE_DECLARE_FEATURE(kLensCameraAssistedSearch);
  BASE_DECLARE_FEATURE(kLensOnQuickActionSearchWidget);
  BASE_DECLARE_FEATURE(kLocationBarModelOptimizations);
 +BASE_DECLARE_FEATURE(kOfflineIndicatorV2);
- BASE_DECLARE_FEATURE(kNewTabPageTilesTitleWrapAround);
- BASE_DECLARE_FEATURE(kNewWindowAppMenu);
  BASE_DECLARE_FEATURE(kNotificationPermissionVariant);
+ BASE_DECLARE_FEATURE(kNotificationPermissionBottomSheet);
+ BASE_DECLARE_FEATURE(kOmahaMinSdkVersionAndroid);
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -396,6 +396,7 @@ public abstract class ChromeFeatureList {
-     public static final String NEW_WINDOW_APP_MENU = "NewWindowAppMenu";
+@@ -376,6 +376,7 @@ public abstract class ChromeFeatureList {
      public static final String NOTIFICATION_PERMISSION_VARIANT = "NotificationPermissionVariant";
-     public static final String OFFLINE_INDICATOR = "OfflineIndicator";
+     public static final String NOTIFICATION_PERMISSION_BOTTOM_SHEET =
+             "NotificationPermissionBottomSheet";
 +    public static final String OFFLINE_INDICATOR_V2 = "OfflineIndicatorV2";
      public static final String OFFLINE_PAGES_DESCRIPTIVE_FAIL_STATUS =
              "OfflinePagesDescriptiveFailStatus";

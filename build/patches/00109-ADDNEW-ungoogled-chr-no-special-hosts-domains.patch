@@ -6,7 +6,7 @@ Subject: 109 ADDNEW ungoogled-chr no special hosts/domains
  chrome/browser/BUILD.gn                       |  8 --
  .../android/metrics/uma_session_stats.cc      | 10 ---
  chrome/browser/browser_process_impl.cc        |  1 -
- .../browser/chrome_content_browser_client.cc  | 13 +--
+ .../browser/chrome_content_browser_client.cc  | 18 ----
  chrome/browser/extensions/BUILD.gn            |  1 -
  .../log_sources/chrome_internal_log_source.cc |  5 --
  chrome/browser/first_run/first_run.cc         |  9 --
@@ -27,7 +27,7 @@ Subject: 109 ADDNEW ungoogled-chr no special hosts/domains
  .../webui/settings/reset_settings_handler.cc  |  1 -
  .../upgrade_detector/upgrade_detector_impl.cc |  2 +-
  chrome/common/BUILD.gn                        |  2 -
- .../url_loader_throttle_provider_impl.cc      |  7 --
+ .../url_loader_throttle_provider_impl.cc      |  6 --
  chrome/test/BUILD.gn                          |  1 -
  components/google/core/common/google_util.cc  | 70 +---------------
  components/google/core/common/google_util.h   | 10 +--
@@ -35,12 +35,12 @@ Subject: 109 ADDNEW ungoogled-chr no special hosts/domains
  components/search_provider_logos/BUILD.gn     |  2 -
  .../logo_service_impl.cc                      | 16 +---
  components/url_matcher/url_util.cc            | 83 -------------------
- 32 files changed, 20 insertions(+), 360 deletions(-)
+ 32 files changed, 17 insertions(+), 367 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -1000,10 +1000,6 @@ static_library("browser") {
+@@ -995,10 +995,6 @@ static_library("browser") {
      "page_load_metrics/observers/foreground_duration_ukm_observer.h",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.cc",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.h",
@@ -51,7 +51,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "page_load_metrics/observers/histogram_suffixes.cc",
      "page_load_metrics/observers/histogram_suffixes.h",
      "page_load_metrics/observers/https_engagement_metrics/https_engagement_page_load_metrics_observer.cc",
-@@ -1916,7 +1912,6 @@ static_library("browser") {
+@@ -1919,7 +1915,6 @@ static_library("browser") {
      "//chrome/browser/autofill",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -59,16 +59,16 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/profiling_host",
  
      # TODO(crbug.com/1335199): break this dep when favicon is in its own target
-@@ -1935,7 +1930,6 @@ static_library("browser") {
+@@ -1939,7 +1934,6 @@ static_library("browser") {
  
    public_deps = [
      "//base",
 -    "//chrome/browser/google",
+     "//chrome/browser/headless",
      "//chrome/common",
      "//chrome/common:buildflags",
-     "//chrome/common:constants",
-@@ -7690,8 +7684,6 @@ static_library("browser") {
-       "supervised_user/supervised_user_constants.h",
+@@ -7389,8 +7383,6 @@ static_library("browser") {
+       "supervised_user/permission_request_creator.h",
        "supervised_user/supervised_user_denylist.cc",
        "supervised_user/supervised_user_denylist.h",
 -      "supervised_user/supervised_user_google_auth_navigation_throttle.cc",
@@ -99,7 +99,7 @@ diff --git a/chrome/browser/android/metrics/uma_session_stats.cc b/chrome/browse
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1084,7 +1084,6 @@ BrowserProcessImpl::component_updater() {
+@@ -1091,7 +1091,6 @@ BrowserProcessImpl::component_updater() {
        std::make_unique<component_updater::TimerUpdateScheduler>();
  
    std::string brand;
@@ -110,7 +110,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -2857,7 +2857,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
+@@ -2873,7 +2873,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
        switches::kForcePNaClSubzero,
  #endif
        switches::kForceUIDirection,
@@ -118,7 +118,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
        switches::kJavaScriptHarmony,
        switches::kEnableExperimentalWebAssemblyFeatures,
        embedder_support::kOriginTrialDisabledFeatures,
-@@ -4869,12 +4868,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
+@@ -4897,12 +4896,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
                     &throttles);
  #endif
  
@@ -131,25 +131,28 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    if (auto* throttle_manager =
            subresource_filter::ContentSubresourceFilterThrottleManager::
                FromNavigationHandle(*handle)) {
-@@ -5382,11 +5375,11 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
-       profile->GetPrefs()->GetInteger(prefs::kForceYouTubeRestrict),
-       profile->GetPrefs()->GetString(prefs::kAllowedDomainsForApps),
-       false /*-> allow_userscript, don't care */};
--  result.push_back(std::make_unique<GoogleURLLoaderThrottle>(
- #if BUILDFLAG(IS_ANDROID)
--      client_data_header, is_tab_large_enough,
-+  if (is_tab_large_enough) {
-+    // do nothing, prevents "error: variable 'is_tab_large_enough' set but not used"
-+  }
+@@ -5418,17 +5411,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
+   }
  #endif
--      std::move(dynamic_params)));
  
+-  chrome::mojom::DynamicParams dynamic_params = {
+-      profile->GetPrefs()->GetBoolean(prefs::kForceGoogleSafeSearch),
+-      profile->GetPrefs()->GetInteger(prefs::kForceYouTubeRestrict),
+-      profile->GetPrefs()->GetString(prefs::kAllowedDomainsForApps),
+-      false /*-> allow_userscript, don't care */};
+-  result.push_back(std::make_unique<GoogleURLLoaderThrottle>(
+-#if BUILDFLAG(IS_ANDROID)
+-      client_data_header,
+-#endif
+-      std::move(dynamic_params)));
+-
    {
      auto* factory =
+         ProtocolHandlerRegistryFactory::GetForBrowserContext(browser_context);
 diff --git a/chrome/browser/extensions/BUILD.gn b/chrome/browser/extensions/BUILD.gn
 --- a/chrome/browser/extensions/BUILD.gn
 +++ b/chrome/browser/extensions/BUILD.gn
-@@ -784,7 +784,6 @@ static_library("extensions") {
+@@ -788,7 +788,6 @@ static_library("extensions") {
      "//chrome/browser/browsing_data:constants",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -182,7 +185,7 @@ diff --git a/chrome/browser/feedback/system_logs/log_sources/chrome_internal_log
 diff --git a/chrome/browser/first_run/first_run.cc b/chrome/browser/first_run/first_run.cc
 --- a/chrome/browser/first_run/first_run.cc
 +++ b/chrome/browser/first_run/first_run.cc
-@@ -285,15 +285,6 @@ void SetupInitialPrefsFromInstallPrefs(
+@@ -282,15 +282,6 @@ void SetupInitialPrefsFromInstallPrefs(
  
  // -- Platform-specific functions --
  
@@ -266,7 +269,7 @@ diff --git a/chrome/browser/long_screenshots/long_screenshots_tab_service.cc b/c
 diff --git a/chrome/browser/metrics/chrome_metrics_service_client.cc b/chrome/browser/metrics/chrome_metrics_service_client.cc
 --- a/chrome/browser/metrics/chrome_metrics_service_client.cc
 +++ b/chrome/browser/metrics/chrome_metrics_service_client.cc
-@@ -579,7 +579,7 @@ ChromeMetricsServiceClient::GetNetworkTimeTracker() {
+@@ -577,7 +577,7 @@ ChromeMetricsServiceClient::GetNetworkTimeTracker() {
  }
  
  bool ChromeMetricsServiceClient::GetBrand(std::string* brand_code) {
@@ -458,7 +461,7 @@ diff --git a/chrome/browser/new_tab_page/promos/promo_service.cc b/chrome/browse
 diff --git a/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc b/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc
 --- a/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc
 +++ b/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc
-@@ -128,8 +128,6 @@ void PageLoadMetricsEmbedder::RegisterEmbedderObservers(
+@@ -127,8 +127,6 @@ void PageLoadMetricsEmbedder::RegisterEmbedderObservers(
      tracker->AddObserver(std::make_unique<AMPPageLoadMetricsObserver>());
      tracker->AddObserver(std::make_unique<JavascriptFrameworksUkmObserver>());
      tracker->AddObserver(std::make_unique<SchemePageLoadMetricsObserver>());
@@ -470,7 +473,7 @@ diff --git a/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc b/
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -417,7 +417,6 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -426,7 +426,6 @@ void ChromeBrowserMainExtraPartsProfiles::
  #if !BUILDFLAG(IS_ANDROID)
    GlobalErrorServiceFactory::GetInstance();
  #endif
@@ -506,7 +509,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 diff --git a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 --- a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 +++ b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
-@@ -511,11 +511,6 @@ content::WebUIDataSource* CreateNewTabPageUiHtmlSource(Profile* profile) {
+@@ -510,11 +510,6 @@ content::WebUIDataSource* CreateAndAddNewTabPageUiHtmlSource(Profile* profile) {
    // chrome-untrusted://new-tab-page for other external content and resources.
    // NOTE: Use caution when overriding content security policies as that cean
    // lead to subtle security bugs such as https://crbug.com/1251541.
@@ -532,7 +535,7 @@ diff --git a/chrome/browser/ui/webui/settings/reset_settings_handler.cc b/chrome
 diff --git a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
 --- a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
 +++ b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
-@@ -214,7 +214,7 @@ void UpgradeDetectorImpl::StartOutdatedBuildDetector() {
+@@ -209,7 +209,7 @@ void UpgradeDetectorImpl::StartOutdatedBuildDetector() {
    // an outdated build is being simulated by command line switches.
    if (!simulating_outdated_) {
      std::string brand;
@@ -544,7 +547,7 @@ diff --git a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc b/chrome/b
 diff --git a/chrome/common/BUILD.gn b/chrome/common/BUILD.gn
 --- a/chrome/common/BUILD.gn
 +++ b/chrome/common/BUILD.gn
-@@ -134,8 +134,6 @@ static_library("common_lib") {
+@@ -133,8 +133,6 @@ static_library("common_lib") {
      "content_restriction.h",
      "crash_keys.cc",
      "crash_keys.h",
@@ -556,14 +559,13 @@ diff --git a/chrome/common/BUILD.gn b/chrome/common/BUILD.gn
 diff --git a/chrome/renderer/url_loader_throttle_provider_impl.cc b/chrome/renderer/url_loader_throttle_provider_impl.cc
 --- a/chrome/renderer/url_loader_throttle_provider_impl.cc
 +++ b/chrome/renderer/url_loader_throttle_provider_impl.cc
-@@ -181,13 +181,6 @@ URLLoaderThrottleProviderImpl::CreateThrottles(
+@@ -180,12 +180,6 @@ URLLoaderThrottleProviderImpl::CreateThrottles(
    }
  #endif
  
 -  throttles.emplace_back(std::make_unique<GoogleURLLoaderThrottle>(
 -#if BUILDFLAG(IS_ANDROID)
 -      client_data_header,
--      /* is_tab_large_enough= */ false,
 -#endif
 -      ChromeRenderThreadObserver::GetDynamicParams()));
 -
@@ -573,7 +575,7 @@ diff --git a/chrome/renderer/url_loader_throttle_provider_impl.cc b/chrome/rende
 diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 --- a/chrome/test/BUILD.gn
 +++ b/chrome/test/BUILD.gn
-@@ -5877,7 +5877,6 @@ test("unit_tests") {
+@@ -5822,7 +5822,6 @@ test("unit_tests") {
      "//chrome/browser/favicon",
      "//chrome/browser/feature_guide/notifications:unit_tests",
      "//chrome/browser/first_party_sets",

@@ -159,7 +159,7 @@ diff --git a/chrome/browser/net/chrome_network_delegate.cc b/chrome/browser/net/
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -640,6 +640,7 @@ static_library("ui") {
+@@ -641,6 +641,7 @@ static_library("ui") {
      "//third_party/re2",
      "//third_party/webrtc_overrides:webrtc_component",
      "//third_party/zlib",
@@ -188,8 +188,8 @@ diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/cra
  #if BUILDFLAG(IS_CHROMEOS_ASH)
  #include "chromeos/ash/components/dbus/debug_daemon/debug_daemon_client.h"
  #endif
-@@ -73,6 +84,10 @@ content::WebUIDataSource* CreateCrashesUIHTMLSource() {
-   return source;
+@@ -72,6 +83,10 @@ void CreateAndAddCrashesUIHTMLSource(Profile* profile) {
+   source->SetDefaultResource(IDR_CRASH_CRASHES_HTML);
  }
  
 +constexpr base::TaskTraits kLoadingTaskTraits = {
@@ -199,7 +199,7 @@ diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/cra
  ////////////////////////////////////////////////////////////////////////////////
  //
  // CrashesDOMHandler
-@@ -82,7 +97,7 @@ content::WebUIDataSource* CreateCrashesUIHTMLSource() {
+@@ -81,7 +96,7 @@ void CreateAndAddCrashesUIHTMLSource(Profile* profile) {
  // The handler for Javascript messages for the chrome://crashes/ page.
  class CrashesDOMHandler : public WebUIMessageHandler {
   public:
@@ -208,7 +208,7 @@ diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/cra
  
    CrashesDOMHandler(const CrashesDOMHandler&) = delete;
    CrashesDOMHandler& operator=(const CrashesDOMHandler&) = delete;
-@@ -98,6 +113,8 @@ class CrashesDOMHandler : public WebUIMessageHandler {
+@@ -97,6 +112,8 @@ class CrashesDOMHandler : public WebUIMessageHandler {
    // Asynchronously fetches the list of crashes. Called from JS.
    void HandleRequestCrashes(const base::Value::List& args);
  
@@ -217,7 +217,7 @@ diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/cra
  #if BUILDFLAG(IS_CHROMEOS_ASH)
    // Asynchronously triggers crash uploading. Called from JS.
    void HandleRequestUploads(const base::Value::List& args);
-@@ -109,13 +126,26 @@ class CrashesDOMHandler : public WebUIMessageHandler {
+@@ -108,13 +125,26 @@ class CrashesDOMHandler : public WebUIMessageHandler {
    // Asynchronously requests a user triggered upload. Called from JS.
    void HandleRequestSingleCrashUpload(const base::Value::List& args);
  
@@ -246,7 +246,7 @@ diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/cra
    upload_list_ = CreateCrashUploadList();
  }
  
-@@ -142,10 +172,24 @@ void CrashesDOMHandler::RegisterMessages() {
+@@ -141,10 +171,24 @@ void CrashesDOMHandler::RegisterMessages() {
        crash_reporter::kCrashesUIRequestSingleCrashUpload,
        base::BindRepeating(&CrashesDOMHandler::HandleRequestSingleCrashUpload,
                            base::Unretained(this)));
@@ -271,7 +271,7 @@ diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/cra
    if (first_load_) {
      first_load_ = false;
      if (list_available_)
-@@ -177,8 +221,7 @@ void CrashesDOMHandler::OnUploadListAvailable() {
+@@ -176,8 +220,7 @@ void CrashesDOMHandler::OnUploadListAvailable() {
  }
  
  void CrashesDOMHandler::UpdateUI() {
@@ -281,7 +281,7 @@ diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/cra
  
    bool system_crash_reporter = false;
  #if BUILDFLAG(IS_CHROMEOS)
-@@ -226,14 +269,112 @@ void CrashesDOMHandler::UpdateUI() {
+@@ -225,14 +268,112 @@ void CrashesDOMHandler::UpdateUI() {
  
  void CrashesDOMHandler::HandleRequestSingleCrashUpload(
      const base::Value::List& args) {
@@ -400,7 +400,7 @@ diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/cra
  }
  
  }  // namespace
-@@ -245,7 +386,8 @@ void CrashesDOMHandler::HandleRequestSingleCrashUpload(
+@@ -244,7 +385,8 @@ void CrashesDOMHandler::HandleRequestSingleCrashUpload(
  ///////////////////////////////////////////////////////////////////////////////
  
  CrashesUI::CrashesUI(content::WebUI* web_ui) : WebUIController(web_ui) {
@@ -409,7 +409,7 @@ diff --git a/chrome/browser/ui/webui/crashes_ui.cc b/chrome/browser/ui/webui/cra
 +      web_ui->GetWebContents()));
  
    // Set up the chrome://crashes/ source.
-   Profile* profile = Profile::FromWebUI(web_ui);
+   CreateAndAddCrashesUIHTMLSource(Profile::FromWebUI(web_ui));
 diff --git a/components/crash/core/browser/crashes_ui_util.cc b/components/crash/core/browser/crashes_ui_util.cc
 --- a/components/crash/core/browser/crashes_ui_util.cc
 +++ b/components/crash/core/browser/crashes_ui_util.cc
@@ -795,7 +795,7 @@ diff --git a/components/minidump_uploader/android/java/src/org/chromium/componen
 diff --git a/components/upload_list/text_log_upload_list.cc b/components/upload_list/text_log_upload_list.cc
 --- a/components/upload_list/text_log_upload_list.cc
 +++ b/components/upload_list/text_log_upload_list.cc
-@@ -110,6 +110,7 @@ std::unique_ptr<TextLogUploadList::UploadInfo> TryParseCsvLogEntry(
+@@ -111,6 +111,7 @@ std::unique_ptr<TextLogUploadList::UploadInfo> TryParseCsvLogEntry(
    }
    auto info = std::make_unique<TextLogUploadList::UploadInfo>(components[1],
                                                                upload_time);
@@ -806,17 +806,17 @@ diff --git a/components/upload_list/text_log_upload_list.cc b/components/upload_
 diff --git a/components/upload_list/upload_list.cc b/components/upload_list/upload_list.cc
 --- a/components/upload_list/upload_list.cc
 +++ b/components/upload_list/upload_list.cc
-@@ -55,7 +55,8 @@ UploadList::UploadInfo::UploadInfo(const UploadInfo& upload_info)
-       capture_time(upload_info.capture_time),
-       state(upload_info.state),
-       source(upload_info.source),
--      file_size(upload_info.file_size) {}
-+      file_size(upload_info.file_size),
+@@ -42,7 +42,8 @@ UploadList::UploadInfo::UploadInfo(const std::string& local_id,
+     : local_id(local_id),
+       capture_time(capture_time),
+       state(state),
+-      file_size(file_size) {}
++      file_size(file_size),
 +      file_path(upload_info.file_path) {}
  
- UploadList::UploadInfo::~UploadInfo() = default;
- 
-@@ -108,6 +109,11 @@ void UploadList::RequestSingleUpload(const std::string& local_id) {
+ UploadList::UploadInfo::UploadInfo(const std::string& upload_id,
+                                    const base::Time& upload_time)
+@@ -101,6 +102,11 @@ void UploadList::RequestSingleUpload(const std::string& local_id) {
    NOTREACHED();
  }
  
@@ -828,7 +828,7 @@ diff --git a/components/upload_list/upload_list.cc b/components/upload_list/uplo
  void UploadList::OnLoadComplete(const std::vector<UploadInfo>& uploads) {
    uploads_ = uploads;
    if (!load_callback_.is_null())
-@@ -118,3 +124,12 @@ void UploadList::OnClearComplete() {
+@@ -111,3 +117,12 @@ void UploadList::OnClearComplete() {
    if (!clear_callback_.is_null())
      std::move(clear_callback_).Run();
  }
@@ -844,7 +844,7 @@ diff --git a/components/upload_list/upload_list.cc b/components/upload_list/uplo
 diff --git a/components/upload_list/upload_list.h b/components/upload_list/upload_list.h
 --- a/components/upload_list/upload_list.h
 +++ b/components/upload_list/upload_list.h
-@@ -65,6 +65,9 @@ class UploadList : public base::RefCountedThreadSafe<UploadList> {
+@@ -68,6 +68,9 @@ class UploadList : public base::RefCountedThreadSafe<UploadList> {
  
      // Formatted file size for locally stored data.
      std::u16string file_size;
@@ -854,7 +854,7 @@ diff --git a/components/upload_list/upload_list.h b/components/upload_list/uploa
    };
  
    UploadList();
-@@ -94,6 +97,12 @@ class UploadList : public base::RefCountedThreadSafe<UploadList> {
+@@ -97,6 +100,12 @@ class UploadList : public base::RefCountedThreadSafe<UploadList> {
    // Must be called only after a Load() callback has been received.
    void GetUploads(size_t max_count, std::vector<UploadInfo>* uploads);
  

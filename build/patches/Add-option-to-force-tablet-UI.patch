@@ -4,19 +4,19 @@ Subject: Add option to force tablet UI
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../ChromeAccessibilitySettingsDelegate.java  | 19 +++++++++++++++++++
+ .../ChromeAccessibilitySettingsDelegate.java  | 19 ++++++++++
  .../preferences/ChromePreferenceKeys.java     |  1 +
  .../LegacyChromePreferenceKeys.java           |  1 +
  .../omnibox/LocationBarCoordinator.java       |  2 +-
- .../strings/android_chrome_strings.grd        |  6 ++++++
- .../toolbar/top/ToolbarControlContainer.java  | 16 ----------------
- components/BUILD.gn                           |  6 +++---
- .../res/xml/accessibility_preferences.xml     |  5 +++++
- .../accessibility/AccessibilitySettings.java  | 10 ++++++++++
+ .../strings/android_chrome_strings.grd        |  6 ++++
+ .../toolbar/top/ToolbarControlContainer.java  | 36 -------------------
+ components/BUILD.gn                           |  6 ++--
+ .../res/xml/accessibility_preferences.xml     |  5 +++
+ .../accessibility/AccessibilitySettings.java  | 10 ++++++
  .../AccessibilitySettingsDelegate.java        |  2 ++
  ui/android/BUILD.gn                           |  2 ++
- .../chromium/ui/base/DeviceFormFactor.java    |  5 +++++
- 12 files changed, 55 insertions(+), 20 deletions(-)
+ .../chromium/ui/base/DeviceFormFactor.java    |  5 +++
+ 12 files changed, 55 insertions(+), 40 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
@@ -50,7 +50,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/s
 diff --git a/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/ChromePreferenceKeys.java b/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/ChromePreferenceKeys.java
 --- a/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/ChromePreferenceKeys.java
 +++ b/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/ChromePreferenceKeys.java
-@@ -418,6 +418,7 @@ public final class ChromePreferenceKeys {
+@@ -394,6 +394,7 @@ public final class ChromePreferenceKeys {
              AccessibilityConstants.FONT_USER_SET_FORCE_ENABLE_ZOOM;
  
      public static final String HISTORY_SHOW_HISTORY_INFO = "history_home_show_info";
@@ -61,7 +61,7 @@ diff --git a/chrome/browser/preferences/android/java/src/org/chromium/chrome/bro
 diff --git a/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/LegacyChromePreferenceKeys.java b/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/LegacyChromePreferenceKeys.java
 --- a/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/LegacyChromePreferenceKeys.java
 +++ b/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/LegacyChromePreferenceKeys.java
-@@ -67,6 +67,7 @@ public class LegacyChromePreferenceKeys {
+@@ -66,6 +66,7 @@ public class LegacyChromePreferenceKeys {
                  ChromePreferenceKeys.FLAGS_CACHED_SWAP_PIXEL_FORMAT_TO_FIX_CONVERT_FROM_TRANSLUCENT,
                  ChromePreferenceKeys.FLAGS_CACHED_TAB_GROUPS_ANDROID_ENABLED,
                  ChromePreferenceKeys.FONT_USER_FONT_SCALE_FACTOR,
@@ -72,7 +72,7 @@ diff --git a/chrome/browser/preferences/android/java/src/org/chromium/chrome/bro
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
-@@ -381,7 +381,7 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
+@@ -385,7 +385,7 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
      // OmniboxSuggestionsDropdownEmbedder implementation
      @Override
      public boolean isTablet() {
@@ -84,7 +84,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1736,6 +1736,12 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1576,6 +1576,12 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_PRIVACY_GUIDE_SB_ENHANCED_ITEM_SEVEN" desc="Seventh bullet point that describes the details of the Safe Browsing control.">
          Temporarily links this data to your Google Account when you’re signed in, to protect you across Google apps
        </message>
@@ -100,7 +100,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
 --- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
 +++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
-@@ -142,22 +142,6 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
+@@ -147,42 +147,6 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
          mToolbarContainer.setPostInitializationDependencies(mToolbar, constraintsSupplier,
                  tabSupplier, compositorInMotionSupplier,
                  browserStateBrowserControlsVisibilityDelegate, isVisible);
@@ -112,13 +112,33 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 -            // On tablet, draw a fake tab strip and toolbar until the compositor is
 -            // ready to draw the real tab strip. (On phone, the toolbar is made entirely
 -            // of Android views, which are already initialized.)
--            final Drawable backgroundDrawable =
--                    AppCompatResources.getDrawable(getContext(), R.drawable.toolbar_background)
--                            .mutate();
--            backgroundDrawable.setTint(
--                    ChromeColors.getDefaultThemeColor(getContext(), isIncognito));
--            backgroundDrawable.setTintMode(PorterDuff.Mode.MULTIPLY);
--            setBackground(backgroundDrawable);
+-
+-            if (ChromeFeatureList.sTabStripRedesign.isEnabled()) {
+-                Drawable bgdColor = new ColorDrawable(
+-                        TabUiThemeUtil.getTabStripBackgroundColor(getContext(), isIncognito));
+-                Drawable bdgTabImage = ResourcesCompat.getDrawable(getContext().getResources(),
+-                        TabUiThemeUtil.getTSRTabResource(), getContext().getTheme());
+-                bdgTabImage.setTint(
+-                        TabUiThemeUtil.getTabStripContainerColor(getContext(), false, true, false));
+-                LayerDrawable backgroundDrawable =
+-                        new LayerDrawable(new Drawable[] {bgdColor, bdgTabImage});
+-                // Set image size to match tab size.
+-                backgroundDrawable.setPadding(0, 0, 0, 0);
+-                backgroundDrawable.setLayerSize(1,
+-                        ViewUtils.dpToPx(getContext(), TabUiThemeUtil.getMaxTabStripTabWidthDp()),
+-                        mToolbar.getTabStripHeight());
+-                // Tab should show up at start of layer based on layout.
+-                backgroundDrawable.setLayerGravity(1, Gravity.START);
+-                setBackground(backgroundDrawable);
+-            } else {
+-                final Drawable backgroundDrawable =
+-                        AppCompatResources.getDrawable(getContext(), R.drawable.toolbar_background)
+-                                .mutate();
+-                backgroundDrawable.setTint(
+-                        ChromeColors.getDefaultThemeColor(getContext(), isIncognito));
+-                backgroundDrawable.setTintMode(PorterDuff.Mode.MULTIPLY);
+-                setBackground(backgroundDrawable);
+-            }
 -        }
      }
  
@@ -135,7 +155,7 @@ diff --git a/components/BUILD.gn b/components/BUILD.gn
    disallowed_extension_deps_ = [
      # Components should largely not depend on //extensions. Since // extensions
      # is not a component target and is linked with //chrome, depending on most
-@@ -690,7 +690,7 @@ test("components_unittests") {
+@@ -696,7 +696,7 @@ test("components_unittests") {
    # On other platforms, no components should depend on Chrome.
    # Since //chrome depends on //extensions, we also only assert_no_deps on
    # extensions targets for non-lacros builds.
@@ -144,7 +164,7 @@ diff --git a/components/BUILD.gn b/components/BUILD.gn
      assert_no_deps = [ "//chrome/*" ]
      assert_no_deps += disallowed_extension_deps_
    }
-@@ -961,7 +961,7 @@ if (!is_ios) {
+@@ -963,7 +963,7 @@ if (!is_ios) {
      # dependency. On other platforms, no components should depend on Chrome.
      # Since //chrome depends on //extensions, we also only assert_no_deps on
      # extensions targets for non-lacros builds.
@@ -171,7 +191,7 @@ diff --git a/components/browser_ui/accessibility/android/java/res/xml/accessibil
 diff --git a/components/browser_ui/accessibility/android/java/src/org/chromium/components/browser_ui/accessibility/AccessibilitySettings.java b/components/browser_ui/accessibility/android/java/src/org/chromium/components/browser_ui/accessibility/AccessibilitySettings.java
 --- a/components/browser_ui/accessibility/android/java/src/org/chromium/components/browser_ui/accessibility/AccessibilitySettings.java
 +++ b/components/browser_ui/accessibility/android/java/src/org/chromium/components/browser_ui/accessibility/AccessibilitySettings.java
-@@ -30,6 +30,8 @@ public class AccessibilitySettings
+@@ -30,6 +30,8 @@ public class AccessibilitySettings extends PreferenceFragmentCompat
      public static final String PREF_READER_FOR_ACCESSIBILITY = "reader_for_accessibility";
      public static final String PREF_CAPTIONS = "captions";
  
@@ -180,7 +200,7 @@ diff --git a/components/browser_ui/accessibility/android/java/src/org/chromium/c
      private TextScalePreference mTextScalePref;
      private PageZoomPreference mPageZoomDefaultZoomPref;
      private ChromeSwitchPreference mPageZoomAlwaysShowPref;
-@@ -106,6 +108,12 @@ public class AccessibilitySettings
+@@ -109,6 +111,12 @@ public class AccessibilitySettings extends PreferenceFragmentCompat
              getPreferenceScreen().removePreference(readerForAccessibilityPref);
          }
  
@@ -190,10 +210,10 @@ diff --git a/components/browser_ui/accessibility/android/java/src/org/chromium/c
 +        forceTabletUiPref.setChecked(mForceTabletUIDelegate.isEnabled());
 +        forceTabletUiPref.setOnPreferenceChangeListener(this);
 +
-         ChromeBaseCheckBoxPreference accessibilityTabSwitcherPref =
-                 (ChromeBaseCheckBoxPreference) findPreference(
+         ChromeSwitchPreference accessibilityTabSwitcherPref =
+                 (ChromeSwitchPreference) findPreference(
                          AccessibilityConstants.ACCESSIBILITY_TAB_SWITCHER);
-@@ -162,6 +170,8 @@ public class AccessibilitySettings
+@@ -165,6 +173,8 @@ public class AccessibilitySettings extends PreferenceFragmentCompat
              mFontSizePrefs.setUserFontScaleFactor((Float) newValue);
          } else if (PREF_FORCE_ENABLE_ZOOM.equals(preference.getKey())) {
              mFontSizePrefs.setForceEnableZoomFromUser((Boolean) newValue);
@@ -217,7 +237,7 @@ diff --git a/components/browser_ui/accessibility/android/java/src/org/chromium/c
 diff --git a/ui/android/BUILD.gn b/ui/android/BUILD.gn
 --- a/ui/android/BUILD.gn
 +++ b/ui/android/BUILD.gn
-@@ -382,6 +382,8 @@ android_library("ui_no_recycler_view_java") {
+@@ -379,6 +379,8 @@ android_library("ui_no_recycler_view_java") {
    deps = [
      ":ui_java_resources",
      ":ui_utils_java",

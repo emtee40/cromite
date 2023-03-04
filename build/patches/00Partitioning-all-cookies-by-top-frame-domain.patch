@@ -7,19 +7,19 @@ user's possible wish to disable all third-party cookies.
 Disabling the flag via the ui restores the normal mode, where
 samesite=none first-party cookies are sent in third-party contexts.
 ---
- components/browsing_data/core/features.cc        |  2 +-
- .../browsing_data/same_site_data_remover_impl.cc |  3 ++-
- net/base/features.cc                             | 16 ++++++++--------
- net/cookies/canonical_cookie.cc                  |  4 +---
- net/cookies/cookie_deletion_info.cc              |  3 ++-
- net/cookies/parsed_cookie.h                      |  7 ++++++-
- .../sqlite/sqlite_persistent_cookie_store.cc     | 10 ++++++++++
- services/network/cookie_settings.cc              | 12 ++++++++++--
- services/network/restricted_cookie_manager.cc    |  3 +++
- .../modules/cookie_store/cookie_init.idl         |  2 +-
- .../modules/cookie_store/cookie_store.cc         | 12 ++++++++++++
- .../cookie_store/cookie_store_delete_options.idl |  2 +-
- 12 files changed, 57 insertions(+), 19 deletions(-)
+ components/browsing_data/core/features.cc            |  2 +-
+ .../browsing_data/same_site_data_remover_impl.cc     |  3 ++-
+ net/base/features.cc                                 |  8 ++++----
+ net/cookies/canonical_cookie.cc                      |  4 +---
+ net/cookies/cookie_deletion_info.cc                  |  3 ++-
+ net/cookies/parsed_cookie.h                          |  7 ++++++-
+ net/extras/sqlite/sqlite_persistent_cookie_store.cc  | 10 ++++++++++
+ services/network/cookie_settings.cc                  | 12 ++++++++++--
+ services/network/restricted_cookie_manager.cc        |  3 +++
+ .../renderer/modules/cookie_store/cookie_init.idl    |  2 +-
+ .../renderer/modules/cookie_store/cookie_store.cc    | 12 ++++++++++++
+ .../cookie_store/cookie_store_delete_options.idl     |  2 +-
+ 12 files changed, 53 insertions(+), 15 deletions(-)
 
 diff --git a/components/browsing_data/core/features.cc b/components/browsing_data/core/features.cc
 --- a/components/browsing_data/core/features.cc
@@ -49,20 +49,8 @@ diff --git a/content/browser/browsing_data/same_site_data_remover_impl.cc b/cont
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -255,16 +255,16 @@ BASE_FEATURE(kCookieSameSiteConsidersRedirectChain,
+@@ -269,8 +269,8 @@ BASE_FEATURE(kSamePartyAttributeEnabled,
               base::FEATURE_DISABLED_BY_DEFAULT);
- 
- BASE_FEATURE(kSamePartyCookiesConsideredFirstParty,
--             "SamePartyCookiesConsideredFirstParty",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "SamePartyCookiesConsideredFirstParty", // guard this
-+             base::FEATURE_DISABLED_BY_DEFAULT);     // guard this
- 
- BASE_FEATURE(kSamePartyAttributeEnabled,
--             "SamePartyAttributeEnabled",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "SamePartyAttributeEnabled",           // guard this
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
  
  BASE_FEATURE(kPartitionedCookies,
 -             "PartitionedCookies",
@@ -72,7 +60,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
  
  BASE_FEATURE(kNoncedPartitionedCookies,
               "NoncedPartitionedCookies",
-@@ -283,8 +283,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
+@@ -289,8 +289,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kCookieDomainRejectNonASCII,
@@ -164,7 +152,7 @@ diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sq
 diff --git a/services/network/cookie_settings.cc b/services/network/cookie_settings.cc
 --- a/services/network/cookie_settings.cc
 +++ b/services/network/cookie_settings.cc
-@@ -35,6 +35,11 @@ bool IsExplicitSetting(const ContentSettingPatternSource& setting) {
+@@ -33,6 +33,11 @@ bool IsExplicitSetting(const ContentSettingPatternSource& setting) {
           !setting.secondary_pattern.MatchesAllHosts();
  }
  
@@ -178,7 +166,7 @@ diff --git a/services/network/cookie_settings.cc b/services/network/cookie_setti
      const GURL& secondary_url,
 @@ -192,11 +197,14 @@ net::NetworkDelegate::PrivacySetting CookieSettings::IsPrivacyModeEnabled(
  
- CookieSettings::ThirdPartyBlockingOutcome
+ CookieSettings::ThirdPartyBlockingScope
  CookieSettings::GetThirdPartyBlockingScope(const GURL& first_party_url) const {
 -  // If cookies are allowed for the first-party URL then we allow
 +  // If cookies are allowed for the thirdy-party URL then we allow
@@ -190,13 +178,13 @@ diff --git a/services/network/cookie_settings.cc b/services/network/cookie_setti
 -      !match || match->GetContentSetting() == CONTENT_SETTING_ALLOW) {
 +      match && IsThirdPartyAllowed(*match) &&
 +      match->GetContentSetting() == CONTENT_SETTING_ALLOW) {
-     return ThirdPartyBlockingOutcome::kPartitionedStateAllowed;
+     return ThirdPartyBlockingScope::kUnpartitionedOnly;
    }
-   return ThirdPartyBlockingOutcome::kAllStateDisallowed;
+   return ThirdPartyBlockingScope::kUnpartitionedAndPartitioned;
 diff --git a/services/network/restricted_cookie_manager.cc b/services/network/restricted_cookie_manager.cc
 --- a/services/network/restricted_cookie_manager.cc
 +++ b/services/network/restricted_cookie_manager.cc
-@@ -734,6 +734,9 @@ void RestrictedCookieManager::SetCookieFromString(
+@@ -736,6 +736,9 @@ void RestrictedCookieManager::SetCookieFromString(
    std::move(callback).Run(site_for_cookies_ok, top_frame_origin_ok);
    callback = base::DoNothing();
  

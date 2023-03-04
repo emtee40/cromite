@@ -19,7 +19,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -226,6 +226,7 @@ import org.chromium.content_public.browser.ScreenOrientationProvider;
+@@ -225,6 +225,7 @@ import org.chromium.content_public.browser.ScreenOrientationProvider;
  import org.chromium.content_public.browser.SelectionPopupController;
  import org.chromium.content_public.browser.WebContents;
  import org.chromium.content_public.common.ContentSwitches;
@@ -27,30 +27,30 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  import org.chromium.printing.PrintManagerDelegateImpl;
  import org.chromium.printing.PrintingController;
  import org.chromium.printing.PrintingControllerImpl;
-@@ -960,6 +961,8 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
-         UpdateMenuItemHelper.getInstance().onStart();
+@@ -953,6 +954,8 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+         super.onStartWithNative();
          ChromeActivitySessionTracker.getInstance().onStartWithNative();
          ChromeCachedFlags.getInstance().cacheNativeFlags();
 +        X509Util.AllowUserCertificates = ChromeFeatureList.isEnabled(
 +                                            ChromeFeatureList.ALLOW_USER_CERTIFICATES);
-         OfflineIndicatorController.initialize();
  
          // postDeferredStartupIfNeeded() is called in TabModelSelectorTabObsever#onLoadStopped(),
+         // #onPageLoadFinished() and #onCrash(). If we are not actively loading a tab (e.g.
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
-@@ -77,6 +77,7 @@ public class ChromeCachedFlags {
-                 add(ChromeFeatureList.sAndroidAuxiliarySearch);
-                 add(ChromeFeatureList.sAnonymousUpdateChecks);
-                 add(ChromeFeatureList.sAppMenuMobileSiteOption);
+@@ -67,6 +67,7 @@ public class ChromeCachedFlags {
+ 
+         // clang-format off
+         List<CachedFlag> featuresToCache = List.of(ChromeFeatureList.sAppMenuMobileSiteOption,
 +                add(ChromeFeatureList.sAllowUserCertificates);
-                 add(ChromeFeatureList.sBackGestureRefactorAndroid);
-                 add(ChromeFeatureList.sCctAutoTranslate);
-                 add(ChromeFeatureList.sCctBrandTransparency);
+                 ChromeFeatureList.sBackGestureRefactorAndroid,
+                 ChromeFeatureList.sBaselineGm3SurfaceColors,
+                 ChromeFeatureList.sCctAutoTranslate,
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -8447,6 +8447,10 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -8256,6 +8256,10 @@ const FeatureEntry kFeatureEntries[] = {
       FEATURE_VALUE_TYPE(features::kWin10TabSearchCaptionButton)},
  #endif  // BUILDFLAG(IS_WIN)
  
@@ -64,7 +64,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -13,6 +13,11 @@
+@@ -14,6 +14,11 @@
  
  namespace flag_descriptions {
  
@@ -79,7 +79,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -40,6 +40,9 @@ namespace flag_descriptions {
+@@ -41,6 +41,9 @@ namespace flag_descriptions {
  
  // Cross-platform -------------------------------------------------------------
  
@@ -92,15 +92,15 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -153,6 +153,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
-     &feed::kFeedReplaceAll,
+@@ -144,6 +144,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+     &feed::kFeedPerformanceStudy,
      &feed::kFeedShowSignInCommand,
      &feed::kInterestFeedContentSuggestions,
 +    &kAllowUserCertificates,
-     &feed::kInterestFeedV1ClicksAndViewsConditionalUpload,
      &feed::kInterestFeedV2,
      &feed::kInterestFeedV2Autoplay,
-@@ -463,6 +464,10 @@ BASE_FEATURE(kAllowNewIncognitoTabIntents,
+     &feed::kInterestFeedV2Hearts,
+@@ -436,6 +437,10 @@ BASE_FEATURE(kAllowNewIncognitoTabIntents,
               "AllowNewIncognitoTabIntents",
               base::FEATURE_ENABLED_BY_DEFAULT);
  
@@ -121,7 +121,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser
 +BASE_DECLARE_FEATURE(kAllowUserCertificates);
  BASE_DECLARE_FEATURE(kAndroidScrollOptimizations);
  BASE_DECLARE_FEATURE(kAndroidSearchEngineChoiceNotification);
- BASE_DECLARE_FEATURE(kAssistantConsentSimplifiedText);
+ BASE_DECLARE_FEATURE(kAndroidImprovedBookmarks);
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
@@ -133,15 +133,15 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final String ADAPTIVE_BUTTON_IN_TOP_TOOLBAR = "AdaptiveButtonInTopToolbar";
      public static final String ADAPTIVE_BUTTON_IN_TOP_TOOLBAR_CUSTOMIZATION_V2 =
              "AdaptiveButtonInTopToolbarCustomizationV2";
-@@ -608,6 +609,8 @@ public abstract class ChromeFeatureList {
-             "SkipServiceWorkerForInstallPromot";
+@@ -561,6 +562,8 @@ public abstract class ChromeFeatureList {
+     public static final String XSURFACE_METRICS_REPORTING = "XsurfaceMetricsReporting";
  
      /* Alphabetical: */
 +    public static final CachedFlag sAllowUserCertificates =
 +            new CachedFlag(ALLOW_USER_CERTIFICATES, false);
-     public static final CachedFlag sAndroidAuxiliarySearch =
-             new CachedFlag(OMNIBOX_ANDROID_AUXILIARY_SEARCH, false);
-     public static final CachedFlag sAnonymousUpdateChecks =
+     public static final CachedFlag sAppMenuMobileSiteOption =
+             new CachedFlag(APP_MENU_MOBILE_SITE_OPTION, false);
+     public static final CachedFlag sBackGestureRefactorActivityAndroid =
 diff --git a/net/android/java/src/org/chromium/net/X509Util.java b/net/android/java/src/org/chromium/net/X509Util.java
 --- a/net/android/java/src/org/chromium/net/X509Util.java
 +++ b/net/android/java/src/org/chromium/net/X509Util.java
