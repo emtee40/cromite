@@ -1,0 +1,65 @@
+From: Your Name <you@example.com>
+Date: Mon, 6 Mar 2023 08:03:21 +0000
+Subject: 111 Add menu item to bookmark all tabs
+
+---
+ chrome/browser/bookmarks/bookmark_html_writer.cc |  8 ++++----
+ components/bookmarks/browser/bookmark_codec.cc   | 10 ++++------
+ 2 files changed, 8 insertions(+), 10 deletions(-)
+
+diff --git a/chrome/browser/bookmarks/bookmark_html_writer.cc b/chrome/browser/bookmarks/bookmark_html_writer.cc
+--- a/chrome/browser/bookmarks/bookmark_html_writer.cc
++++ b/chrome/browser/bookmarks/bookmark_html_writer.cc
+@@ -191,19 +191,19 @@ class Writer : public base::RefCountedThreadSafe<Writer> {
+         roots->FindDict(BookmarkCodec::kOtherBookmarkFolderNameKey);
+     base::Value::Dict* mobile_folder_value =
+         roots->FindDict(BookmarkCodec::kMobileBookmarkFolderNameKey);
+-    base::Value* tabs_collection_value =
+-        roots->FindDictKey(BookmarkCodec::kTabsBookmarkFolderNameKey);
++    base::Value::Dict* tabs_collection_value =
++        roots->FindDict(BookmarkCodec::kTabsBookmarkFolderNameKey);
+     DCHECK(root_folder_value);
+     DCHECK(other_folder_value);
+     DCHECK(mobile_folder_value);
++    DCHECK(tabs_collection_value);
+ 
+     IncrementIndent();
+ 
+     if (!WriteNode(*root_folder_value, BookmarkNode::BOOKMARK_BAR) ||
+         !WriteNode(*other_folder_value, BookmarkNode::OTHER_NODE) ||
+         !WriteNode(*mobile_folder_value, BookmarkNode::MOBILE) ||
+-        !WriteNode(*static_cast<base::DictionaryValue*>(tabs_collection_value),
+-                   BookmarkNode::TABS_COLLECTION)) {
++        !WriteNode(*tabs_collection_value, BookmarkNode::TABS_COLLECTION)) {
+       NotifyOnFinish(BookmarksExportObserver::Result::kCouldNotWriteNodes);
+       return;
+     }
+diff --git a/components/bookmarks/browser/bookmark_codec.cc b/components/bookmarks/browser/bookmark_codec.cc
+--- a/components/bookmarks/browser/bookmark_codec.cc
++++ b/components/bookmarks/browser/bookmark_codec.cc
+@@ -241,19 +241,17 @@ bool BookmarkCodec::DecodeHelper(BookmarkNode* bb_node,
+       roots->FindDictKey(kOtherBookmarkFolderNameKey);
+   const base::Value* mobile_folder_value =
+       roots->FindDictKey(kMobileBookmarkFolderNameKey);
++  const base::Value* tabs_folder_value =
++      roots->FindDictKey(kTabsBookmarkFolderNameKey);
+ 
+   if (!bb_value || !other_folder_value || !mobile_folder_value)
+     return false;
+ 
+   DecodeNode(*bb_value, nullptr, bb_node);
+-  const base::DictionaryValue* tabs_folder_d_value = nullptr;
+-  const base::Value* tabs_folder_value =
+-      roots->FindDictKey(kTabsBookmarkFolderNameKey);
+-  if (tabs_folder_value && tabs_folder_value->GetAsDictionary(&tabs_folder_d_value))
+-    DecodeNode(*tabs_folder_d_value, nullptr, tabs_folder_node);
+-
+   DecodeNode(*other_folder_value, nullptr, other_folder_node);
+   DecodeNode(*mobile_folder_value, nullptr, mobile_folder_node);
++  if (tabs_folder_value)
++    DecodeNode(*tabs_folder_value, nullptr, tabs_folder_node);
+ 
+   if (!DecodeMetaInfo(*roots, &model_meta_info_map_))
+     return false;
+--
+2.25.1

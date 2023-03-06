@@ -9,8 +9,10 @@ Subject: WIN ADDTO Remove signin and sync integrations
  chrome/browser/signin/signin_ui_util.cc       |  23 -
  chrome/browser/ui/BUILD.gn                    |   6 -
  .../startup/startup_browser_creator_impl.cc   |   4 +-
+ .../ui/startup/startup_tab_provider.cc        |   5 -
  .../profile_customization_bubble_view.cc      |   1 -
- ...rofile_picker_signed_in_flow_controller.cc |  36 --
+ ...rofile_picker_signed_in_flow_controller.cc |  37 --
+ ...profile_picker_signed_in_flow_controller.h |   2 -
  .../signin/profile_customization_handler.cc   |   2 +
  .../webui/signin/profile_customization_ui.cc  |   3 +-
  .../ui/webui/signin/profile_picker_handler.cc |   5 +-
@@ -19,12 +21,12 @@ Subject: WIN ADDTO Remove signin and sync integrations
  .../identity_manager/identity_manager.cc      | 463 ++----------------
  .../identity_manager/identity_manager.h       |  47 +-
  .../identity_manager_builder.cc               |   3 +
- 16 files changed, 45 insertions(+), 597 deletions(-)
+ 18 files changed, 45 insertions(+), 605 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -4153,8 +4153,6 @@ static_library("browser") {
+@@ -4147,8 +4147,6 @@ static_library("browser") {
        "sharing_hub/sharing_hub_service_factory.h",
        "signin/signin_promo.cc",
        "signin/signin_promo.h",
@@ -33,7 +35,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "signin/signin_ui_util.cc",
        "signin/signin_ui_util.h",
        "speech/chrome_speech_recognition_service.cc",
-@@ -6692,12 +6690,6 @@ static_library("browser") {
+@@ -6686,12 +6684,6 @@ static_library("browser") {
        "signin/signin_ui_delegate_impl_dice.cc",
        "signin/signin_ui_delegate_impl_dice.h",
      ]
@@ -179,7 +181,7 @@ diff --git a/chrome/browser/signin/signin_ui_util.cc b/chrome/browser/signin/sig
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -3663,12 +3663,6 @@ static_library("ui") {
+@@ -3662,12 +3662,6 @@ static_library("ui") {
        "webui/signin/signin_ui_error.h",
        "webui/signin/signin_utils_desktop.cc",
        "webui/signin/signin_utils_desktop.h",
@@ -213,6 +215,21 @@ diff --git a/chrome/browser/ui/startup/startup_browser_creator_impl.cc b/chrome/
  #endif  // !BUILDFLAG(IS_CHROMEOS_ASH)
  
    const bool whats_new_enabled =
+diff --git a/chrome/browser/ui/startup/startup_tab_provider.cc b/chrome/browser/ui/startup/startup_tab_provider.cc
+--- a/chrome/browser/ui/startup/startup_tab_provider.cc
++++ b/chrome/browser/ui/startup/startup_tab_provider.cc
+@@ -185,11 +185,6 @@ StartupTabs StartupTabProviderImpl::GetWelcomeBackTabs(
+       !browser_creator) {
+     return tabs;
+   }
+-  if (browser_creator->welcome_back_page() &&
+-      CanShowWelcome(SyncServiceFactory::IsSyncAllowed(profile),
+-                     profile->IsChild(), signin_util::IsForceSigninEnabled())) {
+-    tabs.emplace_back(GetWelcomePageUrl(false));
+-  }
+   return tabs;
+ }
+ #endif  // BUILDFLAG(IS_WIN)
 diff --git a/chrome/browser/ui/views/profiles/profile_customization_bubble_view.cc b/chrome/browser/ui/views/profiles/profile_customization_bubble_view.cc
 --- a/chrome/browser/ui/views/profiles/profile_customization_bubble_view.cc
 +++ b/chrome/browser/ui/views/profiles/profile_customization_bubble_view.cc
@@ -238,7 +255,15 @@ diff --git a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_cont
  #include "chrome/common/webui_url_constants.h"
  #include "components/signin/public/base/signin_metrics.h"
  #include "components/signin/public/identity_manager/account_info.h"
-@@ -52,27 +50,6 @@ void ProfilePickerSignedInFlowController::Init() {
+@@ -30,7 +28,6 @@ ProfilePickerSignedInFlowController::ProfilePickerSignedInFlowController(
+     : host_(host),
+       profile_(profile),
+       contents_(std::move(contents)),
+-      signin_access_point_(signin_access_point),
+       profile_color_(profile_color) {
+   DCHECK(profile_);
+   DCHECK(contents_);
+@@ -52,27 +49,6 @@ void ProfilePickerSignedInFlowController::Init() {
    DCHECK(!IsInitialized());
  
    contents()->SetDelegate(this);
@@ -266,7 +291,7 @@ diff --git a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_cont
  }
  
  void ProfilePickerSignedInFlowController::Cancel() {}
-@@ -167,19 +144,6 @@ void ProfilePickerSignedInFlowController::
+@@ -167,19 +143,6 @@ void ProfilePickerSignedInFlowController::
          signin::SigninChoiceCallback proceed_callback) {
    DCHECK(IsInitialized());
    // Initialize the WebUI page once we know it's committed.
@@ -286,6 +311,18 @@ diff --git a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_cont
  }
  
  bool ProfilePickerSignedInFlowController::IsInitialized() const {
+diff --git a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.h b/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.h
+--- a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.h
++++ b/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.h
+@@ -132,8 +132,6 @@ class ProfilePickerSignedInFlowController
+   // sign-in flow.
+   std::unique_ptr<content::WebContents> contents_;
+ 
+-  const signin_metrics::AccessPoint signin_access_point_;
+-
+   // Set for the profile at the very end to avoid coloring the simple toolbar
+   // for GAIA sign-in (that uses the ThemeProvider of the current profile).
+   // absl::nullopt if the profile should use the default theme.
 diff --git a/chrome/browser/ui/webui/signin/profile_customization_handler.cc b/chrome/browser/ui/webui/signin/profile_customization_handler.cc
 --- a/chrome/browser/ui/webui/signin/profile_customization_handler.cc
 +++ b/chrome/browser/ui/webui/signin/profile_customization_handler.cc

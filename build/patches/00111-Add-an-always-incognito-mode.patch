@@ -1,0 +1,30 @@
+From: Your Name <you@example.com>
+Date: Mon, 6 Mar 2023 10:09:17 +0000
+Subject: 111 Add an always-incognito mode
+
+---
+ .../core/browser/content_settings_pref_provider.cc          | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/components/content_settings/core/browser/content_settings_pref_provider.cc b/components/content_settings/core/browser/content_settings_pref_provider.cc
+--- a/components/content_settings/core/browser/content_settings_pref_provider.cc
++++ b/components/content_settings/core/browser/content_settings_pref_provider.cc
+@@ -150,12 +150,14 @@ PrefProvider::PrefProvider(PrefService* prefs,
+   WebsiteSettingsRegistry* website_settings =
+       WebsiteSettingsRegistry::GetInstance();
+   for (const WebsiteSettingsInfo* info : *website_settings) {
++    bool save_site_settings = force_save_site_settings_ &&
++      info->incognito_behavior() == WebsiteSettingsInfo::INHERIT_IN_INCOGNITO;
+     content_settings_prefs_.insert(std::make_pair(
+         info->type(), std::make_unique<ContentSettingsPref>(
+                           info->type(), prefs_, &pref_change_registrar_,
+                           info->pref_name(),
+-                            off_the_record_ || (!content_type_info && force_save_site_settings_),
+-                            restore_session,
++                          off_the_record_ && !save_site_settings,
++                          restore_session,
+                           base::BindRepeating(&PrefProvider::Notify,
+                                               base::Unretained(this)))));
+   }
+--
+2.25.1

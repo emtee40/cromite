@@ -1,0 +1,78 @@
+From: Your Name <you@example.com>
+Date: Mon, 6 Mar 2023 08:01:32 +0000
+Subject: 111 Move navigation bar to bottom
+
+---
+ .../browser/tasks/tab_management/TabSwitcherMediator.java     | 3 ---
+ .../chromium/chrome/browser/app/flags/ChromeCachedFlags.java  | 2 +-
+ .../chrome/browser/fullscreen/BrowserControlsManager.java     | 3 +++
+ .../src/org/chromium/chrome/browser/ui/BottomContainer.java   | 2 +-
+ .../browser_controls/BrowserControlsStateProvider.java        | 4 ++++
+ 5 files changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
+--- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
++++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
+@@ -732,9 +732,6 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
+     }
+ 
+     private void setInitialScrollIndexOffset() {
+-        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
+-            offset = 0;
+-        }
+         int initialPosition =
+                 mTabModelSelector.getTabModelFilterProvider().getCurrentTabModelFilter().index();
+ 
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
+@@ -100,7 +100,7 @@ public class ChromeCachedFlags {
+                 ChromeFeatureList.sInstanceSwitcher,
+                 ChromeFeatureList.sInstantStart,
+                 ChromeFeatureList.sInterestFeedV2,
+-                add(ChromeFeatureList.sMoveTopToolbarToBottom);
++                ChromeFeatureList.sMoveTopToolbarToBottom,
+                 ChromeFeatureList.sOmniboxMatchToolbarAndStatusBarColor,
+                 ChromeFeatureList.sOmniboxModernizeVisualUpdate,
+                 ChromeFeatureList.sOmniboxMostVisitedTilesAddRecycledViewPool,
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/fullscreen/BrowserControlsManager.java b/chrome/android/java/src/org/chromium/chrome/browser/fullscreen/BrowserControlsManager.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/fullscreen/BrowserControlsManager.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/fullscreen/BrowserControlsManager.java
+@@ -141,6 +141,9 @@ public class BrowserControlsManager implements ActivityStateListener, BrowserCon
+             try (TraceEvent e = TraceEvent.scoped(
+                          "BrowserControlsManager.onAndroidVisibilityChanged")) {
+                 mControlContainer.getView().setVisibility(visibility);
++                for (BrowserControlsStateProvider.Observer obs : mControlsObservers) {
++                    obs.onAndroidControlsVisibilityChanged(visibility);
++                }
+                 if (!ToolbarFeatures.shouldSuppressCaptures()) {
+                     // requestLayout is required to trigger a new gatherTransparentRegion(), which
+                     // only occurs together with a layout and let's SurfaceFlinger trim overlays.
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/BottomContainer.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/BottomContainer.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ui/BottomContainer.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/BottomContainer.java
+@@ -71,7 +71,7 @@ public class BottomContainer
+     }
+ 
+     @Override
+-    public void onAndroidVisibilityChanged(int visibility) {
++    public void onAndroidControlsVisibilityChanged(int visibility) {
+         if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled())
+             setTranslationY(mBaseYOffset);
+     }
+diff --git a/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsStateProvider.java b/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsStateProvider.java
+--- a/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsStateProvider.java
++++ b/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsStateProvider.java
+@@ -40,6 +40,10 @@ public interface BrowserControlsStateProvider {
+          * Called when the height of the top controls are changed.
+          */
+         default void onTopControlsHeightChanged(int topControlsHeight, int topControlsMinHeight) {}
++
++        /** Called when the visibility of the controls container changes. */
++        // merged https://source.chromium.org/chromium/chromium/src/+/946b0370c04c9acf349cbfeefcefdf3ed08a3a6a
++        default void onAndroidControlsVisibilityChanged(int visibility) {}
+     }
+ 
+     /**
+--
+2.25.1
