@@ -6,15 +6,15 @@ Hides user preference on the system keyboard by setting the standard
 eng layout and removing the layout information from the javascript
 keyboard events.
 ---
- chrome/browser/about_flags.cc                 |  3 ++
- chrome/browser/flag_descriptions.cc           |  6 +++
- chrome/browser/flag_descriptions.h            |  3 ++
- .../renderer/core/events/keyboard_event.cc    | 54 +++++++++++++++++++
- .../renderer/core/events/keyboard_event.h     |  3 ++
+ chrome/browser/about_flags.cc                 |  3 +
+ chrome/browser/flag_descriptions.cc           |  6 ++
+ chrome/browser/flag_descriptions.h            |  3 +
+ .../renderer/core/events/keyboard_event.cc    | 58 +++++++++++++++++++
+ .../renderer/core/events/keyboard_event.h     |  3 +
  ui/base/ui_base_features.cc                   |  8 +++
  ui/base/ui_base_features.h                    |  2 +
  .../dom/dom_keyboard_layout_map_win.cc        | 13 +++++
- 8 files changed, 92 insertions(+)
+ 8 files changed, 96 insertions(+)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
@@ -82,38 +82,41 @@ diff --git a/third_party/blink/renderer/core/events/keyboard_event.cc b/third_pa
  #include "ui/events/keycodes/dom/keycode_converter.h"
  
  namespace blink {
-@@ -133,6 +137,50 @@ KeyboardEvent::KeyboardEvent(const WebKeyboardEvent& key,
+@@ -133,6 +137,54 @@ KeyboardEvent::KeyboardEvent(const WebKeyboardEvent& key,
    else
      key_code_ = char_code_;
  
 +  if (features::IsSystemKeyboardProtectionEnabled()) {
 +    ui::DomKey dom_key = static_cast<ui::DomKey>(key.dom_key);
 +
-+    if (ui::KeycodeConverter::IsDomKeyForModifier(dom_key)) {
++    if (ui::KeycodeConverter::IsDomKeyForModifier(dom_key) ||
++        dom_key.IsDeadKey()) {
 +      // suppress event if is ctrl/shift/alt... otherwise key_code of
 +      // the next character can be stolen
++      // do not send dead keys
 +      suppress_event_ = true;
 +    } else if (type() == event_type_names::kKeypress) {
 +      // on keypress never send keyboard data
 +      key_code_ = 0;
-+      code_ = String();
 +      // clear all modifiers including shift
 +      modifiers_ = 0;
 +    } else if (type() == event_type_names::kKeydown ||
-+              type() == event_type_names::kKeyup) {
++               type() == event_type_names::kKeyup) {
 +      // on keydown/up clear keyboard data if is a character
 +      // excluding:
 +      //   - space: as is not named
-+      //   - ctrl-a/c/v: select all/copy/paste
++      //   - ctrl-a/c/v/x: select all/copy/paste
 +      bool is_named = ui::KeycodeConverter::IsDomKeyNamed(dom_key);
 +      bool is_control = (modifiers_ & WebInputEvent::kControlKey) == WebInputEvent::kControlKey;
 +      if (!is_named && key_code_ != 32 &&
 +          !(is_control &&
 +            (key_code_ == 'a' || key_code_ == 'A' ||
 +             key_code_ == 'c' || key_code_ == 'C' ||
-+             key_code_ == 'v' || key_code_ == 'V'))) {
++             key_code_ == 'v' || key_code_ == 'V' ||
++             key_code_ == 'x' || key_code_ == 'X' ||
++             key_code_ == 'z' || key_code_ == 'Z' ||
++             key_code_ == 'y' || key_code_ == 'Y'))) {
 +        key_code_ = 0;
-+        code_ = String();
 +        // clear all modifiers including shift
 +        modifiers_ = 0;
 +      }
@@ -126,14 +129,15 @@ diff --git a/third_party/blink/renderer/core/events/keyboard_event.cc b/third_pa
 +                      WebInputEvent::kSymbolKey | WebInputEvent::kScrollLockOn |
 +                      WebInputEvent::kCapsLockOn | WebInputEvent::kNumLockOn);
 +    }
-+    // clear location data
++    // always clear code and location
++    code_ = String();
 +    location_ = KeyboardEvent::kDomKeyLocationStandard;
 +  }
 +
  #if BUILDFLAG(IS_ANDROID)
    // FIXME: Check to see if this applies to other OS.
    // If the key event belongs to IME composition then propagate to JS.
-@@ -205,6 +253,12 @@ unsigned KeyboardEvent::which() const {
+@@ -205,6 +257,12 @@ unsigned KeyboardEvent::which() const {
    return (unsigned)keyCode();
  }
  
