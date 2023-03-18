@@ -9,12 +9,14 @@ keyboard events.
  chrome/browser/about_flags.cc                 |  3 +
  chrome/browser/flag_descriptions.cc           |  6 ++
  chrome/browser/flag_descriptions.h            |  3 +
- .../renderer/core/events/keyboard_event.cc    | 58 +++++++++++++++++++
+ .../renderer/core/events/keyboard_event.cc    | 66 +++++++++++++++++++
  .../renderer/core/events/keyboard_event.h     |  3 +
  ui/base/ui_base_features.cc                   |  8 +++
  ui/base/ui_base_features.h                    |  2 +
- .../dom/dom_keyboard_layout_map_win.cc        | 13 +++++
- 8 files changed, 96 insertions(+)
+ .../dom/dom_keyboard_layout_map_win.cc        | 13 ++++
+ .../keycodes/keyboard_code_conversion.cc      | 10 ++-
+ ui/events/keycodes/keyboard_code_conversion.h |  2 +-
+ 10 files changed, 113 insertions(+), 3 deletions(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
@@ -74,70 +76,79 @@ diff --git a/third_party/blink/renderer/core/events/keyboard_event.cc b/third_pa
  #include "third_party/blink/renderer/core/editing/ime/input_method_controller.h"
  #include "third_party/blink/renderer/core/event_interface_names.h"
  #include "third_party/blink/renderer/core/frame/local_dom_window.h"
-@@ -34,6 +37,7 @@
+@@ -34,7 +37,10 @@
  #include "third_party/blink/renderer/platform/bindings/dom_wrapper_world.h"
  #include "third_party/blink/renderer/platform/bindings/script_state.h"
  #include "third_party/blink/renderer/platform/windows_keyboard_codes.h"
 +#include "ui/base/ui_base_features.h"
  #include "ui/events/keycodes/dom/keycode_converter.h"
++#include "ui/events/keycodes/dom/dom_codes_array.h"
++#include "ui/events/keycodes/keyboard_code_conversion.h"
  
  namespace blink {
-@@ -133,6 +137,54 @@ KeyboardEvent::KeyboardEvent(const WebKeyboardEvent& key,
+ 
+@@ -133,6 +139,60 @@ KeyboardEvent::KeyboardEvent(const WebKeyboardEvent& key,
    else
      key_code_ = char_code_;
  
 +  if (features::IsSystemKeyboardProtectionEnabled()) {
-+    ui::DomKey dom_key = static_cast<ui::DomKey>(key.dom_key);
++    // we need character for transformation
++    ui::DomKey ascii_key;
++    ui::DomKey original_dom_key = static_cast<ui::DomKey>(key.dom_key);
++    // 1 <= char_code <= 26: exclude ctrl-a ... control-z
++    if (char_code_ > 26 && original_dom_key.IsCharacter())
++      ascii_key = ui::DomKey::FromCharacter(key.text[0]);
++    else
++      ascii_key = original_dom_key;
 +
-+    if (ui::KeycodeConverter::IsDomKeyForModifier(dom_key) ||
-+        dom_key.IsDeadKey()) {
++    // get domcode of us layout keyboard
++    // we transform the character pressed by the user into
++    // the relevant domkey of the English keyboard
++    // so, for example:
++    //    for ascii_key = "
++    //    in italian keyboard --> shift + Digit2
++    //    in us keybord       --> shift + Quote
++    int shift_needed = 0;
++    ui::DomCode us_code = ui::UsLayoutDomKeyToDomCode(ascii_key, &shift_needed);
++    if (shift_needed == 0)
++      modifiers_ &= ~WebInputEvent::kShiftKey;
++    else if (shift_needed == 1)
++      modifiers_ |= WebInputEvent::kShiftKey;
++
++    // convert keyboard code to us layout (platform code)
++    if (type() == event_type_names::kKeydown ||
++        type() == event_type_names::kKeyup) {
++      int windows_key_code = ui::DomCodeToUsLayoutNonLocatedKeyboardCode(us_code);
++      key_code_ = windows_key_code;
++    }
++
++    // regenerate key_ and code_ for us keyboard
++    key_ = FromUTF8(ui::KeycodeConverter::DomKeyToKeyString(ascii_key));
++    code_ = FromUTF8(ui::KeycodeConverter::DomCodeToCodeString(us_code));
++
++    if (ui::KeycodeConverter::IsDomKeyForModifier(original_dom_key) ||
++        original_dom_key.IsDeadKey()) {
 +      // suppress event if is ctrl/shift/alt... otherwise key_code of
 +      // the next character can be stolen
-+      // do not send dead keys
++      // and do not send dead keys
++      // we cannot do otherwise because some characters are generated
++      // with the shift or without depending on the keyboard
 +      suppress_event_ = true;
-+    } else if (type() == event_type_names::kKeypress) {
-+      // on keypress never send keyboard data
-+      key_code_ = 0;
-+      // clear all modifiers including shift
-+      modifiers_ = 0;
-+    } else if (type() == event_type_names::kKeydown ||
-+               type() == event_type_names::kKeyup) {
-+      // on keydown/up clear keyboard data if is a character
-+      // excluding:
-+      //   - space: as is not named
-+      //   - ctrl-a/c/v/x: select all/copy/paste
-+      bool is_named = ui::KeycodeConverter::IsDomKeyNamed(dom_key);
-+      bool is_control = (modifiers_ & WebInputEvent::kControlKey) == WebInputEvent::kControlKey;
-+      if (!is_named && key_code_ != 32 &&
-+          !(is_control &&
-+            (key_code_ == 'a' || key_code_ == 'A' ||
-+             key_code_ == 'c' || key_code_ == 'C' ||
-+             key_code_ == 'v' || key_code_ == 'V' ||
-+             key_code_ == 'x' || key_code_ == 'X' ||
-+             key_code_ == 'z' || key_code_ == 'Z' ||
-+             key_code_ == 'y' || key_code_ == 'Y'))) {
-+        key_code_ = 0;
-+        // clear all modifiers including shift
-+        modifiers_ = 0;
-+      }
-+      // do not leak status of numlock/capslock/scrolllock
-+      // clear all modifiers excluding shift and control
-+      // because is needed for shift/control + arrows to works
-+      modifiers_ &= ~(WebInputEvent::kSymbolKey | WebInputEvent::kFnKey |
-+                      WebInputEvent::kAltGrKey | WebInputEvent::kMetaKey |
-+                      WebInputEvent::kAltKey | WebInputEvent::kIsKeyPad |
-+                      WebInputEvent::kSymbolKey | WebInputEvent::kScrollLockOn |
-+                      WebInputEvent::kCapsLockOn | WebInputEvent::kNumLockOn);
 +    }
-+    // always clear code and location
-+    code_ = String();
++    // do not leak status of numlock/capslock/scrolllock/etc
++    modifiers_ &= ~(WebInputEvent::kSymbolKey | WebInputEvent::kFnKey |
++                    WebInputEvent::kAltGrKey | WebInputEvent::kMetaKey |
++                    WebInputEvent::kAltKey | WebInputEvent::kIsKeyPad |
++                    WebInputEvent::kSymbolKey | WebInputEvent::kScrollLockOn |
++                    WebInputEvent::kCapsLockOn | WebInputEvent::kNumLockOn);
++    // always clear location
 +    location_ = KeyboardEvent::kDomKeyLocationStandard;
 +  }
 +
  #if BUILDFLAG(IS_ANDROID)
    // FIXME: Check to see if this applies to other OS.
    // If the key event belongs to IME composition then propagate to JS.
-@@ -205,6 +257,12 @@ unsigned KeyboardEvent::which() const {
+@@ -205,6 +265,12 @@ unsigned KeyboardEvent::which() const {
    return (unsigned)keyCode();
  }
  
@@ -229,6 +240,46 @@ diff --git a/ui/events/keycodes/dom/dom_keyboard_layout_map_win.cc b/ui/events/k
 +  }
    return keyboard_layout_handles_.size();
  }
+ 
+diff --git a/ui/events/keycodes/keyboard_code_conversion.cc b/ui/events/keycodes/keyboard_code_conversion.cc
+--- a/ui/events/keycodes/keyboard_code_conversion.cc
++++ b/ui/events/keycodes/keyboard_code_conversion.cc
+@@ -293,16 +293,22 @@ int ModifierDomKeyToEventFlag(DomKey key) {
+   //   DomKey::SYMBOL_LOCK
+ }
+ 
+-DomCode UsLayoutDomKeyToDomCode(DomKey dom_key) {
++DomCode UsLayoutDomKeyToDomCode(DomKey dom_key, int *need_shift) {
+   if (dom_key.IsCharacter()) {
+     char16_t c = dom_key.ToCharacter();
+     for (const auto& it : kPrintableCodeMap) {
+-      if (it.character[0] == c || it.character[1] == c) {
++      if (it.character[0] == c) {
++        *need_shift = 0;
++        return it.dom_code;
++      }
++      if (it.character[1] == c) {
++        *need_shift = 1;
+         return it.dom_code;
+       }
+     }
+   }
+ 
++  *need_shift = -1;
+   for (const auto& it : kNonPrintableCodeMap) {
+     if (it.dom_key == dom_key)
+       return it.dom_code;
+diff --git a/ui/events/keycodes/keyboard_code_conversion.h b/ui/events/keycodes/keyboard_code_conversion.h
+--- a/ui/events/keycodes/keyboard_code_conversion.h
++++ b/ui/events/keycodes/keyboard_code_conversion.h
+@@ -111,7 +111,7 @@ EVENTS_BASE_EXPORT int ModifierDomKeyToEventFlag(DomKey key);
+ 
+ // Returns the physical DOM code along with a corresponding non-located
+ // Windows-based key_code.
+-EVENTS_BASE_EXPORT DomCode UsLayoutDomKeyToDomCode(DomKey dom_key);
++EVENTS_BASE_EXPORT DomCode UsLayoutDomKeyToDomCode(DomKey dom_key, int *need_shift);
+ 
+ }  // namespace ui
  
 --
 2.25.1
