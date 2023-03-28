@@ -10,7 +10,7 @@ samesite=none first-party cookies are sent in third-party contexts.
  components/browsing_data/core/features.cc            |  2 +-
  .../browsing_data/same_site_data_remover_impl.cc     |  3 ++-
  net/base/features.cc                                 |  8 ++++----
- net/cookies/canonical_cookie.cc                      |  4 +---
+ net/cookies/canonical_cookie.cc                      | 11 +----------
  net/cookies/cookie_deletion_info.cc                  |  3 ++-
  net/cookies/parsed_cookie.h                          |  7 ++++++-
  net/extras/sqlite/sqlite_persistent_cookie_store.cc  | 10 ++++++++++
@@ -19,7 +19,7 @@ samesite=none first-party cookies are sent in third-party contexts.
  .../renderer/modules/cookie_store/cookie_init.idl    |  2 +-
  .../renderer/modules/cookie_store/cookie_store.cc    | 12 ++++++++++++
  .../cookie_store/cookie_store_delete_options.idl     |  2 +-
- 12 files changed, 53 insertions(+), 15 deletions(-)
+ 12 files changed, 53 insertions(+), 22 deletions(-)
 
 diff --git a/components/browsing_data/core/features.cc b/components/browsing_data/core/features.cc
 --- a/components/browsing_data/core/features.cc
@@ -83,15 +83,22 @@ diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
    }
  
    return true;
-@@ -1713,7 +1711,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
-     return true;
-   if (partition_has_nonce)
-     return true;
+@@ -1709,14 +1707,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
+                                                bool secure,
+                                                bool is_partitioned,
+                                                bool partition_has_nonce) {
+-  if (!is_partitioned)
+-    return true;
+-  if (partition_has_nonce)
+-    return true;
 -  bool result = url.SchemeIsCryptographic() && secure;
-+  bool result = url.SchemeIsCryptographic();
-   DLOG_IF(WARNING, !result)
-       << "CanonicalCookie has invalid Partitioned attribute";
-   return result;
+-  DLOG_IF(WARNING, !result)
+-      << "CanonicalCookie has invalid Partitioned attribute";
+-  return result;
++  return true;
+ }
+ 
+ CookieAndLineWithAccessResult::CookieAndLineWithAccessResult() = default;
 diff --git a/net/cookies/cookie_deletion_info.cc b/net/cookies/cookie_deletion_info.cc
 --- a/net/cookies/cookie_deletion_info.cc
 +++ b/net/cookies/cookie_deletion_info.cc
