@@ -150,23 +150,23 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
 @@ -48,7 +48,7 @@ public class SiteSettingsCategory {
              Type.USE_STORAGE, Type.AUTO_DARK_WEB_CONTENT, Type.REQUEST_DESKTOP_SITE,
-             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA,
+             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA, Type.ANTI_ABUSE,
              Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT, Type.IMAGES,
 -            Type.NUM_ENTRIES, Type.WEBGL})
 +            Type.NUM_ENTRIES, Type.WEBGL, Type.WEBRTC})
      @Retention(RetentionPolicy.SOURCE)
      public @interface Type {
          // All updates here must also be reflected in {@link #preferenceKey(int)
-@@ -86,10 +86,11 @@ public class SiteSettingsCategory {
-         int JAVASCRIPT_JIT = 30;
-         int IMAGES = 31;
-         int WEBGL = 32;
-+        int WEBRTC = 33;
+@@ -87,10 +87,11 @@ public class SiteSettingsCategory {
+         int JAVASCRIPT_JIT = 31;
+         int IMAGES = 32;
+         int WEBGL = 33;
++        int WEBRTC = 34;
          /**
           * Number of handled categories used for calculating array sizes.
           */
--        int NUM_ENTRIES = 33;
-+        int NUM_ENTRIES = 34;
+-        int NUM_ENTRIES = 34;
++        int NUM_ENTRIES = 35;
      }
  
      private final BrowserContextHandle mBrowserContextHandle;
@@ -218,7 +218,7 @@ diff --git a/components/components_strings.grd b/components/components_strings.g
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -592,6 +592,20 @@ void ContentSettingsRegistry::Init() {
+@@ -612,6 +612,20 @@ void ContentSettingsRegistry::Init() {
             /*show_into_info_page*/ true,
             /*permission_type_ui*/ IDS_SITE_SETTINGS_TYPE_WEBGL,
             /*permission_type_ui_mid_sentence*/ IDS_SITE_SETTINGS_TYPE_WEBGL_MID_SENTENCE);
@@ -254,7 +254,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
 --- a/components/content_settings/core/common/content_settings.cc
 +++ b/components/content_settings/core/common/content_settings.cc
-@@ -213,7 +213,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
+@@ -217,7 +217,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
           content_type == ContentSettingsType::MIXEDSCRIPT ||
           content_type == ContentSettingsType::AUTO_DARK_WEB_CONTENT ||
           content_type == ContentSettingsType::TIMEZONE_OVERRIDE ||
@@ -264,7 +264,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
  }
  
  void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-@@ -226,6 +227,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
+@@ -230,6 +231,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
    FilterRulesForType(timezone_override_rules, outermost_main_frame_url);
    FilterRulesForType(autoplay_rules, outermost_main_frame_url);
    FilterRulesForType(webgl_rules, outermost_main_frame_url);

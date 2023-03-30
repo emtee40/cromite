@@ -7,9 +7,9 @@ Search suggestions, autofill assistant and contextual search
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../java/res/xml/privacy_preferences.xml      | 13 ++++++++
- .../privacy/settings/PrivacySettings.java     | 31 ++++++++++++++++++-
+ .../privacy/settings/PrivacySettings.java     | 32 ++++++++++++++++++-
  .../strings/android_chrome_strings.grd        |  4 +++
- 3 files changed, 47 insertions(+), 1 deletion(-)
+ 3 files changed, 48 insertions(+), 1 deletion(-)
 
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
@@ -37,7 +37,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -45,6 +45,12 @@ import org.chromium.components.user_prefs.UserPrefs;
+@@ -44,6 +44,12 @@ import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.ui.text.NoUnderlineClickableSpan;
  import org.chromium.ui.text.SpanApplier;
  
@@ -50,7 +50,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  /**
   * Fragment to keep track of the all the privacy related preferences.
   */
-@@ -61,6 +67,16 @@ public class PrivacySettings
+@@ -60,6 +66,17 @@ public class PrivacySettings
      private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
      private static final String PREF_THIRD_PARTY_COOKIES = "third_party_cookies";
  
@@ -64,12 +64,13 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 +            SharedPreferencesManager.getInstance();
 +    private final PrefService prefService = UserPrefs.get(Profile.getLastUsedRegularProfile());
 +
-     private ManagedPreferenceDelegate mManagedPreferenceDelegate;
++    private ManagedPreferenceDelegate mManagedPreferenceDelegate;
      private IncognitoLockSettings mIncognitoLockSettings;
  
-@@ -111,6 +127,16 @@ public class PrivacySettings
+     @Override
+@@ -107,6 +124,16 @@ public class PrivacySettings
  
-         mManagedPreferenceDelegate = createManagedPreferenceDelegate();
+         setHasOptionsMenu(true);
  
 +        mSearchSuggestions = (ChromeSwitchPreference) findPreference(PREF_SEARCH_SUGGESTIONS);
 +        mSearchSuggestions.setOnPreferenceChangeListener(this);
@@ -84,7 +85,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
          canMakePaymentPref.setOnPreferenceChangeListener(this);
-@@ -147,6 +173,9 @@ public class PrivacySettings
+@@ -158,6 +185,9 @@ public class PrivacySettings
          } else if (PREF_HTTPS_FIRST_MODE.equals(key)) {
              UserPrefs.get(Profile.getLastUsedRegularProfile())
                      .setBoolean(Pref.HTTPS_ONLY_MODE_ENABLED, (boolean) newValue);
@@ -94,7 +95,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          }
          return true;
      }
-@@ -161,7 +190,7 @@ public class PrivacySettings
+@@ -172,7 +202,7 @@ public class PrivacySettings
       * Updates the preferences.
       */
      public void updatePreferences() {

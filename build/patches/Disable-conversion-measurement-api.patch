@@ -11,7 +11,6 @@ being sent and being saved to disk, although it is currently in uncalled code.
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../browser/flags/android/chrome_feature_list.cc  |  4 ++--
  .../embedder_support/origin_trials/features.cc    |  8 ++++----
  .../render_view_context_menu_base.cc              |  3 ---
  .../aggregatable_report_sender.cc                 | 15 +++++++--------
@@ -20,24 +19,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../attribution_storage_sql.cc                    |  8 +++++---
  content/browser/storage_partition_impl.cc         |  7 +------
  content/public/browser/navigation_controller.cc   |  1 -
- third_party/blink/common/features.cc              |  4 ++--
+ third_party/blink/common/features.cc              |  8 ++++----
  .../platform/runtime_enabled_features.json5       |  7 +++++++
- 11 files changed, 37 insertions(+), 32 deletions(-)
+ 10 files changed, 37 insertions(+), 32 deletions(-)
 
-diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
---- a/chrome/browser/flags/android/chrome_feature_list.cc
-+++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -487,8 +487,8 @@ BASE_FEATURE(kAppMenuMobileSiteOption,
-              base::FEATURE_DISABLED_BY_DEFAULT);
- 
- BASE_FEATURE(kAppToWebAttribution,
--             "AppToWebAttribution",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "AppToWebAttribution",               // must be disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
- 
- BASE_FEATURE(kBackgroundThreadPool,
-              "BackgroundThreadPool",
 diff --git a/components/embedder_support/origin_trials/features.cc b/components/embedder_support/origin_trials/features.cc
 --- a/components/embedder_support/origin_trials/features.cc
 +++ b/components/embedder_support/origin_trials/features.cc
@@ -60,14 +45,14 @@ diff --git a/components/embedder_support/origin_trials/features.cc b/components/
 diff --git a/components/renderer_context_menu/render_view_context_menu_base.cc b/components/renderer_context_menu/render_view_context_menu_base.cc
 --- a/components/renderer_context_menu/render_view_context_menu_base.cc
 +++ b/components/renderer_context_menu/render_view_context_menu_base.cc
-@@ -490,9 +490,6 @@ void RenderViewContextMenuBase::OpenURLWithExtraHeaders(
+@@ -507,9 +507,6 @@ RenderViewContextMenuBase::GetOpenURLParamsWithExtraHeaders(
  
    open_url_params.source_site_instance = site_instance_;
  
 -  if (disposition != WindowOpenDisposition::OFF_THE_RECORD)
 -    open_url_params.impression = params_.impression;
 -
-   source_web_contents_->OpenURL(open_url_params);
+   return open_url_params;
  }
  
 diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b/content/browser/aggregation_service/aggregatable_report_sender.cc
@@ -103,7 +88,7 @@ diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
-@@ -178,6 +178,7 @@ void AttributionHost::DidRedirectNavigation(
+@@ -189,6 +189,7 @@ void AttributionHost::DidRedirectNavigation(
      return;
    }
  
@@ -142,7 +127,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
 diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
 --- a/content/browser/attribution_reporting/attribution_storage_sql.cc
 +++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
-@@ -432,6 +432,8 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
+@@ -438,6 +438,8 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
    return user_data_directory.Append(kDatabasePath);
  }
  
@@ -151,7 +136,7 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
  }  // namespace
  
  // static
-@@ -443,9 +445,9 @@ bool AttributionStorageSql::DeleteStorageForTesting(
+@@ -449,9 +451,9 @@ bool AttributionStorageSql::DeleteStorageForTesting(
  AttributionStorageSql::AttributionStorageSql(
      const base::FilePath& user_data_directory,
      std::unique_ptr<AttributionStorageDelegate> delegate)
@@ -167,7 +152,7 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -1338,12 +1338,7 @@ void StoragePartitionImpl::Initialize(
+@@ -1339,12 +1339,7 @@ void StoragePartitionImpl::Initialize(
  
    bucket_manager_ = std::make_unique<BucketManager>(this);
  
@@ -195,7 +180,18 @@ diff --git a/content/public/browser/navigation_controller.cc b/content/public/br
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -121,8 +121,8 @@ BASE_FEATURE(kBlockingDownloadsInAdFrameWithoutUserActivation,
+@@ -29,8 +29,8 @@ BASE_FEATURE(kAnonymousIframeOriginTrial,
+ // Gate access to Attribution Reporting cross app and web APIs that allow
+ // registering with a native attribution API.
+ BASE_FEATURE(kAttributionReportingCrossAppWeb,
+-             "AttributionReportingCrossAppWeb",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "AttributionReportingCrossAppWeb",     // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
+ 
+ // Apply lazy-loading to ad frames which have embeds likely impacting Core Web
+ // Vitals.
+@@ -128,8 +128,8 @@ BASE_FEATURE(kBlockingDownloadsInAdFrameWithoutUserActivation,
  
  // Controls whether the Conversion Measurement API infrastructure is enabled.
  BASE_FEATURE(kConversionMeasurement,
@@ -209,7 +205,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -201,6 +201,13 @@
+@@ -203,6 +203,13 @@
    },
  
    data: [

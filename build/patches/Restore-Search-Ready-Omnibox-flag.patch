@@ -22,7 +22,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -8418,6 +8418,9 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -8456,6 +8456,9 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kDesksTemplatesDescription, kOsCrOS,
       FEATURE_VALUE_TYPE(ash::features::kDesksTemplates)},
  #endif
@@ -30,14 +30,14 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 +     flag_descriptions::kSearchReadyOmniboxDescription, kOsAndroid,
 +     FEATURE_VALUE_TYPE(chrome::android::kSearchReadyOmniboxFeature)},
  
- #if BUILDFLAG(IS_CHROMEOS_ASH)
-     {"default-link-capturing-in-browser",
+     {"large-favicon-from-google",
+      flag_descriptions::kLargeFaviconFromGoogleName,
 diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
 --- a/chrome/browser/flag-metadata.json
 +++ b/chrome/browser/flag-metadata.json
-@@ -2855,6 +2855,11 @@
-     //  with neural net palm detection.
-     "expiry_milestone": 90
+@@ -2878,6 +2878,11 @@
+     // Added feature, for testing. expiry deep in future.
+     "expiry_milestone": 116
    },
 +  {
 +    "name": "enable-search-ready-omnibox",
@@ -50,7 +50,7 @@ diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.js
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -4008,6 +4008,11 @@ const char kSendTabToSelfV2Description[] =
+@@ -4055,6 +4055,11 @@ const char kSendTabToSelfV2Description[] =
      "Enables new received tab "
      "UI shown next to the profile icon instead of using system notifications.";
  
@@ -65,7 +65,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -2298,6 +2298,9 @@ extern const char kShowScrollableMVTOnNTPAndroidDescription[];
+@@ -2321,6 +2321,9 @@ extern const char kShowScrollableMVTOnNTPAndroidDescription[];
  extern const char kSendTabToSelfV2Name[];
  extern const char kSendTabToSelfV2Description[];
  
@@ -78,15 +78,15 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -250,6 +250,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+@@ -254,6 +254,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
      &kReaderModeInCCT,
      &kRecordSuppressionMetrics,
      &kReengagementNotification,
 +    &kSearchReadyOmniboxFeature,
      &kRelatedSearches,
-     &kRelatedSearchesInBar,
      &kRelatedSearchesUi,
-@@ -761,6 +762,10 @@ BASE_FEATURE(kOpaqueOriginForIncomingIntents,
+     &kReportParentalControlSitesChild,
+@@ -771,6 +772,10 @@ BASE_FEATURE(kOpaqueOriginForIncomingIntents,
               "OpaqueOriginForIncomingIntents",
               base::FEATURE_ENABLED_BY_DEFAULT);
  
@@ -100,9 +100,9 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -134,6 +134,7 @@ BASE_DECLARE_FEATURE(kRequestDesktopSiteOptInControlSynthetic);
- BASE_DECLARE_FEATURE(kRequestDesktopSiteOptInSynthetic);
+@@ -136,6 +136,7 @@ BASE_DECLARE_FEATURE(kRequestDesktopSiteOptInSynthetic);
  BASE_DECLARE_FEATURE(kRequestDesktopSiteDefaultsDowngrade);
+ BASE_DECLARE_FEATURE(kRequestDesktopSiteDefaultsLogging);
  BASE_DECLARE_FEATURE(kRequestDesktopSitePerSiteIph);
 +BASE_DECLARE_FEATURE(kSearchReadyOmniboxFeature);
  BASE_DECLARE_FEATURE(kSharingHubLinkToggle);
@@ -111,7 +111,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -366,6 +366,7 @@ public abstract class ChromeFeatureList {
+@@ -368,6 +368,7 @@ public abstract class ChromeFeatureList {
              "MessagesForAndroidStackingAnimation";
      public static final String MESSAGES_FOR_ANDROID_SYNC_ERROR = "MessagesForAndroidSyncError";
      public static final String METRICS_SETTINGS_ANDROID = "MetricsSettingsAndroid";

@@ -4,20 +4,20 @@ Subject: do not add suffix to package name
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/android/BUILD.gn | 2 +-
+ chrome/android/chrome_public_apk_tmpl.gni | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
---- a/chrome/android/BUILD.gn
-+++ b/chrome/android/BUILD.gn
-@@ -51,7 +51,7 @@ if (current_toolchain == default_toolchain) {
-   _default_package = "org.chromium.chrome"
+diff --git a/chrome/android/chrome_public_apk_tmpl.gni b/chrome/android/chrome_public_apk_tmpl.gni
+--- a/chrome/android/chrome_public_apk_tmpl.gni
++++ b/chrome/android/chrome_public_apk_tmpl.gni
+@@ -30,7 +30,7 @@ declare_args() {
+   chrome_public_manifest_package = "org.chromium.chrome"
    if (use_stable_package_name_for_trichrome) {
-     _default_package += ".stable"
+     chrome_public_manifest_package += ".stable"
 -  } else if (android_channel != "default") {
 +  } else if (android_channel != "default" && android_channel != "stable") {
-     # android-binary-size trybot may checks if an internal Chrome variant's
-     # AndroidManifest is as expected by ensuring the differences between its
-     # AndroidManifest and its upstream target's .AndroidManifest.expected file
+     chrome_public_manifest_package += "." + android_channel
+   }
+ }
 --
 2.25.1

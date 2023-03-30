@@ -10,20 +10,20 @@ Do not skip google.com domains for password generation (csagan5)
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/browser/prefs/browser_prefs.cc         |  6 ++--
- .../core/browser/autofill_download_manager.cc | 35 +++----------------
- .../core/browser/autofill_download_manager.h  |  2 --
- .../autofill/core/browser/autofill_manager.cc | 20 -----------
- .../core/browser/browser_autofill_manager.h   |  4 +--
- .../autofill/core/common/autofill_features.cc |  4 +--
- .../autofill/core/common/autofill_prefs.cc    |  8 ++---
- .../password_generation_frame_helper.cc       |  4 ---
- 8 files changed, 16 insertions(+), 67 deletions(-)
+ chrome/browser/prefs/browser_prefs.cc         |  6 +--
+ .../ui/autofill/chrome_autofill_client.cc     |  7 +--
+ .../core/browser/autofill_download_manager.cc | 49 +++----------------
+ .../core/browser/autofill_download_manager.h  |  2 -
+ .../core/browser/browser_autofill_manager.h   |  4 +-
+ .../autofill/core/common/autofill_features.cc |  4 +-
+ .../autofill/core/common/autofill_prefs.cc    |  8 +--
+ .../password_generation_frame_helper.cc       |  4 --
+ 8 files changed, 19 insertions(+), 65 deletions(-)
 
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1105,11 +1105,11 @@ void RegisterProfilePrefsForMigration(
+@@ -1021,11 +1021,11 @@ void RegisterProfilePrefsForMigration(
                                     PrefRegistry::LOSSY_PREF);
  
    // Deprecated 11/2022.
@@ -38,10 +38,27 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
  
    // Deprecated 12/2022.
    registry->RegisterBooleanPref(kAutofillWalletImportStorageCheckboxState,
+diff --git a/chrome/browser/ui/autofill/chrome_autofill_client.cc b/chrome/browser/ui/autofill/chrome_autofill_client.cc
+--- a/chrome/browser/ui/autofill/chrome_autofill_client.cc
++++ b/chrome/browser/ui/autofill/chrome_autofill_client.cc
+@@ -162,12 +162,7 @@ ChromeAutofillClient::GetURLLoaderFactory() {
+ }
+ 
+ AutofillDownloadManager* ChromeAutofillClient::GetDownloadManager() {
+-  if (!download_manager_) {
+-    // Lazy initialization to avoid virtual function calls in the constructor.
+-    download_manager_ = std::make_unique<AutofillDownloadManager>(
+-        this, GetChannel(), GetLogManager());
+-  }
+-  return download_manager_.get();
++  return nullptr;
+ }
+ 
+ PersonalDataManager* ChromeAutofillClient::GetPersonalDataManager() {
 diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/components/autofill/core/browser/autofill_download_manager.cc
 --- a/components/autofill/core/browser/autofill_download_manager.cc
 +++ b/components/autofill/core/browser/autofill_download_manager.cc
-@@ -509,35 +509,6 @@ bool GetUploadPayloadForApi(const AutofillUploadContents& upload,
+@@ -473,35 +473,6 @@ bool GetUploadPayloadForApi(const AutofillUploadContents& upload,
    return upload_request.SerializeToString(payload);
  }
  
@@ -77,7 +94,27 @@ diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/com
  // Gets HTTP body payload for API POST request.
  bool GetAPIBodyPayload(const std::string& payload,
                         AutofillDownloadManager::RequestType type,
-@@ -780,6 +751,7 @@ std::tuple<GURL, std::string> AutofillDownloadManager::GetRequestURLAndMethod(
+@@ -540,18 +511,7 @@ bool IsRawMetadataUploadingEnabled(version_info::Channel channel) {
+ }
+ 
+ std::string GetAPIKeyForUrl(version_info::Channel channel) {
+-  // First look if we can get API key from command line flag.
+-  const base::CommandLine& command_line =
+-      *base::CommandLine::ForCurrentProcess();
+-  if (command_line.HasSwitch(switches::kAutofillAPIKey)) {
+-    return command_line.GetSwitchValueASCII(switches::kAutofillAPIKey);
+-  }
+-
+-  // Get the API key from Chrome baked keys.
+-  if (channel == version_info::Channel::STABLE) {
+-    return google_apis::GetAPIKey();
+-  }
+-  return google_apis::GetNonStableAPIKey();
++  return std::string();
+ }
+ 
+ }  // namespace
+@@ -767,6 +727,7 @@ std::tuple<GURL, std::string> AutofillDownloadManager::GetRequestURLAndMethod(
    // ID of the resource to add to the API request URL. Nothing will be added if
    // |resource_id| is empty.
    std::string resource_id;
@@ -85,7 +122,7 @@ diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/com
    std::string method = "POST";
  
    if (request_data.request_type == AutofillDownloadManager::REQUEST_QUERY) {
-@@ -800,7 +772,10 @@ std::tuple<GURL, std::string> AutofillDownloadManager::GetRequestURLAndMethod(
+@@ -787,11 +748,15 @@ std::tuple<GURL, std::string> AutofillDownloadManager::GetRequestURLAndMethod(
  
    // Add the query parameter to set the response format to a serialized proto.
    url = net::AppendQueryParameter(url, "alt", "proto");
@@ -97,6 +134,11 @@ diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/com
    return std::make_tuple(std::move(url), std::move(method));
  }
  
+ bool AutofillDownloadManager::StartRequest(FormRequestData request_data) {
++  if ((true)) return false;
+   // REQUEST_UPLOADs take no IsolationInfo because Password Manager uploads when
+   // RenderFrameHostImpl::DidCommitNavigation() is called, in which case
+   // AutofillDriver::IsolationInfo() may crash because there is no committing
 diff --git a/components/autofill/core/browser/autofill_download_manager.h b/components/autofill/core/browser/autofill_download_manager.h
 --- a/components/autofill/core/browser/autofill_download_manager.h
 +++ b/components/autofill/core/browser/autofill_download_manager.h
@@ -109,47 +151,10 @@ diff --git a/components/autofill/core/browser/autofill_download_manager.h b/comp
  // A helper to make sure that tests which modify the set of active autofill
  // experiments do not interfere with one another.
  struct ScopedActiveAutofillExperiments {
-diff --git a/components/autofill/core/browser/autofill_manager.cc b/components/autofill/core/browser/autofill_manager.cc
---- a/components/autofill/core/browser/autofill_manager.cc
-+++ b/components/autofill/core/browser/autofill_manager.cc
-@@ -96,19 +96,6 @@ bool CachedFormNeedsUpdate(const FormData& live_form,
-   return false;
- }
- 
--std::string GetAPIKeyForUrl(version_info::Channel channel) {
--  // First look if we can get API key from command line flag.
--  const base::CommandLine& command_line =
--      *base::CommandLine::ForCurrentProcess();
--  if (command_line.HasSwitch(switches::kAutofillAPIKey))
--    return command_line.GetSwitchValueASCII(switches::kAutofillAPIKey);
--
--  // Get the API key from Chrome baked keys.
--  if (channel == version_info::Channel::STABLE)
--    return google_apis::GetAPIKey();
--  return google_apis::GetNonStableAPIKey();
--}
--
- }  // namespace
- 
- // static
-@@ -144,13 +131,6 @@ AutofillManager::AutofillManager(AutofillDriver* driver,
-       client_(client),
-       log_manager_(client ? client->GetLogManager() : nullptr),
-       form_interactions_ukm_logger_(CreateFormInteractionsUkmLogger()) {
--  if (enable_download_manager) {
--    download_manager_ = std::make_unique<AutofillDownloadManager>(
--        client, GetAPIKeyForUrl(channel),
--        AutofillDownloadManager::IsRawMetadataUploadingEnabled(
--            IsRawMetadataUploadingEnabled(channel)),
--        log_manager_);
--  }
-   if (client) {
-     translate::TranslateDriver* translate_driver = client->GetTranslateDriver();
-     if (translate_driver) {
 diff --git a/components/autofill/core/browser/browser_autofill_manager.h b/components/autofill/core/browser/browser_autofill_manager.h
 --- a/components/autofill/core/browser/browser_autofill_manager.h
 +++ b/components/autofill/core/browser/browser_autofill_manager.h
-@@ -744,9 +744,9 @@ class BrowserAutofillManager : public AutofillManager,
+@@ -743,9 +743,9 @@ class BrowserAutofillManager : public AutofillManager,
    std::unique_ptr<CreditCardFormEventLogger> credit_card_form_event_logger_;
  
    // Have we logged whether Autofill is enabled for this page load?
@@ -164,7 +169,7 @@ diff --git a/components/autofill/core/browser/browser_autofill_manager.h b/compo
 diff --git a/components/autofill/core/common/autofill_features.cc b/components/autofill/core/common/autofill_features.cc
 --- a/components/autofill/core/common/autofill_features.cc
 +++ b/components/autofill/core/common/autofill_features.cc
-@@ -485,8 +485,8 @@ const base::FeatureParam<int> kAutofillServerBehaviorsParam{
+@@ -701,8 +701,8 @@ BASE_FEATURE(kAutofillCreateDataForTest,
  // "upload" resources.
  // i.e., https://other.autofill.server:port/tbproxy/af/
  BASE_FEATURE(kAutofillServerCommunication,
@@ -173,12 +178,12 @@ diff --git a/components/autofill/core/common/autofill_features.cc b/components/a
 +             "AutofillServerCommunication",       // disabled by default
 +             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
  
- // Controls whether Autofill may fill across origins as part of the
- // AutofillAcrossIframes experiment.
+ // Controls attaching the autofill type predictions to their respective
+ // element in the DOM.
 diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/autofill/core/common/autofill_prefs.cc
 --- a/components/autofill/core/common/autofill_prefs.cc
 +++ b/components/autofill/core/common/autofill_prefs.cc
-@@ -107,7 +107,7 @@ const char kAutocompleteLastVersionRetentionPolicy[] =
+@@ -103,7 +103,7 @@ const char kAutocompleteLastVersionRetentionPolicy[] =
  void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
    // Synced prefs. Used for cross-device choices, e.g., credit card Autofill.
    registry->RegisterBooleanPref(
@@ -187,7 +192,7 @@ diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/auto
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterIntegerPref(
        prefs::kAutofillLastVersionDeduped, 0,
-@@ -117,10 +117,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -113,10 +113,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
        prefs::kAutofillLastVersionDisusedAddressesDeleted, 0,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterBooleanPref(
@@ -200,7 +205,7 @@ diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/auto
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
  
    // Non-synced prefs. Used for per-device choices, e.g., signin promo.
-@@ -146,7 +146,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -140,7 +140,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
  
    // Deprecated prefs registered for migration.
    registry->RegisterBooleanPref(

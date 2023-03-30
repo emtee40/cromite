@@ -70,7 +70,7 @@ diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegate.cc
 --- a/chrome/app/chrome_main_delegate.cc
 +++ b/chrome/app/chrome_main_delegate.cc
-@@ -101,6 +101,9 @@
+@@ -102,6 +102,9 @@
  #include "ui/base/resource/resource_bundle.h"
  #include "ui/base/resource/scoped_startup_resource_bundle.h"
  #include "ui/base/ui_base_switches.h"
@@ -80,7 +80,7 @@ diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegat
  
  #if BUILDFLAG(IS_WIN)
  #include <malloc.h>
-@@ -1089,6 +1092,13 @@ absl::optional<int> ChromeMainDelegate::BasicStartupComplete() {
+@@ -1075,6 +1078,13 @@ absl::optional<int> ChromeMainDelegate::BasicStartupComplete() {
      return chrome::RESULT_CODE_INVALID_SANDBOX_STATE;
  #endif
  
@@ -97,7 +97,7 @@ diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegat
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -6322,6 +6322,10 @@ Keep your key file in a safe place. You will need it to create new versions of y
+@@ -6334,6 +6334,10 @@ Keep your key file in a safe place. You will need it to create new versions of y
          You are using an unsupported feature flag: <ph name="BAD_FLAG">$1<ex>SignedHTTPExchange</ex></ph>. Stability and security will suffer.
        </message>
  
@@ -111,7 +111,7 @@ diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -7063,6 +7063,10 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -7114,6 +7114,10 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kDevicePostureDescription, kOsAll,
       FEATURE_VALUE_TYPE(features::kDevicePosture)},
  
@@ -125,7 +125,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -770,6 +770,10 @@ const char kDevicePostureName[] = "Device Posture API";
+@@ -781,6 +781,10 @@ const char kDevicePostureName[] = "Device Posture API";
  const char kDevicePostureDescription[] =
      "Enables Device Posture API (foldable devices)";
  
@@ -139,20 +139,20 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -567,6 +567,9 @@ extern const char kDeviceForceScheduledRebootDescription[];
+@@ -576,6 +576,9 @@ extern const char kDeviceForceScheduledRebootDescription[];
  extern const char kDevicePostureName[];
  extern const char kDevicePostureDescription[];
  
 +extern const char kNoAESHardwareMessageName[];
 +extern const char kNoAESHardwareMessageDescription[];
 +
- extern const char kIsolatedAppOriginsName[];
- extern const char kIsolatedAppOriginsDescription[];
+ extern const char kEnablePreinstalledWebAppDuplicationFixerName[];
+ extern const char kEnablePreinstalledWebAppDuplicationFixerDescription[];
  
 diff --git a/chrome/browser/ui/startup/bad_flags_prompt.cc b/chrome/browser/ui/startup/bad_flags_prompt.cc
 --- a/chrome/browser/ui/startup/bad_flags_prompt.cc
 +++ b/chrome/browser/ui/startup/bad_flags_prompt.cc
-@@ -226,6 +226,15 @@ void ShowBadFlagsPrompt(content::WebContents* web_contents) {
+@@ -216,6 +216,15 @@ void ShowBadFlagsPrompt(content::WebContents* web_contents) {
        return;
      }
    }
@@ -171,7 +171,7 @@ diff --git a/chrome/browser/ui/startup/bad_flags_prompt.cc b/chrome/browser/ui/s
 diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content/browser/renderer_host/render_process_host_impl.cc
 --- a/content/browser/renderer_host/render_process_host_impl.cc
 +++ b/content/browser/renderer_host/render_process_host_impl.cc
-@@ -3522,6 +3522,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+@@ -3504,6 +3504,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
      switches::kLacrosUseChromeosProtectedAv1,
  #endif
      switches::kDesktopModeViewportMetaEnabled,
@@ -182,7 +182,7 @@ diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 --- a/content/public/common/content_features.cc
 +++ b/content/public/common/content_features.cc
-@@ -776,6 +776,11 @@ BASE_FEATURE(kNoStatePrefetchHoldback,
+@@ -792,6 +792,11 @@ BASE_FEATURE(kNoStatePrefetchHoldback,
               "NoStatePrefetchHoldback",
               base::FEATURE_DISABLED_BY_DEFAULT);
  
@@ -197,7 +197,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
 diff --git a/content/public/common/content_features.h b/content/public/common/content_features.h
 --- a/content/public/common/content_features.h
 +++ b/content/public/common/content_features.h
-@@ -172,6 +172,7 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kNetworkServiceInProcess);
+@@ -174,6 +174,7 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kNetworkServiceInProcess);
  CONTENT_EXPORT BASE_DECLARE_FEATURE(kNotificationContentImage);
  CONTENT_EXPORT BASE_DECLARE_FEATURE(kNotificationTriggers);
  CONTENT_EXPORT BASE_DECLARE_FEATURE(kNoStatePrefetchHoldback);

@@ -29,7 +29,7 @@ Subject: 109 ADDNEW Remove HTTP referrals in cross origin
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -643,6 +643,8 @@ chrome_java_resources = [
+@@ -647,6 +647,8 @@ chrome_java_resources = [
    "java/res/xml/incognito_preferences.xml",
    "java/res/xml/privacy_preferences.xml",
    "java/res/xml/privacy_preferences_v2.xml",
@@ -41,7 +41,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -895,6 +895,8 @@ chrome_java_sources = [
+@@ -903,6 +903,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/privacy/settings/PrivacyPreferencesManagerImpl.java",
    "java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java",
    "java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java",
@@ -159,7 +159,7 @@ new file mode 100644
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -28,6 +28,7 @@ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+@@ -27,6 +27,7 @@ import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.incognito.reauth.IncognitoReauthSettingSwitchPreference;
  import org.chromium.chrome.browser.preferences.Pref;
  import org.chromium.chrome.browser.prefetch.settings.PreloadPagesSettingsFragment;
@@ -167,7 +167,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  import org.chromium.chrome.browser.privacy.secure_dns.SecureDnsSettings;
  import org.chromium.chrome.browser.privacy_guide.PrivacyGuideInteractions;
  import org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxBridge;
-@@ -67,7 +68,7 @@ public class PrivacySettings
+@@ -66,7 +67,7 @@ public class PrivacySettings
      private static final String PREF_HTTPS_FIRST_MODE = "https_first_mode";
      private static final String PREF_SECURE_DNS = "secure_dns";
      private static final String PREF_DO_NOT_TRACK = "do_not_track";
@@ -176,7 +176,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      private static final String PREF_CLEAR_BROWSING_DATA = "clear_browsing_data";
      private static final String PREF_PRIVACY_GUIDE = "privacy_guide";
      private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
-@@ -203,9 +204,6 @@ public class PrivacySettings
+@@ -215,9 +216,6 @@ public class PrivacySettings
          } else if (PREF_CAN_MAKE_PAYMENT.equals(key)) {
              UserPrefs.get(Profile.getLastUsedRegularProfile())
                      .setBoolean(Pref.CAN_MAKE_PAYMENT_ENABLED, (boolean) newValue);
@@ -186,7 +186,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          } else if (PREF_HTTPS_FIRST_MODE.equals(key)) {
              UserPrefs.get(Profile.getLastUsedRegularProfile())
                      .setBoolean(Pref.HTTPS_ONLY_MODE_ENABLED, (boolean) newValue);
-@@ -259,9 +257,9 @@ public class PrivacySettings
+@@ -271,9 +269,9 @@ public class PrivacySettings
                              : R.string.text_off);
          }
  
@@ -380,7 +380,7 @@ new file mode 100644
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -483,6 +483,9 @@ SystemNetworkContextManager::SystemNetworkContextManager(
+@@ -484,6 +484,9 @@ SystemNetworkContextManager::SystemNetworkContextManager(
        base::BindRepeating(&SystemNetworkContextManager::UpdateReferrersEnabled,
                            base::Unretained(this)));
  
@@ -390,7 +390,7 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
    pref_change_registrar_.Add(
        prefs::kExplicitlyAllowedNetworkPorts,
        base::BindRepeating(
-@@ -549,6 +552,7 @@ void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
+@@ -561,6 +564,7 @@ void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
    // the system NetworkContext, and the per-profile pref values are used for
    // the profile NetworkContexts.
    registry->RegisterBooleanPref(prefs::kEnableReferrers, true);
@@ -401,7 +401,7 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
 diff --git a/chrome/browser/renderer_preferences_util.cc b/chrome/browser/renderer_preferences_util.cc
 --- a/chrome/browser/renderer_preferences_util.cc
 +++ b/chrome/browser/renderer_preferences_util.cc
-@@ -115,6 +115,7 @@ void UpdateFromSystemSettings(blink::RendererPreferences* prefs,
+@@ -114,6 +114,7 @@ void UpdateFromSystemSettings(blink::RendererPreferences* prefs,
    prefs->accept_languages = GetLanguageListForProfile(
        profile, pref_service->GetString(language::prefs::kAcceptLanguages));
    prefs->enable_referrers = pref_service->GetBoolean(prefs::kEnableReferrers);
@@ -471,7 +471,7 @@ diff --git a/chrome/browser/ui/prefs/prefs_tab_helper.cc b/chrome/browser/ui/pre
 diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 --- a/chrome/common/pref_names.cc
 +++ b/chrome/common/pref_names.cc
-@@ -1392,6 +1392,9 @@ const char kEnableHyperlinkAuditing[] = "enable_a_ping";
+@@ -1360,6 +1360,9 @@ const char kEnableHyperlinkAuditing[] = "enable_a_ping";
  // Whether to enable sending referrers.
  const char kEnableReferrers[] = "enable_referrers";
  
@@ -484,7 +484,7 @@ diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -435,6 +435,7 @@ extern const char kPinnedTabs[];
+@@ -424,6 +424,7 @@ extern const char kPinnedTabs[];
  extern const char kDisable3DAPIs[];
  extern const char kEnableHyperlinkAuditing[];
  extern const char kEnableReferrers[];
@@ -495,7 +495,7 @@ diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
 --- a/content/browser/renderer_host/navigation_request.cc
 +++ b/content/browser/renderer_host/navigation_request.cc
-@@ -448,8 +448,9 @@ void AddAdditionalRequestHeaders(
+@@ -426,8 +426,9 @@ void AddAdditionalRequestHeaders(
          blink::mojom::Referrer(GURL(), network::mojom::ReferrerPolicy::kNever);
    }
  

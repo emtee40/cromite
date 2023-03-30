@@ -34,7 +34,7 @@ The feature is controlled by a feature flag (default enabled)
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -7196,6 +7196,11 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -7240,6 +7240,11 @@ const FeatureEntry kFeatureEntries[] = {
       FEATURE_VALUE_TYPE(paint_preview::kPaintPreviewDemo)},
  #endif  // BUILDFLAG(ENABLE_PAINT_PREVIEW) && BUILDFLAG(IS_ANDROID)
  
@@ -49,7 +49,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -6558,6 +6558,12 @@ const char kPaintPreviewDemoDescription[] =
+@@ -6644,6 +6644,12 @@ const char kPaintPreviewDemoDescription[] =
      "previews.";
  #endif  // ENABLE_PAINT_PREVIEW && BUILDFLAG(IS_ANDROID)
  
@@ -65,7 +65,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -3808,6 +3808,9 @@ extern const char kPaintPreviewDemoName[];
+@@ -3859,6 +3859,9 @@ extern const char kPaintPreviewDemoName[];
  extern const char kPaintPreviewDemoDescription[];
  #endif  // ENABLE_PAINT_PREVIEW && BUILDFLAG(IS_ANDROID)
  
@@ -78,30 +78,30 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -1581,6 +1581,10 @@ BASE_FEATURE(kNewBaseUrlInheritanceBehavior,
-              "NewBaseUrlInheritanceBehavior",
+@@ -217,6 +217,10 @@ BASE_FEATURE(kPath2DPaintCache,
+              "Path2DPaintCache",
               base::FEATURE_DISABLED_BY_DEFAULT);
  
 +BASE_FEATURE(kViewportProtection,
 +             "ViewportProtection",
 +             base::FEATURE_ENABLED_BY_DEFAULT);
 +
- BASE_FEATURE(kNewGetDisplayMediaPickerOrder,
-              "NewGetDisplayMediaPickerOrder",
+ BASE_FEATURE(kPrivacySandboxAdsAPIs,
+              "PrivacySandboxAdsAPIs",
               base::FEATURE_DISABLED_BY_DEFAULT);
 diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
 --- a/third_party/blink/public/common/features.h
 +++ b/third_party/blink/public/common/features.h
-@@ -892,6 +892,9 @@ BLINK_COMMON_EXPORT extern const base::FeatureParam<
+@@ -890,6 +890,9 @@ BLINK_COMMON_EXPORT extern const base::FeatureParam<
  // base url inheritance behavior from https://crbug.com/1356658.
  BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kNewBaseUrlInheritanceBehavior);
  
 +// Enable blink viewport protection
 +BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kViewportProtection);
 +
- // When an application calls getDisplayMedia(), a media-picker is displayed
- // to the user, allowing them to share a tab, a window or a screen.
- // * If this flag is enabled, the order is - tabs, windows, screens.
+ // This function checks both kNewBaseUrlInheritanceBehavior and
+ // kIsolateSandboxedIframes and returns true if either is enabled.
+ BLINK_COMMON_EXPORT bool IsNewBaseUrlInheritanceBehaviorEnabled();
 diff --git a/third_party/blink/public/common/widget/device_emulation_params.h b/third_party/blink/public/common/widget/device_emulation_params.h
 --- a/third_party/blink/public/common/widget/device_emulation_params.h
 +++ b/third_party/blink/public/common/widget/device_emulation_params.h
@@ -140,7 +140,7 @@ diff --git a/third_party/blink/renderer/core/css/media_values.cc b/third_party/b
 diff --git a/third_party/blink/renderer/core/css/resolver/style_resolver.cc b/third_party/blink/renderer/core/css/resolver/style_resolver.cc
 --- a/third_party/blink/renderer/core/css/resolver/style_resolver.cc
 +++ b/third_party/blink/renderer/core/css/resolver/style_resolver.cc
-@@ -1709,7 +1709,12 @@ ComputedStyleBuilder StyleResolver::InitialStyleBuilderForElement() const {
+@@ -1695,7 +1695,12 @@ ComputedStyleBuilder StyleResolver::InitialStyleBuilderForElement() const {
    ComputedStyleBuilder builder = CreateComputedStyleBuilder();
    builder.SetRtlOrdering(GetDocument().VisuallyOrdered() ? EOrder::kVisual
                                                           : EOrder::kLogical);
@@ -226,7 +226,7 @@ diff --git a/third_party/blink/renderer/core/events/pointer_event.h b/third_part
 diff --git a/third_party/blink/renderer/core/exported/web_view_impl.cc b/third_party/blink/renderer/core/exported/web_view_impl.cc
 --- a/third_party/blink/renderer/core/exported/web_view_impl.cc
 +++ b/third_party/blink/renderer/core/exported/web_view_impl.cc
-@@ -1030,7 +1030,7 @@ WebPagePopupImpl* WebViewImpl::OpenPagePopup(PagePopupClient* client) {
+@@ -1031,7 +1031,7 @@ WebPagePopupImpl* WebViewImpl::OpenPagePopup(PagePopupClient* client) {
    page_popup_ = WebPagePopupImpl::Create(
        std::move(popup_widget_host), std::move(widget_host),
        std::move(widget_receiver), this, agent_group_scheduler,
@@ -238,7 +238,7 @@ diff --git a/third_party/blink/renderer/core/exported/web_view_impl.cc b/third_p
 diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_party/blink/renderer/core/frame/local_dom_window.cc
 --- a/third_party/blink/renderer/core/frame/local_dom_window.cc
 +++ b/third_party/blink/renderer/core/frame/local_dom_window.cc
-@@ -1508,6 +1508,11 @@ int LocalDOMWindow::outerHeight() const {
+@@ -1515,6 +1515,11 @@ int LocalDOMWindow::outerHeight() const {
    if (!page)
      return 0;
  
@@ -250,7 +250,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
    ChromeClient& chrome_client = page->GetChromeClient();
    if (page->GetSettings().GetReportScreenSizeInPhysicalPixelsQuirk()) {
      return static_cast<int>(
-@@ -1533,6 +1538,11 @@ int LocalDOMWindow::outerWidth() const {
+@@ -1540,6 +1545,11 @@ int LocalDOMWindow::outerWidth() const {
    if (!page)
      return 0;
  
@@ -262,7 +262,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
    ChromeClient& chrome_client = page->GetChromeClient();
    if (page->GetSettings().GetReportScreenSizeInPhysicalPixelsQuirk()) {
      return static_cast<int>(
-@@ -1721,7 +1731,8 @@ double LocalDOMWindow::devicePixelRatio() const {
+@@ -1728,7 +1738,8 @@ double LocalDOMWindow::devicePixelRatio() const {
    if (!GetFrame())
      return 0.0;
  
@@ -272,7 +272,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
  }
  
  void LocalDOMWindow::scrollBy(double x, double y) const {
-@@ -2279,6 +2290,21 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
+@@ -2282,6 +2293,21 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
    if (!completed_url.IsEmpty() || result.new_window)
      result.frame->Navigate(frame_request, WebFrameLoadType::kStandard);
  
@@ -297,7 +297,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
-@@ -1322,6 +1322,10 @@ gfx::SizeF LocalFrame::ResizePageRectsKeepingRatio(
+@@ -1376,6 +1376,10 @@ gfx::SizeF LocalFrame::ResizePageRectsKeepingRatio(
    return gfx::SizeF(result_width, result_height);
  }
  
@@ -308,7 +308,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
  void LocalFrame::SetPageZoomFactor(float factor) {
    SetPageAndTextZoomFactors(factor, text_zoom_factor_);
  }
-@@ -1461,12 +1465,16 @@ device::mojom::blink::DevicePostureType LocalFrame::GetDevicePosture() {
+@@ -1515,12 +1519,16 @@ device::mojom::blink::DevicePostureType LocalFrame::GetDevicePosture() {
    return mojo_handler_->GetDevicePosture();
  }
  
@@ -330,7 +330,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/
 diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/blink/renderer/core/frame/local_frame.h
 --- a/third_party/blink/renderer/core/frame/local_frame.h
 +++ b/third_party/blink/renderer/core/frame/local_frame.h
-@@ -391,13 +391,14 @@ class CORE_EXPORT LocalFrame final
+@@ -402,13 +402,14 @@ class CORE_EXPORT LocalFrame final
    void SetInViewSourceMode(bool = true);
  
    void SetPageZoomFactor(float);
@@ -347,7 +347,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_frame.h b/third_party/b
  
    // Informs the local root's document and its local descendant subtree that a
    // media query value changed.
-@@ -973,6 +974,7 @@ class CORE_EXPORT LocalFrame final
+@@ -999,6 +1000,7 @@ class CORE_EXPORT LocalFrame final
    unsigned hidden_ : 1;
  
    float page_zoom_factor_;
@@ -453,7 +453,7 @@ diff --git a/third_party/blink/renderer/core/frame/screen_metrics_emulator.h b/t
 diff --git a/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc b/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc
 --- a/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc
 +++ b/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc
-@@ -1594,6 +1594,14 @@ void WebFrameWidgetImpl::ApplyVisualPropertiesSizing(
+@@ -1597,6 +1597,14 @@ void WebFrameWidgetImpl::ApplyVisualPropertiesSizing(
  
      if (auto* device_emulator = DeviceEmulator()) {
        device_emulator->UpdateVisualProperties(visual_properties);
@@ -626,9 +626,9 @@ diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/re
 diff --git a/third_party/blink/renderer/core/page/page.h b/third_party/blink/renderer/core/page/page.h
 --- a/third_party/blink/renderer/core/page/page.h
 +++ b/third_party/blink/renderer/core/page/page.h
-@@ -411,6 +411,9 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
-   }
-   mojom::blink::FencedFrameMode FencedFrameMode() { return fenced_frame_mode_; }
+@@ -414,6 +414,9 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
+ 
+   V8CompileHints& GetV8CompileHints() { return v8_compile_hints_; }
  
 +  void CalculateEmulatedScreenSetting(LocalFrame* frame, bool force = false);
 +  bool IsScreenEmulated() { return is_screen_emulated; }
@@ -636,7 +636,7 @@ diff --git a/third_party/blink/renderer/core/page/page.h b/third_party/blink/ren
   private:
    friend class ScopedPagePauser;
  
-@@ -553,6 +556,10 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
+@@ -556,6 +559,10 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
    // browser side FrameTree has the FrameTree::Type of kFencedFrame.
    bool is_fenced_frame_tree_ = false;
  
@@ -650,14 +650,14 @@ diff --git a/third_party/blink/renderer/core/page/page.h b/third_party/blink/ren
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -1496,7 +1496,7 @@
+@@ -1692,7 +1692,7 @@
        // assume that screen dimensions match window.innerWidth/innerHeight while
        // a page is fullscreen, but that is not always true. crbug.com/1367416
        name: "FullscreenScreenSizeMatchesDisplay",
 -      status: "experimental",
 +      status: "stable",
-       base_feature: "FullscreenScreenSizeMatchesDisplay",
      },
      {
+       name: "GamepadButtonAxisEvents",
 --
 2.25.1

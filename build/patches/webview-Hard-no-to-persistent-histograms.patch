@@ -12,20 +12,22 @@ Subject: webview: Hard no to persistent histograms
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- android_webview/browser/aw_field_trials.cc | 5 -----
- 1 file changed, 5 deletions(-)
+ android_webview/browser/aw_field_trials.cc | 7 -------
+ 1 file changed, 7 deletions(-)
 
 diff --git a/android_webview/browser/aw_field_trials.cc b/android_webview/browser/aw_field_trials.cc
 --- a/android_webview/browser/aw_field_trials.cc
 +++ b/android_webview/browser/aw_field_trials.cc
-@@ -11,9 +11,4 @@
+@@ -11,11 +11,4 @@
  #include "components/metrics/persistent_histograms.h"
  
  void AwFieldTrials::OnVariationsSetupComplete() {
 -  // Persistent histograms must be enabled ASAP, but depends on Features.
 -  base::FilePath metrics_dir;
 -  if (base::PathService::Get(base::DIR_ANDROID_APP_DATA, &metrics_dir)) {
--    InstantiatePersistentHistograms(metrics_dir);
+-    InstantiatePersistentHistogramsWithFeaturesAndCleanup(metrics_dir);
+-  } else {
+-    NOTREACHED();
 -  }
  }
 --

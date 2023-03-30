@@ -154,23 +154,23 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
 @@ -48,7 +48,7 @@ public class SiteSettingsCategory {
              Type.USE_STORAGE, Type.AUTO_DARK_WEB_CONTENT, Type.REQUEST_DESKTOP_SITE,
-             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA,
+             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA, Type.ANTI_ABUSE,
              Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT, Type.IMAGES,
 -            Type.NUM_ENTRIES})
 +            Type.NUM_ENTRIES, Type.WEBGL})
      @Retention(RetentionPolicy.SOURCE)
      public @interface Type {
          // All updates here must also be reflected in {@link #preferenceKey(int)
-@@ -85,10 +85,11 @@ public class SiteSettingsCategory {
-         int AUTOPLAY = 29;
-         int JAVASCRIPT_JIT = 30;
-         int IMAGES = 31;
-+        int WEBGL = 32;
+@@ -86,10 +86,11 @@ public class SiteSettingsCategory {
+         int AUTOPLAY = 30;
+         int JAVASCRIPT_JIT = 31;
+         int IMAGES = 32;
++        int WEBGL = 33;
          /**
           * Number of handled categories used for calculating array sizes.
           */
--        int NUM_ENTRIES = 32;
-+        int NUM_ENTRIES = 33;
+-        int NUM_ENTRIES = 33;
++        int NUM_ENTRIES = 34;
      }
  
      private final BrowserContextHandle mBrowserContextHandle;
@@ -222,8 +222,8 @@ diff --git a/components/components_strings.grd b/components/components_strings.g
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -578,6 +578,20 @@ void ContentSettingsRegistry::Init() {
-            WebsiteSettingsRegistry::ALL_PLATFORMS,
+@@ -598,6 +598,20 @@ void ContentSettingsRegistry::Init() {
+                WebsiteSettingsRegistry::PLATFORM_ANDROID,
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
 +
@@ -258,7 +258,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
 --- a/components/content_settings/core/common/content_settings.cc
 +++ b/components/content_settings/core/common/content_settings.cc
-@@ -212,7 +212,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
+@@ -216,7 +216,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
           content_type == ContentSettingsType::AUTOPLAY ||
           content_type == ContentSettingsType::MIXEDSCRIPT ||
           content_type == ContentSettingsType::AUTO_DARK_WEB_CONTENT ||
@@ -268,7 +268,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
  }
  
  void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-@@ -224,6 +225,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
+@@ -228,6 +229,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
    FilterRulesForType(auto_dark_content_rules, outermost_main_frame_url);
    FilterRulesForType(timezone_override_rules, outermost_main_frame_url);
    FilterRulesForType(autoplay_rules, outermost_main_frame_url);

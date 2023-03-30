@@ -49,15 +49,15 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -37,6 +37,7 @@ import org.chromium.chrome.browser.profiles.Profile;
+@@ -36,6 +36,7 @@ import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.settings.ChromeManagedPreferenceDelegate;
  import org.chromium.chrome.browser.settings.SettingsLauncherImpl;
  import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
 +import org.chromium.components.browser_ui.settings.SpinnerPreference;
- import org.chromium.components.browser_ui.settings.ManagedPreferenceDelegate;
  import org.chromium.components.browser_ui.settings.SettingsLauncher;
  import org.chromium.components.browser_ui.settings.SettingsUtils;
-@@ -53,6 +54,9 @@ import androidx.preference.PreferenceCategory;
+ import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
+@@ -52,6 +53,9 @@ import androidx.preference.PreferenceCategory;
  import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
  import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
  
@@ -67,7 +67,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  /**
   * Fragment to keep track of the all the privacy related preferences.
   */
-@@ -84,6 +88,8 @@ public class PrivacySettings
+@@ -83,6 +87,8 @@ public class PrivacySettings
      private ChromeSwitchPreference allowCustomTabIntentsPref;
      private ChromeSwitchPreference openExternalLinksPref;
  
@@ -76,7 +76,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      @Override
      public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
          PrivacyPreferencesManagerImpl privacyPrefManager =
-@@ -138,6 +144,40 @@ public class PrivacySettings
+@@ -150,6 +156,40 @@ public class PrivacySettings
          Preference secureDnsPref = findPreference(PREF_SECURE_DNS);
          secureDnsPref.setVisible(SecureDnsSettings.isUiEnabled());
  
@@ -117,8 +117,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          Preference thirdPartyCookies = findPreference(PREF_THIRD_PARTY_COOKIES);
          if (thirdPartyCookies != null) {
              thirdPartyCookies.getExtras().putString(
-@@ -251,6 +291,29 @@ public class PrivacySettings
-         };
+@@ -252,6 +292,29 @@ public class PrivacySettings
+         }
      }
  
 +    class TimeFrequencySpinnerOption {
@@ -173,7 +173,7 @@ diff --git a/chrome/browser/preferences/BUILD.gn b/chrome/browser/preferences/BU
 diff --git a/chrome/browser/profiles/profile_impl.cc b/chrome/browser/profiles/profile_impl.cc
 --- a/chrome/browser/profiles/profile_impl.cc
 +++ b/chrome/browser/profiles/profile_impl.cc
-@@ -366,6 +366,7 @@ std::unique_ptr<Profile> Profile::CreateProfile(const base::FilePath& path,
+@@ -370,6 +370,7 @@ std::unique_ptr<Profile> Profile::CreateProfile(const base::FilePath& path,
  void ProfileImpl::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kSavingBrowserHistoryDisabled, false);
@@ -365,7 +365,7 @@ diff --git a/components/history/core/browser/history_backend.cc b/components/his
  
  // The maximum number of days for which domain visit metrics are computed
  // each time HistoryBackend::GetDomainDiversity() is called.
-@@ -1158,6 +1158,19 @@ void HistoryBackend::InitImpl(
+@@ -1181,6 +1181,19 @@ void HistoryBackend::InitImpl(
    LOCAL_HISTOGRAM_TIMES("History.InitTime", TimeTicks::Now() - beginning_time);
  }
  
@@ -410,7 +410,7 @@ diff --git a/components/history/core/browser/history_service.cc b/components/his
  #include "components/history/core/browser/download_row.h"
  #include "components/history/core/browser/history_backend.h"
  #include "components/history/core/browser/history_backend_client.h"
-@@ -1186,6 +1189,9 @@ void HistoryService::Cleanup() {
+@@ -1196,6 +1199,9 @@ void HistoryService::Cleanup() {
      return;
    }
  
@@ -420,7 +420,7 @@ diff --git a/components/history/core/browser/history_service.cc b/components/his
    NotifyHistoryServiceBeingDeleted();
  
    weak_ptr_factory_.InvalidateWeakPtrs();
-@@ -1253,6 +1259,33 @@ bool HistoryService::Init(
+@@ -1263,6 +1269,33 @@ bool HistoryService::Init(
    return true;
  }
  
@@ -475,7 +475,7 @@ diff --git a/components/history/core/browser/history_service.h b/components/hist
    // Triggers the backend to load if it hasn't already, and then returns whether
    // it's finished loading.
    // Note: Virtual needed for mocking.
-@@ -1065,6 +1069,10 @@ class HistoryService : public KeyedService {
+@@ -1069,6 +1073,10 @@ class HistoryService : public KeyedService {
  
    base::OnceClosure origin_queried_closure_for_testing_;
  

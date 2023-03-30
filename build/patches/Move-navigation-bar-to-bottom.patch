@@ -65,7 +65,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ui/appmenu/AppMenuHandlerImpl.java        | 11 ++++
  .../omnibox/LocationBarCoordinator.java       |  9 +++-
  .../browser/omnibox/UrlBarCoordinator.java    | 11 +++-
- .../suggestions/AutocompleteCoordinator.java  | 18 ++++++-
+ .../suggestions/AutocompleteCoordinator.java  | 16 +++++-
  .../suggestions/AutocompleteMediator.java     |  7 ++-
  .../OmniboxSuggestionsDropdown.java           | 22 +++++++-
  .../OmniboxSuggestionsDropdownEmbedder.java   |  4 ++
@@ -86,7 +86,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../accessibility/AccessibilitySettings.java  | 16 ++++++
  .../AccessibilitySettingsDelegate.java        |  6 +++
  .../render_widget_host_view_android.cc        |  3 ++
- 74 files changed, 782 insertions(+), 56 deletions(-)
+ 74 files changed, 781 insertions(+), 55 deletions(-)
 
 diff --git a/cc/base/features.cc b/cc/base/features.cc
 --- a/cc/base/features.cc
@@ -139,7 +139,7 @@ diff --git a/cc/input/browser_controls_offset_manager.cc b/cc/input/browser_cont
 diff --git a/cc/trees/layer_tree_host_impl.cc b/cc/trees/layer_tree_host_impl.cc
 --- a/cc/trees/layer_tree_host_impl.cc
 +++ b/cc/trees/layer_tree_host_impl.cc
-@@ -4258,6 +4258,9 @@ bool LayerTreeHostImpl::AnimateBrowserControls(base::TimeTicks time) {
+@@ -4265,6 +4265,9 @@ bool LayerTreeHostImpl::AnimateBrowserControls(base::TimeTicks time) {
    if (scroll_delta.IsZero())
      return false;
  
@@ -152,9 +152,9 @@ diff --git a/cc/trees/layer_tree_host_impl.cc b/cc/trees/layer_tree_host_impl.cc
 diff --git a/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java b/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
 --- a/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
 +++ b/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
-@@ -90,6 +90,9 @@ import org.chromium.content_public.browser.LoadUrlParams;
- import org.chromium.ui.modelutil.PropertyModel;
- import org.chromium.ui.util.ColorUtils;
+@@ -100,6 +100,9 @@ import org.chromium.ui.util.ColorUtils;
+ 
+ import java.util.List;
  
 +import org.chromium.chrome.browser.flags.ChromeFeatureList;
 +import org.chromium.chrome.browser.flags.CachedFeatureFlags;
@@ -162,7 +162,7 @@ diff --git a/chrome/android/features/start_surface/java/src/org/chromium/chrome/
  /** The mediator implements the logic to interact with the surfaces and caller. */
  class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.OnClickListener,
                                        StartSurface.OnTabSelectingListener, BackPressHandler,
-@@ -1179,6 +1182,8 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
+@@ -1249,6 +1252,8 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
      }
  
      private void setTopMargin(int topMargin) {
@@ -182,7 +182,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
  
  import java.util.List;
  
-@@ -133,7 +134,8 @@ public class TabGroupUiCoordinator implements TabGroupUiMediator.ResetHandler, T
+@@ -144,7 +145,8 @@ public class TabGroupUiCoordinator implements TabGroupUiMediator.ResetHandler, T
      @Override
      public void initializeWithNative(Activity activity,
              BottomControlsCoordinator.BottomControlsVisibilityController visibilityController,
@@ -192,12 +192,12 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
          try (TraceEvent e = TraceEvent.scoped("TabGroupUiCoordinator.initializeWithNative")) {
              if (UmaSessionStats.isMetricsServiceAvailable()) {
                  UmaSessionStats.registerSyntheticFieldTrial(
-@@ -168,7 +170,8 @@ public class TabGroupUiCoordinator implements TabGroupUiMediator.ResetHandler, T
- 
+@@ -187,7 +189,8 @@ public class TabGroupUiCoordinator implements TabGroupUiMediator.ResetHandler, T
              mMediator = new TabGroupUiMediator(mActivity, visibilityController, this, mModel,
                      mTabModelSelector, mTabCreatorManager, mLayoutStateProviderSupplier,
--                    mIncognitoStateProvider, dialogController, mOmniboxFocusStateSupplier);
-+                    mIncognitoStateProvider, dialogController, mOmniboxFocusStateSupplier,
+                     mIncognitoStateProvider, mTabGridDialogControllerSupplier,
+-                    mOmniboxFocusStateSupplier);
++                    mOmniboxFocusStateSupplier,
 +                    topUiThemeColorProvider, tabSupplier);
  
              TabGroupUtils.startObservingForCreationIPH();
@@ -232,7 +232,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
              TabCreatorManager tabCreatorManager,
              OneshotSupplier<LayoutStateProvider> layoutStateProviderSupplier,
              IncognitoStateProvider incognitoStateProvider,
-             @Nullable TabGridDialogMediator.DialogController dialogController,
+             @Nullable Supplier<TabGridDialogMediator.DialogController> dialogControllerSupplier,
 -            ObservableSupplier<Boolean> omniboxFocusStateSupplier) {
 +            ObservableSupplier<Boolean> omniboxFocusStateSupplier,
 +            TopUiThemeColorProvider topUiThemeColorProvider, ObservableSupplier<Tab> tabSupplier) {
@@ -240,7 +240,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
          mContext = context;
          mResetHandler = resetHandler;
          mModel = model;
-@@ -140,10 +153,29 @@ public class TabGroupUiMediator implements BackPressHandler {
+@@ -142,10 +155,29 @@ public class TabGroupUiMediator implements BackPressHandler {
              mIsShowingOverViewMode = true;
          }
  
@@ -270,7 +270,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
                  if (TabUiFeatureUtilities.isTabGroupsAndroidEnabled(mContext)
                          && getTabsToShowForId(lastId).contains(tab)) {
                      return;
-@@ -198,6 +230,7 @@ public class TabGroupUiMediator implements BackPressHandler {
+@@ -202,6 +234,7 @@ public class TabGroupUiMediator implements BackPressHandler {
                      return;
                  }
                  resetTabStripWithRelatedTabsForId(currentTab.getId());
@@ -278,7 +278,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
              }
  
              @Override
-@@ -313,6 +346,20 @@ public class TabGroupUiMediator implements BackPressHandler {
+@@ -318,6 +351,20 @@ public class TabGroupUiMediator implements BackPressHandler {
          if (tab != null) {
              resetTabStripWithRelatedTabsForId(tab.getId());
          }
@@ -299,7 +299,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
      }
  
      void setupLeftButtonDrawable(int drawableId) {
-@@ -425,6 +472,7 @@ public class TabGroupUiMediator implements BackPressHandler {
+@@ -437,6 +484,7 @@ public class TabGroupUiMediator implements BackPressHandler {
      }
  
      public void destroy() {
@@ -410,7 +410,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
 +++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListCoordinator.java
-@@ -50,6 +50,9 @@ import org.chromium.ui.modelutil.SimpleRecyclerViewAdapter;
+@@ -49,6 +49,9 @@ import org.chromium.ui.modelutil.SimpleRecyclerViewAdapter;
  import org.chromium.ui.resources.dynamics.DynamicResourceLoader;
  import org.chromium.ui.widget.ViewLookupCachingFrameLayout;
  
@@ -420,7 +420,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
  import java.lang.annotation.Retention;
  import java.lang.annotation.RetentionPolicy;
  import java.util.List;
-@@ -263,6 +266,9 @@ public class TabListCoordinator
+@@ -262,6 +265,9 @@ public class TabListCoordinator
              if (mMode == TabListMode.GRID) {
                  GridLayoutManager gridLayoutManager =
                          new GridLayoutManager(context, GRID_LAYOUT_SPAN_COUNT_COMPACT);
@@ -433,7 +433,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListRecyclerView.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListRecyclerView.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListRecyclerView.java
 +++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabListRecyclerView.java
-@@ -37,6 +37,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
+@@ -38,6 +38,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
  import androidx.recyclerview.widget.RecyclerView;
  
  import org.chromium.base.Log;
@@ -441,7 +441,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
  import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.tabmodel.TabModel;
  import org.chromium.chrome.tab_ui.R;
-@@ -65,6 +66,8 @@ class TabListRecyclerView
+@@ -67,6 +68,8 @@ class TabListRecyclerView
      public static final long BASE_ANIMATION_DURATION_MS = 218;
      public static final long FINAL_FADE_IN_DURATION_MS = 50;
  
@@ -450,7 +450,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
      /**
       * Field trial parameter for downsampling scaling factor.
       */
-@@ -194,6 +197,7 @@ class TabListRecyclerView
+@@ -247,6 +250,7 @@ class TabListRecyclerView
                  ? FINAL_FADE_IN_DURATION_MS
                  : BASE_ANIMATION_DURATION_MS;
  
@@ -458,7 +458,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
          setAlpha(0);
          setVisibility(View.VISIBLE);
          mFadeInAnimator = ObjectAnimator.ofFloat(this, View.ALPHA, 1);
-@@ -228,6 +232,11 @@ class TabListRecyclerView
+@@ -282,6 +286,11 @@ class TabListRecyclerView
      }
  
      void setShadowVisibility(boolean shouldShowShadow) {
@@ -470,7 +470,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
          if (mShadowImageView == null) {
              Context context = getContext();
              mShadowImageView = new ImageView(context);
-@@ -240,7 +249,10 @@ class TabListRecyclerView
+@@ -294,7 +303,10 @@ class TabListRecyclerView
              if (getParent() instanceof FrameLayout) {
                  // Add shadow for grid tab switcher.
                  FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
@@ -482,7 +482,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
                  mShadowImageView.setLayoutParams(params);
                  mShadowImageView.setTranslationY(mShadowTopOffset);
                  FrameLayout parent = (FrameLayout) getParent();
-@@ -267,6 +279,10 @@ class TabListRecyclerView
+@@ -321,6 +333,10 @@ class TabListRecyclerView
  
      void setShadowTopOffset(int shadowTopOffset) {
          mShadowTopOffset = shadowTopOffset;
@@ -493,7 +493,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
  
          if (mShadowImageView != null && getParent() instanceof FrameLayout) {
              // Since the shadow has no functionality, other than just existing visually, we can use
-@@ -446,6 +462,7 @@ class TabListRecyclerView
+@@ -517,6 +533,7 @@ class TabListRecyclerView
                  mListener.finishedHiding();
              }
          });
@@ -504,7 +504,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
 diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
 --- a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
 +++ b/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabSwitcherMediator.java
-@@ -43,6 +43,7 @@ import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
+@@ -44,6 +44,7 @@ import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
  import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.incognito.reauth.IncognitoReauthController;
  import org.chromium.chrome.browser.incognito.reauth.IncognitoReauthManager;
@@ -512,7 +512,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
  import org.chromium.chrome.browser.multiwindow.MultiWindowModeStateDispatcher;
  import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
  import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
-@@ -453,11 +454,22 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
+@@ -463,11 +464,22 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
              updateTopControlsProperties();
              mContainerViewModel.set(
                      BOTTOM_CONTROLS_HEIGHT, browserControlsStateProvider.getBottomControlsHeight());
@@ -535,7 +535,7 @@ diff --git a/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser
              if (backPressManager != null && BackPressManager.isEnabled()) {
                  assert !mIsStartSurfaceEnabled || mIsStartSurfaceRefactorEnabled;
                  backPressManager.addHandler(this, BackPressHandler.Type.TAB_SWITCHER);
-@@ -590,6 +602,10 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
+@@ -595,6 +607,10 @@ class TabSwitcherMediator implements TabSwitcher.Controller, TabListRecyclerView
          final int contentOffset = mBrowserControlsStateProvider.getContentOffset();
  
          mContainerViewModel.set(TOP_MARGIN, contentOffset);
@@ -625,7 +625,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/s
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -243,6 +243,9 @@ import java.util.ArrayList;
+@@ -242,6 +242,9 @@ import java.util.ArrayList;
  import java.util.List;
  import java.util.function.Consumer;
  
@@ -635,7 +635,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  /**
   * A {@link AsyncInitializationActivity} that builds and manages a {@link CompositorViewHolder}
   * and associated classes.
-@@ -751,6 +754,16 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -750,6 +753,16 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
                  int toolbarLayoutId = getToolbarLayoutId();
                  if (toolbarLayoutId != ActivityUtils.NO_RESOURCE_ID && controlContainer != null) {
                      controlContainer.initWithToolbar(toolbarLayoutId);
@@ -655,7 +655,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
-@@ -100,6 +100,7 @@ public class ChromeCachedFlags {
+@@ -99,6 +99,7 @@ public class ChromeCachedFlags {
                  ChromeFeatureList.sInstanceSwitcher,
                  ChromeFeatureList.sInstantStart,
                  ChromeFeatureList.sInterestFeedV2,
@@ -666,7 +666,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/Chrom
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java
-@@ -85,6 +85,8 @@ import org.chromium.ui.base.WindowAndroid;
+@@ -86,6 +86,8 @@ import org.chromium.ui.base.WindowAndroid;
  import org.chromium.ui.mojom.VirtualKeyboardMode;
  import org.chromium.ui.resources.ResourceManager;
  import org.chromium.ui.resources.dynamics.DynamicResourceLoader;
@@ -675,7 +675,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/Comp
  
  import java.util.ArrayList;
  import java.util.HashSet;
-@@ -320,6 +322,10 @@ public class CompositorViewHolder extends FrameLayout
+@@ -323,6 +325,10 @@ public class CompositorViewHolder extends FrameLayout
                          WebContents webContents = mTabVisible.getWebContents();
                          if (webContents == null) return;
                          EventForwarder forwarder = webContents.getEventForwarder();
@@ -698,7 +698,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layo
  
  import java.util.List;
  
-@@ -256,7 +258,10 @@ public class LayoutManagerChrome
+@@ -257,7 +259,10 @@ public class LayoutManagerChrome
  
      @Override
      public SwipeHandler createToolbarSwipeHandler(boolean supportSwipeDown) {
@@ -710,7 +710,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layo
      }
  
      @Override
-@@ -506,9 +511,11 @@ public class LayoutManagerChrome
+@@ -507,9 +512,11 @@ public class LayoutManagerChrome
          private static final float SWIPE_RANGE_DEG = 25;
  
          private final boolean mSupportSwipeDown;
@@ -723,7 +723,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layo
          }
  
          @Override
-@@ -540,6 +547,9 @@ public class LayoutManagerChrome
+@@ -541,6 +548,9 @@ public class LayoutManagerChrome
                      && mScrollDirection == ScrollDirection.DOWN) {
                  RecordUserAction.record("MobileToolbarSwipeOpenStackView");
                  showLayout(LayoutType.TAB_SWITCHER, true);
@@ -733,7 +733,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layo
              } else if (mScrollDirection == ScrollDirection.LEFT
                      || mScrollDirection == ScrollDirection.RIGHT) {
                  startShowing(mToolbarSwipeLayout, true);
-@@ -586,6 +596,8 @@ public class LayoutManagerChrome
+@@ -587,6 +597,8 @@ public class LayoutManagerChrome
                  direction = ScrollDirection.RIGHT;
              } else if (swipeAngle < 270 + SWIPE_RANGE_DEG && swipeAngle > 270 - SWIPE_RANGE_DEG) {
                  direction = ScrollDirection.DOWN;
@@ -1073,7 +1073,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/fullscreen/Brow
  /**
   * A class that manages browser control visibility and positioning.
   */
-@@ -386,6 +389,14 @@ public class BrowserControlsManager implements ActivityStateListener, BrowserCon
+@@ -389,6 +392,14 @@ public class BrowserControlsManager implements ActivityStateListener, BrowserCon
          return mTopControlContainerHeight;
      }
  
@@ -1088,7 +1088,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/fullscreen/Brow
      @Override
      public int getTopControlsMinHeight() {
          return mTopControlsMinHeight;
-@@ -452,6 +463,8 @@ public class BrowserControlsManager implements ActivityStateListener, BrowserCon
+@@ -455,6 +466,8 @@ public class BrowserControlsManager implements ActivityStateListener, BrowserCon
  
      @Override
      public float getTopVisibleContentOffset() {
@@ -1153,7 +1153,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/modaldialog/Chr
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java b/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.java
-@@ -98,6 +98,8 @@ import org.chromium.content_public.browser.NavigationEntry;
+@@ -100,6 +100,8 @@ import org.chromium.content_public.browser.NavigationEntry;
  import org.chromium.ui.base.DeviceFormFactor;
  import org.chromium.ui.base.WindowAndroid;
  import org.chromium.ui.mojom.WindowOpenDisposition;
@@ -1162,7 +1162,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.
  
  import java.util.List;
  
-@@ -559,10 +561,15 @@ public class NewTabPage implements NativePage, InvalidationAwareThumbnailProvide
+@@ -564,10 +566,15 @@ public class NewTabPage implements NativePage, InvalidationAwareThumbnailProvide
          // + topControlsDistanceToRest| will give the margin for the current animation frame.
          final int topControlsDistanceToRest = mBrowserControlsStateProvider.getContentOffset()
                  - mBrowserControlsStateProvider.getTopControlsHeight();
@@ -1180,7 +1180,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPage.
  
          if (topMargin != layoutParams.topMargin || bottomMargin != layoutParams.bottomMargin) {
              layoutParams.topMargin = topMargin;
-@@ -582,7 +589,7 @@ public class NewTabPage implements NativePage, InvalidationAwareThumbnailProvide
+@@ -587,7 +594,7 @@ public class NewTabPage implements NativePage, InvalidationAwareThumbnailProvide
       *         strip.
       */
      private int getToolbarExtraYOffset() {
@@ -1297,7 +1297,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/searchwidget/Se
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
-@@ -317,6 +317,11 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+@@ -320,6 +320,11 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
          if (fragment instanceof INeedSnackbarManager) {
              ((INeedSnackbarManager)fragment).setSnackbarManager(mSnackbarManager);
          }
@@ -1382,7 +1382,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
                      PrivacyPreferencesManagerImpl.getInstance(), mLocationBarModel,
                      mActionModeController.getActionModeCallback(),
                      new WindowDelegate(mActivity.getWindow()), windowAndroid, mActivityTabProvider,
-@@ -888,11 +891,13 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+@@ -883,11 +886,13 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
                  // the height won't be measured by the background image.
                  if (mControlContainer.getBackground() == null) {
                      setControlContainerTopMargin(getToolbarExtraYOffset());
@@ -1396,7 +1396,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
                              mControlContainer.removeOnLayoutChangeListener(mLayoutChangeListener);
                              mLayoutChangeListener = null;
                          }
-@@ -1284,13 +1289,25 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+@@ -1279,13 +1284,25 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
          return mLocationBar.getOmniboxStub().isUrlBarFocused();
      }
  
@@ -1424,7 +1424,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
                  mScrimCoordinator, mOmniboxFocusStateSupplier, mBottomSheetController,
                  mActivityLifecycleDispatcher, mIsWarmOnResumeSupplier, mTabModelSelector,
                  mTabContentManager, mCompositorViewHolder,
-@@ -1299,7 +1316,8 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+@@ -1294,7 +1311,8 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
          var bottomControlsCoordinator = new BottomControlsCoordinator(mActivity, mWindowAndroid,
                  mLayoutManager, mCompositorViewHolder.getResourceManager(), mBrowserControlsSizer,
                  mFullscreenManager, (ScrollingBottomViewResourceFrameLayout) root, mTabGroupUi,
@@ -1434,7 +1434,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
          mBottomControlsCoordinatorSupplier.set(bottomControlsCoordinator);
          bottomControlsCoordinator.getHandleBackPressChangedSupplier().addObserver(
                  (x) -> { onBackPressStateChanged(); });
-@@ -2086,6 +2104,15 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+@@ -2079,6 +2097,15 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
      private void setControlContainerTopMargin(int margin) {
          final ViewGroup.MarginLayoutParams layoutParams =
                  ((ViewGroup.MarginLayoutParams) mControlContainer.getLayoutParams());
@@ -1519,7 +1519,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/system/Statu
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -7036,6 +7036,11 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -7087,6 +7087,11 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kWindowsScrollingPersonalityDescription, kOsAll,
       FEATURE_VALUE_TYPE(features::kWindowsScrollingPersonality)},
  
@@ -1534,7 +1534,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/android/compositor/scene_layer/tab_strip_scene_layer.cc b/chrome/browser/android/compositor/scene_layer/tab_strip_scene_layer.cc
 --- a/chrome/browser/android/compositor/scene_layer/tab_strip_scene_layer.cc
 +++ b/chrome/browser/android/compositor/scene_layer/tab_strip_scene_layer.cc
-@@ -15,6 +15,7 @@
+@@ -18,6 +18,7 @@
  #include "ui/android/resources/nine_patch_resource.h"
  #include "ui/android/resources/resource_manager_impl.h"
  #include "ui/gfx/geometry/transform.h"
@@ -1542,7 +1542,7 @@ diff --git a/chrome/browser/android/compositor/scene_layer/tab_strip_scene_layer
  
  using base::android::JavaParamRef;
  using base::android::JavaRef;
-@@ -93,8 +94,10 @@ void TabStripSceneLayer::SetContentTree(
+@@ -96,8 +97,10 @@ void TabStripSceneLayer::SetContentTree(
      content_tree_ = content_tree;
      if (content_tree) {
        layer()->InsertChild(content_tree->layer(), 0);
@@ -1555,7 +1555,7 @@ diff --git a/chrome/browser/android/compositor/scene_layer/tab_strip_scene_layer
      }
    }
  }
-@@ -127,13 +130,18 @@ void TabStripSceneLayer::UpdateTabStripLayer(JNIEnv* env,
+@@ -130,13 +133,18 @@ void TabStripSceneLayer::UpdateTabStripLayer(JNIEnv* env,
                                               jboolean should_readd_background,
                                               jint background_color) {
    gfx::RectF content(0, y_offset, width, height);
@@ -1602,7 +1602,7 @@ diff --git a/chrome/browser/browser_controls/android/java/src/org/chromium/chrom
 diff --git a/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsStateProvider.java b/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsStateProvider.java
 --- a/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsStateProvider.java
 +++ b/chrome/browser/browser_controls/android/java/src/org/chromium/chrome/browser/browser_controls/BrowserControlsStateProvider.java
-@@ -59,6 +59,12 @@ public interface BrowserControlsStateProvider {
+@@ -62,6 +62,12 @@ public interface BrowserControlsStateProvider {
       */
      int getTopControlsHeight();
  
@@ -1618,7 +1618,7 @@ diff --git a/chrome/browser/browser_controls/android/java/src/org/chromium/chrom
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -1773,6 +1773,10 @@ const char kImprovedKeyboardShortcutsDescription[] =
+@@ -1817,6 +1817,10 @@ const char kImprovedKeyboardShortcutsDescription[] =
      "Ensure keyboard shortcuts work consistently with international keyboard "
      "layouts and deprecate legacy shortcuts.";
  
@@ -1632,7 +1632,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -999,6 +999,9 @@ extern const char kImprovedKeyboardShortcutsDescription[];
+@@ -1016,6 +1016,9 @@ extern const char kImprovedKeyboardShortcutsDescription[];
  extern const char kCompositorThreadedScrollbarScrollingName[];
  extern const char kCompositorThreadedScrollbarScrollingDescription[];
  
@@ -1685,8 +1685,8 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
  #include "base/metrics/field_trial_params.h"
  #include "base/no_destructor.h"
  #include "base/strings/string_piece_forward.h"
-@@ -237,6 +238,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
-     &kIsVoiceSearchEnabledCache,
+@@ -239,6 +240,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+     &kInstantStart,
      &kLensCameraAssistedSearch,
      &kLensOnQuickActionSearchWidget,
 +    &features::kMoveTopToolbarToBottom,
@@ -1696,7 +1696,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
-@@ -122,6 +122,23 @@ public class CachedFeatureFlags {
+@@ -120,6 +120,23 @@ public class CachedFeatureFlags {
          SharedPreferencesManager.getInstance().writeBoolean(preferenceName, isEnabledInNative);
      }
  
@@ -1720,7 +1720,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      /**
       * Forces a feature to be enabled or disabled for testing.
       *
-@@ -432,6 +449,7 @@ public class CachedFeatureFlags {
+@@ -430,6 +447,7 @@ public class CachedFeatureFlags {
  
      @NativeMethods
      interface Natives {
@@ -1731,7 +1731,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -373,6 +373,8 @@ public abstract class ChromeFeatureList {
+@@ -375,6 +375,8 @@ public abstract class ChromeFeatureList {
      public static final String METRICS_SETTINGS_ANDROID = "MetricsSettingsAndroid";
      public static final String SEARCH_READY_OMNIBOX = "SearchReadyOmnibox";
      public static final String MODAL_PERMISSION_DIALOG_VIEW = "ModalPermissionDialogView";
@@ -1740,7 +1740,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final String NOTIFICATION_PERMISSION_VARIANT = "NotificationPermissionVariant";
      public static final String NOTIFICATION_PERMISSION_BOTTOM_SHEET =
              "NotificationPermissionBottomSheet";
-@@ -625,6 +627,8 @@ public abstract class ChromeFeatureList {
+@@ -633,6 +635,8 @@ public abstract class ChromeFeatureList {
      public static final CachedFlag sInterestFeedV2 = new CachedFlag(INTEREST_FEED_V2, true);
      public static final CachedFlag sLensCameraAssistedSearch =
              new CachedFlag(LENS_CAMERA_ASSISTED_SEARCH, true);
@@ -1848,7 +1848,7 @@ diff --git a/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/ch
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
-@@ -89,6 +89,7 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
+@@ -90,6 +90,7 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
      private WindowDelegate mWindowDelegate;
      private WindowAndroid mWindowAndroid;
      private View mAutocompleteAnchorView;
@@ -1856,7 +1856,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
      private LocationBarMediator mLocationBarMediator;
      private View mUrlBar;
      private View mDeleteButton;
-@@ -146,7 +147,7 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
+@@ -145,7 +146,7 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
       * @param reportExceptionCallback A {@link Callback} to report exceptions.
       * @param backPressManager The {@link BackPressManager} for intercepting back press.
       */
@@ -1865,15 +1865,15 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
              ObservableSupplier<Profile> profileObservableSupplier,
              PrivacyPreferencesManager privacyPreferencesManager,
              LocationBarDataProvider locationBarDataProvider, ActionMode.Callback actionModeCallback,
-@@ -178,6 +179,7 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
+@@ -177,6 +178,7 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
          mActivityLifecycleDispatcher = activityLifecycleDispatcher;
          mActivityLifecycleDispatcher.register(this);
          mAutocompleteAnchorView = autocompleteAnchorView;
 +        mContainerView = containerView;
          Context context = mLocationBarLayout.getContext();
- 
-         mUrlBar = mLocationBarLayout.findViewById(R.id.url_bar);
-@@ -398,6 +400,11 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
+         OneshotSupplierImpl<TemplateUrlService> templateUrlServiceSupplier =
+                 new OneshotSupplierImpl<>();
+@@ -407,6 +409,11 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
          return mAutocompleteAnchorView;
      }
  
@@ -1884,7 +1884,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
 +
      @Override
      public View getAlignmentView() {
-         return isTablet() ? mLocationBarLayout : null;
+         return isTablet() ? mLocationBarLayout : mAutocompleteAnchorView;
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java
@@ -1932,8 +1932,8 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
 +    private final @NonNull OmniboxSuggestionsDropdownEmbedder mDropdownEmbedder;
  
      public AutocompleteCoordinator(@NonNull ViewGroup parent,
-             @NonNull AutocompleteDelegate delegate,
-@@ -99,6 +102,7 @@ public class AutocompleteCoordinator implements UrlFocusChangeListener, UrlTextC
+             @NonNull AutocompleteControllerProvider controllerProvider,
+@@ -100,6 +103,7 @@ public class AutocompleteCoordinator implements UrlFocusChangeListener, UrlTextC
          PropertyModel listModel = new PropertyModel(SuggestionListProperties.ALL_KEYS);
          ModelList listItems = new ModelList();
  
@@ -1941,7 +1941,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
          listModel.set(SuggestionListProperties.EMBEDDER, dropdownEmbedder);
          listModel.set(SuggestionListProperties.VISIBLE, false);
          listModel.set(SuggestionListProperties.SUGGESTION_MODELS, listItems);
-@@ -154,7 +158,7 @@ public class AutocompleteCoordinator implements UrlFocusChangeListener, UrlTextC
+@@ -156,7 +160,7 @@ public class AutocompleteCoordinator implements UrlFocusChangeListener, UrlTextC
              public void inflate() {
                  OmniboxSuggestionsDropdown dropdown;
                  try (StrictModeContext ignored = StrictModeContext.allowDiskReads()) {
@@ -1950,7 +1950,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
                  }
  
                  // Start with visibility GONE to ensure that show() is called.
-@@ -232,6 +236,16 @@ public class AutocompleteCoordinator implements UrlFocusChangeListener, UrlTextC
+@@ -234,6 +238,16 @@ public class AutocompleteCoordinator implements UrlFocusChangeListener, UrlTextC
                  ViewGroup container = (ViewGroup) ((ViewStub) mParent.getRootView().findViewById(
                                                             R.id.omnibox_results_container_stub))
                                                .inflate();
@@ -1967,13 +1967,6 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
  
                  mHolder = new SuggestionListViewHolder(container, dropdown);
                  for (int i = 0; i < mCallbacks.size(); i++) {
-@@ -458,4 +472,4 @@ public class AutocompleteCoordinator implements UrlFocusChangeListener, UrlTextC
-             listener.onSuggestionDropdownOverscrolledToTop();
-         }
-     }
--}
-\ No newline at end of file
-+}
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteMediator.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteMediator.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteMediator.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/AutocompleteMediator.java
@@ -1987,7 +1980,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
  import java.lang.annotation.Retention;
  import java.lang.annotation.RetentionPolicy;
  import java.util.List;
-@@ -1009,7 +1012,9 @@ class AutocompleteMediator implements OnSuggestionsReceivedListener,
+@@ -1012,7 +1015,9 @@ class AutocompleteMediator implements OnSuggestionsReceivedListener,
      @Override
      public void onSuggestionDropdownScroll() {
          mSuggestionsListScrolled = true;
@@ -2060,7 +2053,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdownEmbedder.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdownEmbedder.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdownEmbedder.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdownEmbedder.java
-@@ -17,6 +17,10 @@ public interface OmniboxSuggestionsDropdownEmbedder {
+@@ -16,6 +16,10 @@ public interface OmniboxSuggestionsDropdownEmbedder {
      @NonNull
      View getAnchorView();
  
@@ -2070,11 +2063,11 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
 +
      /**
       * Return the view that the omnibox suggestions should be aligned horizontally to.  The
-      * view must be a descendant of {@link #getAnchorView()}. If null, the suggestions will
+      * view must be a descendant of {@link #getAnchorView()} or the anchor view itself.
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1617,6 +1617,12 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1620,6 +1620,12 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_FORCE_TABLET_UI_TITLE" desc="Title of the preference that allows the user to update force tablet UI settings.">
          Force Tablet Mode
        </message>
@@ -2090,7 +2083,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/browser/ui/android/toolbar/BUILD.gn b/chrome/browser/ui/android/toolbar/BUILD.gn
 --- a/chrome/browser/ui/android/toolbar/BUILD.gn
 +++ b/chrome/browser/ui/android/toolbar/BUILD.gn
-@@ -167,6 +167,7 @@ android_library("java") {
+@@ -171,6 +171,7 @@ android_library("java") {
      "//components/user_prefs/android:java",
      "//content/public/android:content_java",
      "//third_party/android_deps:material_design_java",
@@ -2249,7 +2242,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/BottomControlsViewBinder.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/BottomControlsViewBinder.java
 --- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/BottomControlsViewBinder.java
 +++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/bottom/BottomControlsViewBinder.java
-@@ -40,6 +40,8 @@ class BottomControlsViewBinder {
+@@ -39,6 +39,8 @@ class BottomControlsViewBinder {
                      model.get(BottomControlsProperties.BOTTOM_CONTROLS_CONTAINER_HEIGHT_PX);
          } else if (BottomControlsProperties.Y_OFFSET == propertyKey) {
              view.sceneLayer.setYOffset(model.get(BottomControlsProperties.Y_OFFSET));
@@ -2522,9 +2515,9 @@ diff --git a/content/browser/renderer_host/render_widget_host_view_android.cc b/
  #include "base/threading/scoped_blocking_call.h"
 +#include "cc/base/features.h"
  #include "cc/base/math_util.h"
- #include "cc/layers/layer.h"
- #include "cc/layers/surface_layer.h"
-@@ -840,6 +841,8 @@ void RenderWidgetHostViewAndroid::OnRenderFrameMetadataChangedBeforeActivation(
+ #include "cc/slim/layer.h"
+ #include "components/viz/common/features.h"
+@@ -841,6 +842,8 @@ void RenderWidgetHostViewAndroid::OnRenderFrameMetadataChangedBeforeActivation(
    // factor. Thus, |top_content_offset| in CSS pixels is also in DIPs.
    float top_content_offset =
        metadata.top_controls_height * metadata.top_controls_shown_ratio;

@@ -33,7 +33,7 @@ Subject: Add browser policy
 diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 --- a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 +++ b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
-@@ -62,6 +62,11 @@ JNI_PrivacyPreferencesManagerImpl_IsMetricsReportingDisabledByPolicy(
+@@ -61,6 +61,11 @@ JNI_PrivacyPreferencesManagerImpl_IsMetricsReportingDisabledByPolicy(
    }
  
    const PrefService* local_state = g_browser_process->local_state();
@@ -89,7 +89,7 @@ diff --git a/chrome/browser/policy/chrome_browser_policy_connector.cc b/chrome/b
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
-@@ -1856,9 +1856,9 @@ bool AreFuturePoliciesSupported() {
+@@ -1883,9 +1883,9 @@ bool AreFuturePoliciesEnabledByDefault() {
    // Enable future policies for branded browser tests.
    if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kTestType))
      return true;
@@ -150,7 +150,7 @@ diff --git a/chrome/browser/signin/account_consistency_mode_manager.cc b/chrome/
 diff --git a/chrome/browser/signin/chrome_signin_client.cc b/chrome/browser/signin/chrome_signin_client.cc
 --- a/chrome/browser/signin/chrome_signin_client.cc
 +++ b/chrome/browser/signin/chrome_signin_client.cc
-@@ -157,7 +157,9 @@ void ChromeSigninClient::DoFinalInit() {
+@@ -126,7 +126,9 @@ void ChromeSigninClient::DoFinalInit() {
  bool ChromeSigninClient::ProfileAllowsSigninCookies(Profile* profile) {
    content_settings::CookieSettings* cookie_settings =
        CookieSettingsFactory::GetForProfile(profile).get();
@@ -161,7 +161,7 @@ diff --git a/chrome/browser/signin/chrome_signin_client.cc b/chrome/browser/sign
  }
  
  PrefService* ChromeSigninClient::GetPrefs() { return profile_->GetPrefs(); }
-@@ -260,6 +262,8 @@ void ChromeSigninClient::OnConnectionChanged(
+@@ -239,6 +241,8 @@ void ChromeSigninClient::OnConnectionChanged(
  #endif
  
  void ChromeSigninClient::DelayNetworkCall(base::OnceClosure callback) {
@@ -195,7 +195,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
  #include "components/policy/core/common/policy_scheduler.h"
  #include "components/policy/core/common/policy_types.h"
  #include "components/policy/core/common/remote_commands/remote_commands_service.h"
-@@ -167,6 +170,10 @@ void PolicyUIHandler::RegisterMessages() {
+@@ -168,6 +171,10 @@ void PolicyUIHandler::RegisterMessages() {
        "exportPoliciesJSON",
        base::BindRepeating(&PolicyUIHandler::HandleExportPoliciesJson,
                            base::Unretained(this)));
@@ -206,7 +206,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
    web_ui()->RegisterMessageCallback(
        "listenPoliciesUpdates",
        base::BindRepeating(&PolicyUIHandler::HandleListenPoliciesUpdates,
-@@ -330,8 +337,102 @@ void PolicyUIHandler::SendPolicies() {
+@@ -331,8 +338,102 @@ void PolicyUIHandler::SendPolicies() {
        "policies-updated",
        base::Value(
            policy_value_and_status_aggregator_->GetAggregatedPolicyNames()),
@@ -326,7 +326,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.h b/chrome/browser
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
-@@ -134,7 +134,7 @@ BASE_FEATURE(kCommercePriceTracking,
+@@ -145,7 +145,7 @@ BASE_FEATURE(kCommercePriceTracking,
  const base::FeatureParam<bool> kDeleteAllMerchantsOnClearBrowsingHistory{
      &kCommerceMerchantViewer, "delete_all_merchants_on_clear_history", false};
  
@@ -369,7 +369,7 @@ diff --git a/components/policy/core/common/features.cc b/components/policy/core/
  
  BASE_FEATURE(kActivateMetricsReportingEnabledPolicyAndroid,
 -             "ActivateMetricsReportingEnabledPolicyAndroid",
--             base::FEATURE_DISABLED_BY_DEFAULT);
+-             base::FEATURE_ENABLED_BY_DEFAULT);
 +             "ActivateMetricsReportingEnabledPolicyAndroid", // guard this
 +             base::FEATURE_ENABLED_BY_DEFAULT);              // guard this
  
@@ -542,7 +542,7 @@ diff --git a/components/policy/core/common/policy_pref_names.h b/components/poli
 diff --git a/components/policy/core/common/policy_service_impl.cc b/components/policy/core/common/policy_service_impl.cc
 --- a/components/policy/core/common/policy_service_impl.cc
 +++ b/components/policy/core/common/policy_service_impl.cc
-@@ -65,6 +65,9 @@ void IgnoreUserCloudPrecedencePolicies(PolicyMap* policies) {
+@@ -66,6 +66,9 @@ void IgnoreUserCloudPrecedencePolicies(PolicyMap* policies) {
  // Metrics should not be enforced so if this policy is set as mandatory
  // downgrade it to a recommended level policy.
  void DowngradeMetricsReportingToRecommendedPolicy(PolicyMap* policies) {
@@ -636,7 +636,7 @@ diff --git a/components/policy/resources/webui/policy_row.js b/components/policy
      // Populate the remaining columns with policy scope, level and value if a
      // value has been set. Otherwise, leave them blank.
      if (!this.unset_) {
-@@ -199,6 +206,11 @@ export class PolicyRowElement extends CustomElement {
+@@ -204,6 +211,11 @@ export class PolicyRowElement extends CustomElement {
      }
    }
  
@@ -651,7 +651,7 @@ diff --git a/components/policy/resources/webui/policy_row.js b/components/policy
 diff --git a/components/policy_strings.grdp b/components/policy_strings.grdp
 --- a/components/policy_strings.grdp
 +++ b/components/policy_strings.grdp
-@@ -585,8 +585,8 @@ Additional details:
+@@ -588,8 +588,8 @@ Additional details:
    <message name="IDS_POLICY_SOURCE_DEFAULT" desc="Indicates that a policy is set by default and can be overridden.">
      Default
    </message>
@@ -681,7 +681,7 @@ diff --git a/components/signin/features.gni b/components/signin/features.gni
 diff --git a/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc b/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
 --- a/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
 +++ b/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
-@@ -484,6 +484,8 @@ void GaiaCookieManagerService::RegisterPrefs(PrefRegistrySimple* registry) {
+@@ -486,6 +486,8 @@ void GaiaCookieManagerService::RegisterPrefs(PrefRegistrySimple* registry) {
  }
  
  void GaiaCookieManagerService::InitCookieListener() {
@@ -690,7 +690,7 @@ diff --git a/components/signin/internal/identity_manager/gaia_cookie_manager_ser
    DCHECK(!cookie_listener_receiver_.is_bound());
    network::mojom::CookieManager* cookie_manager =
        signin_client_->GetCookieManager();
-@@ -1085,6 +1087,8 @@ void GaiaCookieManagerService::OnSetAccountsFinished(
+@@ -1087,6 +1089,8 @@ void GaiaCookieManagerService::OnSetAccountsFinished(
  }
  
  void GaiaCookieManagerService::HandleNextRequest() {
@@ -702,7 +702,7 @@ diff --git a/components/signin/internal/identity_manager/gaia_cookie_manager_ser
 diff --git a/google_apis/gaia/gaia_auth_fetcher.cc b/google_apis/gaia/gaia_auth_fetcher.cc
 --- a/google_apis/gaia/gaia_auth_fetcher.cc
 +++ b/google_apis/gaia/gaia_auth_fetcher.cc
-@@ -584,6 +584,7 @@ void GaiaAuthFetcher::StartListAccounts() {
+@@ -587,6 +587,7 @@ void GaiaAuthFetcher::StartListAccounts() {
              }
            }
          })");

@@ -43,7 +43,7 @@ diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.
 diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
 --- a/chrome/common/chrome_features.cc
 +++ b/chrome/common/chrome_features.cc
-@@ -879,8 +879,8 @@ BASE_FEATURE(kPermissionAuditing,
+@@ -888,8 +888,8 @@ BASE_FEATURE(kPermissionAuditing,
  // Enables using the prediction service for permission prompts. We will keep
  // this feature in order to allow us to update the holdback chance via finch.
  BASE_FEATURE(kPermissionPredictions,
@@ -54,7 +54,7 @@ diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
  
  // The holdback chance is 30% but it can also be configured/updated
  // through finch if needed.
-@@ -891,8 +891,8 @@ const base::FeatureParam<double> kPermissionPredictionsHoldbackChance(
+@@ -900,8 +900,8 @@ const base::FeatureParam<double> kPermissionPredictionsHoldbackChance(
  
  // Enables using the prediction service for geolocation permission prompts.
  BASE_FEATURE(kPermissionGeolocationPredictions,
@@ -68,7 +68,7 @@ diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
 diff --git a/components/optimization_guide/core/hints_fetcher.cc b/components/optimization_guide/core/hints_fetcher.cc
 --- a/components/optimization_guide/core/hints_fetcher.cc
 +++ b/components/optimization_guide/core/hints_fetcher.cc
-@@ -174,6 +174,7 @@ bool HintsFetcher::FetchOptimizationGuideServiceHints(
+@@ -178,6 +178,7 @@ bool HintsFetcher::FetchOptimizationGuideServiceHints(
      optimization_guide::proto::RequestContext request_context,
      const std::string& locale,
      HintsFetchedCallback hints_fetched_callback) {
@@ -187,7 +187,7 @@ diff --git a/components/optimization_guide/core/optimization_guide_features.cc b
  BASE_FEATURE(kPageVisibilityBatchAnnotations,
               "PageVisibilityBatchAnnotations",
               base::FEATURE_ENABLED_BY_DEFAULT);
-@@ -420,7 +416,7 @@ size_t MaxURLKeyedHintCacheSize() {
+@@ -424,7 +420,7 @@ size_t MaxURLKeyedHintCacheSize() {
  
  bool ShouldPersistHintsToDisk() {
    return GetFieldTrialParamByFeatureAsBool(kOptimizationHints,
@@ -247,21 +247,21 @@ diff --git a/components/optimization_guide/core/prediction_model_fetcher_impl.cc
 diff --git a/components/optimization_guide/features.gni b/components/optimization_guide/features.gni
 --- a/components/optimization_guide/features.gni
 +++ b/components/optimization_guide/features.gni
-@@ -10,9 +10,7 @@ if (is_android) {
- declare_args() {
+@@ -11,9 +11,7 @@ declare_args() {
    # This enables build with TFLite library.
-   # Currently only available for Desktop and Android.
+   # TODO(b/269198471): Make sure the internal archive files for opt guide get
+   #   updated when win arm64 gets added as a supported platform for TFLite.
 -  build_with_tflite_lib =
 -      is_android || (is_win && target_cpu != "arm64") || is_linux || is_mac ||
 -      is_chromeos || is_fuchsia || is_ios
 +  build_with_tflite_lib = false
+ }
  
-   # You can set the variable 'build_with_internal_optimization_guide' to true
-   # even in a developer build in args.gn.  Setting this variable explicitly to true will
+ declare_args() {
 diff --git a/components/permissions/features.cc b/components/permissions/features.cc
 --- a/components/permissions/features.cc
 +++ b/components/permissions/features.cc
-@@ -79,12 +79,12 @@ const base::FeatureParam<int> kPermissionChipAutoDismissDelay{
+@@ -85,12 +85,12 @@ const base::FeatureParam<int> kPermissionChipAutoDismissDelay{
  // When enabled, use the value of the `service_url` FeatureParam as the url
  // for the Web Permission Predictions Service.
  BASE_FEATURE(kPermissionPredictionServiceUseUrlOverride,
@@ -281,7 +281,7 @@ diff --git a/components/permissions/features.cc b/components/permissions/feature
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -225,12 +225,8 @@ BASE_FEATURE(kMixedContentAutoupgrade,
+@@ -232,12 +232,8 @@ BASE_FEATURE(kMixedContentAutoupgrade,
  // predictor may preconnect/prefetch to resources/origins to make the
  // future navigations faster.
  BASE_FEATURE(kNavigationPredictor,

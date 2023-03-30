@@ -32,7 +32,7 @@ fonts-fingerprint-mitigation flag, which is active by default.
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -9121,6 +9121,11 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -9154,6 +9154,11 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kClipboardUnsanitizedContentDescription, kOsAll,
       FEATURE_VALUE_TYPE(blink::features::kClipboardUnsanitizedContent)},
  
@@ -47,7 +47,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -118,6 +118,11 @@ const char kClipboardUnsanitizedContentDescription[] =
+@@ -127,6 +127,11 @@ const char kClipboardUnsanitizedContentDescription[] =
      "Allows reading/writing unsanitized content from/to the clipboard. "
      "Currently, it is only applicable to HTML format. See crbug.com/1268679.";
  
@@ -62,7 +62,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -100,6 +100,9 @@ extern const char kChromeRootStoreEnabledDescription[];
+@@ -104,6 +104,9 @@ extern const char kChromeRootStoreEnabledDescription[];
  extern const char kClipboardUnsanitizedContentName[];
  extern const char kClipboardUnsanitizedContentDescription[];
  
@@ -84,7 +84,7 @@ diff --git a/content/public/common/content_features.cc b/content/public/common/c
  
  // Launches the audio service on the browser startup.
  BASE_FEATURE(kAudioServiceLaunchOnStartup,
-@@ -495,7 +495,7 @@ const base::FeatureParam<base::TimeDelta>
+@@ -503,7 +503,7 @@ const base::FeatureParam<base::TimeDelta>
  // enables a font indexer on Android which we need to test in the field first.
  BASE_FEATURE(kFontSrcLocalMatching,
               "FontSrcLocalMatching",
@@ -146,7 +146,7 @@ diff --git a/skia/ext/skia_utils_win.h b/skia/ext/skia_utils_win.h
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -136,7 +136,7 @@ BASE_FEATURE(kExcludeLowEntropyImagesFromLCP,
+@@ -143,7 +143,7 @@ BASE_FEATURE(kExcludeLowEntropyImagesFromLCP,
  const base::FeatureParam<double> kMinimumEntropyForLCP{
      &kExcludeLowEntropyImagesFromLCP, "min_bpp", 2};
  
@@ -155,7 +155,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // Enable defer commits to avoid flash of unstyled content, for same origin
  // navigation only.
-@@ -1534,6 +1534,10 @@ BASE_FEATURE(kClipboardUnsanitizedContent,
+@@ -1566,6 +1566,10 @@ BASE_FEATURE(kClipboardUnsanitizedContent,
               "ClipboardUnsanitizedContent",
               base::FEATURE_DISABLED_BY_DEFAULT);
  
@@ -163,26 +163,26 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
 +             "FontsFingerprintMitigation",
 +             base::FEATURE_ENABLED_BY_DEFAULT);
 +
- BASE_FEATURE(kThreadedHtmlTokenizer,
-              "ThreadedHtmlTokenizer",
+ BASE_FEATURE(kWebRtcEncoderAsyncEncode,
+              "WebRtcEncoderAsyncEncode",
               base::FEATURE_DISABLED_BY_DEFAULT);
 diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
 --- a/third_party/blink/public/common/features.h
 +++ b/third_party/blink/public/common/features.h
-@@ -784,6 +784,9 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kTimedHTMLParserBudget);
+@@ -783,6 +783,9 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kTimedHTMLParserBudget);
  // it is only applicable to HTML format. See crbug.com/1268679.
  BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kClipboardUnsanitizedContent);
  
 +// Filter the list of fonts allowing the use of only standard fonts
 +BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kFontsFingerprintMitigation);
 +
- // If set, HTMLTokenizer is run on a background thread.
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kThreadedHtmlTokenizer);
+ // Make RTCVideoEncoder::Encode() asynchronous.
+ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kWebRtcEncoderAsyncEncode);
  
 diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/renderer/platform/BUILD.gn
 --- a/third_party/blink/renderer/platform/BUILD.gn
 +++ b/third_party/blink/renderer/platform/BUILD.gn
-@@ -724,6 +724,7 @@ component("platform") {
+@@ -725,6 +725,7 @@ component("platform") {
      "fonts/simple_font_data.cc",
      "fonts/simple_font_data.h",
      "fonts/skia/font_cache_skia.cc",

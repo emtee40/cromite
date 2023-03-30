@@ -7,8 +7,6 @@ user's possible wish to disable all third-party cookies.
 Disabling the flag via the ui restores the normal mode, where
 samesite=none first-party cookies are sent in third-party contexts.
 ---
- components/browsing_data/core/features.cc            |  2 +-
- .../browsing_data/same_site_data_remover_impl.cc     |  3 ++-
  net/base/features.cc                                 |  8 ++++----
  net/cookies/canonical_cookie.cc                      | 11 +----------
  net/cookies/cookie_deletion_info.cc                  |  3 ++-
@@ -19,37 +17,12 @@ samesite=none first-party cookies are sent in third-party contexts.
  .../renderer/modules/cookie_store/cookie_init.idl    |  2 +-
  .../renderer/modules/cookie_store/cookie_store.cc    | 12 ++++++++++++
  .../cookie_store/cookie_store_delete_options.idl     |  2 +-
- 12 files changed, 53 insertions(+), 22 deletions(-)
+ 10 files changed, 50 insertions(+), 20 deletions(-)
 
-diff --git a/components/browsing_data/core/features.cc b/components/browsing_data/core/features.cc
---- a/components/browsing_data/core/features.cc
-+++ b/components/browsing_data/core/features.cc
-@@ -11,7 +11,7 @@ namespace features {
- 
- BASE_FEATURE(kEnableRemovingAllThirdPartyCookies,
-              "EnableRemovingAllThirdPartyCookies",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             base::FEATURE_ENABLED_BY_DEFAULT);
- 
- BASE_FEATURE(kEnableBrowsingDataLifetimeManager,
-              "BrowsingDataLifetimeManager",
-diff --git a/content/browser/browsing_data/same_site_data_remover_impl.cc b/content/browser/browsing_data/same_site_data_remover_impl.cc
---- a/content/browser/browsing_data/same_site_data_remover_impl.cc
-+++ b/content/browser/browsing_data/same_site_data_remover_impl.cc
-@@ -49,7 +49,8 @@ void OnGetAllCookiesWithAccessSemantics(
-     // that site's First-Party Set). Since partitioned cookies cannot be used as
-     // a cross-site tracking mechanism, we exclude them from this type of
-     // clearing.
--    if (!cookie.IsPartitioned() &&
-+    // in Bromite, we clear all cookies
-+    if (((true)) && !cookie.IsPartitioned() &&
-         cookie.IsEffectivelySameSiteNone(access_semantics_list[i])) {
-       same_site_none_domains->emplace(cookie.Domain());
-       cookie_manager->DeleteCanonicalCookie(
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -269,8 +269,8 @@ BASE_FEATURE(kSamePartyAttributeEnabled,
+@@ -256,8 +256,8 @@ BASE_FEATURE(kSamePartyAttributeEnabled,
               base::FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kPartitionedCookies,
@@ -60,7 +33,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
  
  BASE_FEATURE(kNoncedPartitionedCookies,
               "NoncedPartitionedCookies",
-@@ -289,8 +289,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
+@@ -276,8 +276,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kCookieDomainRejectNonASCII,
@@ -74,7 +47,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
 diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
 --- a/net/cookies/canonical_cookie.cc
 +++ b/net/cookies/canonical_cookie.cc
-@@ -1465,8 +1465,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
+@@ -1462,8 +1462,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
    if (IsPartitioned()) {
      if (CookiePartitionKey::HasNonce(partition_key_))
        return true;
@@ -83,7 +56,7 @@ diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
    }
  
    return true;
-@@ -1709,14 +1707,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
+@@ -1706,14 +1704,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
                                                 bool secure,
                                                 bool is_partitioned,
                                                 bool partition_has_nonce) {
@@ -133,9 +106,9 @@ diff --git a/net/cookies/parsed_cookie.h b/net/cookies/parsed_cookie.h
 +      return true;
 +     return partitioned_index_ != 0;
 +  }
-   bool HasTruncatedNameOrValue() const { return truncated_name_or_value_; }
    bool HasInternalHtab() const { return internal_htab_; }
    TruncatingCharacterInCookieStringType
+   GetTruncatingCharacterInCookieStringType() const {
 diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
 --- a/net/extras/sqlite/sqlite_persistent_cookie_store.cc
 +++ b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
@@ -171,7 +144,7 @@ diff --git a/services/network/cookie_settings.cc b/services/network/cookie_setti
  const ContentSettingPatternSource* FindMatchingSetting(
      const GURL& primary_url,
      const GURL& secondary_url,
-@@ -192,11 +197,14 @@ net::NetworkDelegate::PrivacySetting CookieSettings::IsPrivacyModeEnabled(
+@@ -191,11 +196,14 @@ net::NetworkDelegate::PrivacySetting CookieSettings::IsPrivacyModeEnabled(
  
  CookieSettings::ThirdPartyBlockingScope
  CookieSettings::GetThirdPartyBlockingScope(const GURL& first_party_url) const {
@@ -191,7 +164,7 @@ diff --git a/services/network/cookie_settings.cc b/services/network/cookie_setti
 diff --git a/services/network/restricted_cookie_manager.cc b/services/network/restricted_cookie_manager.cc
 --- a/services/network/restricted_cookie_manager.cc
 +++ b/services/network/restricted_cookie_manager.cc
-@@ -736,6 +736,9 @@ void RestrictedCookieManager::SetCookieFromString(
+@@ -754,6 +754,9 @@ void RestrictedCookieManager::SetCookieFromString(
    std::move(callback).Run(site_for_cookies_ok, top_frame_origin_ok);
    callback = base::DoNothing();
  
@@ -204,17 +177,17 @@ diff --git a/services/network/restricted_cookie_manager.cc b/services/network/re
 diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_init.idl b/third_party/blink/renderer/modules/cookie_store/cookie_init.idl
 --- a/third_party/blink/renderer/modules/cookie_store/cookie_init.idl
 +++ b/third_party/blink/renderer/modules/cookie_store/cookie_init.idl
-@@ -18,5 +18,5 @@ dictionary CookieInit {
+@@ -17,5 +17,5 @@ dictionary CookieInit {
+   USVString path = "/";
    EpochTimeStamp? expires = null;
    CookieSameSite sameSite = "strict";
-   [RuntimeEnabled=FirstPartySets] boolean sameParty = false;
 -  [RuntimeEnabled=PartitionedCookies] boolean partitioned = false;
 +  [RuntimeEnabled=PartitionedCookies] boolean partitioned = true;
  };
 diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc b/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
 --- a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
 +++ b/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
-@@ -315,6 +315,10 @@ ScriptPromise CookieStore::set(ScriptState* script_state,
+@@ -316,6 +316,10 @@ ScriptPromise CookieStore::set(ScriptState* script_state,
    CookieInit* set_options = CookieInit::Create();
    set_options->setName(name);
    set_options->setValue(value);
@@ -225,7 +198,7 @@ diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc b/t
    return set(script_state, set_options, exception_state);
  }
  
-@@ -337,6 +341,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
+@@ -338,6 +342,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
    set_options->setName(name);
    set_options->setValue("deleted");
    set_options->setExpires(0);
@@ -236,7 +209,7 @@ diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc b/t
    return DoWrite(script_state, set_options, exception_state);
  }
  
-@@ -351,6 +359,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
+@@ -352,6 +360,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
    set_options->setPath(options->path());
    set_options->setSameSite("strict");
    set_options->setPartitioned(options->partitioned());
