@@ -25,8 +25,8 @@ Parts of this patch were developed by csagan5, uazo and others.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  ...em_webview_bundle.AndroidManifest.expected |   5 -
- chrome/android/BUILD.gn                       |  45 +-
- chrome/android/chrome_java_sources.gni        |   5 -
+ chrome/android/BUILD.gn                       |  47 +-
+ chrome/android/chrome_java_sources.gni        |   6 -
  .../features/cablev2_authenticator/BUILD.gn   |   2 -
  chrome/android/java/AndroidManifest.xml       |  53 --
  .../java/res/xml/privacy_preferences.xml      |   5 -
@@ -41,7 +41,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../settings/PasswordSettings.java            |   9 -
  .../modules/chrome_feature_modules.gni        |   3 -
  chrome/browser/BUILD.gn                       |   2 -
- chrome/browser/language/android/BUILD.gn      |   2 -
+ chrome/browser/language/android/BUILD.gn      |   3 -
  .../language/AppLanguagePromoDialog.java      |  23 -
  .../AppLanguagePreferenceDelegate.java        |   8 -
  .../language/settings/LanguageSettings.java   |   6 -
@@ -74,7 +74,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../caf/BaseSessionController.java            | 100 +---
  .../caf/CafBaseMediaRouteProvider.java        | 103 +---
  .../caf/CafMediaRouteProvider.java            |  16 -
- .../media_router/caf/CafMessageHandler.java   |  97 +---
+ .../media_router/caf/CafMessageHandler.java   |  97 +--
  .../media_router/caf/CastMediaSource.java     |  10 +-
  .../media_router/caf/CastOptionsProvider.java |  22 +-
  .../caf/CastSessionController.java            |  84 ---
@@ -85,7 +85,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../caf/remoting/RemotingMediaSource.java     |   8 +-
  .../remoting/RemotingSessionController.java   |  26 -
  .../test/android/cast_emulator/BUILD.gn       |   1 -
- components/module_installer/android/BUILD.gn  |   2 -
+ components/module_installer/android/BUILD.gn  |   4 -
  components/signin/public/android/BUILD.gn     |   3 -
  .../signin/AccountRenameChecker.java          |  16 -
  components/webauthn/android/BUILD.gn          |   9 -
@@ -100,18 +100,19 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  services/BUILD.gn                             |   9 -
  services/device/geolocation/BUILD.gn          |   4 -
  services/shape_detection/BUILD.gn             |   2 -
- third_party/android_deps/BUILD.gn             | 539 +-----------------
+ third_party/android_deps/BUILD.gn             | 559 +-----------------
  .../preconditions/javatests/BUILD.gn          |   1 -
  .../gms/ChromiumPlayServicesAvailability.java |  10 +-
- 79 files changed, 93 insertions(+), 1932 deletions(-)
+ weblayer/browser/java/BUILD.gn                |   1 -
+ 80 files changed, 93 insertions(+), 1959 deletions(-)
 
 diff --git a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected b/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
 --- a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
 +++ b/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
-@@ -19,10 +19,6 @@
+@@ -20,10 +20,6 @@
+       android:icon="@$PACKAGE:drawable/icon_webview"
        android:label="Android System WebView"
-       android:multiArch="true"
-       android:use32bitAbi="true">
+       android:multiArch="true">
 -    <activity  # DIFF-ANCHOR: ea1a94af
 -        android:name="com.google.android.gms.common.api.GoogleApiActivity"
 -        android:exported="false"
@@ -119,7 +120,7 @@ diff --git a/android_webview/expectations/system_webview_bundle.AndroidManifest.
      </activity>  # DIFF-ANCHOR: ea1a94af
      <activity  # DIFF-ANCHOR: a4438884
          android:name="org.chromium.android_webview.devui.MainActivity"
-@@ -66,7 +62,6 @@
+@@ -67,7 +63,6 @@
          android:visibleToInstantApps="true">
      </activity-alias>  # DIFF-ANCHOR: b7cc06e9
      <meta-data android:name="$PACKAGE.WebViewLibrary" android:value="libwebviewchromium.so"/>
@@ -130,7 +131,7 @@ diff --git a/android_webview/expectations/system_webview_bundle.AndroidManifest.
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -357,14 +357,6 @@ if (current_toolchain == default_toolchain) {
+@@ -241,14 +241,6 @@ if (current_toolchain == default_toolchain) {
        ":chrome_public_apk_template_resources",
        ":update_proto_java",
        ":usage_stats_proto_java",
@@ -145,7 +146,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:jni_java",
        "//cc:cc_java",
        "//chrome/android/features/keyboard_accessory:public_java",
-@@ -649,8 +641,19 @@ if (current_toolchain == default_toolchain) {
+@@ -535,14 +527,23 @@ if (current_toolchain == default_toolchain) {
        "//services/shape_detection:shape_detection_java",
        "//services/shape_detection/public/mojom:mojom_java",
        "//skia/public/mojom:mojom_java",
@@ -162,13 +163,19 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 +      "//base:jni_java",
 +
        "//third_party/android_deps:chromium_play_services_availability_java",
--      "//third_party/android_deps:com_google_android_play_core_java",
-       "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
-       "//third_party/android_deps:com_google_guava_listenablefuture_java",
+-      "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
+-      "//third_party/android_deps:com_google_guava_listenablefuture_java",
        "//third_party/android_deps:dagger_java",
-@@ -941,11 +944,6 @@ if (current_toolchain == default_toolchain) {
+       "//third_party/android_deps:guava_android_java",
+       "//third_party/android_deps:javax_inject_javax_inject_java",
+       "//third_party/android_deps:material_design_java",
+-      "//third_party/android_deps:playcore_java",
+       "//third_party/android_deps:protobuf_lite_runtime_java",
+       "//third_party/android_media:android_media_java",
+       "//third_party/android_swipe_refresh:android_swipe_refresh_java",
+@@ -831,11 +832,6 @@ if (current_toolchain == default_toolchain) {
+       ":chrome_java",
        ":chrome_jni_headers",
-       ":chrome_public_android_manifest",
        ":delegate_public_impl_java",
 -      "$google_play_services_package:google_play_services_base_java",
 -      "$google_play_services_package:google_play_services_basement_java",
@@ -178,7 +185,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java_test_support",
        "//base:base_junit_test_support",
        "//base/test:test_support_java",
-@@ -1477,13 +1475,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1382,13 +1378,6 @@ if (current_toolchain == default_toolchain) {
        ":chrome_app_java_resources",
        ":chrome_test_util_java",
        ":delegate_public_impl_java",
@@ -192,7 +199,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java",
        "//base:base_java_test_support",
        "//base:jni_java",
-@@ -2392,7 +2383,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2317,7 +2306,6 @@ if (current_toolchain == default_toolchain) {
      ]
      deps = [
        ":chrome_java",
@@ -200,7 +207,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java",
        "//base:base_java_test_support",
        "//base:jni_java",
-@@ -2539,7 +2529,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2454,7 +2442,6 @@ if (current_toolchain == default_toolchain) {
    # is in a DFM.
    android_library("base_module_java") {
      sources = [
@@ -208,7 +215,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "java/src/org/chromium/chrome/app/TrichromeZygotePreload.java",
        "java/src/org/chromium/chrome/browser/ChromeBackgroundService.java",
        "java/src/org/chromium/chrome/browser/ChromeBackupAgent.java",
-@@ -2555,8 +2544,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2470,8 +2457,6 @@ if (current_toolchain == default_toolchain) {
        "java/src/org/chromium/chrome/browser/base/SplitCompatBackupAgent.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatContentProvider.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatCustomTabsService.java",
@@ -217,7 +224,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "java/src/org/chromium/chrome/browser/base/SplitCompatIntentService.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatJobService.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatMinidumpUploadJobService.java",
-@@ -2581,17 +2568,11 @@ if (current_toolchain == default_toolchain) {
+@@ -2496,17 +2481,11 @@ if (current_toolchain == default_toolchain) {
        "java/src/org/chromium/chrome/browser/photo_picker/DecoderService.java",
        "java/src/org/chromium/chrome/browser/prerender/ChromePrerenderService.java",
        "java/src/org/chromium/chrome/browser/provider/ChromeBrowserProvider.java",
@@ -235,15 +242,15 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java",
        "//base:jni_java",
        "//chrome/browser/download/android:file_provider_java",
-@@ -2605,7 +2586,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2520,7 +2499,6 @@ if (current_toolchain == default_toolchain) {
        "//components/media_router/browser/android:cast_options_provider_java",
        "//components/minidump_uploader:minidump_uploader_java",
        "//components/module_installer/android:module_installer_java",
--      "//third_party/android_deps:com_google_android_play_core_java",
+-      "//third_party/android_deps:playcore_java",
        "//third_party/androidx:androidx_annotation_annotation_java",
        "//third_party/androidx:androidx_collection_collection_java",
        "//ui/android:ui_no_recycler_view_java",
-@@ -2624,7 +2604,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2539,7 +2517,6 @@ if (current_toolchain == default_toolchain) {
        # Deps to pull services into base module.
        # TODO(crbug.com/1126301): Consider moving these to the chrome module to
        # reduce base dex size.
@@ -262,10 +269,11 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/ChromeBackupAgentImpl.java",
    "java/src/org/chromium/chrome/browser/ChromeBackupWatcher.java",
    "java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java",
-@@ -924,10 +923,6 @@ chrome_java_sources = [
+@@ -932,11 +931,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/segmentation_platform/PriceTrackingActionProvider.java",
    "java/src/org/chromium/chrome/browser/segmentation_platform/ReaderModeActionProvider.java",
    "java/src/org/chromium/chrome/browser/segmentation_platform/SignalAccumulator.java",
+-  "java/src/org/chromium/chrome/browser/services/gcm/BundleToPersistableBundleConverter.java",
 -  "java/src/org/chromium/chrome/browser/services/gcm/ChromeGcmListenerServiceImpl.java",
 -  "java/src/org/chromium/chrome/browser/services/gcm/GCMBackgroundServiceImpl.java",
 -  "java/src/org/chromium/chrome/browser/services/gcm/GCMBackgroundTask.java",
@@ -276,10 +284,10 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
 diff --git a/chrome/android/features/cablev2_authenticator/BUILD.gn b/chrome/android/features/cablev2_authenticator/BUILD.gn
 --- a/chrome/android/features/cablev2_authenticator/BUILD.gn
 +++ b/chrome/android/features/cablev2_authenticator/BUILD.gn
-@@ -16,8 +16,6 @@ android_library("java") {
+@@ -15,8 +15,6 @@ android_library("java") {
+ 
    deps = [
      ":java_resources",
-     ":logging_java",
 -    "$google_play_services_package:google_play_services_base_java",
 -    "$google_play_services_package:google_play_services_tasks_java",
      "//base:base_java",
@@ -310,7 +318,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
      <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
  
      {% block extra_uses_permissions %}
-@@ -752,16 +747,6 @@ by a child template that "extends" this file.
+@@ -758,16 +753,6 @@ by a child template that "extends" this file.
              </intent-filter>
          </activity>
  
@@ -327,7 +335,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <!-- This activity is used to restart the main Chrome process.  Should never be exported. -->
          <activity android:name="org.chromium.chrome.browser.BrowserRestartActivity"
              android:launchMode="singleInstance"
-@@ -769,8 +754,6 @@ by a child template that "extends" this file.
+@@ -775,8 +760,6 @@ by a child template that "extends" this file.
              android:theme="@style/Theme.BrowserUI.Translucent.NoTitleBar"
              android:excludeFromRecents="true"
              android:process=":browser_restart_process">
@@ -336,7 +344,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <activity
              android:name="org.chromium.chrome.browser.vr.VrCancelAnimationActivity"
              android:exported="false"
-@@ -953,26 +936,6 @@ by a child template that "extends" this file.
+@@ -959,26 +942,6 @@ by a child template that "extends" this file.
              android:configChanges="orientation|keyboardHidden|keyboard|screenSize|mcc|mnc|screenLayout|smallestScreenSize"
              android:hardwareAccelerated="false" />
  
@@ -363,7 +371,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <!-- Android Notification service listener -->
          <service android:name="org.chromium.chrome.browser.notifications.NotificationService"
              android:exported="false"/>
-@@ -1003,20 +966,10 @@ by a child template that "extends" this file.
+@@ -1009,20 +972,10 @@ by a child template that "extends" this file.
          <service android:name="org.chromium.components.background_task_scheduler.internal.BackgroundTaskJobService"
              android:exported="false"
              android:permission="android.permission.BIND_JOB_SERVICE"/>
@@ -384,7 +392,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <service android:name="org.chromium.chrome.browser.prerender.ChromePrerenderService"
              android:exported="true"
              tools:ignore="ExportedService" />
-@@ -1248,12 +1201,6 @@ by a child template that "extends" this file.
+@@ -1254,12 +1207,6 @@ by a child template that "extends" this file.
  
        {% endif %}
  
@@ -803,7 +811,7 @@ diff --git a/chrome/android/modules/chrome_feature_modules.gni b/chrome/android/
  import("//chrome/android/modules/stack_unwinder/stack_unwinder_module.gni")
  import("//chrome/android/modules/test_dummy/test_dummy_module.gni")
  import("//device/vr/buildflags/buildflags.gni")
-@@ -59,7 +57,6 @@ if (false) {  # AR DFM is currently disabled
+@@ -56,7 +54,6 @@ if (false) {  # AR DFM is currently disabled
  if (!disable_tab_ui_dfm) {
    monochrome_module_descs += [ tab_ui_module_desc ]
  }
@@ -814,7 +822,7 @@ diff --git a/chrome/android/modules/chrome_feature_modules.gni b/chrome/android/
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -7031,8 +7031,6 @@ static_library("browser") {
+@@ -7062,8 +7062,6 @@ static_library("browser") {
        "offline_pages/offliner_helper.h",
        "offline_pages/offliner_user_data.cc",
        "offline_pages/offliner_user_data.h",
@@ -826,18 +834,19 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/language/android/BUILD.gn b/chrome/browser/language/android/BUILD.gn
 --- a/chrome/browser/language/android/BUILD.gn
 +++ b/chrome/browser/language/android/BUILD.gn
-@@ -9,14 +9,12 @@ android_library("base_module_java") {
+@@ -9,15 +9,12 @@ android_library("base_module_java") {
    sources = [
      "java/src/org/chromium/chrome/browser/language/AppLocaleUtils.java",
      "java/src/org/chromium/chrome/browser/language/GlobalAppLocaleController.java",
 -    "java/src/org/chromium/chrome/browser/language/LanguageSplitInstaller.java",
    ]
    deps = [
+-    "$google_play_services_package:google_play_services_tasks_java",
      "//base:base_java",
      "//chrome/browser/preferences:java",
      "//components/language/android:java",
      "//components/language/android:ulp_delegate_java",
--    "//third_party/android_deps:com_google_android_play_core_java",
+-    "//third_party/android_deps:playcore_java",
      "//third_party/androidx:androidx_annotation_annotation_java",
      "//ui/android:ui_no_recycler_view_java",
    ]
@@ -910,7 +919,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
  import org.chromium.chrome.browser.language.R;
  import org.chromium.chrome.browser.preferences.Pref;
  import org.chromium.chrome.browser.preferences.PrefChangeRegistrar;
-@@ -128,11 +127,6 @@ public class LanguageSettings extends PreferenceFragmentCompat
+@@ -136,11 +135,6 @@ public class LanguageSettings extends PreferenceFragmentCompat
       * translate target language, and detailed translate preferences.
       */
      private void createDetailedPreferences(Bundle savedInstanceState, String rootKey) {
@@ -1103,7 +1112,7 @@ diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resourc
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -252,8 +252,6 @@ static_library("ui") {
+@@ -253,8 +253,6 @@ static_library("ui") {
      "webui/flags/flags_ui.h",
      "webui/flags/flags_ui_handler.cc",
      "webui/flags/flags_ui_handler.h",
@@ -1112,8 +1121,8 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
      "webui/internals/internals_ui.cc",
      "webui/internals/internals_ui.h",
      "webui/interstitials/interstitial_ui.cc",
-@@ -486,7 +484,6 @@ static_library("ui") {
-     "//components/feedback/content",
+@@ -489,7 +487,6 @@ static_library("ui") {
+     "//components/feedback/redaction_tool",
      "//components/find_in_page",
      "//components/flags_ui",
 -    "//components/gcm_driver",
@@ -1140,7 +1149,7 @@ diff --git a/chrome/browser/ui/webauthn/sheet_models.cc b/chrome/browser/ui/weba
 diff --git a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc b/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
 --- a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
 +++ b/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
-@@ -44,7 +44,6 @@
+@@ -42,7 +42,6 @@
  #include "chrome/browser/ui/webui/download_internals/download_internals_ui.h"
  #include "chrome/browser/ui/webui/engagement/site_engagement_ui.h"
  #include "chrome/browser/ui/webui/flags/flags_ui.h"
@@ -1148,7 +1157,7 @@ diff --git a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc b/chrom
  #include "chrome/browser/ui/webui/internals/internals_ui.h"
  #include "chrome/browser/ui/webui/interstitials/interstitial_ui.h"
  #include "chrome/browser/ui/webui/intro/intro_ui.h"
-@@ -789,8 +788,6 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
+@@ -803,8 +802,6 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
      return &NewWebUI<FlagsDeprecatedUI>;
    if (url.host_piece() == chrome::kChromeUIFlagsHost)
      return &NewWebUI<FlagsUI>;
@@ -1160,7 +1169,7 @@ diff --git a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc b/chrom
 diff --git a/chrome/browser/webauthn/authenticator_request_dialog_model.cc b/chrome/browser/webauthn/authenticator_request_dialog_model.cc
 --- a/chrome/browser/webauthn/authenticator_request_dialog_model.cc
 +++ b/chrome/browser/webauthn/authenticator_request_dialog_model.cc
-@@ -1097,10 +1097,6 @@ void AuthenticatorRequestDialogModel::PopulateMechanisms(
+@@ -1111,10 +1111,6 @@ void AuthenticatorRequestDialogModel::PopulateMechanisms(
    if (cable_ui_type_) {
      switch (*cable_ui_type_) {
        case AuthenticatorRequestDialogModel::CableUIType::CABLE_V2_2ND_FACTOR:
@@ -1187,7 +1196,7 @@ diff --git a/chrome/browser/webauthn/cablev2_devices.cc b/chrome/browser/webauth
 diff --git a/chrome/test/android/BUILD.gn b/chrome/test/android/BUILD.gn
 --- a/chrome/test/android/BUILD.gn
 +++ b/chrome/test/android/BUILD.gn
-@@ -267,8 +267,6 @@ android_library("chrome_java_integration_test_support") {
+@@ -254,8 +254,6 @@ android_library("chrome_java_integration_test_support") {
  
    deps = [
      ":chrome_java_test_support_common",
@@ -1199,7 +1208,7 @@ diff --git a/chrome/test/android/BUILD.gn b/chrome/test/android/BUILD.gn
 diff --git a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
 --- a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
 +++ b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
-@@ -2372,14 +2372,6 @@ public class ExternalNavigationHandler {
+@@ -2421,14 +2421,6 @@ public class ExternalNavigationHandler {
       * @return Whether the given intent is going to open an Instant App.
       */
      private static boolean isIntentToInstantApp(Intent intent) {
@@ -2958,19 +2967,27 @@ diff --git a/components/media_router/test/android/cast_emulator/BUILD.gn b/compo
 diff --git a/components/module_installer/android/BUILD.gn b/components/module_installer/android/BUILD.gn
 --- a/components/module_installer/android/BUILD.gn
 +++ b/components/module_installer/android/BUILD.gn
-@@ -35,7 +35,6 @@ android_library("module_installer_java") {
+@@ -32,11 +32,9 @@ android_library("module_installer_java") {
+   ]
+ 
+   deps = [
+-    "$google_play_services_package:google_play_services_tasks_java",
      "//base:base_java",
      "//base:jni_java",
      "//components/crash/android:java",
--    "//third_party/android_deps:com_google_android_play_core_java",
+-    "//third_party/android_deps:playcore_java",
      "//third_party/androidx:androidx_annotation_annotation_java",
    ]
  
-@@ -61,7 +60,6 @@ robolectric_binary("module_installer_junit_tests") {
+@@ -59,11 +57,9 @@ robolectric_binary("module_installer_junit_tests") {
+   ]
+   deps = [
+     ":module_installer_java",
+-    "$google_play_services_package:google_play_services_tasks_java",
      "//base:base_java",
      "//base:base_java_test_support",
      "//base:base_junit_test_support",
--    "//third_party/android_deps:com_google_android_play_core_java",
+-    "//third_party/android_deps:playcore_java",
      "//third_party/hamcrest:hamcrest_java",
    ]
  }
@@ -2986,7 +3003,7 @@ diff --git a/components/signin/public/android/BUILD.gn b/components/signin/publi
      "//base:base_java",
      "//base:jni_java",
      "//build/android:build_java",
-@@ -172,7 +170,6 @@ robolectric_library("junit") {
+@@ -175,7 +173,6 @@ robolectric_library("junit") {
    deps = [
      ":java",
      ":signin_java_test_support",
@@ -3306,7 +3323,7 @@ diff --git a/content/public/android/BUILD.gn b/content/public/android/BUILD.gn
 diff --git a/content/test/BUILD.gn b/content/test/BUILD.gn
 --- a/content/test/BUILD.gn
 +++ b/content/test/BUILD.gn
-@@ -3193,10 +3193,6 @@ if (is_android) {
+@@ -3236,10 +3236,6 @@ if (is_android) {
      testonly = true
      sources = content_java_sources_needing_jni
      deps = [
@@ -3320,7 +3337,7 @@ diff --git a/content/test/BUILD.gn b/content/test/BUILD.gn
 diff --git a/device/BUILD.gn b/device/BUILD.gn
 --- a/device/BUILD.gn
 +++ b/device/BUILD.gn
-@@ -474,9 +474,6 @@ if (is_android) {
+@@ -476,9 +476,6 @@ if (is_android) {
        "gamepad/android/junit/src/org/chromium/device/gamepad/GamepadMappingsTest.java",
      ]
      deps = [
@@ -3338,9 +3355,9 @@ diff --git a/device/fido/features.cc b/device/fido/features.cc
  
  BASE_FEATURE(kWebAuthPasskeysUI,
 -             "WebAuthenticationPasskeysUI",
--             base::FEATURE_DISABLED_BY_DEFAULT);
+-             base::FEATURE_ENABLED_BY_DEFAULT);
 +             "WebAuthenticationPasskeysUI",                     // disabled by default
-+             base::FEATURE_DISABLED_BY_DEFAULT);                // in Bromite
++             base::FEATURE_ENABLED_BY_DEFAULT);                // in Bromite
  
 -BASE_FEATURE(kWebAuthnNoEmptyDisplayNameCBOR,
 -             "WebAuthenticationNoEmptyDisplayNameCBOR",
@@ -3379,7 +3396,7 @@ diff --git a/services/BUILD.gn b/services/BUILD.gn
        "//base:base_java",
        "//base:base_java_test_support",
        "//base:base_junit_test_support",
-@@ -149,10 +144,6 @@ if (is_android) {
+@@ -150,10 +145,6 @@ if (is_android) {
        "shape_detection/android/javatests/src/org/chromium/shape_detection/TextDetectionImplTest.java",
      ]
      deps = [
@@ -3419,7 +3436,7 @@ diff --git a/services/shape_detection/BUILD.gn b/services/shape_detection/BUILD.
 diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.gn
 --- a/third_party/android_deps/BUILD.gn
 +++ b/third_party/android_deps/BUILD.gn
-@@ -54,7 +54,7 @@ if (!limit_android_deps) {
+@@ -75,7 +75,7 @@ if (!limit_android_deps) {
  
    android_library("chromium_play_services_availability_java") {
      sources = [ "util/org/chromium/gms/ChromiumPlayServicesAvailability.java" ]
@@ -3428,7 +3445,7 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
    }
  
    robolectric_library("chromium_play_services_availability_shadows_java") {
-@@ -964,210 +964,6 @@ if (!limit_android_deps) {
+@@ -954,210 +954,6 @@ if (!limit_android_deps) {
      ]
    }
  
@@ -3487,7 +3504,7 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
 -
 -  # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
 -  android_aar_prebuilt("google_play_services_basement_java") {
--    aar_path = "libs/com_google_android_gms_play_services_basement/play-services-basement-18.0.1.aar"
+-    aar_path = "libs/com_google_android_gms_play_services_basement/play-services-basement-18.1.0.aar"
 -    info_path = "libs/com_google_android_gms_play_services_basement/com_google_android_gms_play_services_basement.info"
 -    deps = [
 -      "//third_party/androidx:androidx_collection_collection_java",
@@ -3607,7 +3624,7 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
 -
 -  # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
 -  android_aar_prebuilt("google_play_services_tasks_java") {
--    aar_path = "libs/com_google_android_gms_play_services_tasks/play-services-tasks-18.0.1.aar"
+-    aar_path = "libs/com_google_android_gms_play_services_tasks/play-services-tasks-18.0.2.aar"
 -    info_path = "libs/com_google_android_gms_play_services_tasks/com_google_android_gms_play_services_tasks.info"
 -    deps = [ ":google_play_services_basement_java" ]
 -  }
@@ -3639,15 +3656,19 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
    # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
    android_aar_prebuilt("com_google_android_material_material_java") {
      aar_path =
-@@ -1213,60 +1009,6 @@ if (!limit_android_deps) {
+@@ -1203,64 +999,6 @@ if (!limit_android_deps) {
      ]
    }
  
 -  # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
--  android_aar_prebuilt("com_google_android_play_core_java") {
--    aar_path = "libs/com_google_android_play_core/core-1.10.0.aar"
--    info_path =
--        "libs/com_google_android_play_core/com_google_android_play_core.info"
+-  android_aar_prebuilt("com_google_android_play_feature_delivery_java") {
+-    aar_path = "libs/com_google_android_play_feature_delivery/feature-delivery-2.0.1.aar"
+-    info_path = "libs/com_google_android_play_feature_delivery/com_google_android_play_feature_delivery.info"
+-    deps = [
+-      ":com_google_android_play_core_common_java",
+-      ":google_play_services_basement_java",
+-      ":google_play_services_tasks_java",
+-    ]
 -  }
 -
 -  # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
@@ -3700,7 +3721,7 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
    # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
    java_prebuilt("com_google_guava_guava_android_java") {
      jar_path = "libs/com_google_guava_guava_android/guava-31.1-android.jar"
-@@ -1519,19 +1261,6 @@ if (!limit_android_deps) {
+@@ -1519,19 +1257,6 @@ if (!limit_android_deps) {
      is_robolectric = true
    }
  
@@ -3720,7 +3741,7 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
    # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
    java_prebuilt("org_robolectric_utils_java") {
      jar_path = "libs/org_robolectric_utils/utils-4.8.1.jar"
-@@ -1892,272 +1621,6 @@ if (!limit_android_deps) {
+@@ -1892,288 +1617,6 @@ if (!limit_android_deps) {
      deps = [ "//third_party/androidx:androidx_annotation_annotation_java" ]
    }
  
@@ -3829,6 +3850,19 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
 -  }
 -
 -  # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
+-  android_aar_prebuilt("com_google_android_play_core_common_java") {
+-    aar_path = "libs/com_google_android_play_core_common/core-common-2.0.2.aar"
+-    info_path = "libs/com_google_android_play_core_common/com_google_android_play_core_common.info"
+-
+-    # To remove visibility constraint, add this dependency to
+-    # //third_party/android_deps/build.gradle.
+-    visibility = [
+-      ":*",
+-      "//third_party/androidx:*",
+-    ]
+-  }
+-
+-  # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
 -  java_prebuilt("google_firebase_firebase_annotations_java") {
 -    jar_path = "libs/com_google_firebase_firebase_annotations/firebase-annotations-16.0.0.jar"
 -    output_name = "com_google_firebase_firebase_annotations"
@@ -3898,6 +3932,9 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
 -      "//third_party/androidx:*",
 -    ]
 -    deps = [ "//third_party/androidx:androidx_annotation_annotation_java" ]
+-
+-    # https://crbug.com/1412551
+-    requires_android = true
 -  }
 -
 -  # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
@@ -4037,5 +4074,16 @@ diff --git a/third_party/android_deps/util/org/chromium/gms/ChromiumPlayServices
 +        return 16; // API_UNAVAILABLE
      }
  }
+diff --git a/weblayer/browser/java/BUILD.gn b/weblayer/browser/java/BUILD.gn
+--- a/weblayer/browser/java/BUILD.gn
++++ b/weblayer/browser/java/BUILD.gn
+@@ -96,7 +96,6 @@ android_library("base_module_java") {
+   ]
+   deps = [
+     ":base_module_interfaces_java",
+-    "$google_play_services_package:google_play_services_basement_java",
+     "//base:base_java",
+     "//base:jni_java",
+     "//base:process_launcher_java",
 --
 2.25.1

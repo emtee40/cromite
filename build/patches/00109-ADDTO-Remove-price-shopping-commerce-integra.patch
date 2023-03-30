@@ -3,15 +3,15 @@ Date: Thu, 5 Jan 2023 11:29:23 +0000
 Subject: 109 ADDTO Remove price/shopping/commerce integra
 
 ---
- .../chrome/browser/app/ChromeActivity.java    |  4 ----
- .../bookmarks/BookmarkSaveFlowMediator.java   | 20 -------------------
- .../commerce/core/commerce_feature_list.cc    |  4 ++--
- 3 files changed, 2 insertions(+), 26 deletions(-)
+ .../org/chromium/chrome/browser/app/ChromeActivity.java    | 4 ----
+ .../chrome/browser/bookmarks/BookmarkSaveFlowMediator.java | 1 -
+ components/commerce/core/commerce_feature_list.cc          | 7 ++++---
+ 3 files changed, 4 insertions(+), 8 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -2335,10 +2335,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -2332,10 +2332,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
          }
  
          if (id == R.id.disable_price_tracking_menu_id) {
@@ -33,44 +33,20 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.components.bookmarks.BookmarkId;
  import org.chromium.components.bookmarks.BookmarkItem;
-@@ -39,8 +38,6 @@ public class BookmarkSaveFlowMediator
-     private BookmarkId mBookmarkId;
-     private PowerBookmarkMeta mPowerBookmarkMeta;
-     private boolean mWasBookmarkMoved;
--    private CommerceSubscription mSubscription;
--    private Callback<Boolean> mSubscriptionsManagerCallback;
-     private String mFolderName;
- 
-     /**
-@@ -120,23 +117,6 @@ public class BookmarkSaveFlowMediator
-     }
- 
-     void handleNotificationSwitchToggle(CompoundButton view, boolean toggled) {
--        if (mSubscriptionsManagerCallback == null) {
--            mSubscriptionsManagerCallback =
--                    mCallbackController.makeCancelable((Boolean success) -> {
--                        setPriceTrackingToggleVisualsOnly(success && view.isChecked());
--                        setPriceTrackingNotificationUiEnabled(success);
--                    });
--        }
--
--        // Make sure the notification channel is initialized when the user tracks a product.
--        // TODO(crbug.com/1382191): Add a SubscriptionsObserver in the PriceDropNotificationManager
--        // and initialize the channel there.
--        if (toggled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
--            PriceDropNotificationManagerFactory.create().createNotificationChannel();
--        }
--        setPriceTrackingIconForEnabledState(toggled);
--        PriceTrackingUtils.setPriceTrackingStateForBookmark(Profile.getLastUsedRegularProfile(),
--                mBookmarkId.getId(), toggled, mSubscriptionsManagerCallback);
-     }
- 
-     void setPriceTrackingNotificationUiEnabled(boolean enabled) {
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
-@@ -128,8 +128,8 @@ BASE_FEATURE(kCommerceMerchantViewer,
-              base::FEATURE_DISABLED_BY_DEFAULT);
+@@ -131,7 +131,7 @@ BASE_FEATURE(kCommerceMerchantViewer,
+ #if BUILDFLAG(IS_ANDROID)
+ BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
+              "CommerceMerchantViewerRegionLaunched",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ #else
+ BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
+              "CommerceMerchantViewerRegionLaunched",
+@@ -139,8 +139,8 @@ BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
+ #endif  // BUILDFLAG(IS_ANDROID)
  
  BASE_FEATURE(kCommercePriceTracking,
 -             "CommercePriceTracking",
@@ -80,5 +56,13 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
  
  const base::FeatureParam<bool> kDeleteAllMerchantsOnClearBrowsingHistory{
      &kCommerceMerchantViewer, "delete_all_merchants_on_clear_history", false};
+@@ -376,6 +376,7 @@ std::string GetCurrentCountryCode(variations::VariationsService* variations) {
+ bool IsEnabledForCountryAndLocale(const base::Feature& feature,
+                                   std::string country,
+                                   std::string locale) {
++  if ((true)) return false;
+   const CountryLocaleMap& allowedCountryLocales =
+       GetAllowedCountryToLocaleMap();
+ 
 --
 2.25.1
