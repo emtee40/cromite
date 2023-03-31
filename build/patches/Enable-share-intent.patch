@@ -14,8 +14,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/android/chrome_java_sources.gni        |   1 +
  chrome/android/java/AndroidManifest.xml       |  18 +++
  .../res/layout/sharing_intent_content.xml     |  83 ++++++++++++
+ .../chrome/browser/IntentHandler.java         |  16 ++-
+ .../browser/LaunchIntentDispatcher.java       |   2 +-
  .../init/ProcessInitializationHandler.java    |   3 +
- .../SharedIntentShareActivity.java            | 118 ++++++++++++++++++
+ .../SharedIntentShareActivity.java            | 119 ++++++++++++++++++
  chrome/browser/about_flags.cc                 |   4 +
  chrome/browser/flag_descriptions.cc           |   5 +
  chrome/browser/flag_descriptions.h            |   3 +
@@ -23,7 +25,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../flags/android/chrome_feature_list.h       |   1 +
  .../browser/flags/ChromeFeatureList.java      |   1 +
  .../strings/android_chrome_strings.grd        |  13 ++
- 13 files changed, 256 insertions(+)
+ 15 files changed, 273 insertions(+), 2 deletions(-)
  create mode 100644 chrome/android/java/res/layout/sharing_intent_content.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/sharing/shared_intent/SharedIntentShareActivity.java
 
@@ -52,10 +54,10 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
 diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
 --- a/chrome/android/java/AndroidManifest.xml
 +++ b/chrome/android/java/AndroidManifest.xml
-@@ -759,6 +759,24 @@ by a child template that "extends" this file.
-             android:theme="@style/Theme.BrowserUI.Translucent.NoTitleBar"
-             android:excludeFromRecents="true"
+@@ -761,6 +761,24 @@ by a child template that "extends" this file.
              android:process=":browser_restart_process">
+         </activity>
+ 
 +        <activity
 +            android:name="org.chromium.chrome.browser.sharing.shared_intent.SharedIntentShareActivity"
 +            android:icon="@drawable/ic_launcher"
@@ -165,6 +167,59 @@ new file mode 100644
 +  </LinearLayout>
 +
 +</LinearLayout>
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/IntentHandler.java b/chrome/android/java/src/org/chromium/chrome/browser/IntentHandler.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/IntentHandler.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/IntentHandler.java
+@@ -215,6 +215,9 @@ public class IntentHandler {
+     private static final String EXTRA_TAB_LAUNCH_TYPE =
+             "org.chromium.chrome.browser.tab_launch_type";
+ 
++    private static final String EXTRA_TAB_FORCE_INCOGNITO_TYPE =
++            "org.chromium.chrome.browser.force_incognito";
++
+     /**
+      * A hash code for the URL to verify intent data hasn't been modified.
+      */
+@@ -1515,6 +1518,17 @@ public class IntentHandler {
+         return IntentUtils.safeGetSerializableExtra(intent, EXTRA_TAB_LAUNCH_TYPE);
+     }
+ 
++    public static void setForceIncognitoMode(Intent intent) {
++        intent.putExtra(EXTRA_TAB_FORCE_INCOGNITO_TYPE, 1);
++        intent.putExtra(IntentHandler.EXTRA_OPEN_NEW_INCOGNITO_TAB, true);
++        setTabLaunchType(intent, TabLaunchType.FROM_EXTERNAL_APP);
++    }
++
++    public static boolean isForceIncognitoMode(Intent intent) {
++        Integer value = IntentUtils.safeGetSerializableExtra(intent, EXTRA_TAB_FORCE_INCOGNITO_TYPE);
++        return value == null ? false : value == 1;
++    }
++
+     /**
+      * Creates an Intent that will launch a ChromeTabbedActivity on the new tab page. The Intent
+      * will be trusted and therefore able to launch Incognito tabs.
+@@ -1640,7 +1654,7 @@ public class IntentHandler {
+         String headers = getExtraHeadersFromIntent(intent);
+         headers = maybeAddAdditionalContentHeaders(intent, url, headers);
+ 
+-        if (IntentHandler.wasIntentSenderChrome(intent)) {
++        if (IntentHandler.wasIntentSenderChrome(intent) && !isForceIncognitoMode(intent)) {
+             // Handle post data case.
+             String postDataType =
+                     IntentUtils.safeGetStringExtra(intent, IntentHandler.EXTRA_POST_DATA_TYPE);
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDispatcher.java b/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDispatcher.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDispatcher.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/LaunchIntentDispatcher.java
+@@ -443,8 +443,8 @@ public class LaunchIntentDispatcher implements IntentHandler.IntentHandlerDelega
+                     /*incognito*/true);
+                 newIntent.setData(mIntent.getData());
+                 newIntent.setPackage(applicationContext.getPackageName());
+-                IntentHandler.setTabLaunchType(newIntent, TabLaunchType.FROM_EXTERNAL_APP);
+                 newIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++                IntentHandler.setForceIncognitoMode(newIntent);
+             }
+             if (!chromeTabbedTaskExists()) {
+                 newIntent.putExtra(IntentHandler.EXTRA_STARTED_TABBED_CHROME_TASK, true);
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java b/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
@@ -189,7 +244,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/sharing/shared_
 new file mode 100644
 --- /dev/null
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/sharing/shared_intent/SharedIntentShareActivity.java
-@@ -0,0 +1,118 @@
+@@ -0,0 +1,119 @@
 +// Copyright 2019 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -292,6 +347,7 @@ new file mode 100644
 +            chromeIntent.setData(Uri.parse(linkUrl));
 +            chromeIntent.setPackage(applicationContext.getPackageName());
 +            chromeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++            IntentHandler.setForceIncognitoMode(chromeIntent);
 +
 +            LaunchIntentDispatcher.dispatch(this, chromeIntent);
 +            finish();
@@ -397,7 +453,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -4984,6 +4984,19 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -4987,6 +4987,19 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
          Copied to your clipboard
        </message>
  

@@ -33,17 +33,18 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  content/child/BUILD.gn                        |   1 +
  content/child/runtime_features.cc             |   9 +
  .../public/platform/web_runtime_features.h    |   3 +
- .../blink/renderer/core/dom/document.cc       |  18 ++
+ .../blink/renderer/core/dom/document.cc       |  20 +++
  .../blink/renderer/core/dom/document.h        |   7 +
  .../blink/renderer/core/dom/element.cc        |   8 +
  third_party/blink/renderer/core/dom/range.cc  |  12 +-
  .../html/canvas/canvas_async_blob_creator.cc  |   5 +
  .../renderer/core/html/canvas/text_metrics.cc |  18 ++
  .../renderer/core/html/canvas/text_metrics.h  |   2 +
- .../renderer/core/svg/svg_graphics_element.cc |   1 +
- .../core/svg/svg_text_content_element.cc      |  23 ++-
+ .../renderer/core/svg/svg_graphics_element.cc |   2 +
+ .../core/svg/svg_text_content_element.cc      |  30 +++-
  .../canvas2d/base_rendering_context_2d.cc     |   5 +
  .../canvas2d/canvas_rendering_context_2d.cc   |   8 +-
+ .../offscreen_canvas_rendering_context_2d.cc  |   9 +-
  third_party/blink/renderer/platform/BUILD.gn  |   5 +-
  .../platform/exported/web_runtime_features.cc |  12 ++
  .../platform/graphics/image_data_buffer.cc    |   7 +
@@ -53,7 +54,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  third_party/ungoogled/BUILD.gn                |  10 ++
  third_party/ungoogled/ungoogled_switches.cc   |  18 ++
  third_party/ungoogled/ungoogled_switches.h    |  18 ++
- 27 files changed, 369 insertions(+), 9 deletions(-)
+ 28 files changed, 387 insertions(+), 10 deletions(-)
  create mode 100644 third_party/ungoogled/BUILD.gn
  create mode 100644 third_party/ungoogled/ungoogled_switches.cc
  create mode 100644 third_party/ungoogled/ungoogled_switches.h
@@ -61,7 +62,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -2405,6 +2405,7 @@ static_library("browser") {
+@@ -2399,6 +2399,7 @@ static_library("browser") {
      "//services/device/public/cpp/geolocation",
      "//services/device/public/cpp/serial:switches",
      "//services/device/public/cpp/usb",
@@ -195,14 +196,16 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  #include "base/notreached.h"
  #include "base/ranges/algorithm.h"
  #include "base/task/single_thread_task_runner.h"
-@@ -831,6 +832,15 @@ Document::Document(const DocumentInit& initializer,
+@@ -831,6 +832,17 @@ Document::Document(const DocumentInit& initializer,
                : nullptr),
        data_(MakeGarbageCollected<DocumentData>(GetExecutionContext())) {
    DCHECK(agent_);
-+  if (RuntimeEnabledFeatures::FingerprintingClientRectsNoiseEnabled()) {
++  if (RuntimeEnabledFeatures::FingerprintingClientRectsNoiseEnabled() ||
++      RuntimeEnabledFeatures::FingerprintingCanvasMeasureTextNoiseEnabled() ||
++      RuntimeEnabledFeatures::FingerprintingCanvasImageDataNoiseEnabled()) {
 +    // Precompute -0.0003% to 0.0003% noise factor for get*ClientRect*() fingerprinting
-+    noise_factor_x_ = 1 + (base::RandDouble() - 0.5) * 0.000003;
-+    noise_factor_y_ = 1 + (base::RandDouble() - 0.5) * 0.000003;
++    noise_factor_x_ = 1.0 + (base::RandDouble() - 0.5) * 0.0003;
++    noise_factor_y_ = 1.0 + (base::RandDouble() - 0.5) * 0.0003;
 +  } else {
 +    noise_factor_x_ = 1;
 +    noise_factor_y_ = 1;
@@ -211,7 +214,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
    if (base::FeatureList::IsEnabled(features::kDelayAsyncScriptExecution))
      script_runner_delayer_->Activate();
  
-@@ -2266,6 +2276,14 @@ void Document::UpdateStyleAndLayoutTreeForThisDocument() {
+@@ -2266,6 +2278,14 @@ void Document::UpdateStyleAndLayoutTreeForThisDocument() {
  #endif
  }
  
@@ -376,18 +379,19 @@ diff --git a/third_party/blink/renderer/core/html/canvas/text_metrics.h b/third_
 diff --git a/third_party/blink/renderer/core/svg/svg_graphics_element.cc b/third_party/blink/renderer/core/svg/svg_graphics_element.cc
 --- a/third_party/blink/renderer/core/svg/svg_graphics_element.cc
 +++ b/third_party/blink/renderer/core/svg/svg_graphics_element.cc
-@@ -191,6 +191,7 @@ SVGRectTearOff* SVGGraphicsElement::getBBoxFromJavascript() {
+@@ -191,6 +191,8 @@ SVGRectTearOff* SVGGraphicsElement::getBBoxFromJavascript() {
  
      if (layout_object->IsSVGText() || layout_object->IsSVGInline())
        UseCounter::Count(GetDocument(), WebFeature::kGetBBoxForText);
-+    bounding_box.Scale(GetDocument().GetNoiseFactorX(), GetDocument().GetNoiseFactorY());
++    if (RuntimeEnabledFeatures::FingerprintingClientRectsNoiseEnabled())
++      bounding_box.Scale(GetDocument().GetNoiseFactorX(), GetDocument().GetNoiseFactorY());
    }
    return SVGRectTearOff::CreateDetached(bounding_box);
  }
 diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/third_party/blink/renderer/core/svg/svg_text_content_element.cc
 --- a/third_party/blink/renderer/core/svg/svg_text_content_element.cc
 +++ b/third_party/blink/renderer/core/svg/svg_text_content_element.cc
-@@ -117,11 +117,14 @@ float SVGTextContentElement::getComputedTextLength() {
+@@ -117,11 +117,16 @@ float SVGTextContentElement::getComputedTextLength() {
    GetDocument().UpdateStyleAndLayoutForNode(this,
                                              DocumentUpdateReason::kJavaScript);
    auto* layout_object = GetLayoutObject();
@@ -400,11 +404,13 @@ diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/t
 +    value = SVGTextQuery(layout_object).TextLength();
    }
 -  return SVGTextQuery(layout_object).TextLength();
-+  return value * GetDocument().GetNoiseFactorX();
++  return value *
++    (RuntimeEnabledFeatures::FingerprintingCanvasMeasureTextNoiseEnabled() ?
++      GetDocument().GetNoiseFactorX() : 1);
  }
  
  float SVGTextContentElement::getSubStringLength(
-@@ -144,9 +147,12 @@ float SVGTextContentElement::getSubStringLength(
+@@ -144,9 +149,13 @@ float SVGTextContentElement::getSubStringLength(
      nchars = number_of_chars - charnum;
  
    auto* layout_object = GetLayoutObject();
@@ -415,40 +421,45 @@ diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/t
 +    value = NGSvgTextQuery(*layout_object).SubStringLength(charnum, nchars);
 +  else
 +    value = SVGTextQuery(layout_object).SubStringLength(charnum, nchars);
-+  return value * GetDocument().GetNoiseFactorX();
++  return value * (RuntimeEnabledFeatures::FingerprintingCanvasMeasureTextNoiseEnabled() ?
++      GetDocument().GetNoiseFactorX() : 1);
  }
  
  SVGPointTearOff* SVGTextContentElement::getStartPositionOfChar(
-@@ -170,6 +176,7 @@ SVGPointTearOff* SVGTextContentElement::getStartPositionOfChar(
+@@ -170,6 +179,8 @@ SVGPointTearOff* SVGTextContentElement::getStartPositionOfChar(
    } else {
      point = SVGTextQuery(layout_object).StartPositionOfCharacter(charnum);
    }
-+  point.Scale(GetDocument().GetNoiseFactorX(), GetDocument().GetNoiseFactorY());
++  if (RuntimeEnabledFeatures::FingerprintingCanvasMeasureTextNoiseEnabled())
++    point.Scale(GetDocument().GetNoiseFactorX(), GetDocument().GetNoiseFactorY());
    return SVGPointTearOff::CreateDetached(point);
  }
  
-@@ -194,6 +201,7 @@ SVGPointTearOff* SVGTextContentElement::getEndPositionOfChar(
+@@ -194,6 +205,8 @@ SVGPointTearOff* SVGTextContentElement::getEndPositionOfChar(
    } else {
      point = SVGTextQuery(layout_object).EndPositionOfCharacter(charnum);
    }
-+  point.Scale(GetDocument().GetNoiseFactorX(), GetDocument().GetNoiseFactorY());
++  if (RuntimeEnabledFeatures::FingerprintingCanvasMeasureTextNoiseEnabled())
++    point.Scale(GetDocument().GetNoiseFactorX(), GetDocument().GetNoiseFactorY());
    return SVGPointTearOff::CreateDetached(point);
  }
  
-@@ -218,6 +226,7 @@ SVGRectTearOff* SVGTextContentElement::getExtentOfChar(
+@@ -218,6 +231,8 @@ SVGRectTearOff* SVGTextContentElement::getExtentOfChar(
    } else {
      rect = SVGTextQuery(layout_object).ExtentOfCharacter(charnum);
    }
-+  rect.Scale(GetDocument().GetNoiseFactorX(), GetDocument().GetNoiseFactorY());
++  if (RuntimeEnabledFeatures::FingerprintingCanvasMeasureTextNoiseEnabled())
++    rect.Scale(GetDocument().GetNoiseFactorX(), GetDocument().GetNoiseFactorY());
    return SVGRectTearOff::CreateDetached(rect);
  }
  
-@@ -247,12 +256,14 @@ int SVGTextContentElement::getCharNumAtPosition(
+@@ -247,12 +262,15 @@ int SVGTextContentElement::getCharNumAtPosition(
    GetDocument().UpdateStyleAndLayoutForNode(this,
                                              DocumentUpdateReason::kJavaScript);
    auto* layout_object = GetLayoutObject();
 +  gfx::PointF target = gfx::PointF(point->Target()->Value());
-+  target.Scale(GetDocument().GetNoiseFactorX(), GetDocument().GetNoiseFactorY());
++  if (RuntimeEnabledFeatures::FingerprintingCanvasMeasureTextNoiseEnabled())
++    target.Scale(GetDocument().GetNoiseFactorX(), GetDocument().GetNoiseFactorY());
    if (IsNGTextOrInline(layout_object)) {
      return NGSvgTextQuery(*layout_object)
 -        .CharacterNumberAtPosition(point->Target()->Value());
@@ -502,6 +513,34 @@ diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/canvas_rendering
  }
  
  void CanvasRenderingContext2D::drawFormattedText(
+diff --git a/third_party/blink/renderer/modules/canvas/offscreencanvas2d/offscreen_canvas_rendering_context_2d.cc b/third_party/blink/renderer/modules/canvas/offscreencanvas2d/offscreen_canvas_rendering_context_2d.cc
+--- a/third_party/blink/renderer/modules/canvas/offscreencanvas2d/offscreen_canvas_rendering_context_2d.cc
++++ b/third_party/blink/renderer/modules/canvas/offscreencanvas2d/offscreen_canvas_rendering_context_2d.cc
+@@ -5,6 +5,7 @@
+ #include "third_party/blink/renderer/modules/canvas/offscreencanvas2d/offscreen_canvas_rendering_context_2d.h"
+ 
+ #include "base/metrics/histogram_functions.h"
++#include "base/rand_util.h"
+ #include "base/trace_event/trace_event.h"
+ #include "third_party/blink/public/common/features.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_union_gpucanvascontext_imagebitmaprenderingcontext_offscreencanvasrenderingcontext2d_webgl2renderingcontext_webglrenderingcontext.h"
+@@ -753,9 +754,15 @@ TextMetrics* OffscreenCanvasRenderingContext2D::measureText(
+ 
+   TextDirection direction = ToTextDirection(GetState().GetDirection());
+ 
+-  return MakeGarbageCollected<TextMetrics>(font, direction,
++  TextMetrics* text_metrics = MakeGarbageCollected<TextMetrics>(font, direction,
+                                            GetState().GetTextBaseline(),
+                                            GetState().GetTextAlign(), text);
++  // Scale text metrics if enabled
++  if (RuntimeEnabledFeatures::FingerprintingCanvasMeasureTextNoiseEnabled()) {
++    float v = 1.0 + (base::RandDouble() - 0.5) * 0.0003;
++    text_metrics->Shuffle(v);
++  }
++  return text_metrics;
+ }
+ 
+ const Font& OffscreenCanvasRenderingContext2D::AccessFont() {
 diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/renderer/platform/BUILD.gn
 --- a/third_party/blink/renderer/platform/BUILD.gn
 +++ b/third_party/blink/renderer/platform/BUILD.gn

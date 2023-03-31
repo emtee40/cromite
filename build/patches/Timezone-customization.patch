@@ -16,12 +16,12 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../res/xml/site_settings_preferences.xml     |   4 +
  .../java/res/xml/website_preferences.xml      |  10 +
  .../ContentSettingsResources.java             |  33 +++
- .../site_settings/SingleCategorySettings.java |  58 +++++-
+ .../site_settings/SingleCategorySettings.java |  60 +++++-
  .../site_settings/SingleWebsiteSettings.java  |   8 +-
  .../site_settings/SiteSettings.java           |   2 +-
  .../site_settings/SiteSettingsCategory.java   |   8 +-
  .../site_settings/SiteSettingsDelegate.java   |   2 +
- ...imezoneOverrideSiteSettingsPreference.java | 193 ++++++++++++++++++
+ ...imezoneOverrideSiteSettingsPreference.java | 194 ++++++++++++++++++
  .../browser_ui/site_settings/Website.java     |  11 +
  .../WebsitePermissionsFetcher.java            |   2 +
  .../WebsitePreferenceBridge.java              |  12 ++
@@ -29,7 +29,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../strings/android/site_settings.grdp        |  35 ++++
  .../browser/content_settings_pref_provider.cc |  16 ++
  .../browser/content_settings_pref_provider.h  |   4 +
- .../core/browser/content_settings_registry.cc |  12 ++
+ .../core/browser/content_settings_registry.cc |  11 +
  .../core/browser/content_settings_utils.cc    |   7 +
  .../core/browser/host_content_settings_map.cc |   8 +
  .../core/browser/host_content_settings_map.h  |   3 +
@@ -44,7 +44,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/content_settings_agent_impl.cc   |  83 ++++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 35 files changed, 684 insertions(+), 10 deletions(-)
+ 35 files changed, 687 insertions(+), 9 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
@@ -336,15 +336,6 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
  import java.util.ArrayList;
  import java.util.Collection;
  import java.util.Collections;
-@@ -161,7 +165,7 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-     // The websites that are currently displayed to the user.
-     private List<WebsitePreference> mWebsites;
-     // Whether tri-state ContentSetting is required.
--    private @GlobalToggleLayout int mGlobalToggleLayout = GlobalToggleLayout.BINARY_TOGGLE;
-+    private @GlobalToggleLayout int mGlobalToggleLayout = GlobalToggleLayout.BINARY_TOGGLE; ADD TIMEZONE
-     // The "notifications_quiet_ui" preference to allow hiding/showing it.
-     private ChromeBaseCheckBoxPreference mNotificationsQuietUiPref;
-     // The "desktop_site_peripheral" preference to allow hiding/showing it.
 @@ -196,6 +200,7 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
      public static final String TRI_STATE_TOGGLE_KEY = "tri_state_toggle";
      public static final String TRI_STATE_COOKIE_TOGGLE = "tri_state_cookie_toggle";
@@ -417,41 +408,64 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +                resource = WebsitePreferenceBridge.isCategoryEnabled(
 +                                   browserContextHandle, ContentSettingsType.TIMEZONE_OVERRIDE)
 +                        ? R.string.website_settings_category_timezone_override_allowed
-+                        : R.string.website_settings_category_timezone_override_blocked;
++                        : R.string.website_settings_category_timezone_override_allowed;
 +                break;
          }
          assert resource > 0;
          return getString(resource);
-@@ -906,6 +932,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -903,6 +929,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+             case SiteSettingsCategory.Type.THIRD_PARTY_COOKIES:
+                 allowSpecifyingExceptions = getCookieControlsMode() != CookieControlsMode.OFF;
+                 break;
++            case SiteSettingsCategory.Type.TIMEZONE_OVERRIDE:
++                allowSpecifyingExceptions = true;
++                break;
              default:
                  break;
          }
-+        if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
-+            allowSpecifyingExceptions = true;
-+        }
-         if (allowSpecifyingExceptions) {
-             getPreferenceScreen().addPreference(new AddExceptionPreference(getStyledContext(),
-                     ADD_EXCEPTION_KEY, getAddExceptionDialogMessage(), mCategory, this));
-@@ -1246,6 +1275,18 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-             mListView.setFocusable(true);
-         }
- 
+@@ -1120,6 +1149,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+         PreferenceGroup blockedGroup = screen.findPreference(BLOCKED_GROUP);
+         PreferenceGroup managedGroup = screen.findPreference(MANAGED_GROUP);
+         boolean permissionBlockedByOs = mCategory.showPermissionBlockedMessage(getContext());
 +        TimezoneOverrideSiteSettingsPreference timeOverrideStatePreference =
 +                (TimezoneOverrideSiteSettingsPreference) screen.findPreference(
 +                        TIMEOVERRIDE_STATE_TOGGLE_KEY);
+ 
+         if (mGlobalToggleLayout != GlobalToggleLayout.BINARY_TOGGLE) {
+             screen.removePreference(binaryToggle);
+@@ -1133,11 +1165,18 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+         if (mGlobalToggleLayout != GlobalToggleLayout.FOUR_STATE_COOKIE_TOGGLE) {
+             screen.removePreference(fourStateCookieToggle);
+         }
++        if (contentType != SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
++            screen.removePreference(screen.findPreference(TIMEOVERRIDE_INFO_TEXT));
++        }
+         switch (mGlobalToggleLayout) {
+             case GlobalToggleLayout.BINARY_TOGGLE:
+                 configureBinaryToggle(binaryToggle, contentType);
+                 break;
+             case GlobalToggleLayout.TRI_STATE_TOGGLE:
++                if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
++                    configureTimeOverrideStateToggle(timeOverrideStatePreference);
++                    break;
++                }
+                 configureTriStateToggle(triStateToggle, contentType);
+                 break;
+             case GlobalToggleLayout.TRI_STATE_COOKIE_TOGGLE:
+@@ -1178,6 +1217,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+             screen.removePreference(antiAbuseThingsToConsiderSectionOne);
+         }
+ 
 +        if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
 +            screen.removePreference(triStateToggle);
-+            configureTimeOverrideStateToggle(timeOverrideStatePreference);
-+        }
-+        else {
++        } else {
 +            screen.removePreference(timeOverrideStatePreference);
-+            configureTriStateToggle(triStateToggle, contentType);
 +        }
 +
-         // When this menu opens, make sure the Blocked list is collapsed.
-         if (!mGroupByAllowBlock) {
-             mBlockListExpanded = false;
-@@ -1333,6 +1374,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+         if (permissionBlockedByOs) {
+             maybeShowOsWarning(screen);
+ 
+@@ -1333,6 +1378,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          triStateToggle.initialize(setting, descriptionIds);
      }
  
@@ -573,7 +587,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100755
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
-@@ -0,0 +1,193 @@
+@@ -0,0 +1,194 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -679,7 +693,8 @@ new file mode 100755
 +        mRadioGroup = (RadioGroup) holder.findViewById(R.id.radio_button_layout);
 +        mRadioGroup.setOnCheckedChangeListener(this);
 +
-+        mAsk.setPrimaryText(WebsitePreferenceBridge.getCustomTimezone(mBrowserContextHandle));
++        if (mBrowserContextHandle != null)
++            mAsk.setPrimaryText(WebsitePreferenceBridge.getCustomTimezone(mBrowserContextHandle));
 +        mAsk.addTextChangeListener(this);
 +
 +        ListView listView = (ListView)holder.findViewById(R.id.listView);
@@ -979,20 +994,19 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -555,6 +555,18 @@ void ContentSettingsRegistry::Init() {
+@@ -555,6 +555,17 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
  
 +  Register(ContentSettingsType::TIMEZONE_OVERRIDE, "timezone-override", CONTENT_SETTING_ALLOW,
 +           WebsiteSettingsInfo::SYNCABLE,
-+           AllowlistedSchemes(kChromeUIScheme, kChromeDevToolsScheme),
-+           ValidSettings(CONTENT_SETTING_ALLOW,   // use system time
-+                         CONTENT_SETTING_ASK,     // custom timezone, default UTC
-+                         CONTENT_SETTING_BLOCK),  // random
++           /*allowlisted_schemes=*/{},
++           /*valid_settings=*/{CONTENT_SETTING_ALLOW,   // use system time
++                               CONTENT_SETTING_ASK,     // custom timezone, default UTC
++                               CONTENT_SETTING_BLOCK},  // random
 +           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
 +           WebsiteSettingsRegistry::PLATFORM_ANDROID,
 +           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
-+           ContentSettingsInfo::PERSISTENT,
 +           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
 +
    Register(ContentSettingsType::FEDERATED_IDENTITY_API, "webid-api",

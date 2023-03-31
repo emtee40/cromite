@@ -24,7 +24,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../chromium/chrome/browser/tab/TabUtils.java |  24 ++-
  .../browser/android/content/content_utils.cc  |  28 +++
  .../preferences/browser_prefs_android.cc      |   7 +
- .../privacy_preferences_manager_impl.cc       | 121 +++++++++++
+ .../privacy_preferences_manager_impl.cc       | 123 ++++++++++++
  .../preferences/ChromePreferenceKeys.java     |   5 +
  .../settings/PrivacyPreferencesManager.java   |   8 +
  .../org/chromium/chrome/browser/tab/Tab.java  |   2 +
@@ -41,7 +41,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/web_contents/web_contents_impl.cc |   4 +
  .../framehost/NavigationControllerImpl.java   |   3 +-
  content/renderer/render_thread_impl.cc        |   1 -
- 31 files changed, 766 insertions(+), 16 deletions(-)
+ 31 files changed, 768 insertions(+), 16 deletions(-)
  create mode 100644 chrome/android/java/res/layout/custom_useragent_preferences.xml
  create mode 100644 chrome/android/java/res/xml/useragent_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/UserAgentPreferences.java
@@ -774,13 +774,14 @@ diff --git a/chrome/browser/android/preferences/browser_prefs_android.cc b/chrom
 diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 --- a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 +++ b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
-@@ -13,6 +13,30 @@
+@@ -13,6 +13,31 @@
  #include "components/policy/core/common/features.h"
  #include "components/prefs/pref_service.h"
  
 +#include "base/command_line.h"
 +#include "base/base_switches.h"
 +#include "chrome/common/chrome_switches.h"
++#include "content/browser/attribution_reporting/attribution_manager.h"
 +#include "content/browser/renderer_host/render_process_host_impl.h"
 +#include "content/common/renderer.mojom.h"
 +#include "chrome/browser/chrome_content_browser_client.h"
@@ -805,7 +806,7 @@ diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl
  static jboolean JNI_PrivacyPreferencesManagerImpl_IsMetricsReportingEnabled(
      JNIEnv* env) {
    PrefService* local_state = g_browser_process->local_state();
-@@ -40,3 +64,100 @@ JNI_PrivacyPreferencesManagerImpl_IsMetricsReportingDisabledByPolicy(
+@@ -40,3 +65,101 @@ JNI_PrivacyPreferencesManagerImpl_IsMetricsReportingDisabledByPolicy(
               metrics::prefs::kMetricsReportingEnabled) &&
           !local_state->GetBoolean(metrics::prefs::kMetricsReportingEnabled);
  }
@@ -832,7 +833,8 @@ diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl
 +        std::vector<std::string> cors_exempt_header_list;
 +        iter.GetCurrentValue()->GetRendererInterface()->InitializeRenderer(
 +          /*user_agent*/ ua, /*full_user_agent*/ ua, /*reduced_user_agent*/ ua,
-+          /*metadata*/ blink::UserAgentMetadata(), cors_exempt_header_list);
++          /*metadata*/ blink::UserAgentMetadata(), cors_exempt_header_list,
++          content::AttributionManager::GetOsSupport());
 +      }
 +    }
 +  }

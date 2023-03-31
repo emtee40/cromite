@@ -15,9 +15,11 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/LaunchIntentDispatcher.java       | 21 ++++++++++++++++
  .../IncognitoCustomTabIntentDataProvider.java |  6 +++++
  .../privacy/settings/PrivacySettings.java     | 24 +++++++++++++++++++
+ .../flags/android/chrome_feature_list.cc      |  6 ++---
  .../chrome/browser/tab/TabAssociatedApp.java  |  6 ++++-
  .../strings/android_chrome_strings.grd        | 15 ++++++++++++
- 6 files changed, 81 insertions(+), 1 deletion(-)
+ .../core/common/language_experiments.cc       |  4 ++--
+ 8 files changed, 86 insertions(+), 6 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
@@ -176,6 +178,29 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          Preference doNotTrackPref = findPreference(PREF_DO_NOT_TRACK);
          if (doNotTrackPref != null) {
              doNotTrackPref.setSummary(prefService.getBoolean(Pref.ENABLE_DO_NOT_TRACK)
+diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
+--- a/chrome/browser/flags/android/chrome_feature_list.cc
++++ b/chrome/browser/flags/android/chrome_feature_list.cc
+@@ -545,8 +545,8 @@ BASE_FEATURE(kCCTIncognitoAvailableToThirdParty,
+              base::FEATURE_ENABLED_BY_DEFAULT);             // in Bromite
+ 
+ BASE_FEATURE(kCCTIntentFeatureOverrides,
+-             "CCTIntentFeatureOverrides",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "CCTIntentFeatureOverrides",                   // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);            // in Bromite
+ 
+ BASE_FEATURE(kCCTPackageNameRecording,
+              "CCTPackageNameRecording",
+@@ -554,7 +554,7 @@ BASE_FEATURE(kCCTPackageNameRecording,
+ 
+ BASE_FEATURE(kCCTPostMessageAPI,
+              "CCTPostMessageAPI",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kCCTPostMessageOrigin,
+              "CCTPostMessageOrigin",
 diff --git a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/TabAssociatedApp.java b/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/TabAssociatedApp.java
 --- a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/TabAssociatedApp.java
 +++ b/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/TabAssociatedApp.java
@@ -195,7 +220,7 @@ diff --git a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/TabAsso
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -4911,6 +4911,21 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -4914,6 +4914,21 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
        <message name="IDS_NEAR_OOM_INTERVENTION_DECLINE" desc="The text of the button letting the user decline the browser's intervention, so that the page can resume what it was doing.">
           Resume
        </message>
@@ -217,5 +242,19 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
  
        <!-- Autofill Assistant preferences -->
        <!-- TODO(b/168178344): Move to Assistant settings strings section below. -->
+diff --git a/components/language/core/common/language_experiments.cc b/components/language/core/common/language_experiments.cc
+--- a/components/language/core/common/language_experiments.cc
++++ b/components/language/core/common/language_experiments.cc
+@@ -45,8 +45,8 @@ BASE_FEATURE(kContentLanguagesInLanguagePicker,
+              "ContentLanguagesInLanguagePicker",
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ BASE_FEATURE(kCctAutoTranslate,
+-             "CCTAutoTranslate",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "CCTAutoTranslate",                  // Always disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
+ 
+ // Params:
+ const char kBackoffThresholdKey[] = "backoff_threshold";
 --
 2.25.1

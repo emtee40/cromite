@@ -15,8 +15,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../search_engine_tab_helper.cc               | 51 ++++++++++++++-----
  .../renderer/chrome_render_frame_observer.cc  |  2 +
  .../search_engines/template_url_fetcher.cc    | 23 +++++++--
+ .../search_engines/template_url_parser.cc     |  2 +-
  .../search_engines/template_url_service.h     |  8 +--
- 5 files changed, 65 insertions(+), 23 deletions(-)
+ 6 files changed, 66 insertions(+), 24 deletions(-)
 
 diff --git a/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java b/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
 --- a/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
@@ -233,6 +234,18 @@ diff --git a/components/search_engines/template_url_fetcher.cc b/components/sear
    }
  
    requests_.push_back(std::make_unique<RequestDelegate>(
+diff --git a/components/search_engines/template_url_parser.cc b/components/search_engines/template_url_parser.cc
+--- a/components/search_engines/template_url_parser.cc
++++ b/components/search_engines/template_url_parser.cc
+@@ -168,7 +168,7 @@ class SafeTemplateURLParser {
+ void SafeTemplateURLParser::OnXmlParseComplete(
+     data_decoder::DataDecoder::ValueOrError value_or_error) {
+   if (!value_or_error.has_value()) {
+-    DLOG(ERROR) << "Failed to parse XML: " << value_or_error.error();
++    LOG(ERROR) << "Failed to parse XML: " << value_or_error.error();
+     std::move(callback_).Run(nullptr);
+     return;
+   }
 diff --git a/components/search_engines/template_url_service.h b/components/search_engines/template_url_service.h
 --- a/components/search_engines/template_url_service.h
 +++ b/components/search_engines/template_url_service.h

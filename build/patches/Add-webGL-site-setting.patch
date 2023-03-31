@@ -16,7 +16,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../strings/android/browser_ui_strings.grd    |  1 +
  .../browser_ui/strings/android/webgl.grdp     | 18 ++++
  components/components_strings.grd             |  1 +
- .../core/browser/content_settings_registry.cc | 14 +++
+ .../core/browser/content_settings_registry.cc | 13 +++
  .../core/browser/content_settings_utils.cc    |  2 +
  .../core/common/content_settings.cc           |  4 +-
  .../core/common/content_settings.h            |  1 +
@@ -31,7 +31,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../execution_context/execution_context.h     |  5 ++
  .../webgl/webgl_rendering_context_base.cc     | 32 +++----
  .../webgl/webgl_rendering_context_base.h      |  2 +
- 22 files changed, 197 insertions(+), 23 deletions(-)
+ 22 files changed, 196 insertions(+), 23 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteWebGLContentSetting.java
  create mode 100644 components/browser_ui/strings/android/webgl.grdp
 
@@ -222,20 +222,19 @@ diff --git a/components/components_strings.grd b/components/components_strings.g
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -598,6 +598,20 @@ void ContentSettingsRegistry::Init() {
+@@ -597,6 +597,19 @@ void ContentSettingsRegistry::Init() {
                 WebsiteSettingsRegistry::PLATFORM_ANDROID,
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
 +
 +  Register(ContentSettingsType::WEBGL, "webgl", CONTENT_SETTING_BLOCK,
 +           WebsiteSettingsInfo::SYNCABLE,
-+           AllowlistedSchemes(),
-+           ValidSettings(CONTENT_SETTING_ALLOW,
-+                         CONTENT_SETTING_BLOCK),
++           /*allowlisted_schemes=*/{},
++           /*valid_settings=*/{CONTENT_SETTING_ALLOW,
++                               CONTENT_SETTING_BLOCK},
 +           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
 +           WebsiteSettingsRegistry::PLATFORM_ANDROID,
 +           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
-+           ContentSettingsInfo::PERSISTENT,
 +           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS,
 +           /*show_into_info_page*/ true,
 +           /*permission_type_ui*/ IDS_SITE_SETTINGS_TYPE_WEBGL,

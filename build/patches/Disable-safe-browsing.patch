@@ -41,7 +41,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../extensions/api/downloads/downloads_api.cc | 41 +--------
  .../extensions/api/downloads/downloads_api.h  | 12 ---
  .../webstore_private/webstore_private_api.cc  | 18 +---
- ...e_file_system_access_permission_context.cc | 14 ++-
+ ...e_file_system_access_permission_context.cc | 16 +++-
  ...me_file_system_access_permission_context.h |  5 +-
  .../lookalike_url_controller_client.cc        |  3 -
  .../metrics/chrome_metrics_service_client.cc  |  1 -
@@ -55,6 +55,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/privacy_guide/android/BUILD.gn |  2 -
  .../privacy_guide/PrivacyGuideFragment.java   |  3 -
  .../PrivacyGuidePagerAdapter.java             |  2 -
+ .../privacy_guide/PrivacyGuideUtils.java      |  6 +-
  .../privacy_guide/StepDisplayHandlerImpl.java |  2 +-
  ...hrome_browser_main_extra_parts_profiles.cc |  4 +-
  chrome/browser/profiles/profile_impl.cc       |  4 +-
@@ -69,9 +70,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/ssl/security_state_tab_helper.cc  |  9 +-
  ...urce_filter_web_contents_helper_factory.cc |  4 +
  chrome/browser/ui/BUILD.gn                    |  2 -
- .../strings/android_chrome_strings.grd        |  9 --
+ .../strings/android_chrome_strings.grd        |  6 --
  chrome/browser/ui/tab_helpers.cc              |  7 +-
- .../ui/webui/interstitials/interstitial_ui.cc | 12 +--
+ .../ui/webui/interstitials/interstitial_ui.cc | 16 +---
  chrome/common/safe_browsing/BUILD.gn          |  7 --
  chrome/renderer/BUILD.gn                      |  5 -
  .../chrome_content_renderer_client.cc         |  6 +-
@@ -93,7 +94,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../file_system_access_permission_context.h   |  6 --
  weblayer/BUILD.gn                             |  4 -
  weblayer/test/BUILD.gn                        |  1 -
- 84 files changed, 205 insertions(+), 675 deletions(-)
+ 85 files changed, 209 insertions(+), 680 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/google_services_preferences.xml b/chrome/android/java/res/xml/google_services_preferences.xml
 --- a/chrome/android/java/res/xml/google_services_preferences.xml
@@ -1652,12 +1653,12 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  #include "content/public/browser/browser_task_traits.h"
  #include "content/public/browser/browser_thread.h"
  #include "content/public/browser/disallow_activation_reason.h"
-@@ -148,6 +150,7 @@ void ShowFileSystemAccessRestrictedDirectoryDialogOnUIThread(
-       origin, handle_type, std::move(callback), web_contents);
- }
+@@ -119,6 +121,7 @@ const char kPathKey[] = "path";
+ const char kPathTypeKey[] = "path-type";
+ const char kTimestampKey[] = "timestamp";
  
 +#if defined(FULL_SAFE_BROWSING)
- void ShowFileSystemAccessDangerousFileDialogOnUIThread(
+ void ShowFileSystemAccessRestrictedDirectoryDialogOnUIThread(
      content::GlobalRenderFrameHostId frame_id,
      const url::Origin& origin,
 @@ -176,6 +179,7 @@ void ShowFileSystemAccessDangerousFileDialogOnUIThread(
@@ -1684,7 +1685,23 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  
  std::string GenerateLastPickedDirectoryKey(const std::string& id) {
    return id.empty() ? kDefaultLastPickedDirectoryKey
-@@ -1334,6 +1340,7 @@ void ChromeFileSystemAccessPermissionContext::CheckPathAgainstBlocklist(
+@@ -493,6 +499,7 @@ base::StringPiece GetGrantKeyFromGrantType(GrantType type) {
+                                    : kPermissionReadableKey;
+ }
+ 
++#if defined(FULL_SAFE_BROWSING)
+ bool FileHasDangerousExtension(const url::Origin& origin,
+                                const base::FilePath& path,
+                                Profile* profile) {
+@@ -504,6 +511,7 @@ bool FileHasDangerousExtension(const url::Origin& origin,
+   return danger_level == safe_browsing::DownloadFileType::DANGEROUS ||
+          danger_level == safe_browsing::DownloadFileType::ALLOW_ON_USER_GESTURE;
+ }
++#endif
+ 
+ }  // namespace
+ 
+@@ -1334,6 +1342,7 @@ void ChromeFileSystemAccessPermissionContext::CheckPathAgainstBlocklist(
        std::move(callback));
  }
  
@@ -1692,7 +1709,7 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  void ChromeFileSystemAccessPermissionContext::PerformAfterWriteChecks(
      std::unique_ptr<content::FileSystemAccessWriteItem> item,
      content::GlobalRenderFrameHostId frame_id,
-@@ -1356,6 +1363,7 @@ void ChromeFileSystemAccessPermissionContext::PerformAfterWriteChecks(
+@@ -1356,6 +1365,7 @@ void ChromeFileSystemAccessPermissionContext::PerformAfterWriteChecks(
                base::SequencedTaskRunner::GetCurrentDefault(),
                std::move(callback))));
  }
@@ -1700,7 +1717,7 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
  
  void ChromeFileSystemAccessPermissionContext::DidCheckPathAgainstBlocklist(
      const url::Origin& origin,
-@@ -1366,7 +1374,7 @@ void ChromeFileSystemAccessPermissionContext::DidCheckPathAgainstBlocklist(
+@@ -1366,7 +1376,7 @@ void ChromeFileSystemAccessPermissionContext::DidCheckPathAgainstBlocklist(
      base::OnceCallback<void(SensitiveEntryResult)> callback,
      bool should_block) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -1709,7 +1726,7 @@ diff --git a/chrome/browser/file_system_access/chrome_file_system_access_permiss
    if (user_action == UserAction::kNone) {
      std::move(callback).Run(should_block ? SensitiveEntryResult::kAbort
                                           : SensitiveEntryResult::kAllowed);
-@@ -1397,7 +1405,7 @@ void ChromeFileSystemAccessPermissionContext::DidCheckPathAgainstBlocklist(
+@@ -1397,7 +1407,7 @@ void ChromeFileSystemAccessPermissionContext::DidCheckPathAgainstBlocklist(
                         frame_id, origin, path, std::move(result_callback)));
      return;
    }
@@ -2015,6 +2032,36 @@ diff --git a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/b
              case PrivacyGuideFragment.FragmentType.COOKIES:
                  return new CookiesFragment();
              case PrivacyGuideFragment.FragmentType.DONE:
+diff --git a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideUtils.java b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideUtils.java
+--- a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideUtils.java
++++ b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/PrivacyGuideUtils.java
+@@ -11,7 +11,6 @@ import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.browser.safe_browsing.SafeBrowsingBridge;
+ import org.chromium.chrome.browser.safe_browsing.SafeBrowsingState;
+ import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
+-import org.chromium.chrome.browser.signin.services.UnifiedConsentServiceBridge;
+ import org.chromium.chrome.browser.sync.SyncService;
+ import org.chromium.components.content_settings.CookieControlsMode;
+ import org.chromium.components.content_settings.PrefNames;
+@@ -28,8 +27,7 @@ import java.util.Set;
+  */
+ class PrivacyGuideUtils {
+     static boolean isMsbbEnabled() {
+-        return UnifiedConsentServiceBridge.isUrlKeyedAnonymizedDataCollectionEnabled(
+-                Profile.getLastUsedRegularProfile());
++        return false;
+     }
+ 
+     static boolean isHistorySyncEnabled() {
+@@ -44,7 +42,7 @@ class PrivacyGuideUtils {
+     }
+ 
+     static @SafeBrowsingState int getSafeBrowsingState() {
+-        return SafeBrowsingBridge.getSafeBrowsingState();
++        return SafeBrowsingState.NO_SAFE_BROWSING;
+     }
+ 
+     static @CookieControlsMode int getCookieControlsMode() {
 diff --git a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/StepDisplayHandlerImpl.java b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/StepDisplayHandlerImpl.java
 --- a/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/StepDisplayHandlerImpl.java
 +++ b/chrome/browser/privacy_guide/android/java/src/org/chromium/chrome/browser/privacy_guide/StepDisplayHandlerImpl.java
@@ -2468,20 +2515,17 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -408,12 +408,6 @@ CHAR_LIMIT guidelines:
-       <message name="IDS_PRIVACY_SYNC_AND_SERVICES_LINK_SYNC_OFF" desc="The text for Privacy preferences that is shown after all preference rows. This version of the text is shown if Sync hasn't been turned on.">
-         For more settings that relate to privacy, security, and data collection, see <ph name="BEGIN_LINK">&lt;link&gt;</ph>Google services<ph name="END_LINK">&lt;/link&gt;</ph>
+@@ -411,9 +411,6 @@ CHAR_LIMIT guidelines:
+       <message name="IDS_USAGE_AND_CRASH_REPORTS_TITLE" desc="Title for a preference that enables sending usage statistics and crash reports.">
+         Help improve Chrome\u2019s features and performance
        </message>
--      <message name="IDS_USAGE_AND_CRASH_REPORTS_TITLE" desc="Title for a preference that enables sending usage statistics and crash reports.">
--        Help improve Chrome\u2019s features and performance
--      </message>
 -      <message name="IDS_USAGE_AND_CRASH_REPORTS_SUMMARY" desc="Description for 'Help improve Chrome's features and performance' preference.">
 -        Automatically sends usage statistics and crash reports to Google
 -      </message>
  
        <!-- Metrics settings -->
        <message name="IDS_PREFS_METRICS_SETTINGS" desc="Title for the page that allows the user to control how much usage data Chrome uploads. [CHAR_LIMIT=32]">
-@@ -4942,9 +4936,6 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -4942,9 +4939,6 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
          Helps you complete tasks, such as checkout, throughout the web
        </message>
        <!-- Usage Stats strings -->
@@ -2574,16 +2618,20 @@ diff --git a/chrome/browser/ui/webui/interstitials/interstitial_ui.cc b/chrome/b
  
  #if BUILDFLAG(ENABLE_CAPTIVE_PORTAL_DETECTION)
  std::unique_ptr<CaptivePortalBlockingPage> CreateCaptivePortalBlockingPage(
-@@ -534,8 +538,6 @@ void InterstitialHTMLSource::StartDataRequest(
+@@ -534,12 +538,6 @@ void InterstitialHTMLSource::StartDataRequest(
      interstitial_delegate = CreateMITMSoftwareBlockingPage(web_contents);
    } else if (path_without_query == "/blocked-interception") {
      interstitial_delegate = CreateBlockedInterceptionBlockingPage(web_contents);
 -  } else if (path_without_query == "/safebrowsing") {
 -    interstitial_delegate = CreateSafeBrowsingBlockingPage(web_contents);
-   } else if (path_without_query == "/enterprise-block") {
-     interstitial_delegate = CreateEnterpriseBlockPage(web_contents);
-   } else if (path_without_query == "/enterprise-warn") {
-@@ -552,13 +554,7 @@ void InterstitialHTMLSource::StartDataRequest(
+-  } else if (path_without_query == "/enterprise-block") {
+-    interstitial_delegate = CreateEnterpriseBlockPage(web_contents);
+-  } else if (path_without_query == "/enterprise-warn") {
+-    interstitial_delegate = CreateEnterpriseWarnPage(web_contents);
+   } else if (path_without_query == "/clock") {
+     interstitial_delegate = CreateBadClockBlockingPage(web_contents);
+   } else if (path_without_query == "/lookalike") {
+@@ -552,13 +550,7 @@ void InterstitialHTMLSource::StartDataRequest(
      interstitial_delegate = CreateInsecureFormPage(web_contents);
    } else if (path_without_query == "/https_only") {
      interstitial_delegate = CreateHttpsOnlyModePage(web_contents);

@@ -15,7 +15,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../dialogs/DownloadLocationCustomView.java   |  4 +-
  .../strings/android_chrome_strings.grd        |  3 +
  components/bookmark_bar_strings.grdp          |  6 ++
- .../bookmarks/browser/bookmark_codec.cc       | 24 ++++++--
+ .../bookmarks/browser/bookmark_codec.cc       | 22 +++++--
  components/bookmarks/browser/bookmark_codec.h |  7 ++-
  .../browser/bookmark_load_details.cc          |  4 ++
  .../bookmarks/browser/bookmark_load_details.h |  2 +
@@ -25,7 +25,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/bookmarks/browser/bookmark_node.h  |  5 ++
  components/bookmarks/browser/model_loader.cc  |  3 +-
  .../bookmark_specifics_conversions.cc         |  1 +
- 21 files changed, 201 insertions(+), 10 deletions(-)
+ 21 files changed, 199 insertions(+), 10 deletions(-)
 
 diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/res/menu/main_menu.xml
 --- a/chrome/android/java/res/menu/main_menu.xml
@@ -54,7 +54,7 @@ diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/re
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-@@ -77,6 +77,7 @@ import org.chromium.chrome.browser.back_press.MinimizeAppAndCloseTabBackPressHan
+@@ -80,6 +80,7 @@ import org.chromium.chrome.browser.back_press.MinimizeAppAndCloseTabBackPressHan
  import org.chromium.chrome.browser.bookmarks.BookmarkUtils;
  import org.chromium.chrome.browser.browserservices.intents.WebappConstants;
  import org.chromium.chrome.browser.compositor.CompositorViewHolder;
@@ -62,7 +62,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
  import org.chromium.chrome.browser.compositor.layouts.Layout;
  import org.chromium.chrome.browser.compositor.layouts.LayoutManagerChrome;
  import org.chromium.chrome.browser.compositor.layouts.LayoutManagerChromePhone;
-@@ -2213,6 +2214,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -2220,6 +2221,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
              CloseAllTabsDialog.show(this, getModalDialogManagerSupplier(),
                      () -> getTabModelSelector().closeAllTabs(), /*isIncognito=*/false);
              RecordUserAction.record("MobileMenuCloseAllTabs");
@@ -71,7 +71,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
          } else if (id == R.id.close_all_incognito_tabs_menu_id) {
              // Close only incognito tabs
              CloseAllTabsDialog.show(this, getModalDialogManagerSupplier(),
-@@ -2272,6 +2275,27 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -2279,6 +2282,27 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
          mTabModalHandler.onOmniboxFocusChanged(hasFocus);
      }
  
@@ -284,23 +284,24 @@ diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.h b/chrome/browser
 diff --git a/chrome/browser/bookmarks/bookmark_html_writer.cc b/chrome/browser/bookmarks/bookmark_html_writer.cc
 --- a/chrome/browser/bookmarks/bookmark_html_writer.cc
 +++ b/chrome/browser/bookmarks/bookmark_html_writer.cc
-@@ -188,6 +188,8 @@ class Writer : public base::RefCountedThreadSafe<Writer> {
+@@ -188,15 +188,19 @@ class Writer : public base::RefCountedThreadSafe<Writer> {
          roots->FindDict(BookmarkCodec::kOtherBookmarkFolderNameKey);
      base::Value::Dict* mobile_folder_value =
          roots->FindDict(BookmarkCodec::kMobileBookmarkFolderNameKey);
-+    base::Value* tabs_collection_value =
-+        roots->FindDictKey(BookmarkCodec::kTabsBookmarkFolderNameKey);
++    base::Value::Dict* tabs_collection_value =
++        roots->FindDict(BookmarkCodec::kTabsBookmarkFolderNameKey);
      DCHECK(root_folder_value);
      DCHECK(other_folder_value);
      DCHECK(mobile_folder_value);
-@@ -196,7 +198,9 @@ class Writer : public base::RefCountedThreadSafe<Writer> {
++    DCHECK(tabs_collection_value);
+ 
+     IncrementIndent();
  
      if (!WriteNode(*root_folder_value, BookmarkNode::BOOKMARK_BAR) ||
          !WriteNode(*other_folder_value, BookmarkNode::OTHER_NODE) ||
 -        !WriteNode(*mobile_folder_value, BookmarkNode::MOBILE)) {
 +        !WriteNode(*mobile_folder_value, BookmarkNode::MOBILE) ||
-+        !WriteNode(*static_cast<base::DictionaryValue*>(tabs_collection_value),
-+                   BookmarkNode::TABS_COLLECTION)) {
++        !WriteNode(*tabs_collection_value, BookmarkNode::TABS_COLLECTION)) {
        NotifyOnFinish(BookmarksExportObserver::Result::kCouldNotWriteNodes);
        return;
      }
@@ -349,7 +350,7 @@ diff --git a/chrome/browser/download/android/java/src/org/chromium/chrome/browse
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3743,6 +3743,9 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -3746,6 +3746,9 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
        <message name="IDS_MENU_SELECT_TABS" desc="Menu item for bulk editing tabs. [CHAR_LIMIT=27]">
          Select tabs
        </message>
@@ -460,20 +461,25 @@ diff --git a/components/bookmarks/browser/bookmark_codec.cc b/components/bookmar
                                   const base::Value::Dict& value,
                                   std::string* sync_metadata_str) {
    absl::optional<int> version = value.FindInt(kVersionKey);
-@@ -233,6 +241,12 @@ bool BookmarkCodec::DecodeHelper(BookmarkNode* bb_node,
-     return false;
- 
-   DecodeNode(*bb_value, nullptr, bb_node);
-+  const base::DictionaryValue* tabs_folder_d_value = nullptr;
+@@ -228,6 +236,8 @@ bool BookmarkCodec::DecodeHelper(BookmarkNode* bb_node,
+       roots->FindDict(kOtherBookmarkFolderNameKey);
+   const base::Value::Dict* mobile_folder_value =
+       roots->FindDict(kMobileBookmarkFolderNameKey);
 +  const base::Value* tabs_folder_value =
 +      roots->FindDictKey(kTabsBookmarkFolderNameKey);
-+  if (tabs_folder_value && tabs_folder_value->GetAsDictionary(&tabs_folder_d_value))
-+    DecodeNode(*tabs_folder_d_value, nullptr, tabs_folder_node);
-+
+ 
+   if (!bb_value || !other_folder_value || !mobile_folder_value)
+     return false;
+@@ -235,6 +245,8 @@ bool BookmarkCodec::DecodeHelper(BookmarkNode* bb_node,
+   DecodeNode(*bb_value, nullptr, bb_node);
    DecodeNode(*other_folder_value, nullptr, other_folder_node);
    DecodeNode(*mobile_folder_value, nullptr, mobile_folder_node);
++  if (tabs_folder_value)
++    DecodeNode(*tabs_folder_value, nullptr, tabs_folder_node);
  
-@@ -500,11 +514,13 @@ void BookmarkCodec::DecodeMetaInfoHelper(
+   if (!DecodeMetaInfo(*roots, &model_meta_info_map_))
+     return false;
+@@ -500,11 +512,13 @@ void BookmarkCodec::DecodeMetaInfoHelper(
  
  void BookmarkCodec::ReassignIDs(BookmarkNode* bb_node,
                                  BookmarkNode* other_node,

@@ -15,15 +15,15 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../crash/core/browser/crashes_ui_util.h      |   2 +
  .../crash/core/browser/resources/crashes.css  |  67 ++++++-
  .../crash/core/browser/resources/crashes.html |  17 ++
- .../crash/core/browser/resources/crashes.ts   |  40 +++--
+ .../crash/core/browser/resources/crashes.ts   |  94 ++++------
  components/crash_strings.grdp                 |  22 ++-
  .../minidump_uploader/CrashFileManager.java   |   7 +-
  .../MinidumpUploadCallable.java               |  21 +--
  .../minidump_uploader/MinidumpUploader.java   |  29 +--
  .../upload_list/text_log_upload_list.cc       |   1 +
- components/upload_list/upload_list.cc         |  17 +-
+ components/upload_list/upload_list.cc         |  14 ++
  components/upload_list/upload_list.h          |   9 +
- 18 files changed, 374 insertions(+), 81 deletions(-)
+ 18 files changed, 373 insertions(+), 133 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
@@ -159,7 +159,7 @@ diff --git a/chrome/browser/net/chrome_network_delegate.cc b/chrome/browser/net/
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -645,6 +645,7 @@ static_library("ui") {
+@@ -644,6 +644,7 @@ static_library("ui") {
      "//third_party/re2",
      "//third_party/webrtc_overrides:webrtc_component",
      "//third_party/zlib",
@@ -568,7 +568,38 @@ diff --git a/components/crash/core/browser/resources/crashes.html b/components/c
 diff --git a/components/crash/core/browser/resources/crashes.ts b/components/crash/core/browser/resources/crashes.ts
 --- a/components/crash/core/browser/resources/crashes.ts
 +++ b/components/crash/core/browser/resources/crashes.ts
-@@ -70,6 +70,7 @@ function updateCrashList({
+@@ -12,7 +12,7 @@ import './strings.m.js';
+ import {assert} from 'chrome://resources/js/assert_ts.js';
+ import {addWebUiListener} from 'chrome://resources/js/cr.js';
+ import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
+-import {appendParam, getRequiredElement} from 'chrome://resources/js/util_ts.js';
++import {getRequiredElement} from 'chrome://resources/js/util_ts.js';
+ 
+ /* Id for tracking automatic refresh of crash list.  */
+ let refreshCrashListId: number|undefined = undefined;
+@@ -44,10 +44,7 @@ interface CrashData {
+ interface UpdateCrashListParams {
+   enabled: boolean;
+   dynamicBackend: boolean;
+-  manualUploads: boolean;
+   crashes: CrashData[];
+-  version: string;
+-  os: string;
+   isGoogleAccount: boolean;
+ }
+ 
+@@ -57,10 +54,7 @@ interface UpdateCrashListParams {
+ function updateCrashList({
+   enabled,
+   dynamicBackend,
+-  manualUploads,
+   crashes,
+-  version,
+-  os,
+   isGoogleAccount,
+ }: UpdateCrashListParams) {
+   getRequiredElement('crashesCount').textContent = loadTimeData.getStringF(
+@@ -70,6 +64,7 @@ function updateCrashList({
  
    getRequiredElement('disabledMode').hidden = enabled;
    getRequiredElement('crashUploadStatus').hidden = !enabled || !dynamicBackend;
@@ -576,7 +607,7 @@ diff --git a/components/crash/core/browser/resources/crashes.ts b/components/cra
  
    const template = crashList.querySelector('template');
    assert(template);
-@@ -150,22 +151,16 @@ function updateCrashList({
+@@ -150,22 +145,16 @@ function updateCrashList({
        assert(uploadTimeCell);
        uploadTimeCell.textContent = crash.upload_time || '';
  
@@ -604,7 +635,60 @@ diff --git a/components/crash/core/browser/resources/crashes.ts b/components/cra
  
      const fileSize = clone.querySelector('.file-size');
      assert(fileSize);
-@@ -242,6 +237,27 @@ function requestCrashUpload() {
+@@ -183,52 +172,6 @@ function updateCrashList({
+   getRequiredElement('noCrashes').hidden = crashes.length !== 0;
+ }
+ 
+-/**
+- * Opens a new tab/window to report the crash to crbug.
+- * @param The crash report ID.
+- * @param The OS name.
+- * @param The product version.
+- */
+-function fileBug(crashId: string, os: string, version: string) {
+-  const commentLines = [
+-    'IMPORTANT: Your crash has already been automatically reported ' +
+-        'to our crash system. Please file this bug only if you can provide ' +
+-        'more information about it.',
+-    '',
+-    '',
+-    'Chrome Version: ' + version,
+-    'Operating System: ' + os,
+-    '',
+-    'URL (if applicable) where crash occurred:',
+-    '',
+-    'Can you reproduce this crash?',
+-    '',
+-    'What steps will reproduce this crash? (If it\'s not ' +
+-        'reproducible, what were you doing just before the crash?)',
+-    '1.',
+-    '2.',
+-    '3.',
+-    '',
+-    '****DO NOT CHANGE BELOW THIS LINE****',
+-    'Crash ID: crash/' + crashId,
+-  ];
+-  const params: {[key: string]: string} = {
+-    template: 'Crash Report',
+-    comment: commentLines.join('\n'),
+-    // TODO(scottmg): Use add_labels to add 'User-Submitted' rather than
+-    // duplicating the template's labels (the first two) once
+-    // https://bugs.chromium.org/p/monorail/issues/detail?id=1488 is done.
+-    labels:
+-        'Restrict-View-EditIssue,Stability-Crash,User-Submitted,Pri-3,Type-Bug',
+-  };
+-  let href = 'https://bugs.chromium.org/p/chromium/issues/entry';
+-  for (const param in params) {
+-    href = appendParam(href, param, params[param]!);
+-  }
+-
+-  window.open(href);
+-}
+-
+ /**
+  * Request crashes get uploaded in the background.
+  */
+@@ -242,6 +185,27 @@ function requestCrashUpload() {
    refreshCrashListId = setTimeout(requestCrashes, 5000);
  }
  
@@ -632,7 +716,7 @@ diff --git a/components/crash/core/browser/resources/crashes.ts b/components/cra
  /**
   * Toggles hiding/showing the developer details of a crash report, depending
   * on the value of the check box.
-@@ -256,5 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
+@@ -256,5 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
    addWebUiListener('update-crash-list', updateCrashList);
    getRequiredElement('uploadCrashes').onclick = requestCrashUpload;
    getRequiredElement('showDevDetails').onclick = toggleDevDetails;
@@ -806,17 +890,7 @@ diff --git a/components/upload_list/text_log_upload_list.cc b/components/upload_
 diff --git a/components/upload_list/upload_list.cc b/components/upload_list/upload_list.cc
 --- a/components/upload_list/upload_list.cc
 +++ b/components/upload_list/upload_list.cc
-@@ -42,7 +42,8 @@ UploadList::UploadInfo::UploadInfo(const std::string& local_id,
-     : local_id(local_id),
-       capture_time(capture_time),
-       state(state),
--      file_size(file_size) {}
-+      file_size(file_size),
-+      file_path(upload_info.file_path) {}
- 
- UploadList::UploadInfo::UploadInfo(const std::string& upload_id,
-                                    const base::Time& upload_time)
-@@ -95,6 +96,11 @@ void UploadList::GetUploads(size_t max_count,
+@@ -95,6 +95,11 @@ void UploadList::GetUploads(size_t max_count,
              std::back_inserter(*uploads));
  }
  
@@ -828,7 +902,7 @@ diff --git a/components/upload_list/upload_list.cc b/components/upload_list/uplo
  void UploadList::OnLoadComplete(const std::vector<UploadInfo>& uploads) {
    uploads_ = uploads;
    if (!load_callback_.is_null())
-@@ -105,3 +111,12 @@ void UploadList::OnClearComplete() {
+@@ -105,3 +110,12 @@ void UploadList::OnClearComplete() {
    if (!clear_callback_.is_null())
      std::move(clear_callback_).Run();
  }

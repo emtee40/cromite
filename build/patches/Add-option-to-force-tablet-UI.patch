@@ -12,11 +12,11 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../toolbar/top/ToolbarControlContainer.java  | 36 -------------------
  components/BUILD.gn                           |  6 ++--
  .../res/xml/accessibility_preferences.xml     |  5 +++
- .../accessibility/AccessibilitySettings.java  | 10 ++++++
+ .../accessibility/AccessibilitySettings.java  | 11 ++++++
  .../AccessibilitySettingsDelegate.java        |  2 ++
  ui/android/BUILD.gn                           |  2 ++
  .../chromium/ui/base/DeviceFormFactor.java    |  5 +++
- 12 files changed, 55 insertions(+), 40 deletions(-)
+ 12 files changed, 56 insertions(+), 40 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
@@ -84,7 +84,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1579,6 +1579,12 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1582,6 +1582,12 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_PRIVACY_GUIDE_SB_ENHANCED_ITEM_SEVEN" desc="Seventh bullet point that describes the details of the Safe Browsing control.">
          Temporarily links this data to your Google Account when you’re signed in, to protect you across Google apps
        </message>
@@ -191,7 +191,15 @@ diff --git a/components/browser_ui/accessibility/android/java/res/xml/accessibil
 diff --git a/components/browser_ui/accessibility/android/java/src/org/chromium/components/browser_ui/accessibility/AccessibilitySettings.java b/components/browser_ui/accessibility/android/java/src/org/chromium/components/browser_ui/accessibility/AccessibilitySettings.java
 --- a/components/browser_ui/accessibility/android/java/src/org/chromium/components/browser_ui/accessibility/AccessibilitySettings.java
 +++ b/components/browser_ui/accessibility/android/java/src/org/chromium/components/browser_ui/accessibility/AccessibilitySettings.java
-@@ -30,6 +30,8 @@ public class AccessibilitySettings extends PreferenceFragmentCompat
+@@ -14,6 +14,7 @@ import androidx.preference.PreferenceFragmentCompat;
+ import org.chromium.base.ContextUtils;
+ import org.chromium.components.browser_ui.accessibility.AccessibilitySettingsDelegate.BooleanPreferenceDelegate;
+ import org.chromium.components.browser_ui.accessibility.FontSizePrefs.FontSizePrefsObserver;
++import org.chromium.components.browser_ui.settings.ChromeBaseCheckBoxPreference;
+ import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
+ import org.chromium.components.browser_ui.settings.CustomDividerFragment;
+ import org.chromium.components.browser_ui.settings.SettingsUtils;
+@@ -30,6 +31,8 @@ public class AccessibilitySettings extends PreferenceFragmentCompat
      public static final String PREF_READER_FOR_ACCESSIBILITY = "reader_for_accessibility";
      public static final String PREF_CAPTIONS = "captions";
  
@@ -200,7 +208,7 @@ diff --git a/components/browser_ui/accessibility/android/java/src/org/chromium/c
      private TextScalePreference mTextScalePref;
      private PageZoomPreference mPageZoomDefaultZoomPref;
      private ChromeSwitchPreference mPageZoomAlwaysShowPref;
-@@ -109,6 +111,12 @@ public class AccessibilitySettings extends PreferenceFragmentCompat
+@@ -109,6 +112,12 @@ public class AccessibilitySettings extends PreferenceFragmentCompat
              getPreferenceScreen().removePreference(readerForAccessibilityPref);
          }
  
@@ -213,7 +221,7 @@ diff --git a/components/browser_ui/accessibility/android/java/src/org/chromium/c
          ChromeSwitchPreference accessibilityTabSwitcherPref =
                  (ChromeSwitchPreference) findPreference(
                          AccessibilityConstants.ACCESSIBILITY_TAB_SWITCHER);
-@@ -165,6 +173,8 @@ public class AccessibilitySettings extends PreferenceFragmentCompat
+@@ -165,6 +174,8 @@ public class AccessibilitySettings extends PreferenceFragmentCompat
              mFontSizePrefs.setUserFontScaleFactor((Float) newValue);
          } else if (PREF_FORCE_ENABLE_ZOOM.equals(preference.getKey())) {
              mFontSizePrefs.setForceEnableZoomFromUser((Boolean) newValue);

@@ -25,11 +25,11 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/prefs/browser_prefs.cc         |   4 +
  .../prefs/chrome_command_line_pref_store.cc   |   2 +-
  chrome/browser/resources/proxy_config.css     |  61 +++
- chrome/browser/resources/proxy_config.html    |  78 ++++
- chrome/browser/resources/proxy_config.js      | 267 +++++++++++
+ chrome/browser/resources/proxy_config.html    |  77 ++++
+ chrome/browser/resources/proxy_config.js      | 278 ++++++++++++
  chrome/browser/ui/BUILD.gn                    |   2 +
  .../webui/chrome_web_ui_controller_factory.cc |   3 +
- chrome/browser/ui/webui/proxy_config_ui.cc    | 418 ++++++++++++++++++
+ chrome/browser/ui/webui/proxy_config_ui.cc    | 397 ++++++++++++++++++
  chrome/browser/ui/webui/proxy_config_ui.h     |  31 ++
  chrome/common/webui_url_constants.cc          |   4 +
  chrome/common/webui_url_constants.h           |   2 +
@@ -39,7 +39,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../proxy_config/proxy_policy_handler.cc      |   2 +-
  net/proxy_resolution/proxy_config.cc          |  52 ++-
  net/proxy_resolution/proxy_config.h           |   3 +
- 24 files changed, 996 insertions(+), 14 deletions(-)
+ 24 files changed, 985 insertions(+), 14 deletions(-)
  create mode 100644 chrome/browser/resources/proxy_config.css
  create mode 100644 chrome/browser/resources/proxy_config.html
  create mode 100644 chrome/browser/resources/proxy_config.js
@@ -287,7 +287,7 @@ diff --git a/chrome/browser/resources/proxy_config.html b/chrome/browser/resourc
 new file mode 100644
 --- /dev/null
 +++ b/chrome/browser/resources/proxy_config.html
-@@ -0,0 +1,78 @@
+@@ -0,0 +1,77 @@
 +﻿<!doctype html>
 +<html>
 +<head>
@@ -301,7 +301,6 @@ new file mode 100644
 +<script src="chrome://resources/js/ios/web_ui.js"></script>
 +</if>
 +
-+<script type="module" src="chrome://resources/js/assert.js"></script>
 +<script type="module" src="chrome://proxy/proxy_config.js"></script>
 +<link rel="stylesheet" href="chrome://resources/css/text_defaults.css">
 +<link rel="stylesheet" href="proxy_config.css">
@@ -370,7 +369,7 @@ diff --git a/chrome/browser/resources/proxy_config.js b/chrome/browser/resources
 new file mode 100644
 --- /dev/null
 +++ b/chrome/browser/resources/proxy_config.js
-@@ -0,0 +1,267 @@
+@@ -0,0 +1,278 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -388,8 +387,7 @@ new file mode 100644
 +    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
 +*/
 +
-+import {$} from 'chrome://resources/js/util.js';
-+import {addSingletonGetter} from 'chrome://resources/js/cr.m.js';
++import {$} from 'chrome://resources/js/util_ts.js';
 +
 +/**
 + * Main entry point called once the page has loaded.
@@ -432,6 +430,18 @@ new file mode 100644
 +  var kIdHttpsProxies = 'https-proxies';
 +  var kIdFtpProxies = 'ftp-proxies';
 +  var kIdFallbackProxies = 'fallback-proxies';
++
++  /**
++  * Adds a {@code getInstance} static method that always return the same
++  * instance object.
++  * @param {!Function} ctor The constructor for the class to add the static
++  *     method to.
++  */
++  function addSingletonGetter(ctor) {
++    ctor.getInstance = function() {
++      return ctor.instance_ || (ctor.instance_ = new ctor());
++    };
++  }
 +
 +  /**
 +   * @constructor
@@ -674,7 +684,7 @@ diff --git a/chrome/browser/ui/webui/proxy_config_ui.cc b/chrome/browser/ui/webu
 new file mode 100644
 --- /dev/null
 +++ b/chrome/browser/ui/webui/proxy_config_ui.cc
-@@ -0,0 +1,418 @@
+@@ -0,0 +1,397 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -700,7 +710,6 @@ new file mode 100644
 +#include <string>
 +#include <vector>
 +
-+#include "base/bind.h"
 +#include "base/command_line.h"
 +#include "base/lazy_instance.h"
 +#include "base/memory/ref_counted.h"
@@ -781,7 +790,7 @@ new file mode 100644
 +  std::unique_ptr<PrefProxyConfigTracker> pref_proxy_config_tracker_;
 +  bool is_observing_;
 +
-+  void encodeConfig(const net::ProxyConfig& config, base::DictionaryValue& state);
++  void encodeConfig(const net::ProxyConfig& config, base::Value::Dict& state);
 +
 +  void apply(const net::ProxyConfig& config);
 +
@@ -823,25 +832,25 @@ new file mode 100644
 +  DCHECK(BrowserThread::CurrentlyOn(BrowserThread::UI) ||
 +         !BrowserThread::IsThreadInitialized(BrowserThread::UI));
 +
-+  base::DictionaryValue state;
++  base::Value::Dict state;
 +  bool pending = false;
 +  switch (availability) {
 +    case net::ProxyConfigService::CONFIG_VALID:
 +      encodeConfig(config.value(), state);
 +      break;
 +    case net::ProxyConfigService::CONFIG_UNSET:
-+      state.SetPath({"config", "rules", "type"}, base::Value("none"));
++      state.SetByDottedPath("config.rules.type", base::Value("none"));
 +      break;
 +    case net::ProxyConfigService::CONFIG_PENDING:
 +      //NOTE: this can only happen when triggered manually first time
 +      pending = true;
 +      break;
 +  }
-+  state.SetKey("pending", base::Value(pending));
++  state.Set("pending", base::Value(pending));
 +
 +  // call Javascript function
 +  web_ui()->CallJavascriptFunctionUnsafe("ProxyConfigView.getInstance().onProxyConfigChanged",
-+                                         *state.CreateDeepCopy());
++                                         state.Clone());
 +}
 +
 +const std::string omitDirect(const std::string pacString) {
@@ -851,19 +860,19 @@ new file mode 100644
 +  return pacString;
 +}
 +
-+void ProxyConfigMessageHandler::encodeConfig(const net::ProxyConfig& config, base::DictionaryValue& state) {
++void ProxyConfigMessageHandler::encodeConfig(const net::ProxyConfig& config, base::Value::Dict& state) {
 +  // when automatic settings are enabled they take precedence over manual settings
 +  // automatic settings are either the "auto-detect" flag or the existance of a PAC URL
 +
-+  state.SetPath({"config", "auto_detect"}, base::Value(config.auto_detect()));
++  state.SetByDottedPath("config.auto_detect", base::Value(config.auto_detect()));
 +
 +  auto rules = config.proxy_rules();
 +  if (config.has_pac_url()) {
-+    state.SetPath({"config", "pac_url"}, base::Value(config.pac_url().spec()));
-+    state.SetPath({"config", "pac_mandatory"}, base::Value(config.pac_mandatory()));
-+    state.SetPath({"config", "rules", "type"}, base::Value("none"));
-+    state.SetPath({"config", "rules", "bypass_rules"}, base::Value(rules.bypass_rules.ToString()));
-+    state.SetPath({"config", "rules", "reverse_bypass"}, base::Value(rules.reverse_bypass));
++    state.SetByDottedPath("config.pac_url", base::Value(config.pac_url().spec()));
++    state.SetByDottedPath("config.pac_mandatory", base::Value(config.pac_mandatory()));
++    state.SetByDottedPath("config.rules.type", base::Value("none"));
++    state.SetByDottedPath("config.rules.bypass_rules", base::Value(rules.bypass_rules.ToString()));
++    state.SetByDottedPath("config.rules.reverse_bypass", base::Value(rules.reverse_bypass));
 +    return;
 +  }
 +
@@ -875,23 +884,23 @@ new file mode 100644
 +    case net::ProxyConfig::ProxyRules::Type::PROXY_LIST:
 +      type = "list";
 +
-+      state.SetPath({"config", "rules", "single_proxies"}, base::Value(omitDirect(rules.single_proxies.ToPacString())));
++      state.SetByDottedPath("config.rules.single_proxies", base::Value(omitDirect(rules.single_proxies.ToPacString())));
 +      break;
 +    case net::ProxyConfig::ProxyRules::Type::PROXY_LIST_PER_SCHEME:
 +      type = "list_per_scheme";
 +
-+      state.SetPath({"config", "rules", "proxies_for_http"}, base::Value(omitDirect(rules.proxies_for_http.ToPacString())));
-+      state.SetPath({"config", "rules", "proxies_for_https"}, base::Value(omitDirect(rules.proxies_for_https.ToPacString())));
-+      state.SetPath({"config", "rules", "proxies_for_ftp"}, base::Value(omitDirect(rules.proxies_for_ftp.ToPacString())));
-+      state.SetPath({"config", "rules", "fallback_proxies"}, base::Value(omitDirect(rules.fallback_proxies.ToPacString())));
++      state.SetByDottedPath("config.rules.proxies_for_http", base::Value(omitDirect(rules.proxies_for_http.ToPacString())));
++      state.SetByDottedPath("config.rules.proxies_for_https", base::Value(omitDirect(rules.proxies_for_https.ToPacString())));
++      state.SetByDottedPath("config.rules.proxies_for_ftp", base::Value(omitDirect(rules.proxies_for_ftp.ToPacString())));
++      state.SetByDottedPath("config.rules.fallback_proxies", base::Value(omitDirect(rules.fallback_proxies.ToPacString())));
 +      break;
 +    default:
 +     NOTREACHED();
 +     break;
 +  }
-+  state.SetPath({"config", "rules", "type"}, base::Value(type));
-+  state.SetPath({"config", "rules", "bypass_rules"}, base::Value(rules.bypass_rules.ToString()));
-+  state.SetPath({"config", "rules", "reverse_bypass"}, base::Value(rules.reverse_bypass));
++  state.SetByDottedPath("config.rules.type", base::Value(type));
++  state.SetByDottedPath("config.rules.bypass_rules", base::Value(rules.bypass_rules.ToString()));
++  state.SetByDottedPath("config.rules.reverse_bypass", base::Value(rules.reverse_bypass));
 +}
 +
 +ProxyConfigMessageHandler::~ProxyConfigMessageHandler() {
@@ -961,77 +970,59 @@ new file mode 100644
 +    return;
 +  }
 +
-+  const base::DictionaryValue* config = nullptr;
-+  if (!list[0].GetAsDictionary(&config))
-+    return;
++  const base::Value::Dict& config = list[0].GetDict();
 +
-+  const base::Value *autoDetect = config->FindKeyOfType("auto_detect", base::Value::Type::BOOLEAN);
-+  if (autoDetect == nullptr)
-+    return;
-+
-+  if (autoDetect->GetBool()) {
++  if (config.FindBool("auto_detect").value_or(false)) {
 +    apply(net::ProxyConfig::CreateAutoDetect());
 +    return;
 +  }
 +
-+  const base::Value *pacURL = config->FindKeyOfType("pac_url", base::Value::Type::STRING);
-+  if (pacURL != nullptr) {
-+    const base::Value *pacMandatory = config->FindKeyOfType("pac_mandatory", base::Value::Type::BOOLEAN);
-+    if (pacMandatory == nullptr)
-+      return;
-+    auto proxyConfig = net::ProxyConfig::CreateFromCustomPacURL(GURL(pacURL->GetString()));
-+    proxyConfig.set_pac_mandatory(pacMandatory->GetBool());
-+
++  if (const std::string* pacURL = config.FindString("pac_url")) {
++    absl::optional<bool> pacMandatory = config.FindBool("pac_mandatory");
++    auto proxyConfig = net::ProxyConfig::CreateFromCustomPacURL(
++                                GURL(*pacURL));
++    proxyConfig.set_pac_mandatory(pacMandatory.value_or(false));
 +    apply(proxyConfig);
 +    return;
 +  }
 +
-+  const base::Value *rules = config->FindKeyOfType("rules", base::Value::Type::DICTIONARY);
++  const base::Value::Dict* rules = config.FindDict("rules");
 +  if (rules == nullptr)
 +    return;
 +
-+  const base::Value *type = rules->FindKeyOfType("type", base::Value::Type::STRING);
++  net::ProxyConfig proxyConfig;
++  bool readBypass = false;
++
++  const std::string* type = rules->FindString("type");
 +  if (type == nullptr)
 +    return;
 +
-+  net::ProxyConfig proxyConfig;
-+
-+  bool readBypass = false;
-+
-+  auto t = type->GetString();
-+  if (t == "list") {
-+      const base::Value *single_proxies = rules->FindKeyOfType("single_proxies", base::Value::Type::STRING);
++  if (*type == "list") {
++      const std::string* single_proxies = rules->FindString("single_proxies");
 +      if (single_proxies == nullptr)
 +        return;
 +      proxyConfig.proxy_rules().type = net::ProxyConfig::ProxyRules::Type::PROXY_LIST;
-+      proxyConfig.proxy_rules().single_proxies.SetFromPacString(single_proxies->GetString());
++      proxyConfig.proxy_rules().single_proxies.SetFromPacString(*single_proxies);
 +      readBypass = true;
-+  } else if (t == "list_per_scheme") {
-+      const base::Value *http = rules->FindKeyOfType("proxies_for_http", base::Value::Type::STRING);
-+      if (http == nullptr)
-+        return;
-+
-+      const base::Value *https = rules->FindKeyOfType("proxies_for_https", base::Value::Type::STRING);
-+      if (https == nullptr)
-+        return;
-+
-+      const base::Value *ftp = rules->FindKeyOfType("proxies_for_ftp", base::Value::Type::STRING);
-+      if (ftp == nullptr)
-+        return;
-+
-+      const base::Value *fallback = rules->FindKeyOfType("fallback_proxies", base::Value::Type::STRING);
-+      if (fallback == nullptr)
-+        return;
++  } else if (*type == "list_per_scheme") {
++      const std::string* http = rules->FindString("proxies_for_http");
++      const std::string* https = rules->FindString("proxies_for_https");
++      const std::string* ftp = rules->FindString("proxies_for_ftp");
++      const std::string* fallback = rules->FindString("fallback_proxies");
 +
 +      proxyConfig.proxy_rules().type = net::ProxyConfig::ProxyRules::Type::PROXY_LIST_PER_SCHEME;
-+      proxyConfig.proxy_rules().proxies_for_http.SetFromPacString(http->GetString());
-+      proxyConfig.proxy_rules().proxies_for_https.SetFromPacString(https->GetString());
-+      proxyConfig.proxy_rules().proxies_for_ftp.SetFromPacString(ftp->GetString());
-+      proxyConfig.proxy_rules().fallback_proxies.SetFromPacString(fallback->GetString());
++      if (http)
++        proxyConfig.proxy_rules().proxies_for_http.SetFromPacString(*http);
++      if (https)
++        proxyConfig.proxy_rules().proxies_for_https.SetFromPacString(*https);
++      if (ftp)
++        proxyConfig.proxy_rules().proxies_for_ftp.SetFromPacString(*ftp);
++      if (fallback)
++        proxyConfig.proxy_rules().fallback_proxies.SetFromPacString(*fallback);
 +      readBypass = true;
-+  } else if (t == "direct") {
++  } else if (*type == "direct") {
 +      proxyConfig.proxy_rules().type = net::ProxyConfig::ProxyRules::Type::EMPTY;
-+  } else if (t == "none") {
++  } else if (*type == "none") {
 +      base::Value::List empty;
 +      OnClear(empty);
 +      return;
@@ -1043,16 +1034,14 @@ new file mode 100644
 +
 +  // bypass rules and reverse flag are common to both list types of proxy rules
 +  if (readBypass) {
-+    const base::Value *bypass_rules = rules->FindKeyOfType("bypass_rules", base::Value::Type::STRING);
++    const std::string* bypass_rules = rules->FindString("bypass_rules");
 +    if (bypass_rules == nullptr)
 +      return;
 +
-+    const base::Value *reverse_bypass = rules->FindKeyOfType("reverse_bypass", base::Value::Type::BOOLEAN);
-+    if (reverse_bypass == nullptr)
-+      return;
++    absl::optional<bool> reverse_bypass = rules->FindBool("reverse_bypass");
 +
-+    proxyConfig.proxy_rules().bypass_rules.ParseFromString(bypass_rules->GetString());
-+    proxyConfig.proxy_rules().reverse_bypass = reverse_bypass->GetBool();
++    proxyConfig.proxy_rules().bypass_rules.ParseFromString(*bypass_rules);
++    proxyConfig.proxy_rules().reverse_bypass = reverse_bypass.value_or(false);
 +  }
 +
 +  apply(proxyConfig);

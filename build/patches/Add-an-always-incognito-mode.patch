@@ -24,7 +24,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../java/res/xml/incognito_preferences.xml    |  37 ++++
  .../java/res/xml/privacy_preferences.xml      |   5 +
  .../AlwaysIncognitoLinkInterceptor.java       |  53 ++++++
- .../chrome/browser/ChromeTabbedActivity.java  |   9 +-
+ .../chrome/browser/ChromeTabbedActivity.java  |  20 ++-
  .../chrome/browser/app/ChromeActivity.java    |   4 +
  .../AppMenuPropertiesDelegateImpl.java        |  26 ++-
  .../ChromeContextMenuPopulator.java           |   7 +-
@@ -73,7 +73,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../snackbar/INeedSnackbarManager.java        |  27 +++
  chrome/common/pref_names.cc                   |   6 +
  chrome/common/pref_names.h                    |   6 +
- .../browser/content_settings_pref_provider.cc |   6 +-
+ .../browser/content_settings_pref_provider.cc |   8 +-
  .../browser/content_settings_pref_provider.h  |   2 +
  .../core/browser/host_content_settings_map.cc |   4 +-
  .../core/browser/host_content_settings_map.h  |   3 +
@@ -84,7 +84,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../omnibox/browser/base_search_provider.cc   |   2 +-
  components/omnibox/browser/search_provider.cc |   4 +-
  .../host_content_settings_map_factory.cc      |   1 +
- 65 files changed, 728 insertions(+), 80 deletions(-)
+ 65 files changed, 739 insertions(+), 82 deletions(-)
  create mode 100644 chrome/android/java/res/xml/incognito_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/AlwaysIncognitoLinkInterceptor.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java
@@ -238,26 +238,36 @@ new file mode 100644
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-@@ -58,6 +58,7 @@ import org.chromium.base.task.PostTask;
+@@ -58,6 +58,10 @@ import org.chromium.base.task.PostTask;
  import org.chromium.build.annotations.UsedByReflection;
  import org.chromium.cc.input.BrowserControlsState;
  import org.chromium.chrome.R;
++import org.chromium.components.prefs.PrefService;
++import org.chromium.components.user_prefs.UserPrefs;
++import org.chromium.chrome.browser.preferences.Pref;
 +import org.chromium.chrome.browser.AlwaysIncognitoLinkInterceptor;
  import org.chromium.chrome.browser.IntentHandler.IntentHandlerDelegate;
  import org.chromium.chrome.browser.IntentHandler.TabOpenType;
  import org.chromium.chrome.browser.accessibility_tab_switcher.OverviewListLayout;
-@@ -571,8 +572,9 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -571,9 +575,14 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
              mTabModelOrchestrator.onNativeLibraryReady(getTabContentManager());
  
              // For saving non-incognito tab closures for Recent Tabs.
-+            boolean alwaysIncognito = AlwaysIncognitoLinkInterceptor.isAlwaysIncognito();
-             mHistoricalTabModelObserver =
+-            mHistoricalTabModelObserver =
 -                    new HistoricalTabModelObserver(mTabModelSelector.getModel(false));
-+                    new HistoricalTabModelObserver(mTabModelSelector.getModel(alwaysIncognito));
- 
+-
++            boolean alwaysIncognito = AlwaysIncognitoLinkInterceptor.isAlwaysIncognito();
++            PrefService prefService = UserPrefs.get(Profile.getLastUsedRegularProfile());
++            boolean historyEnabledInIncognito =
++                prefService.getBoolean(Pref.INCOGNITO_TAB_HISTORY_ENABLED);
++            if ((alwaysIncognito && historyEnabledInIncognito) || !alwaysIncognito) {
++                mHistoricalTabModelObserver =
++                        new HistoricalTabModelObserver(mTabModelSelector.getModel(alwaysIncognito));
++            }
              if (TabUiFeatureUtilities.isTabletGridTabSwitcherEnabled(this)) {
                  mTabModelSelector.addObserver(new TabModelSelectorObserver() {
-@@ -1901,8 +1903,9 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+                     @Override
+@@ -1901,8 +1910,9 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
          Bundle savedInstanceState = getSavedInstanceState();
  
          // We determine the model as soon as possible so every systems get initialized coherently.
@@ -1739,7 +1749,7 @@ diff --git a/chrome/browser/ui/android/native_page/java/src/org/chromium/chrome/
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1288,6 +1288,37 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1291,6 +1291,37 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_CLEAR_BROWSING_HISTORY_SUMMARY_SYNCED_NO_LINK" desc="A text for the basic tab explaining browsing history for users with history sync. This version is shown when the link to MyActivity is displayed separately.">
          Clears history from all synced devices.
        </message>
@@ -1913,14 +1923,19 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
        store_last_modified_(store_last_modified),
        clock_(base::DefaultClock::GetInstance()) {
    TRACE_EVENT_BEGIN("startup", "PrefProvider::PrefProvider");
-@@ -146,7 +148,9 @@ PrefProvider::PrefProvider(PrefService* prefs,
+@@ -143,10 +145,14 @@ PrefProvider::PrefProvider(PrefService* prefs,
+   WebsiteSettingsRegistry* website_settings =
+       WebsiteSettingsRegistry::GetInstance();
+   for (const WebsiteSettingsInfo* info : *website_settings) {
++    bool save_site_settings = force_save_site_settings_ &&
++      info->incognito_behavior() == WebsiteSettingsInfo::INHERIT_IN_INCOGNITO;
      content_settings_prefs_.insert(std::make_pair(
          info->type(), std::make_unique<ContentSettingsPref>(
                            info->type(), prefs_, &pref_change_registrar_,
 -                          info->pref_name(), off_the_record_, restore_session,
 +                          info->pref_name(),
-+                            off_the_record_ || (!content_type_info && force_save_site_settings_),
-+                            restore_session,
++                          off_the_record_ && !save_site_settings,
++                          restore_session,
                            base::BindRepeating(&PrefProvider::Notify,
                                                base::Unretained(this)))));
    }

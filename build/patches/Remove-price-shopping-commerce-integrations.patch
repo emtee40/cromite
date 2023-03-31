@@ -21,12 +21,12 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../TabSelectionEditorCoordinator.java        |   2 +-
  .../TabSwitcherCoordinator.java               |  95 +---------
  .../tab_management/TabSwitcherMediator.java   |  57 ------
- .../chrome/browser/app/ChromeActivity.java    |   4 -
+ .../chrome/browser/app/ChromeActivity.java    |   8 -
  .../AppMenuPropertiesDelegateImpl.java        |  11 +-
  .../browser/bookmarks/BookmarkBridge.java     |  79 --------
  .../browser/bookmarks/BookmarkManager.java    |   4 -
  .../BookmarkSaveFlowCoordinator.java          |   6 +-
- .../bookmarks/BookmarkSaveFlowMediator.java   |  76 +-------
+ .../bookmarks/BookmarkSaveFlowMediator.java   |  77 +-------
  .../browser/bookmarks/BookmarkUtils.java      |   6 +-
  .../init/ProcessInitializationHandler.java    |   5 -
  .../ContextualPageActionController.java       |   4 -
@@ -44,7 +44,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/persisted_state_db/BUILD.gn    |   1 -
  chrome/browser/tab/BUILD.gn                   |   1 -
  chrome/browser/ui/android/omnibox/BUILD.gn    |   2 -
- 40 files changed, 24 insertions(+), 804 deletions(-)
+ .../commerce/core/commerce_feature_list.cc    |   7 +-
+ 41 files changed, 28 insertions(+), 812 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
@@ -60,7 +61,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
  import("//chrome/browser/page_info/buildflags.gni")
  import("//chrome/browser/password_manager/buildflags.gni")
  import("//chrome/browser/share/android/java_sources.gni")
-@@ -270,11 +266,6 @@ if (current_toolchain == default_toolchain) {
+@@ -271,11 +267,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/battery/android:java",
        "//chrome/browser/bluetooth/android:java",
        "//chrome/browser/browser_controls/android:java",
@@ -72,7 +73,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/consent_auditor/android:java",
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/creator/android:java",
-@@ -658,16 +649,6 @@ if (current_toolchain == default_toolchain) {
+@@ -659,16 +650,6 @@ if (current_toolchain == default_toolchain) {
      sources += share_java_sources
      deps += share_java_deps
  
@@ -89,7 +90,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
      if (enable_printing) {
        deps += [ "//printing:printing_java" ]
      }
-@@ -717,7 +698,6 @@ if (current_toolchain == default_toolchain) {
+@@ -718,7 +699,6 @@ if (current_toolchain == default_toolchain) {
        ":chrome_java",
        "//chrome/android/features/keyboard_accessory:internal_java",
        "//chrome/browser/android/httpclient:java",
@@ -97,7 +98,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/content_creation/notes/internal/android:java",
        "//chrome/browser/download/internal/android:java",
        "//chrome/browser/page_annotations/android:java",
-@@ -868,11 +848,6 @@ if (current_toolchain == default_toolchain) {
+@@ -869,11 +849,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/bluetooth/android:junit",
        "//chrome/browser/browser_controls/android:java",
        "//chrome/browser/browser_controls/android:junit",
@@ -109,7 +110,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/creator/android:java",
        "//chrome/browser/creator/android:junit",
-@@ -1275,8 +1250,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1276,8 +1251,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/android/browserservices/intents:java",
        "//chrome/browser/android/browserservices/verification:java",
        "//chrome/browser/android/crypto:java",
@@ -118,7 +119,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/download/android:download_java_tests",
        "//chrome/browser/download/android:file_provider_java",
-@@ -1411,12 +1384,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1412,12 +1385,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/back_press/android:java",
        "//chrome/browser/banners/android:java",
        "//chrome/browser/browser_controls/android:java",
@@ -131,7 +132,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/content_creation/notes/internal/android:java",
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/dependency_injection:java",
-@@ -3647,8 +3614,6 @@ group("jni_headers") {
+@@ -3648,8 +3615,6 @@ group("jni_headers") {
      "//chrome/browser/android/browserservices/metrics:jni_headers",
      "//chrome/browser/android/browserservices/verification:jni_headers",
      "//chrome/browser/battery/android:jni_headers",
@@ -1138,7 +1139,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  import org.chromium.chrome.browser.bookmarks.TabBookmarker;
  import org.chromium.chrome.browser.compositor.CompositorViewHolder;
  import org.chromium.chrome.browser.compositor.layouts.Layout;
-@@ -2340,10 +2339,7 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -2340,18 +2339,11 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
          }
  
          if (id == R.id.enable_price_tracking_menu_id) {
@@ -1146,6 +1147,14 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
              RecordUserAction.record("MobileMenuEnablePriceTracking");
 -            TrackerFactory.getTrackerForProfile(Profile.getLastUsedRegularProfile())
 -                    .notifyEvent(EventConstants.SHOPPING_LIST_PRICE_TRACK_FROM_MENU);
+             return true;
+         }
+ 
+         if (id == R.id.disable_price_tracking_menu_id) {
+-            PowerBookmarkUtils.setPriceTrackingEnabledWithSnackbars(mBookmarkModelSupplier.get(),
+-                    mBookmarkModelSupplier.get().getUserBookmarkIdForTab(currentTab),
+-                    /*enabled=*/false, mSnackbarManager, getResources(), (success) -> {});
+-            RecordUserAction.record("MobileMenuDisablePriceTracking");
              return true;
          }
  
@@ -1337,14 +1346,14 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowMediator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowMediator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowMediator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowMediator.java
-@@ -15,16 +15,12 @@ import org.chromium.base.Callback;
+@@ -15,16 +15,11 @@ import org.chromium.base.Callback;
  import org.chromium.base.CallbackController;
  import org.chromium.base.metrics.RecordUserAction;
  import org.chromium.chrome.R;
 -import org.chromium.chrome.browser.bookmarks.PowerBookmarkMetrics.PriceTrackingState;
  import org.chromium.chrome.browser.commerce.PriceTrackingUtils;
  import org.chromium.chrome.browser.feature_engagement.TrackerFactory;
- import org.chromium.chrome.browser.price_tracking.PriceDropNotificationManagerFactory;
+-import org.chromium.chrome.browser.price_tracking.PriceDropNotificationManagerFactory;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.components.bookmarks.BookmarkId;
  import org.chromium.components.bookmarks.BookmarkItem;
@@ -1354,7 +1363,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  import org.chromium.components.feature_engagement.EventConstants;
  import org.chromium.components.power_bookmarks.PowerBookmarkMeta;
  import org.chromium.ui.modelutil.PropertyModel;
-@@ -33,7 +29,7 @@ import java.util.List;
+@@ -33,7 +28,7 @@ import java.util.List;
  
  /** Controls the bookmarks save-flow. */
  public class BookmarkSaveFlowMediator
@@ -1363,7 +1372,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      private final Context mContext;
      private final Runnable mCloseRunnable;
  
-@@ -44,8 +40,6 @@ public class BookmarkSaveFlowMediator
+@@ -44,8 +39,6 @@ public class BookmarkSaveFlowMediator
      private PowerBookmarkMeta mPowerBookmarkMeta;
      private boolean mWasBookmarkMoved;
      private boolean mIsNewBookmark;
@@ -1372,7 +1381,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      private Callback<Boolean> mSubscriptionsManagerCallback;
      private String mFolderName;
  
-@@ -55,21 +49,15 @@ public class BookmarkSaveFlowMediator
+@@ -55,21 +48,15 @@ public class BookmarkSaveFlowMediator
       *         model.
       * @param context The {@link Context} associated with this mediator.
       * @param closeRunnable A {@link Runnable} which closes the bookmark save flow.
@@ -1395,7 +1404,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      }
  
      /**
-@@ -106,9 +94,6 @@ public class BookmarkSaveFlowMediator
+@@ -106,9 +93,6 @@ public class BookmarkSaveFlowMediator
              mCloseRunnable.run();
          });
  
@@ -1405,7 +1414,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          bindBookmarkProperties(mBookmarkId, mPowerBookmarkMeta, mWasBookmarkMoved);
          bindPowerBookmarkProperties(mBookmarkId, mPowerBookmarkMeta, fromExplicitTrackUi);
      }
-@@ -134,46 +119,9 @@ public class BookmarkSaveFlowMediator
+@@ -134,46 +118,9 @@ public class BookmarkSaveFlowMediator
  
      private void bindPowerBookmarkProperties(
              BookmarkId bookmarkId, @Nullable PowerBookmarkMeta meta, boolean fromExplicitTrackUi) {
@@ -1452,7 +1461,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      }
  
      void setPriceTrackingNotificationUiEnabled(boolean enabled) {
-@@ -192,9 +140,6 @@ public class BookmarkSaveFlowMediator
+@@ -192,9 +139,6 @@ public class BookmarkSaveFlowMediator
  
      void destroy() {
          mBookmarkModel.removeObserver(this);
@@ -1462,7 +1471,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  
          mBookmarkModel = null;
          mPropertyModel = null;
-@@ -215,10 +160,6 @@ public class BookmarkSaveFlowMediator
+@@ -215,10 +159,6 @@ public class BookmarkSaveFlowMediator
                  this::handleNotificationSwitchToggle);
      }
  
@@ -1473,7 +1482,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      // BookmarkModelObserver implementation
  
      @Override
-@@ -230,17 +171,4 @@ public class BookmarkSaveFlowMediator
+@@ -230,17 +170,4 @@ public class BookmarkSaveFlowMediator
          }
          bindBookmarkProperties(mBookmarkId, mPowerBookmarkMeta, mWasBookmarkMoved);
      }
@@ -1969,5 +1978,36 @@ diff --git a/chrome/browser/ui/android/omnibox/BUILD.gn b/chrome/browser/ui/andr
      "//chrome/browser/device:java",
      "//chrome/browser/flags:java",
      "//chrome/browser/gsa:java",
+diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
+--- a/components/commerce/core/commerce_feature_list.cc
++++ b/components/commerce/core/commerce_feature_list.cc
+@@ -131,7 +131,7 @@ BASE_FEATURE(kCommerceMerchantViewer,
+ #if BUILDFLAG(IS_ANDROID)
+ BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
+              "CommerceMerchantViewerRegionLaunched",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ #else
+ BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
+              "CommerceMerchantViewerRegionLaunched",
+@@ -139,8 +139,8 @@ BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
+ #endif  // BUILDFLAG(IS_ANDROID)
+ 
+ BASE_FEATURE(kCommercePriceTracking,
+-             "CommercePriceTracking",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "CommercePriceTracking",               // guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
+ 
+ const base::FeatureParam<bool> kDeleteAllMerchantsOnClearBrowsingHistory{
+     &kCommerceMerchantViewer, "delete_all_merchants_on_clear_history", false};
+@@ -376,6 +376,7 @@ std::string GetCurrentCountryCode(variations::VariationsService* variations) {
+ bool IsEnabledForCountryAndLocale(const base::Feature& feature,
+                                   std::string country,
+                                   std::string locale) {
++  if ((true)) return false;
+   const CountryLocaleMap& allowedCountryLocales =
+       GetAllowedCountryToLocaleMap();
+ 
 --
 2.25.1

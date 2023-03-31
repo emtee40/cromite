@@ -84,10 +84,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../permissions/permission_context_base.h     | 25 +++++-
  components/permissions/permission_prompt.h    |  3 +-
  components/permissions/permission_request.cc  | 34 +++++++-
- components/permissions/permission_request.h   | 17 +++-
+ components/permissions/permission_request.h   | 18 ++++-
  .../permissions/permission_request_manager.cc | 37 ++++++---
  .../permissions/permission_request_manager.h  | 11 ++-
- 35 files changed, 478 insertions(+), 58 deletions(-)
+ 35 files changed, 479 insertions(+), 58 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -181,7 +181,7 @@ diff --git a/chrome/browser/permissions/last_tab_standing_tracker_factory.cc b/c
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -615,10 +615,7 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -614,10 +614,7 @@ void ChromeBrowserMainExtraPartsProfiles::
  #endif
    KAnonymityServiceFactory::GetInstance();
    LanguageModelManagerFactory::GetInstance();
@@ -915,7 +915,7 @@ diff --git a/components/permissions/contexts/geolocation_permission_context_andr
 +  GeolocationPermissionContext::NotifyPermissionSetWithLifetime(
        id, requesting_origin, embedding_origin, std::move(callback), persist,
 -      content_setting, /*is_one_time=*/false, /*is_final_decision=*/true);
-+      content_setting, is_one_time, lifetime_option, /*is_final_decision=*/true);
++      content_setting, is_one_time, /*is_final_decision=*/true, lifetime_option);
  }
  
  void GeolocationPermissionContextAndroid::SetLocationSettingsForTesting(
@@ -1165,7 +1165,7 @@ diff --git a/components/permissions/permission_request.cc b/components/permissio
 +                            content_settings::LifetimeMode lifetime_option) {
 +  if (permission_decided_callback_withlifetime_) {
 +    std::move(permission_decided_callback_withlifetime_)
-+        .Run(CONTENT_SETTING_ALLOW, is_one_time, lifetime_option);
++        .Run(CONTENT_SETTING_ALLOW, is_one_time, /*is_final_decision=*/true, lifetime_option);
 +    return;
 +  }
    std::move(permission_decided_callback_)
@@ -1178,7 +1178,7 @@ diff --git a/components/permissions/permission_request.cc b/components/permissio
 +                            content_settings::LifetimeMode lifetime_option) {
 +  if (permission_decided_callback_withlifetime_) {
 +    std::move(permission_decided_callback_withlifetime_)
-+        .Run(CONTENT_SETTING_BLOCK, is_one_time, lifetime_option);
++        .Run(CONTENT_SETTING_BLOCK, is_one_time, /*is_final_decision=*/true, lifetime_option);
 +    return;
 +  }
    std::move(permission_decided_callback_)
@@ -1189,7 +1189,7 @@ diff --git a/components/permissions/permission_request.cc b/components/permissio
  void PermissionRequest::Cancelled(bool is_final_decision) {
 +  if (permission_decided_callback_withlifetime_) {
 +    std::move(permission_decided_callback_withlifetime_)
-+        .Run(CONTENT_SETTING_DEFAULT, false,
++        .Run(CONTENT_SETTING_DEFAULT, false, is_final_decision,
 +             content_settings::LifetimeMode::Always);
 +    return;
 +  }
@@ -1199,18 +1199,19 @@ diff --git a/components/permissions/permission_request.cc b/components/permissio
 diff --git a/components/permissions/permission_request.h b/components/permissions/permission_request.h
 --- a/components/permissions/permission_request.h
 +++ b/components/permissions/permission_request.h
-@@ -42,6 +42,10 @@ class PermissionRequest {
+@@ -42,6 +42,11 @@ class PermissionRequest {
                                     bool /*is_one_time*/,
                                     bool /*is_final_decision*/)>;
  
 +  using PermissionDecidedCallbackWithLifetime =
 +      base::OnceCallback<void(ContentSetting /*result*/, bool /*is_one_time*/,
++        bool /*is_final_decision*/,
 +        content_settings::LifetimeMode /*lifetime_option*/)>;
 +
    // `permission_decided_callback` is called when the permission request is
    // resolved by the user (see comment on PermissionDecidedCallback above).
    // `delete_callback` is called when the permission request is no longer needed
-@@ -57,6 +61,12 @@ class PermissionRequest {
+@@ -57,6 +62,12 @@ class PermissionRequest {
                      PermissionDecidedCallback permission_decided_callback,
                      base::OnceClosure delete_callback);
  
@@ -1223,7 +1224,7 @@ diff --git a/components/permissions/permission_request.h b/components/permission
    PermissionRequest(const PermissionRequest&) = delete;
    PermissionRequest& operator=(const PermissionRequest&) = delete;
  
-@@ -109,10 +119,10 @@ class PermissionRequest {
+@@ -109,10 +120,10 @@ class PermissionRequest {
    // If |is_one_time| is true the permission will last until all tabs of
    // |origin| are closed or navigated away from, and then the permission will
    // automatically expire after 1 day.
@@ -1236,7 +1237,7 @@ diff --git a/components/permissions/permission_request.h b/components/permission
  
    // Called when the user has cancelled the permission request. This
    // corresponds to a denial, but is segregated in case the context needs to
-@@ -160,6 +170,9 @@ class PermissionRequest {
+@@ -160,6 +171,9 @@ class PermissionRequest {
    // Called once a decision is made about the permission.
    PermissionDecidedCallback permission_decided_callback_;
  

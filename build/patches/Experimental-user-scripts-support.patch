@@ -34,7 +34,6 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/android/java_sources.gni               |   3 +
  chrome/browser/BUILD.gn                       |   5 +
  chrome/browser/about_flags.cc                 |   5 +
- .../browser/chrome_content_browser_client.cc  |   3 +-
  chrome/browser/flag_descriptions.cc           |   5 +
  chrome/browser/flag_descriptions.h            |   3 +
  chrome/browser/prefs/browser_prefs.cc         |   2 +
@@ -68,25 +67,25 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../user_scripts/android/java_sources.gni     |  18 +
  .../android/user_scripts_bridge.cc            | 173 ++++
  .../android/user_scripts_bridge.h             |  31 +
- components/user_scripts/browser/BUILD.gn      |  81 ++
+ components/user_scripts/browser/BUILD.gn      |  77 ++
  .../user_scripts/browser/file_task_runner.cc  |  40 +
  .../user_scripts/browser/file_task_runner.h   |  34 +
  .../browser/resources/browser_resources.grd   |  14 +
- .../browser/resources/user-script-ui/BUILD.gn |  12 +
+ .../browser/resources/user-script-ui/BUILD.gn |   8 +
  .../user-script-ui/user-scripts-ui.html       |  14 +
  .../user-script-ui/user-scripts-ui.js         |   9 +
- .../browser/ui/user_scripts_ui.cc             | 147 ++++
+ .../browser/ui/user_scripts_ui.cc             | 146 ++++
  .../user_scripts/browser/ui/user_scripts_ui.h |  37 +
- .../browser/user_script_loader.cc             | 716 ++++++++++++++++
- .../user_scripts/browser/user_script_loader.h | 169 ++++
+ .../browser/user_script_loader.cc             | 715 ++++++++++++++++
+ .../user_scripts/browser/user_script_loader.h | 168 ++++
  .../browser/user_script_pref_info.cc          |  34 +
  .../browser/user_script_pref_info.h           |  72 ++
- .../user_scripts/browser/user_script_prefs.cc | 270 ++++++
+ .../user_scripts/browser/user_script_prefs.cc | 274 ++++++
  .../user_scripts/browser/user_script_prefs.h  |  62 ++
  .../browser/userscripts_browser_client.cc     |  78 ++
  .../browser/userscripts_browser_client.h      |  62 ++
  components/user_scripts/common/BUILD.gn       |  49 ++
- components/user_scripts/common/constants.h    |  21 +
+ components/user_scripts/common/constants.h    |  15 +
  components/user_scripts/common/error_utils.cc |  54 ++
  components/user_scripts/common/error_utils.h  |  24 +
  .../common/extension_message_generator.cc     |  29 +
@@ -108,17 +107,17 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/user_scripts/common/view_type.h    |  48 ++
  components/user_scripts/renderer/BUILD.gn     |  65 ++
  .../renderer/extension_frame_helper.cc        |  95 +++
- .../renderer/extension_frame_helper.h         |  91 ++
+ .../renderer/extension_frame_helper.h         |  90 ++
  .../user_scripts/renderer/injection_host.cc   |  12 +
  .../user_scripts/renderer/injection_host.h    |  41 +
  .../renderer/resources/greasemonkey_api.js    |  82 ++
  .../user_scripts_renderer_resources.grd       |  14 +
  .../user_scripts/renderer/script_context.cc   | 191 +++++
- .../user_scripts/renderer/script_context.h    |  68 ++
- .../user_scripts/renderer/script_injection.cc | 294 +++++++
- .../user_scripts/renderer/script_injection.h  | 156 ++++
- .../renderer/script_injection_manager.cc      | 417 +++++++++
- .../renderer/script_injection_manager.h       | 101 +++
+ .../user_scripts/renderer/script_context.h    |  67 ++
+ .../user_scripts/renderer/script_injection.cc | 293 +++++++
+ .../user_scripts/renderer/script_injection.h  | 155 ++++
+ .../renderer/script_injection_manager.cc      | 415 +++++++++
+ .../renderer/script_injection_manager.h       | 100 +++
  .../user_scripts/renderer/script_injector.h   |  96 +++
  .../user_scripts/renderer/scripts_run_info.cc |  31 +
  .../user_scripts/renderer/scripts_run_info.h  |  69 ++
@@ -136,7 +135,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/web_ui_injection_host.h          |  27 +
  .../strings/userscripts_strings.grdp          |  54 ++
  tools/gritsettings/resource_ids.spec          |   6 +
- 109 files changed, 9449 insertions(+), 2 deletions(-)
+ 108 files changed, 9427 insertions(+), 1 deletion(-)
  create mode 100644 components/user_scripts/README.md
  create mode 100755 components/user_scripts/android/BUILD.gn
  create mode 100644 components/user_scripts/android/java/res/layout/accept_script_item.xml
@@ -226,7 +225,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -179,6 +179,9 @@ if (current_toolchain == default_toolchain) {
+@@ -180,6 +180,9 @@ if (current_toolchain == default_toolchain) {
        "//third_party/androidx:androidx_gridlayout_gridlayout_java",
        "//third_party/androidx:androidx_preference_preference_java",
      ]
@@ -236,7 +235,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
    }
  
    if (enable_vr) {
-@@ -482,6 +485,7 @@ if (current_toolchain == default_toolchain) {
+@@ -483,6 +486,7 @@ if (current_toolchain == default_toolchain) {
        "//components/ukm/android:java",
        "//components/url_formatter/android:url_formatter_java",
        "//components/user_prefs/android:java",
@@ -322,7 +321,7 @@ diff --git a/chrome/android/java_sources.gni b/chrome/android/java_sources.gni
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -3461,6 +3461,11 @@ static_library("browser") {
+@@ -3455,6 +3455,11 @@ static_library("browser") {
        ]
        deps += [ "//chrome/android/modules/dev_ui/provider:native" ]
      }
@@ -356,19 +355,6 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
  #if BUILDFLAG(IS_WIN)
      {"enable-media-foundation-video-capture",
       flag_descriptions::kEnableMediaFoundationVideoCaptureName,
-diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
---- a/chrome/browser/chrome_content_browser_client.cc
-+++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -5468,7 +5468,8 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
-   chrome::mojom::DynamicParams dynamic_params = {
-       profile->GetPrefs()->GetBoolean(prefs::kForceGoogleSafeSearch),
-       profile->GetPrefs()->GetInteger(prefs::kForceYouTubeRestrict),
--      profile->GetPrefs()->GetString(prefs::kAllowedDomainsForApps)};
-+      profile->GetPrefs()->GetString(prefs::kAllowedDomainsForApps),
-+      false /*-> allow_userscript, don't care */};
-   result.push_back(std::make_unique<GoogleURLLoaderThrottle>(
- #if BUILDFLAG(IS_ANDROID)
-       client_data_header,
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
@@ -439,7 +425,7 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  namespace chrome {
  
  void AddProfilesExtraParts(ChromeBrowserMainParts* main_parts) {
-@@ -921,6 +923,7 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -920,6 +922,7 @@ void ChromeBrowserMainExtraPartsProfiles::
  #endif
    WebDataServiceFactory::GetInstance();
    webrtc_event_logging::WebRtcEventLogManagerKeyedServiceFactory::GetInstance();
@@ -2407,7 +2393,7 @@ diff --git a/components/user_scripts/browser/BUILD.gn b/components/user_scripts/
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/browser/BUILD.gn
-@@ -0,0 +1,81 @@
+@@ -0,0 +1,77 @@
 +# This file is part of Bromite.
 +
 +# Bromite is free software: you can redistribute it and/or modify
@@ -2474,10 +2460,6 @@ new file mode 100755
 +    "//build/config:precompiled_headers",
 +    "//build/config/compiler:wexit_time_destructors",
 +  ]
-+}
-+
-+group("closure_compile") {
-+  deps = [ "resources/user-script-ui:closure_compile" ]
 +}
 +
 +grit("userscripts_browser_resources") {
@@ -2597,17 +2579,13 @@ diff --git a/components/user_scripts/browser/resources/user-script-ui/BUILD.gn b
 new file mode 100644
 --- /dev/null
 +++ b/components/user_scripts/browser/resources/user-script-ui/BUILD.gn
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,8 @@
 +import("//third_party/closure_compiler/compile_js.gni")
 +
-+js_type_check("closure_compile") {
-+  deps = [ ":view_script_source" ]
-+}
-+
 +js_library("view_script_source") {
++  sources = [ "user-scripts-ui.js" ]
 +  deps = [
-+    "//ui/webui/resources/js:cr.m",
-+    "//ui/webui/resources/js:util",
++    "//ui/webui/resources:library",
 +  ]
 +}
 diff --git a/components/user_scripts/browser/resources/user-script-ui/user-scripts-ui.html b/components/user_scripts/browser/resources/user-script-ui/user-scripts-ui.html
@@ -2634,8 +2612,8 @@ new file mode 100644
 --- /dev/null
 +++ b/components/user_scripts/browser/resources/user-script-ui/user-scripts-ui.js
 @@ -0,0 +1,9 @@
-+import {sendWithPromise} from 'chrome://resources/js/cr.m.js';
-+import {$} from 'chrome://resources/js/util.js';
++import {sendWithPromise} from 'chrome://resources/js/cr.js';
++import {$} from 'chrome://resources/js/util_ts.js';
 +
 +document.addEventListener('DOMContentLoaded', function() {
 +  const urlParams = new URLSearchParams(window.location.search);
@@ -2647,7 +2625,7 @@ diff --git a/components/user_scripts/browser/ui/user_scripts_ui.cc b/components/
 new file mode 100644
 --- /dev/null
 +++ b/components/user_scripts/browser/ui/user_scripts_ui.cc
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,146 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -2668,7 +2646,6 @@ new file mode 100644
 +
 +#include <memory>
 +
-+#include "base/bind.h"
 +#include "base/json/json_string_value_serializer.h"
 +#include "base/memory/writable_shared_memory_region.h"
 +#include "base/strings/string_util.h"
@@ -2762,7 +2739,7 @@ new file mode 100644
 +    std::unique_ptr<user_scripts::UserScriptList> user_scripts) {
 +  loaded_scripts_ = std::move(user_scripts);
 +
-+  base::ListValue response;
++  base::Value::List response;
 +  for (const std::unique_ptr<user_scripts::UserScript>& script : *loaded_scripts_) {
 +    if (script->key() == script_key) {
 +      base::Value::Dict scriptData;
@@ -2841,7 +2818,7 @@ diff --git a/components/user_scripts/browser/user_script_loader.cc b/components/
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/browser/user_script_loader.cc
-@@ -0,0 +1,716 @@
+@@ -0,0 +1,715 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -2867,7 +2844,6 @@ new file mode 100755
 +#include <string>
 +#include <utility>
 +
-+#include "base/bind.h"
 +#include "base/memory/writable_shared_memory_region.h"
 +#include "base/strings/string_util.h"
 +#include "base/strings/strcat.h"
@@ -3562,7 +3538,7 @@ diff --git a/components/user_scripts/browser/user_script_loader.h b/components/u
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/browser/user_script_loader.h
-@@ -0,0 +1,169 @@
+@@ -0,0 +1,168 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -3587,7 +3563,6 @@ new file mode 100755
 +#include <memory>
 +#include <set>
 +
-+#include "base/callback_forward.h"
 +#include "base/compiler_specific.h"
 +#include "base/memory/read_only_shared_memory_region.h"
 +#include "base/memory/weak_ptr.h"
@@ -3852,7 +3827,7 @@ diff --git a/components/user_scripts/browser/user_script_prefs.cc b/components/u
 new file mode 100644
 --- /dev/null
 +++ b/components/user_scripts/browser/user_script_prefs.cc
-@@ -0,0 +1,270 @@
+@@ -0,0 +1,274 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -3884,6 +3859,8 @@ new file mode 100644
 +#include "components/prefs/pref_service.h"
 +#include "components/prefs/scoped_user_pref_update.h"
 +#include "components/pref_registry/pref_registry_syncable.h"
++#include "services/preferences/public/cpp/dictionary_value_update.h"
++#include "services/preferences/public/cpp/scoped_pref_update.h"
 +#include "user_script_prefs.h"
 +#include "user_script_pref_info.h"
 +#include "../common/user_script.h"
@@ -3910,23 +3887,24 @@ new file mode 100644
 +const char kScriptParserError[] = "parser_error";
 +const char kScriptForceDisabled[] = "force_disabled";
 +
-+class PrefUpdate : public DictionaryPrefUpdate {
++class PrefUpdate : public ::prefs::ScopedDictionaryPrefUpdate {
 + public:
 +  PrefUpdate(PrefService* service,
 +             const std::string& id,
 +             const std::string& path)
-+      : DictionaryPrefUpdate(service, path), id_(id) {}
++      : ::prefs::ScopedDictionaryPrefUpdate(service, path), id_(id) {}
 +
 +  PrefUpdate(const PrefUpdate&) = delete;
 +  PrefUpdate& operator=(const PrefUpdate&) = delete;
 +  ~PrefUpdate() override = default;
 +
-+  base::Value* Get() override {
-+    base::Value* dict = DictionaryPrefUpdate::Get();
-+    base::Value* dict_item =
-+        dict->FindKeyOfType(id_, base::Value::Type::DICTIONARY);
-+    if (!dict_item)
-+      dict_item = dict->SetKey(id_, base::Value(base::Value::Type::DICTIONARY));
++  std::unique_ptr<::prefs::DictionaryValueUpdate> Get() override {
++    std::unique_ptr<::prefs::DictionaryValueUpdate> dict =
++        ScopedDictionaryPrefUpdate::Get();
++    std::unique_ptr<::prefs::DictionaryValueUpdate> dict_item;
++    if (!dict->GetDictionaryWithoutPathExpansion(id_, &dict_item)) {
++      dict_item = dict->SetDictionaryWithoutPathExpansion(id_, base::Value::Dict());
++    }
 +    return dict_item;
 +  }
 +
@@ -4016,20 +3994,20 @@ new file mode 100644
 +    scriptInfo->force_disabled = (it->get()->force_disabled());
 +
 +    PrefUpdate update(prefs_, key, kUserScriptsList);
-+    base::Value* script_dict = update.Get();
++    std::unique_ptr<::prefs::DictionaryValueUpdate> script_dict = update.Get();
 +
-+    script_dict->SetStringKey(kScriptName, scriptInfo->name());
-+    script_dict->SetStringKey(kScriptDescription, scriptInfo->description());
-+    script_dict->SetBoolKey(kScriptIsEnabled, scriptInfo->enabled);
-+    script_dict->SetStringKey(kScriptVersion, scriptInfo->version());
-+    script_dict->SetStringKey(kScriptFilePath, scriptInfo->file_path());
-+    script_dict->SetStringKey(kScriptUrlSource, scriptInfo->url_source());
-+    script_dict->SetStringKey(kScriptParserError, scriptInfo->parser_error());
-+    script_dict->SetBoolKey(kScriptForceDisabled, scriptInfo->force_disabled);
++    script_dict->SetString(kScriptName, scriptInfo->name());
++    script_dict->SetString(kScriptDescription, scriptInfo->description());
++    script_dict->SetBoolean(kScriptIsEnabled, scriptInfo->enabled);
++    script_dict->SetString(kScriptVersion, scriptInfo->version());
++    script_dict->SetString(kScriptFilePath, scriptInfo->file_path());
++    script_dict->SetString(kScriptUrlSource, scriptInfo->url_source());
++    script_dict->SetString(kScriptParserError, scriptInfo->parser_error());
++    script_dict->SetBoolean(kScriptForceDisabled, scriptInfo->force_disabled);
 +
 +    std::string install_time_str =
 +        base::NumberToString(scriptInfo->install_time.ToInternalValue());
-+    script_dict->SetStringKey(kScriptInstallTime, install_time_str);
++    script_dict->SetString(kScriptInstallTime, install_time_str);
 +
 +   if (!scriptInfo->enabled) {
 +      it = user_scripts.erase(it);
@@ -4049,10 +4027,10 @@ new file mode 100644
 +    }
 +  }
 +
-+  DictionaryPrefUpdate update(prefs_, kUserScriptsList);
-+  base::Value* const update_dict = update.Get();
++  ::prefs::ScopedDictionaryPrefUpdate update(prefs_, kUserScriptsList);
++  std::unique_ptr<::prefs::DictionaryValueUpdate> update_dict = update.Get();
 +  for (auto key : all_scripts_to_remove) {
-+      update_dict->RemoveKey(key);
++      update_dict->RemoveWithoutPathExpansion(key, nullptr);
 +  }
 +
 +  return;
@@ -4109,17 +4087,18 @@ new file mode 100644
 +}
 +
 +void UserScriptsPrefs::RemoveScriptFromPrefs(const std::string& script_id) {
-+  DictionaryPrefUpdate update(prefs_, kUserScriptsList);
-+  base::Value* const update_dict = update.Get();
-+  update_dict->RemoveKey(script_id);
++  ::prefs::ScopedDictionaryPrefUpdate update(prefs_, kUserScriptsList);
++  std::unique_ptr<::prefs::DictionaryValueUpdate> const update_dict = update.Get();
++  update_dict->RemoveWithoutPathExpansion(script_id, nullptr);
 +}
 +
 +void UserScriptsPrefs::SetScriptEnabled(const std::string& script_id, bool is_enabled) {
 +  PrefUpdate update(prefs_, script_id, kUserScriptsList);
-+  base::Value* script_dict = update.Get();
-+  if (script_dict->FindBoolKey(kScriptForceDisabled).value_or(false))
-+    is_enabled = true;
-+  script_dict->SetBoolKey(kScriptIsEnabled, is_enabled);
++  std::unique_ptr<::prefs::DictionaryValueUpdate> script_dict = update.Get();
++  bool force_disabled;
++  script_dict->GetBoolean(kScriptForceDisabled, &force_disabled);
++  if (force_disabled) is_enabled = false;
++  script_dict->SetBoolean(kScriptIsEnabled, is_enabled);
 +}
 +
 +}
@@ -4398,19 +4377,13 @@ diff --git a/components/user_scripts/common/constants.h b/components/user_script
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/common/constants.h
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,15 @@
 +// Copyright (c) 2012 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
 +
 +#ifndef USERSCRIPTS_COMMON_CONSTANTS_H_
 +#define USERSCRIPTS_COMMON_CONSTANTS_H_
-+
-+#include "base/files/file_path.h"
-+#include "base/strings/string_piece_forward.h"
-+#include "components/services/app_service/public/mojom/types.mojom.h"
-+#include "components/version_info/channel.h"
-+#include "ui/base/layout.h"
 +
 +namespace user_scripts {
 +
@@ -6188,14 +6161,14 @@ new file mode 100755
 +  return false;
 +}
 +
-+std::unique_ptr<base::ListValue> URLPatternSet::ToValue() const {
-+  std::unique_ptr<base::ListValue> value(new base::ListValue);
-+  for (auto i = patterns_.cbegin(); i != patterns_.cend(); ++i) {
-+    base::Value pattern_str_value(i->GetAsString());
-+    if (!base::Contains(value->GetList(), pattern_str_value))
-+      value->Append(std::move(pattern_str_value));
++base::Value::List URLPatternSet::ToValue() const {
++  base::Value::List result;
++  for (const auto& pattern : patterns_) {
++    base::Value pattern_str_value(pattern.GetAsString());
++    if (!base::Contains(result, pattern_str_value))
++      result.Append(std::move(pattern_str_value));
 +  }
-+  return value;
++  return result;
 +}
 +
 +bool URLPatternSet::Populate(const std::vector<std::string>& patterns,
@@ -6232,12 +6205,12 @@ new file mode 100755
 +  return value;
 +}
 +
-+bool URLPatternSet::Populate(const base::ListValue& value,
++bool URLPatternSet::Populate(const base::Value::List& value,
 +                             int valid_schemes,
 +                             bool allow_file_access,
 +                             std::string* error) {
 +  std::vector<std::string> patterns;
-+  for (const base::Value& pattern : value.GetList()) {
++  for (const base::Value& pattern : value) {
 +    const std::string* item = pattern.GetIfString();
 +    if (!item)
 +      return false;
@@ -6265,12 +6238,12 @@ new file mode 100755
 +#include <memory>
 +#include <set>
 +
++#include "base/values.h"
 +#include "url_pattern.h"
 +
 +class GURL;
 +
 +namespace base {
-+class ListValue;
 +class Value;
 +}
 +
@@ -6388,8 +6361,8 @@ new file mode 100755
 +  bool OverlapsWith(const URLPatternSet& other) const;
 +
 +  // Converts to and from Value for serialization to preferences.
-+  std::unique_ptr<base::ListValue> ToValue() const;
-+  bool Populate(const base::ListValue& value,
++  base::Value::List ToValue() const;
++  bool Populate(const base::Value::List& value,
 +                int valid_schemes,
 +                bool allow_file_access,
 +                std::string* error);
@@ -7503,7 +7476,7 @@ diff --git a/components/user_scripts/renderer/extension_frame_helper.h b/compone
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/renderer/extension_frame_helper.h
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,90 @@
 +// Copyright 2013 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -7514,7 +7487,6 @@ new file mode 100755
 +#include <string>
 +#include <vector>
 +
-+#include "base/callback_forward.h"
 +#include "base/memory/weak_ptr.h"
 +#include "content/public/renderer/render_frame_observer.h"
 +#include "content/public/renderer/render_frame_observer_tracker.h"
@@ -7964,7 +7936,7 @@ diff --git a/components/user_scripts/renderer/script_context.h b/components/user
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/renderer/script_context.h
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,67 @@
 +// Copyright 2014 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -7977,7 +7949,6 @@ new file mode 100755
 +#include <utility>
 +#include <vector>
 +
-+#include "base/callback.h"
 +#include "base/compiler_specific.h"
 +#include "base/threading/thread_checker.h"
 +#include "base/unguessable_token.h"
@@ -8037,7 +8008,7 @@ diff --git a/components/user_scripts/renderer/script_injection.cc b/components/u
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/renderer/script_injection.cc
-@@ -0,0 +1,294 @@
+@@ -0,0 +1,293 @@
 +// Copyright 2014 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -8047,7 +8018,6 @@ new file mode 100755
 +#include <map>
 +#include <utility>
 +
-+#include "base/bind.h"
 +#include "base/feature_list.h"
 +#include "base/lazy_instance.h"
 +#include "base/metrics/histogram_macros.h"
@@ -8336,7 +8306,7 @@ diff --git a/components/user_scripts/renderer/script_injection.h b/components/us
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/renderer/script_injection.h
-@@ -0,0 +1,156 @@
+@@ -0,0 +1,155 @@
 +// Copyright 2014 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -8349,7 +8319,6 @@ new file mode 100755
 +#include <memory>
 +#include <vector>
 +
-+#include "base/callback.h"
 +#include "base/memory/weak_ptr.h"
 +#include "base/values.h"
 +#include "../common/user_script.h"
@@ -8497,7 +8466,7 @@ diff --git a/components/user_scripts/renderer/script_injection_manager.cc b/comp
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/renderer/script_injection_manager.cc
-@@ -0,0 +1,417 @@
+@@ -0,0 +1,415 @@
 +// Copyright 2014 The Chromium Authors. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -8508,10 +8477,8 @@ new file mode 100755
 +#include <utility>
 +
 +#include "base/auto_reset.h"
-+#include "base/bind.h"
 +#include "base/feature_list.h"
 +#include "base/memory/weak_ptr.h"
-+#include "base/threading/thread_task_runner_handle.h"
 +#include "base/values.h"
 +#include "base/logging.h"
 +#include "content/public/renderer/render_frame.h"
@@ -8919,7 +8886,7 @@ diff --git a/components/user_scripts/renderer/script_injection_manager.h b/compo
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/renderer/script_injection_manager.h
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,100 @@
 +#include <stdint.h>
 +
 +#include <map>
@@ -8927,7 +8894,6 @@ new file mode 100755
 +#include <string>
 +#include <vector>
 +
-+#include "base/callback.h"
 +#include "base/scoped_observation.h"
 +#include "../common/user_script.h"
 +#include "script_injection.h"

@@ -38,10 +38,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/common/pref_names.h                    |   1 +
  .../strings/android/site_settings.grdp        |   4 +-
  components/component_updater/BUILD.gn         |   7 +
- .../adblock_updater_service.cc                | 271 ++++++++++++++++++
- .../adblock_updater_service.h                 | 100 +++++++
- .../download_filters_task.cc                  | 224 +++++++++++++++
- .../component_updater/download_filters_task.h | 130 +++++++++
+ .../adblock_updater_service.cc                | 268 ++++++++++++++++++
+ .../adblock_updater_service.h                 |  98 +++++++
+ .../download_filters_task.cc                  | 222 +++++++++++++++
+ .../component_updater/download_filters_task.h | 129 +++++++++
  ...ent_subresource_filter_throttle_manager.cc |  11 +
  .../content/browser/ruleset_service.cc        |  33 ++-
  .../content/browser/ruleset_service.h         |   7 +-
@@ -50,7 +50,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/subresource_filter_features.cc    | 116 +-------
  .../core/common/indexed_ruleset.cc            |   5 +-
  third_party/blink/common/features.cc          |  12 +-
- 38 files changed, 1166 insertions(+), 130 deletions(-)
+ 38 files changed, 1158 insertions(+), 130 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -63,7 +63,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -248,6 +248,7 @@ if (current_toolchain == default_toolchain) {
+@@ -249,6 +249,7 @@ if (current_toolchain == default_toolchain) {
        "//chrome/android/modules/image_editor/provider:java",
        "//chrome/android/modules/stack_unwinder/provider:java",
        "//chrome/android/webapk/libs/client:client_java",
@@ -507,7 +507,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1101,6 +1101,26 @@ BrowserProcessImpl::component_updater() {
+@@ -1100,6 +1100,26 @@ BrowserProcessImpl::component_updater() {
    return component_updater_.get();
  }
  
@@ -742,7 +742,7 @@ diff --git a/components/component_updater/adblock_updater_service.cc b/component
 new file mode 100644
 --- /dev/null
 +++ b/components/component_updater/adblock_updater_service.cc
-@@ -0,0 +1,271 @@
+@@ -0,0 +1,268 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -768,13 +768,10 @@ new file mode 100644
 +#include <utility>
 +#include <vector>
 +
-+#include "base/bind.h"
-+#include "base/callback.h"
 +#include "base/files/file_path.h"
 +#include "base/files/file_util.h"
 +#include "base/logging.h"
 +#include "base/threading/thread_checker.h"
-+#include "base/threading/thread_task_runner_handle.h"
 +#include "base/time/time.h"
 +#include "base/timer/timer.h"
 +#include "url/gurl.h"
@@ -861,14 +858,14 @@ new file mode 100644
 +  }
 +
 +  if (is_updating_) {
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(std::move(on_finished),
 +                                    Error::UPDATE_IN_PROGRESS));
 +    return false;
 +  }
 +  is_updating_ = true;
 +
-+  base::ThreadTaskRunnerHandle::Get()->PostTask(
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +      FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_CHECKING_FOR_UPDATES));
 +
 +  base::Time::Exploded e = {0};
@@ -938,11 +935,11 @@ new file mode 100644
 +
 +  // run task now; task is responsible for downloading the filters (if Last-Modified header is more recent)
 +  // and then clearing the 'is_updating' status
-+  base::ThreadTaskRunnerHandle::Get()->PostTask(FROM_HERE,
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
 +      base::BindOnce(&DownloadFiltersTask::Run, base::Unretained(task.get())));
 +  tasks_.insert(task);
 +
-+  base::ThreadTaskRunnerHandle::Get()->PostTask(
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +      FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_DOWNLOADING));
 +
 +  return true;
@@ -955,7 +952,7 @@ new file mode 100644
 +
 +  auto file_path = task->file_path();
 +  if (error == Error::NONE) {
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_READY));
 +
 +    subresource_filter::UnindexedRulesetInfo ruleset_info;
@@ -991,20 +988,20 @@ new file mode 100644
 +      LOG(WARNING) << "AdBlockUpdaterService: invalid Last-Modified header, ignoring version check.";
 +    ruleset_service_->IndexAndStoreAndPublishRulesetIfNeeded(ruleset_info, ignore_version);
 +
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATED));
 +  } else if (error == Error::UPDATE_NOT_NEEDED) {
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_NOT_UPDATED));
 +  } else {
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(&AdBlockUpdaterService::NotifyObservers, base::Unretained(this), Event::ADBLOCK_UPDATE_ERROR));
 +  }
 +
 +  //TODO: run these only when index-and-store is actually finished?
 +  // would require exposing the callback in IndexAndStoreAndPublishRulesetIfNeeded
 +  if (!on_finished.is_null()) {
-+    base::ThreadTaskRunnerHandle::Get()->PostTask(
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +        FROM_HERE, base::BindOnce(std::move(on_finished), error));
 +  }
 +
@@ -1018,7 +1015,7 @@ diff --git a/components/component_updater/adblock_updater_service.h b/components
 new file mode 100644
 --- /dev/null
 +++ b/components/component_updater/adblock_updater_service.h
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,98 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -1045,8 +1042,6 @@ new file mode 100644
 +#include <string>
 +#include <vector>
 +
-+#include "base/callback_forward.h"
-+#include "base/gtest_prod_util.h"
 +#include "base/memory/ref_counted.h"
 +#include "base/observer_list.h"
 +#include "base/version.h"
@@ -1123,7 +1118,7 @@ diff --git a/components/component_updater/download_filters_task.cc b/components/
 new file mode 100644
 --- /dev/null
 +++ b/components/component_updater/download_filters_task.cc
-@@ -0,0 +1,224 @@
+@@ -0,0 +1,222 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -1145,9 +1140,7 @@ new file mode 100644
 +#include <utility>
 +
 +#include "base/files/file_util.h"
-+#include "base/bind.h"
 +#include "base/location.h"
-+#include "base/threading/thread_task_runner_handle.h"
 +#include "base/logging.h"
 +#include "net/base/load_flags.h"
 +#include "url/gurl.h"
@@ -1334,7 +1327,7 @@ new file mode 100644
 +void DownloadFiltersTask::TaskComplete(Error error) {
 +  DCHECK(thread_checker_.CalledOnValidThread());
 +
-+  base::ThreadTaskRunnerHandle::Get()->PostTask(
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
 +      FROM_HERE, base::BindOnce(std::move(complete_callback_),
 +                                scoped_refptr<DownloadFiltersTask>(this), error));
 +}
@@ -1352,7 +1345,7 @@ diff --git a/components/component_updater/download_filters_task.h b/components/c
 new file mode 100644
 --- /dev/null
 +++ b/components/component_updater/download_filters_task.h
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,129 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -1376,7 +1369,6 @@ new file mode 100644
 +#include <string>
 +#include <vector>
 +
-+#include "base/callback.h"
 +#include "base/memory/ref_counted.h"
 +#include "base/threading/thread_checker.h"
 +#include "components/update_client/network.h"

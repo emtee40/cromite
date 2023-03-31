@@ -7,6 +7,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../chrome_hints_manager.cc                   |  1 +
  .../optimization_guide_keyed_service.cc       |  1 -
+ .../predictors/loading_predictor_config.cc    |  4 +-
  chrome/common/chrome_features.cc              |  8 ++--
  .../optimization_guide/core/hints_fetcher.cc  |  1 +
  .../optimization_guide/core/hints_manager.cc  |  5 +++
@@ -16,7 +17,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/optimization_guide/features.gni    |  4 +-
  components/permissions/features.cc            |  8 ++--
  third_party/blink/common/features.cc          |  8 +---
- 11 files changed, 40 insertions(+), 41 deletions(-)
+ .../platform/runtime_enabled_features.json5   |  2 +-
+ 13 files changed, 43 insertions(+), 44 deletions(-)
 
 diff --git a/chrome/browser/optimization_guide/chrome_hints_manager.cc b/chrome/browser/optimization_guide/chrome_hints_manager.cc
 --- a/chrome/browser/optimization_guide/chrome_hints_manager.cc
@@ -40,6 +42,20 @@ diff --git a/chrome/browser/optimization_guide/optimization_guide_keyed_service.
  }
  
  optimization_guide::OptimizationGuideDecision
+diff --git a/chrome/browser/predictors/loading_predictor_config.cc b/chrome/browser/predictors/loading_predictor_config.cc
+--- a/chrome/browser/predictors/loading_predictor_config.cc
++++ b/chrome/browser/predictors/loading_predictor_config.cc
+@@ -12,8 +12,8 @@
+ namespace predictors {
+ 
+ BASE_FEATURE(kSpeculativePreconnectFeature,
+-             "SpeculativePreconnect",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "SpeculativePreconnect",             // always disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);  // in bromite
+ 
+ // Returns whether the speculative preconnect feature is enabled.
+ bool IsPreconnectFeatureEnabled() {
 diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
 --- a/chrome/common/chrome_features.cc
 +++ b/chrome/common/chrome_features.cc
@@ -229,7 +245,7 @@ diff --git a/components/optimization_guide/core/prediction_model_download_manage
      const base::FilePath& download_file_path,
      const base::FilePath& base_model_dir,
      bool delete_file_on_error) {
-+  if ((true)) return absl::nullopt;
++  if ((true)) return false;
    if (!switches::ShouldSkipModelDownloadVerificationForTesting()) {
      // Verify that the |download_file_path| contains a valid CRX file.
      std::string public_key;
@@ -296,5 +312,17 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  );
  
  // Anchor Element Interaction
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -2571,7 +2571,7 @@
+     {
+       // https://crbug.com/1126305
+       name: "Prerender2",
+-      status: "stable",
++      status: "test",
+     },
+     // This RTE feature is used to indicate the status of RTE feature Prerender2
+     // and an embedder feature flag that enables the Prerender2. With this flag
 --
 2.25.1
