@@ -32,7 +32,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../CustomTabAppMenuPropertiesDelegate.java   |   4 +
  .../CustomTabIntentDataProvider.java          |   5 +-
  .../browser/download/DownloadUtils.java       |  16 +-
- .../browser/history/HistoryManager.java       |  30 +++-
+ .../browser/history/HistoryManager.java       |  28 ++-
  .../chrome/browser/history/HistoryPage.java   |  16 ++
  .../native_page/NativePageFactory.java        |   4 +-
  .../chrome/browser/ntp/RecentTabsManager.java |  28 ++-
@@ -84,7 +84,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../omnibox/browser/base_search_provider.cc   |   2 +-
  components/omnibox/browser/search_provider.cc |   4 +-
  .../host_content_settings_map_factory.cc      |   1 +
- 65 files changed, 739 insertions(+), 82 deletions(-)
+ 65 files changed, 737 insertions(+), 82 deletions(-)
  create mode 100644 chrome/android/java/res/xml/incognito_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/AlwaysIncognitoLinkInterceptor.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java
@@ -562,7 +562,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/history/History
              return;
          } else if (isHistoryClustersUIShowing()) {
              toHistoryClusters = false;
-@@ -653,11 +660,26 @@ public class HistoryManager implements OnMenuItemClickListener, SelectionObserve
+@@ -653,11 +660,24 @@ public class HistoryManager implements OnMenuItemClickListener, SelectionObserve
                  && mContentView == mHistoryClustersCoordinator.getActivityContentView();
      }
  
@@ -576,9 +576,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/history/History
 +                prefService.getBoolean(Pref.INCOGNITO_TAB_HISTORY_ENABLED);
 +            if (historyEnabledInIncognito) return false;
 +        }
-+        return mIsIncognito
-+                && ChromeFeatureList.isEnabled(
-+                        ChromeFeatureList.UPDATE_HISTORY_ENTRY_POINTS_IN_INCOGNITO);
++        return mIsIncognito;
 +    }
 +
      /**
@@ -590,7 +588,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/history/History
              // If Incognito placeholder is shown no need to call any destroy method.
              return;
          }
-@@ -677,7 +699,7 @@ public class HistoryManager implements OnMenuItemClickListener, SelectionObserve
+@@ -677,7 +697,7 @@ public class HistoryManager implements OnMenuItemClickListener, SelectionObserve
       * @return True if manager handles this event, false if it decides to ignore.
       */
      public boolean onBackPressed() {

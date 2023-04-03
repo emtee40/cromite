@@ -4,48 +4,63 @@ Subject: Remove price/shopping/commerce integrations
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/android/BUILD.gn                       |  35 ----
+ chrome/android/BUILD.gn                       |  33 --
  chrome/android/chrome_java_sources.gni        |   5 -
  chrome/android/features/tab_ui/BUILD.gn       |   5 -
  .../res/layout/large_message_card_item.xml    |   9 -
  .../java/res/layout/tab_grid_card_item.xml    |   8 -
- .../tab_management/LargeMessageCardView.java  |  30 ----
+ .../tab_management/LargeMessageCardView.java  |  30 --
  .../LargeMessageCardViewBinder.java           |   1 -
  .../MessageCardProviderMediator.java          |   6 +-
  .../TabGridDialogCoordinator.java             |   2 +-
- .../tab_management/TabGridViewBinder.java     |  36 ----
+ .../tab_management/TabGridViewBinder.java     |  36 ---
  .../tab_management/TabGroupUiCoordinator.java |   2 +-
- .../tab_management/TabListCoordinator.java    |  25 +--
- .../tasks/tab_management/TabListMediator.java | 169 +-----------------
+ .../tab_management/TabListCoordinator.java    |  25 +-
+ .../tasks/tab_management/TabListMediator.java | 169 +---------
  .../tasks/tab_management/TabProperties.java   |   5 +-
  .../TabSelectionEditorCoordinator.java        |   2 +-
- .../TabSwitcherCoordinator.java               |  95 +---------
- .../tab_management/TabSwitcherMediator.java   |  57 ------
- .../chrome/browser/app/ChromeActivity.java    |   8 -
+ .../TabSwitcherCoordinator.java               |  95 +-----
+ .../tab_management/TabSwitcherMediator.java   |  57 ----
+ .../chrome/browser/app/ChromeActivity.java    |  10 +-
  .../AppMenuPropertiesDelegateImpl.java        |  11 +-
- .../browser/bookmarks/BookmarkBridge.java     |  79 --------
+ .../browser/bookmarks/BookmarkActionBar.java  |   3 +-
+ .../browser/bookmarks/BookmarkBridge.java     |  88 -----
+ .../bookmarks/BookmarkItemsAdapter.java       |  25 +-
+ .../browser/bookmarks/BookmarkListEntry.java  |  34 +-
  .../browser/bookmarks/BookmarkManager.java    |   4 -
+ .../bookmarks/BookmarkManagerCoordinator.java |  33 +-
  .../BookmarkSaveFlowCoordinator.java          |   6 +-
- .../bookmarks/BookmarkSaveFlowMediator.java   |  77 +-------
+ .../bookmarks/BookmarkSaveFlowMediator.java   |  77 +----
+ .../browser/bookmarks/BookmarkUIState.java    |  10 -
  .../browser/bookmarks/BookmarkUtils.java      |   6 +-
+ .../browser/customtabs/CustomTabActivity.java |   2 +-
  .../init/ProcessInitializationHandler.java    |   5 -
+ .../ChromePageInfoControllerDelegate.java     |   8 -
  .../ContextualPageActionController.java       |   4 -
  .../chrome/browser/tab/TabHelpers.java        |   9 -
- .../tabbed_mode/TabbedRootUiCoordinator.java  |  21 ---
- .../ToolbarButtonInProductHelpController.java |  27 ---
- .../browser/toolbar/ToolbarManager.java       |  17 --
- .../chrome/browser/ui/RootUiCoordinator.java  |   9 -
+ .../tabbed_mode/TabbedRootUiCoordinator.java  |  21 --
+ .../ToolbarButtonInProductHelpController.java |  27 --
+ .../browser/toolbar/ToolbarManager.java       |  19 +-
+ .../chrome/browser/ui/RootUiCoordinator.java  |  20 --
  chrome/android/java_sources.gni               |   7 -
- chrome/browser/BUILD.gn                       |   6 -
+ chrome/browser/BUILD.gn                       |   4 -
+ .../browsing_data_history_observer_service.cc |  15 -
+ .../commerce/merchant_viewer/android/BUILD.gn |  34 +-
+ .../MerchantTrustSignalsCoordinator.java      | 303 +-----------------
+ .../PageInfoStoreInfoController.java          |   8 +-
  .../price_tracking/PriceTrackingFeatures.java |   2 +-
  .../commerce/subscriptions/android/BUILD.gn   |   1 -
- .../CommerceSubscriptionsService.java         |  34 +---
+ .../CommerceSubscriptionsService.java         |  34 +-
  .../optimization_guide_keyed_service.cc       |   4 -
  chrome/browser/persisted_state_db/BUILD.gn    |   1 -
+ ...hrome_browser_main_extra_parts_profiles.cc |   3 -
  chrome/browser/tab/BUILD.gn                   |   1 -
- chrome/browser/ui/android/omnibox/BUILD.gn    |   2 -
- .../commerce/core/commerce_feature_list.cc    |   7 +-
- 41 files changed, 28 insertions(+), 812 deletions(-)
+ .../tab/state/CouponPersistedTabData.java     |   4 +-
+ .../tab/state/ShoppingPersistedTabData.java   |   3 +-
+ chrome/browser/ui/android/omnibox/BUILD.gn    |   1 -
+ .../components/bookmarks/BookmarkId.java      |   3 -
+ .../commerce/core/commerce_feature_list.cc    |  64 ++--
+ 56 files changed, 84 insertions(+), 1320 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
@@ -61,19 +76,17 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
  import("//chrome/browser/page_info/buildflags.gni")
  import("//chrome/browser/password_manager/buildflags.gni")
  import("//chrome/browser/share/android/java_sources.gni")
-@@ -271,11 +267,6 @@ if (current_toolchain == default_toolchain) {
-       "//chrome/browser/battery/android:java",
-       "//chrome/browser/bluetooth/android:java",
+@@ -273,9 +269,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/browser_controls/android:java",
--      "//chrome/browser/commerce/android:java",
--      "//chrome/browser/commerce/merchant_viewer/android:java",
+       "//chrome/browser/commerce/android:java",
+       "//chrome/browser/commerce/merchant_viewer/android:java",
 -      "//chrome/browser/commerce/price_tracking/android:java",
 -      "//chrome/browser/commerce/price_tracking/proto:proto_java",
 -      "//chrome/browser/commerce/subscriptions/android:subscriptions_java",
        "//chrome/browser/consent_auditor/android:java",
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/creator/android:java",
-@@ -659,16 +650,6 @@ if (current_toolchain == default_toolchain) {
+@@ -659,16 +652,6 @@ if (current_toolchain == default_toolchain) {
      sources += share_java_sources
      deps += share_java_deps
  
@@ -90,7 +103,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
      if (enable_printing) {
        deps += [ "//printing:printing_java" ]
      }
-@@ -718,7 +699,6 @@ if (current_toolchain == default_toolchain) {
+@@ -718,7 +701,6 @@ if (current_toolchain == default_toolchain) {
        ":chrome_java",
        "//chrome/android/features/keyboard_accessory:internal_java",
        "//chrome/browser/android/httpclient:java",
@@ -98,7 +111,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/content_creation/notes/internal/android:java",
        "//chrome/browser/download/internal/android:java",
        "//chrome/browser/page_annotations/android:java",
-@@ -869,11 +849,6 @@ if (current_toolchain == default_toolchain) {
+@@ -869,11 +851,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/bluetooth/android:junit",
        "//chrome/browser/browser_controls/android:java",
        "//chrome/browser/browser_controls/android:junit",
@@ -110,7 +123,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/creator/android:java",
        "//chrome/browser/creator/android:junit",
-@@ -1276,8 +1251,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1276,8 +1253,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/android/browserservices/intents:java",
        "//chrome/browser/android/browserservices/verification:java",
        "//chrome/browser/android/crypto:java",
@@ -119,7 +132,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/download/android:download_java_tests",
        "//chrome/browser/download/android:file_provider_java",
-@@ -1412,12 +1385,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1412,12 +1387,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/back_press/android:java",
        "//chrome/browser/banners/android:java",
        "//chrome/browser/browser_controls/android:java",
@@ -132,7 +145,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/content_creation/notes/internal/android:java",
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/dependency_injection:java",
-@@ -3648,8 +3615,6 @@ group("jni_headers") {
+@@ -3648,8 +3617,6 @@ group("jni_headers") {
      "//chrome/browser/android/browserservices/metrics:jni_headers",
      "//chrome/browser/android/browserservices/verification:jni_headers",
      "//chrome/browser/battery/android:jni_headers",
@@ -1158,6 +1171,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
              return true;
          }
  
+@@ -2375,7 +2367,7 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+         if (id == R.id.info_menu_id) {
+             ChromePageInfo pageInfo =
+                     new ChromePageInfo(getModalDialogManagerSupplier(), null, OpenedFromSource.MENU,
+-                            mRootUiCoordinator.getMerchantTrustSignalsCoordinatorSupplier()::get,
++                            /*mRootUiCoordinator.getMerchantTrustSignalsCoordinatorSupplier()::get*/ null,
+                             mRootUiCoordinator.getEphemeralTabCoordinatorSupplier());
+             pageInfo.show(currentTab, ChromePageInfoHighlight.noHighlight());
+             return true;
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
@@ -1193,6 +1215,19 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/App
      }
  
      /**
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkActionBar.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkActionBar.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkActionBar.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkActionBar.java
+@@ -195,8 +195,7 @@ public class BookmarkActionBar extends SelectableListToolbar<BookmarkId>
+             return;
+         }
+ 
+-        if (folder.equals(BookmarkId.SHOPPING_FOLDER)) {
+-            setTitle(R.string.price_tracking_bookmarks_filter_title);
++        if ((false)) {
+         } else if (mDelegate.getModel().getTopLevelFolderParentIDs().contains(
+                            mCurrentFolder.getParentId())
+                 && TextUtils.isEmpty(mCurrentFolder.getTitle())) {
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
@@ -1243,7 +1278,29 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      }
  
      /** Returns whether the bridge has been destroyed. */
-@@ -432,59 +406,6 @@ class BookmarkBridge {
+@@ -233,12 +207,6 @@ class BookmarkBridge {
+         assert mIsNativeBookmarkModelLoaded;
+         if (id == null) return null;
+ 
+-        if (BookmarkId.SHOPPING_FOLDER.equals(id)) {
+-            return new BookmarkItem(id, /*title=*/null, /*url=*/null,
+-                    /*isFolder=*/true, /*parentId=*/getRootFolderId(), /*isEditable=*/false,
+-                    /*isManaged=*/false, /*dateAdded=*/0L, /*read=*/false);
+-        }
+-
+         return BookmarkBridgeJni.get().getBookmarkByID(
+                 mNativeBookmarkBridge, BookmarkBridge.this, id.getId(), id.getType());
+     }
+@@ -423,68 +391,12 @@ class BookmarkBridge {
+         ThreadUtils.assertOnUiThread();
+         if (mNativeBookmarkBridge == 0) return new ArrayList<BookmarkId>();
+         assert mIsNativeBookmarkModelLoaded;
+-        if (BookmarkId.SHOPPING_FOLDER.equals(id)) {
+-            return searchBookmarks("", null, PowerBookmarkType.SHOPPING, -1);
+-        }
+         List<BookmarkId> result = new ArrayList<BookmarkId>();
+         BookmarkBridgeJni.get().getChildIDs(
+                 mNativeBookmarkBridge, BookmarkBridge.this, id.getId(), id.getType(), result);
          return result;
      }
  
@@ -1303,6 +1360,166 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * Gets the child of a folder at the specific position.
       * @param folderId Id of the parent folder
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkItemsAdapter.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkItemsAdapter.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkItemsAdapter.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkItemsAdapter.java
+@@ -65,6 +65,7 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+     @ViewType
+     private int mPromoHeaderType = ViewType.INVALID;
+     private BookmarkDelegate mDelegate;
++    private BookmarkPromoHeader mPromoHeaderManager;
+     private ViewFactory mViewFactory;
+     private String mSearchText;
+     private BookmarkId mCurrentFolder;
+@@ -157,9 +158,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+         mElements.clear();
+ 
+         updateHeader(false);
+-        if (BookmarkId.SHOPPING_FOLDER.equals(mCurrentFolder)) {
+-            filterForPriceTrackingCategory(bookmarks);
+-        }
+ 
+         for (BookmarkId bookmarkId : bookmarks) {
+             BookmarkItem item = mDelegate.getModel().getBookmarkById(bookmarkId);
+@@ -173,12 +171,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+             ReadingListSectionHeader.maybeSortAndInsertSectionHeaders(mElements, mContext);
+         }
+ 
+-        if (ChromeFeatureList.isEnabled(ChromeFeatureList.SHOPPING_LIST)
+-                && topLevelFoldersShowing()) {
+-            mElements.add(BookmarkListEntry.createDivider());
+-            mElements.add(BookmarkListEntry.createShoppingFilter());
+-        }
+-
+         notifyDataSetChanged();
+     }
+ 
+@@ -207,7 +199,7 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+             BookmarkRow row = ((BookmarkRow) holder.itemView);
+             BookmarkId id = getIdByPosition(position);
+             row.setBookmarkId(id, getLocationFromPosition(position),
+-                    BookmarkId.SHOPPING_FOLDER.equals(mCurrentFolder));
++                    false);
+             row.setDragHandleOnTouchListener((v, event) -> {
+                 if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                     mItemTouchHelper.startDrag(holder);
+@@ -225,10 +217,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+                 // We need this in case we are change state during a pulse.
+                 ViewHighlighter.turnOffHighlight(holder.itemView);
+             }
+-        } else if (holder.getItemViewType() == ViewType.SHOPPING_FILTER) {
+-            LinearLayout layout = ((LinearLayout) holder.itemView);
+-            layout.setClickable(true);
+-            layout.setOnClickListener((view) -> mDelegate.openFolder(BookmarkId.SHOPPING_FOLDER));
+         }
+     }
+ 
+@@ -245,10 +233,6 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+     @Override
+     public void onViewRecycled(ViewHolder holder) {
+         switch (holder.getItemViewType()) {
+-            case ViewType.PERSONALIZED_SIGNIN_PROMO:
+-                // fall through
+-            case ViewType.PERSONALIZED_SYNC_PROMO:
+-                break;
+             default:
+                 // Other view holders don't have special recycling code.
+         }
+@@ -271,6 +255,7 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+             updateHeader(true);
+         };
+ 
++        mPromoHeaderManager = new BookmarkPromoHeader(mContext, promoHeaderChangeAction);
+         populateTopLevelFoldersList();
+ 
+         mViewFactory = viewFactory;
+@@ -304,9 +289,7 @@ public class BookmarkItemsAdapter extends DragReorderableListAdapter<BookmarkLis
+             setBookmarks(mDelegate.getModel().getChildIDs(folder));
+         }
+ 
+-        if (BookmarkId.SHOPPING_FOLDER.equals(folder)) {
+-            mDelegate.getSelectableListLayout().setEmptyViewText(
+-                    R.string.tracked_products_empty_list_title);
++        if ((false)) {
+         } else if (folder.getType() == BookmarkType.READING_LIST) {
+             TrackerFactory.getTrackerForProfile(mProfile).notifyEvent(
+                     EventConstants.READ_LATER_BOOKMARK_FOLDER_OPENED);
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java
+@@ -25,22 +25,17 @@ public final class BookmarkListEntry {
+      * Specifies the view types that the bookmark delegate screen can contain.
+      */
+     @Retention(RetentionPolicy.SOURCE)
+-    @IntDef({ViewType.INVALID, ViewType.PERSONALIZED_SIGNIN_PROMO, ViewType.PERSONALIZED_SYNC_PROMO,
++    @IntDef({ViewType.INVALID,
+             ViewType.SYNC_PROMO, ViewType.FOLDER, ViewType.BOOKMARK, ViewType.DIVIDER,
+-            ViewType.SECTION_HEADER, ViewType.SHOPPING_POWER_BOOKMARK, ViewType.TAG_CHIP_LIST,
+-            ViewType.SHOPPING_FILTER})
++            ViewType.SECTION_HEADER, ViewType.TAG_CHIP_LIST})
+     public @interface ViewType {
+         int INVALID = -1;
+-        int PERSONALIZED_SIGNIN_PROMO = 0;
+-        int PERSONALIZED_SYNC_PROMO = 1;
+         int SYNC_PROMO = 2;
+         int FOLDER = 3;
+         int BOOKMARK = 4;
+         int DIVIDER = 5;
+         int SECTION_HEADER = 6;
+-        int SHOPPING_POWER_BOOKMARK = 7;
+         int TAG_CHIP_LIST = 8;
+-        int SHOPPING_FILTER = 9;
+     }
+ 
+     /**
+@@ -77,23 +72,9 @@ public final class BookmarkListEntry {
+             @Nonnull BookmarkItem bookmarkItem, @Nullable PowerBookmarkMeta meta) {
+         @ViewType
+         int viewType = bookmarkItem.isFolder() ? ViewType.FOLDER : ViewType.BOOKMARK;
+-        if (meta != null && meta.hasShoppingSpecifics()) {
+-            viewType = ViewType.SHOPPING_POWER_BOOKMARK;
+-        }
+-
+         return new BookmarkListEntry(viewType, bookmarkItem, /*sectionHeaderData=*/null);
+     }
+ 
+-    /**
+-     * Create an entry presenting a sync promo header.
+-     * @param viewType The view type of the sync promo header.
+-     */
+-    static BookmarkListEntry createSyncPromoHeader(@ViewType int viewType) {
+-        assert viewType == ViewType.PERSONALIZED_SIGNIN_PROMO
+-                || viewType == ViewType.PERSONALIZED_SYNC_PROMO || viewType == ViewType.SYNC_PROMO;
+-        return new BookmarkListEntry(viewType, /*bookmarkItem=*/null, /*sectionHeaderData=*/null);
+-    }
+-
+     /**
+      * Creates a divider to separate sections in the bookmark list.
+      */
+@@ -102,22 +83,13 @@ public final class BookmarkListEntry {
+                 ViewType.DIVIDER, /*bookmarkItem=*/null, /*sectionHeaderData=*/null);
+     }
+ 
+-    /**
+-     * Creates a price-tracking filter.
+-     */
+-    static BookmarkListEntry createShoppingFilter() {
+-        return new BookmarkListEntry(
+-                ViewType.SHOPPING_FILTER, /*bookmarkItem=*/null, /*sectionHeaderData=*/null);
+-    }
+-
+     /**
+      * Helper function that returns whether the view type represents a bookmark or bookmark folder.
+      * Returns false for other view holder types like divider, promo headers, etc.
+      * @param viewType The type of the view in the bookmark list UI.
+      */
+     static boolean isBookmarkEntry(@ViewType int viewType) {
+-        return viewType == ViewType.BOOKMARK || viewType == ViewType.FOLDER
+-                || viewType == ViewType.SHOPPING_POWER_BOOKMARK;
++        return viewType == ViewType.BOOKMARK || viewType == ViewType.FOLDER;
+     }
+ 
+     /**
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManager.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManager.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManager.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManager.java
@@ -1317,6 +1534,76 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          @SuppressWarnings("unchecked")
          SelectableListLayout<BookmarkId> selectableList =
                  mMainView.findViewById(R.id.selectable_list);
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
+@@ -62,45 +62,21 @@ public class BookmarkManagerCoordinator {
+     public View createView(@NonNull ViewGroup parent, @ViewType int viewType) {
+         assert mDelegate != null;
+ 
+-        // The shopping-specific bookmark row is only shown with the visual refresh. When
+-        // there's a mismatch, the ViewType is downgraded to ViewType.BOOKMARK.
+-        if (viewType == ViewType.SHOPPING_POWER_BOOKMARK
+-                && !BookmarkFeatures.isBookmarksVisualRefreshEnabled()) {
+-            viewType = ViewType.BOOKMARK;
+-        }
+-
+         switch (viewType) {
+-            case ViewType.PERSONALIZED_SIGNIN_PROMO:
+-            case ViewType.PERSONALIZED_SYNC_PROMO:
+-                return buildPersonalizedPromoView(parent);
+-            case ViewType.SYNC_PROMO:
+-                return buildLegacyPromoView(parent);
+             case ViewType.SECTION_HEADER:
+                 return buildSectionHeaderView(parent);
+             case ViewType.FOLDER:
+                 return buildBookmarkFolderView(parent);
+             case ViewType.BOOKMARK:
+                 return buildBookmarkItemView(parent);
+-            case ViewType.SHOPPING_POWER_BOOKMARK:
+-                return buildShoppingItemView(parent);
+             case ViewType.DIVIDER:
+                 return buildDividerView(parent);
+-            case ViewType.SHOPPING_FILTER:
+-                return buildShoppingFilterView(parent);
+             default:
+                 assert false;
+                 return null;
+         }
+     }
+ 
+-    private View buildPersonalizedPromoView(ViewGroup parent) {
+-        return mPromoHeaderManager.createPersonalizedSigninAndSyncPromoHolder(parent);
+-    }
+-
+-    private View buildLegacyPromoView(ViewGroup parent) {
+-        return mPromoHeaderManager.createSyncPromoHolder(parent);
+-    }
+-
+     private View buildSectionHeaderView(ViewGroup parent) {
+         return inflate(parent, org.chromium.chrome.R.layout.bookmark_section_header);
+     }
+@@ -113,13 +89,6 @@ public class BookmarkManagerCoordinator {
+         return inflateBookmarkRow(parent, org.chromium.chrome.R.layout.bookmark_item_row);
+     }
+ 
+-    private View buildShoppingItemView(ViewGroup parent) {
+-        PowerBookmarkShoppingItemRow row = (PowerBookmarkShoppingItemRow) inflateBookmarkRow(
+-                parent, org.chromium.chrome.R.layout.power_bookmark_shopping_item_row);
+-        row.init(mImageFetcher, mDelegate.getModel(), mSnackbarManager);
+-        return row;
+-    }
+-
+     private View buildDividerView(ViewGroup parent) {
+         return inflate(parent, org.chromium.chrome.R.layout.horizontal_divider);
+     }
+@@ -138,4 +107,4 @@ public class BookmarkManagerCoordinator {
+         (row).onDelegateInitialized(mDelegate);
+         return row;
+     }
+-}
+\ No newline at end of file
++}
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowCoordinator.java
@@ -1500,6 +1787,35 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 -        setPriceTrackingToggleVisualsOnly(!subscriptions.contains(mSubscription));
 -    }
  }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUIState.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUIState.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUIState.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUIState.java
+@@ -43,17 +43,8 @@ public class BookmarkUIState {
+         return state;
+     }
+ 
+-    static BookmarkUIState createShoppingFilterState() {
+-        BookmarkUIState state = new BookmarkUIState();
+-        state.mState = STATE_FOLDER;
+-        state.mUrl = SHOPPING_FILTER_URL;
+-        state.mFolder = BookmarkId.SHOPPING_FOLDER;
+-        return state;
+-    }
+-
+     static BookmarkUIState createFolderState(BookmarkId folder,
+             BookmarkModel bookmarkModel) {
+-        if (BookmarkId.SHOPPING_FOLDER.equals(folder)) return createShoppingFilterState();
+         return createStateFromUrl(createFolderUrl(folder), bookmarkModel);
+     }
+ 
+@@ -61,7 +52,6 @@ public class BookmarkUIState {
+      * @see #createStateFromUrl(Uri, BookmarkModel)
+      */
+     static BookmarkUIState createStateFromUrl(String url, BookmarkModel bookmarkModel) {
+-        if (SHOPPING_FILTER_URL.equals(url)) return createShoppingFilterState();
+         return createStateFromUrl(Uri.parse(url), bookmarkModel);
+     }
+ 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
@@ -1524,6 +1840,18 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
                          new UserEducationHelper(activity, new Handler()));
          bookmarkSaveFlowCoordinator.show(
                  bookmarkId, fromExplicitTrackUi, wasBookmarkMoved, isNewBookmark);
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/CustomTabActivity.java
+@@ -231,7 +231,7 @@ public class CustomTabActivity extends BaseCustomTabActivity {
+             if (tab == null) return false;
+             String publisher = TrustedCdn.getContentPublisher(tab);
+             new ChromePageInfo(getModalDialogManagerSupplier(), publisher, OpenedFromSource.MENU,
+-                    mRootUiCoordinator.getMerchantTrustSignalsCoordinatorSupplier()::get,
++                    /*mRootUiCoordinator.getMerchantTrustSignalsCoordinatorSupplier()::get*/ null,
+                     mRootUiCoordinator.getEphemeralTabCoordinatorSupplier())
+                     .show(tab, ChromePageInfoHighlight.noHighlight());
+             return true;
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java b/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessInitializationHandler.java
@@ -1546,6 +1874,24 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ProcessIni
          });
          deferredStartupHandler.addDeferredTask(() -> {
              if (ChromeFeatureList.isEnabled(ChromeFeatureList.FEATURE_NOTIFICATION_GUIDE)) {
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/page_info/ChromePageInfoControllerDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/page_info/ChromePageInfoControllerDelegate.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/page_info/ChromePageInfoControllerDelegate.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/page_info/ChromePageInfoControllerDelegate.java
+@@ -246,14 +246,6 @@ public class ChromePageInfoControllerDelegate extends PageInfoControllerDelegate
+             controllers.add(new PageInfoAboutThisSiteController(mainController,
+                     mEphemeralTabCoordinatorSupplier, aboutThisSiteRow, this, mWebContents));
+         }
+-        if (PageInfoFeatures.PAGE_INFO_STORE_INFO.isEnabled() && !isIncognito()) {
+-            final PageInfoRowView storeInfoRow = new PageInfoRowView(rowWrapper.getContext(), null);
+-            storeInfoRow.setId(PageInfoStoreInfoController.STORE_INFO_ROW_ID);
+-            rowWrapper.addView(storeInfoRow);
+-            controllers.add(new PageInfoStoreInfoController(mainController, storeInfoRow,
+-                    mStoreInfoActionHandlerSupplier, mPageInfoHighlight.shouldHighlightStoreInfo(),
+-                    mWebContents, mProfile));
+-        }
+         return controllers;
+     }
+ 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/segmentation_platform/ContextualPageActionController.java b/chrome/android/java/src/org/chromium/chrome/browser/segmentation_platform/ContextualPageActionController.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/segmentation_platform/ContextualPageActionController.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/segmentation_platform/ContextualPageActionController.java
@@ -1715,6 +2061,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/Toolbar
  import org.chromium.chrome.browser.privacy.settings.PrivacyPreferencesManagerImpl;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
+@@ -645,7 +643,7 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
+                         postDataType, postData, incognito, startSurfaceParentTabSupplier.get());
+             };
+             ChromePageInfo toolbarPageInfo = new ChromePageInfo(modalDialogManagerSupplier, null,
+-                    OpenedFromSource.TOOLBAR, merchantTrustSignalsCoordinatorSupplier::get,
++                    OpenedFromSource.TOOLBAR, /*merchantTrustSignalsCoordinatorSupplier::get*/ null,
+                     mEphemeralTabCoordinatorSupplier);
+             // clang-format off
+             LocationBarCoordinator locationBarCoordinator = new LocationBarCoordinator(
 @@ -1987,21 +1985,6 @@ public class ToolbarManager implements UrlFocusChangeListener, ThemeColorObserve
       * viewed in the tab switcher grid.
       */
@@ -1748,7 +2103,32 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
  import org.chromium.chrome.browser.settings.SettingsLauncherImpl;
-@@ -1055,12 +1054,6 @@ public class RootUiCoordinator
+@@ -603,7 +602,6 @@ public class RootUiCoordinator
+         }
+ 
+         if (mMerchantTrustSignalsCoordinatorSupplier.hasValue()) {
+-            mMerchantTrustSignalsCoordinatorSupplier.get().destroy();
+             mMerchantTrustSignalsCoordinatorSupplier.set(null);
+         }
+ 
+@@ -840,16 +838,6 @@ public class RootUiCoordinator
+     }
+ 
+     private void initMerchantTrustSignals() {
+-        if (ShoppingServiceFactory.getForProfile(Profile.getLastUsedRegularProfile())
+-                        .isMerchantViewerEnabled()
+-                && shouldInitializeMerchantTrustSignals()) {
+-            MerchantTrustSignalsCoordinator merchantTrustSignalsCoordinator =
+-                    new MerchantTrustSignalsCoordinator(mActivity, mWindowAndroid,
+-                            getBottomSheetController(), mActivity.getWindow().getDecorView(),
+-                            MessageDispatcherProvider.from(mWindowAndroid), mActivityTabProvider,
+-                            mProfileSupplier, new MerchantTrustMetrics(), mIntentRequestTracker);
+-            mMerchantTrustSignalsCoordinatorSupplier.set(merchantTrustSignalsCoordinator);
+-        }
+     }
+ 
+     private void initScrollCapture() {
+@@ -1055,12 +1043,6 @@ public class RootUiCoordinator
  
              mIdentityDiscController = new IdentityDiscController(
                      mActivity, mActivityLifecycleDispatcher, mProfileSupplier);
@@ -1761,7 +2141,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
              ReaderModeToolbarButtonController readerModeToolbarButtonController =
                      new ReaderModeToolbarButtonController(mActivity, mActivityTabProvider,
                              mModalDialogManagerSupplier.get(),
-@@ -1111,8 +1104,6 @@ public class RootUiCoordinator
+@@ -1111,8 +1093,6 @@ public class RootUiCoordinator
                      AdaptiveToolbarButtonVariant.SHARE, shareButtonController);
              adaptiveToolbarButtonController.addButtonVariant(
                      AdaptiveToolbarButtonVariant.VOICE, voiceToolbarButtonController);
@@ -1811,17 +2191,454 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "component_updater/crow_domain_list_component_installer.cc",
        "component_updater/crow_domain_list_component_installer.h",
        "content_creation/notes/internal/android/note_service_bridge_factory.cc",
-@@ -3257,10 +3255,6 @@ static_library("browser") {
-       "//chrome/browser/android/webapk:webapk_features",
+@@ -3258,8 +3256,6 @@ static_library("browser") {
        "//chrome/browser/banners/android:jni_headers",
        "//chrome/browser/bluetooth/android:jni_headers",
--      "//chrome/browser/commerce/android:shopping_service_jni",
+       "//chrome/browser/commerce/android:shopping_service_jni",
 -      "//chrome/browser/commerce/merchant_viewer:merchant_signal_db",
 -      "//chrome/browser/commerce/merchant_viewer:merchant_viewer_data_manager",
--      "//chrome/browser/commerce/merchant_viewer/android:jni_headers",
+       "//chrome/browser/commerce/merchant_viewer/android:jni_headers",
        "//chrome/browser/consent_auditor/android:jni_headers",
        "//chrome/browser/content_creation/notes/internal/android:jni_headers",
-       "//chrome/browser/creator/android:jni_headers",
+diff --git a/chrome/browser/browsing_data/browsing_data_history_observer_service.cc b/chrome/browser/browsing_data/browsing_data_history_observer_service.cc
+--- a/chrome/browser/browsing_data/browsing_data_history_observer_service.cc
++++ b/chrome/browser/browsing_data/browsing_data_history_observer_service.cc
+@@ -93,20 +93,6 @@ void DeleteTemplateUrlsForDeletedOrigins(TemplateURLService* keywords_model,
+ #if BUILDFLAG(IS_ANDROID)
+ void ClearCommerceData(Profile* profile,
+                        const history::DeletionInfo& deletion_info) {
+-  MerchantViewerDataManager* merchant_viewer_data_manager =
+-      MerchantViewerDataManagerFactory::GetForProfile(profile);
+-  if (!merchant_viewer_data_manager)
+-    return;
+-  if (deletion_info.time_range().IsValid()) {
+-    merchant_viewer_data_manager->DeleteMerchantViewerDataForTimeRange(
+-        deletion_info.time_range().begin(), deletion_info.time_range().end());
+-  } else {
+-    auto deleted_origins =
+-        GetDeletedOrigins(deletion_info.deleted_urls_origin_map());
+-
+-    merchant_viewer_data_manager->DeleteMerchantViewerDataForOrigins(
+-        std::move(deleted_origins));
+-  }
+ }
+ #endif
+ 
+@@ -179,7 +165,6 @@ BrowsingDataHistoryObserverService::Factory::Factory()
+ #endif
+ 
+ #if BUILDFLAG(IS_ANDROID)
+-  DependsOn(MerchantViewerDataManagerFactory::GetInstance());
+   DependsOn(commerce::ShoppingServiceFactory::GetInstance());
+ #endif
+ }
+diff --git a/chrome/browser/commerce/merchant_viewer/android/BUILD.gn b/chrome/browser/commerce/merchant_viewer/android/BUILD.gn
+--- a/chrome/browser/commerce/merchant_viewer/android/BUILD.gn
++++ b/chrome/browser/commerce/merchant_viewer/android/BUILD.gn
+@@ -7,26 +7,26 @@ import("//build/config/android/rules.gni")
+ 
+ android_library("java") {
+   sources = [
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/BottomSheetToolbarProperties.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/BottomSheetToolbarView.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/BottomSheetToolbarViewBinder.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustBottomSheetContent.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustBottomSheetCoordinator.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustBottomSheetMediator.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustMessageContext.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustMessageScheduler.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustMessageViewModel.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/BottomSheetToolbarProperties.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/BottomSheetToolbarView.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/BottomSheetToolbarViewBinder.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustBottomSheetContent.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustBottomSheetCoordinator.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustBottomSheetMediator.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustMessageContext.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustMessageScheduler.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustMessageViewModel.java",
+     "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustMetrics.java",
+     "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsCoordinator.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsDataProvider.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsEvent.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsEventStorage.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsMediator.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsStorageFactory.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantViewerConfig.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsDataProvider.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsEvent.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsEventStorage.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsMediator.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsStorageFactory.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/MerchantViewerConfig.java",
+     "java/src/org/chromium/chrome/browser/merchant_viewer/PageInfoStoreInfoController.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/RatingStarSpan.java",
+-    "java/src/org/chromium/chrome/browser/merchant_viewer/WebContentsHelpers.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/RatingStarSpan.java",
++    # "java/src/org/chromium/chrome/browser/merchant_viewer/WebContentsHelpers.java",
+   ]
+ 
+   deps = [
+diff --git a/chrome/browser/commerce/merchant_viewer/android/java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsCoordinator.java b/chrome/browser/commerce/merchant_viewer/android/java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsCoordinator.java
+--- a/chrome/browser/commerce/merchant_viewer/android/java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsCoordinator.java
++++ b/chrome/browser/commerce/merchant_viewer/android/java/src/org/chromium/chrome/browser/merchant_viewer/MerchantTrustSignalsCoordinator.java
+@@ -43,9 +43,7 @@ import org.chromium.url.GURL;
+ /**
+  * Coordinator for managing merchant trust signals experience.
+  */
+-public class MerchantTrustSignalsCoordinator
+-        implements PageInfoStoreInfoController.StoreInfoActionHandler,
+-                   MerchantTrustMessageViewModel.MessageActionsHandler {
++public class MerchantTrustSignalsCoordinator {
+     /** Interface to control the omnibox store icon and the related IPH. */
+     public interface OmniboxIconController {
+         /**
+@@ -62,308 +60,9 @@ public class MerchantTrustSignalsCoordinator
+                 @StringRes int stringId, boolean canShowIph);
+     }
+ 
+-    private final MerchantTrustSignalsMediator mMediator;
+-    private final MerchantTrustMessageScheduler mMessageScheduler;
+-    private final MerchantTrustBottomSheetCoordinator mDetailsTabCoordinator;
+-    private final Context mContext;
+-    private final MerchantTrustMetrics mMetrics;
+-    private final MerchantTrustSignalsDataProvider mDataProvider;
+-    private final MerchantTrustSignalsStorageFactory mStorageFactory;
+-    private final ObservableSupplier<Profile> mProfileSupplier;
+-    private final WindowAndroid mWindowAndroid;
+-    private final ObservableSupplier<Tab> mTabSupplier;
+-    private OmniboxIconController mOmniboxIconController;
+-
+-    /** Creates a new instance. */
+-    public MerchantTrustSignalsCoordinator(Context context, WindowAndroid windowAndroid,
+-            BottomSheetController bottomSheetController, View layoutView,
+-            MessageDispatcher messageDispatcher, ObservableSupplier<Tab> tabSupplier,
+-            ObservableSupplier<Profile> profileSupplier, MerchantTrustMetrics metrics,
+-            IntentRequestTracker intentRequestTracker) {
+-        this(context, windowAndroid,
+-                new MerchantTrustMessageScheduler(messageDispatcher, metrics, tabSupplier),
+-                tabSupplier, new MerchantTrustSignalsDataProvider(), profileSupplier, metrics,
+-                new MerchantTrustBottomSheetCoordinator(context, windowAndroid,
+-                        bottomSheetController, tabSupplier, layoutView, metrics,
+-                        intentRequestTracker, profileSupplier),
+-                new MerchantTrustSignalsStorageFactory(profileSupplier));
+-    }
+-
+-    @VisibleForTesting
+-    MerchantTrustSignalsCoordinator(Context context, WindowAndroid windowAndroid,
+-            MerchantTrustMessageScheduler messageScheduler, ObservableSupplier<Tab> tabSupplier,
+-            MerchantTrustSignalsDataProvider dataProvider,
+-            ObservableSupplier<Profile> profileSupplier, MerchantTrustMetrics metrics,
+-            MerchantTrustBottomSheetCoordinator detailsTabCoordinator,
+-            MerchantTrustSignalsStorageFactory storageFactory) {
+-        mContext = context;
+-        mDataProvider = dataProvider;
+-        mMetrics = metrics;
+-        mStorageFactory = storageFactory;
+-        mProfileSupplier = profileSupplier;
+-        mWindowAndroid = windowAndroid;
+-        mTabSupplier = tabSupplier;
+-
+-        mMediator = new MerchantTrustSignalsMediator(
+-                tabSupplier, this::onFinishEligibleNavigation, metrics);
+-        mMessageScheduler = messageScheduler;
+-        mDetailsTabCoordinator = detailsTabCoordinator;
+-    }
+-
+-    /** Cleans up internal state. */
+-    public void destroy() {
+-        mMediator.destroy();
+-        mStorageFactory.destroy();
+-    }
+-
+     /**
+      * Set the {@link OmniboxIconController} to manage the store icon in omnibox.
+      */
+     public void setOmniboxIconController(@Nullable OmniboxIconController omniboxIconController) {
+-        mOmniboxIconController = omniboxIconController;
+-    }
+-
+-    @VisibleForTesting
+-    void onFinishEligibleNavigation(MerchantTrustMessageContext item) {
+-        NavigationHandle navigationHandle = item.getNavigationHandle();
+-        if (navigationHandle == null || navigationHandle.getUrl() == null) {
+-            return;
+-        }
+-        boolean shouldExpediteMessage;
+-        MerchantTrustMessageContext scheduledMessage =
+-                mMessageScheduler.getScheduledMessageContext();
+-        if (scheduledMessage != null && scheduledMessage.getHostName() != null
+-                && scheduledMessage.getHostName().equals(item.getHostName())
+-                && !scheduledMessage.getUrl().equals(item.getUrl())) {
+-            // When user enters PageInfo, we fetch data based on url which is less reliable than the
+-            // navigation-based one. Thus, to make sure the "Store info" row is visible, we still
+-            // need to fetch data based on this navigation before showing the message, rather than
+-            // using the scheduled message directly.
+-            mMessageScheduler.clear(MessageClearReason.NAVIGATE_TO_SAME_DOMAIN);
+-            shouldExpediteMessage = true;
+-        } else {
+-            mMessageScheduler.clear(MessageClearReason.NAVIGATE_TO_DIFFERENT_DOMAIN);
+-            shouldExpediteMessage = false;
+-        }
+-        mDataProvider.getDataForUrl(mProfileSupplier.get(), navigationHandle.getUrl(),
+-                (merchantInfo) -> maybeDisplayMessage(merchantInfo, item, shouldExpediteMessage));
+-    }
+-
+-    @VisibleForTesting
+-    void maybeDisplayMessage(MerchantInfo merchantInfo, MerchantTrustMessageContext item,
+-            boolean shouldExpediteMessage) {
+-        if (merchantInfo == null) return;
+-        mMetrics.recordUkmOnDataAvailable(item.getWebContents());
+-        NavigationHandle navigationHandle = item.getNavigationHandle();
+-        MerchantTrustSignalsEventStorage storage = mStorageFactory.getForLastUsedProfile();
+-        if (navigationHandle == null || navigationHandle.getUrl() == null || storage == null
+-                || MerchantViewerConfig.isTrustSignalsMessageDisabled()
+-                || merchantInfo.proactiveMessageDisabled
+-                || isMerchantRatingBelowThreshold(merchantInfo)
+-                || isNonPersonalizedFamiliarMerchant(merchantInfo)
+-                || isFamiliarMerchant(navigationHandle.getUrl().getSpec())
+-                || hasReachedMaxAllowedMessageNumberInGivenTime()
+-                || !isOnSecureWebsite(item.getWebContents())) {
+-            return;
+-        }
+-
+-        storage.load(navigationHandle.getUrl().getHost(), (event) -> {
+-            if (event == null) {
+-                scheduleMessage(merchantInfo, item, shouldExpediteMessage);
+-            } else if (System.currentTimeMillis() - event.getTimestamp()
+-                    > MerchantViewerConfig.getTrustSignalsMessageWindowDurationMilliSeconds()) {
+-                storage.delete(event);
+-                scheduleMessage(merchantInfo, item, shouldExpediteMessage);
+-            }
+-        });
+-    }
+-
+-    private void scheduleMessage(MerchantInfo merchantInfo, MerchantTrustMessageContext item,
+-            boolean shouldExpediteMessage) {
+-        assert (merchantInfo != null) && (item != null);
+-        mMessageScheduler.schedule(
+-                MerchantTrustMessageViewModel.create(mContext, merchantInfo, item.getUrl(), this),
+-                merchantInfo.starRating, item,
+-                shouldExpediteMessage ? MerchantTrustMessageScheduler.MESSAGE_ENQUEUE_NO_DELAY
+-                                      : MerchantViewerConfig.getDefaultTrustSignalsMessageDelay(),
+-                this::onMessageEnqueued);
+-    }
+-
+-    private boolean isFamiliarMerchant(String url) {
+-        if (!MerchantViewerConfig.doesTrustSignalsUseSiteEngagement() || TextUtils.isEmpty(url)) {
+-            return false;
+-        }
+-        Profile profile = mProfileSupplier.get();
+-        if (profile == null || profile.isOffTheRecord()) {
+-            return false;
+-        }
+-        return getSiteEngagementScore(profile, url)
+-                > MerchantViewerConfig.getTrustSignalsSiteEngagementThreshold();
+-    }
+-
+-    @VisibleForTesting
+-    double getSiteEngagementScore(Profile profile, String url) {
+-        return SiteEngagementService.getForBrowserContext(profile).getScore(url);
+-    }
+-
+-    @VisibleForTesting
+-    boolean isOnSecureWebsite(WebContents webContents) {
+-        return SecurityStateModel.getSecurityLevelForWebContents(webContents)
+-                == ConnectionSecurityLevel.SECURE;
+-    }
+-
+-    private boolean isMerchantRatingBelowThreshold(MerchantInfo merchantInfo) {
+-        return merchantInfo.starRating
+-                < MerchantViewerConfig.getTrustSignalsMessageRatingThreshold();
+-    }
+-
+-    private boolean isNonPersonalizedFamiliarMerchant(MerchantInfo merchantInfo) {
+-        return merchantInfo.nonPersonalizedFamiliarityScore
+-                > MerchantViewerConfig.getTrustSignalsNonPersonalizedFamiliarityScoreThreshold();
+-    }
+-
+-    @VisibleForTesting
+-    void onMessageEnqueued(MerchantTrustMessageContext messageContext) {
+-        if (messageContext == null) {
+-            return;
+-        }
+-
+-        MerchantTrustSignalsEventStorage storage = mStorageFactory.getForLastUsedProfile();
+-        if (storage == null) {
+-            return;
+-        }
+-
+-        mMetrics.recordUkmOnMessageSeen(messageContext.getWebContents());
+-        updateShownMessagesTimestamp();
+-        storage.save(new MerchantTrustSignalsEvent(
+-                messageContext.getHostName(), System.currentTimeMillis()));
+-    }
+-
+-    // MerchantTrustMessageViewModel.MessageActionsHandler implementations.
+-    @Override
+-    public void onMessageDismissed(@DismissReason int dismissReason, String messageAssociatedUrl) {
+-        mMetrics.recordMetricsForMessageDismissed(dismissReason);
+-        if (dismissReason == DismissReason.TIMER || dismissReason == DismissReason.GESTURE) {
+-            maybeShowStoreIcon(messageAssociatedUrl, dismissReason == DismissReason.TIMER);
+-        }
+-    }
+-
+-    @Override
+-    public void onMessagePrimaryAction(MerchantInfo merchantInfo, String messageAssociatedUrl) {
+-        mMetrics.recordMetricsForMessageTapped();
+-
+-        // TODO(crbug.com/1300971): Pass webContents directly to this method instead of using
+-        // mTabSupplier.
+-        if (mTabSupplier.hasValue()) {
+-            mMetrics.recordUkmOnMessageClicked(mTabSupplier.get().getWebContents());
+-        }
+-        launchDetailsPage(merchantInfo.detailsPageUrl, BottomSheetOpenedSource.FROM_MESSAGE,
+-                messageAssociatedUrl);
+-    }
+-
+-    // PageInfoStoreInfoController.StoreInfoActionHandler implementation.
+-    @Override
+-    public void onStoreInfoClicked(MerchantInfo merchantInfo) {
+-        launchDetailsPage(
+-                merchantInfo.detailsPageUrl, BottomSheetOpenedSource.FROM_PAGE_INFO, null);
+-        // If user has clicked the "Store info" row, send a signal to disable {@link
+-        // FeatureConstants.PAGE_INFO_STORE_INFO_FEATURE}.
+-        final Tracker tracker = TrackerFactory.getTrackerForProfile(mProfileSupplier.get());
+-        tracker.notifyEvent(EventConstants.PAGE_INFO_STORE_INFO_ROW_CLICKED);
+-    }
+-
+-    private void launchDetailsPage(GURL detailsPageUrl, @BottomSheetOpenedSource int openSource,
+-            @Nullable String messageAssociatedUrl) {
+-        mMetrics.recordMetricsForBottomSheetOpenedSource(openSource);
+-        mDetailsTabCoordinator.requestOpenSheet(detailsPageUrl,
+-                mContext.getResources().getString(R.string.merchant_viewer_preview_sheet_title),
+-                () -> onBottomSheetDismissed(openSource, messageAssociatedUrl));
+-    }
+-
+-    private void onBottomSheetDismissed(
+-            @BottomSheetOpenedSource int openSource, @Nullable String messageAssociatedUrl) {
+-        if (openSource == BottomSheetOpenedSource.FROM_MESSAGE) {
+-            maybeShowStoreIcon(messageAssociatedUrl, true);
+-        }
+-    }
+-
+-    /**
+-     * Assuming that we only allow 3 messages in 1 hour, we store the serialized timestamps of the
+-     * last 3 shown messages. Before showing a message, we look up the persisted data and
+-     * deserialize it to 3 timestamps, then check whether the earliest timestamp is more than 1 hour
+-     * from now. If yes, the message can be shown thus returning false.
+-     */
+-    @VisibleForTesting
+-    boolean hasReachedMaxAllowedMessageNumberInGivenTime() {
+-        PrefService prefService = getPrefService();
+-        if (prefService == null) return true;
+-        String serializedTimestamps =
+-                prefService.getString(Pref.COMMERCE_MERCHANT_VIEWER_MESSAGES_SHOWN_TIME);
+-        if (TextUtils.isEmpty(serializedTimestamps)) return false;
+-        String[] timestamps = serializedTimestamps.split("_");
+-        int maxAllowedNumber = MerchantViewerConfig.getTrustSignalsMaxAllowedNumberInGivenWindow();
+-        if (timestamps.length < maxAllowedNumber) return false;
+-        assert timestamps.length == maxAllowedNumber;
+-        return System.currentTimeMillis() - Long.parseLong(timestamps[0])
+-                < MerchantViewerConfig.getTrustSignalsNumberCheckWindowDuration();
+-    }
+-
+-    /**
+-     * Every time showing a message, we need to update the serialized timestamps.
+-     */
+-    @VisibleForTesting
+-    void updateShownMessagesTimestamp() {
+-        PrefService prefService = getPrefService();
+-        if (prefService == null) return;
+-        String currentTimestamp = Long.toString(System.currentTimeMillis());
+-        String serializedTimestamps =
+-                prefService.getString(Pref.COMMERCE_MERCHANT_VIEWER_MESSAGES_SHOWN_TIME);
+-        if (TextUtils.isEmpty(serializedTimestamps)) {
+-            prefService.setString(
+-                    Pref.COMMERCE_MERCHANT_VIEWER_MESSAGES_SHOWN_TIME, currentTimestamp);
+-        } else {
+-            serializedTimestamps += "_" + currentTimestamp;
+-            String[] timestamps = serializedTimestamps.split("_");
+-            int maxAllowedNumber =
+-                    MerchantViewerConfig.getTrustSignalsMaxAllowedNumberInGivenWindow();
+-            if (timestamps.length <= maxAllowedNumber) {
+-                prefService.setString(
+-                        Pref.COMMERCE_MERCHANT_VIEWER_MESSAGES_SHOWN_TIME, serializedTimestamps);
+-            } else {
+-                assert timestamps.length == maxAllowedNumber + 1;
+-                // Remove the earliest timestamp.
+-                prefService.setString(Pref.COMMERCE_MERCHANT_VIEWER_MESSAGES_SHOWN_TIME,
+-                        serializedTimestamps.substring(timestamps[0].length() + 1));
+-            }
+-        }
+-    }
+-
+-    @VisibleForTesting
+-    PrefService getPrefService() {
+-        Profile profile = mProfileSupplier.get();
+-        if (profile == null || profile.isOffTheRecord()) {
+-            return null;
+-        }
+-        return UserPrefs.get(profile);
+-    }
+-
+-    @VisibleForTesting
+-    void maybeShowStoreIcon(@Nullable String messageAssociatedUrl, boolean canShowIph) {
+-        if (isStoreInfoFeatureEnabled() && mOmniboxIconController != null
+-                && messageAssociatedUrl != null) {
+-            mOmniboxIconController.showStoreIcon(mWindowAndroid, messageAssociatedUrl,
+-                    getStoreIconDrawable(), R.string.merchant_viewer_omnibox_icon_iph, canShowIph);
+-        }
+-    }
+-
+-    @VisibleForTesting
+-    boolean isStoreInfoFeatureEnabled() {
+-        return PageInfoFeatures.PAGE_INFO_STORE_INFO.isEnabled();
+-    }
+-
+-    @VisibleForTesting
+-    Drawable getStoreIconDrawable() {
+-        return ResourcesCompat.getDrawable(
+-                mContext.getResources(), R.drawable.ic_storefront_blue, mContext.getTheme());
+     }
+ }
+diff --git a/chrome/browser/commerce/merchant_viewer/android/java/src/org/chromium/chrome/browser/merchant_viewer/PageInfoStoreInfoController.java b/chrome/browser/commerce/merchant_viewer/android/java/src/org/chromium/chrome/browser/merchant_viewer/PageInfoStoreInfoController.java
+--- a/chrome/browser/commerce/merchant_viewer/android/java/src/org/chromium/chrome/browser/merchant_viewer/PageInfoStoreInfoController.java
++++ b/chrome/browser/commerce/merchant_viewer/android/java/src/org/chromium/chrome/browser/merchant_viewer/PageInfoStoreInfoController.java
+@@ -12,7 +12,6 @@ import androidx.annotation.Nullable;
+ 
+ import org.chromium.base.supplier.Supplier;
+ import org.chromium.chrome.browser.commerce.ShoppingServiceFactory;
+-import org.chromium.chrome.browser.merchant_viewer.MerchantTrustMessageViewModel.MessageDescriptionUI;
+ import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.tab_ui.R;
+ import org.chromium.components.commerce.core.ShoppingService.MerchantInfo;
+@@ -61,8 +60,6 @@ public class PageInfoStoreInfoController implements PageInfoSubpageController {
+         // the feature flag first.
+         if (profile != null
+                 && ShoppingServiceFactory.getForProfile(profile).isMerchantViewerEnabled()) {
+-            new MerchantTrustSignalsDataProvider().getDataForUrl(
+-                    profile, mMainController.getURL(), this::setupStoreInfoRow);
+         } else {
+             setupStoreInfoRow(null);
+         }
+@@ -103,9 +100,6 @@ public class PageInfoStoreInfoController implements PageInfoSubpageController {
+ 
+     private CharSequence getRowSubtitle(MerchantInfo merchantInfo) {
+         if (merchantInfo.starRating > 0) {
+-            CharSequence subTitle = MerchantTrustMessageViewModel.getMessageDescription(
+-                    mContext, merchantInfo, MessageDescriptionUI.RATING_AND_REVIEWS);
+-            if (subTitle != null) return subTitle;
+         } else if (merchantInfo.hasReturnPolicy) {
+             return mContext.getResources().getString(
+                     R.string.page_info_store_info_description_with_no_rating);
+@@ -136,4 +130,4 @@ public class PageInfoStoreInfoController implements PageInfoSubpageController {
+ 
+     @Override
+     public void onNativeInitialized() {}
+-}
+\ No newline at end of file
++}
 diff --git a/chrome/browser/commerce/price_tracking/android/java/src/org/chromium/chrome/browser/price_tracking/PriceTrackingFeatures.java b/chrome/browser/commerce/price_tracking/android/java/src/org/chromium/chrome/browser/price_tracking/PriceTrackingFeatures.java
 --- a/chrome/browser/commerce/price_tracking/android/java/src/org/chromium/chrome/browser/price_tracking/PriceTrackingFeatures.java
 +++ b/chrome/browser/commerce/price_tracking/android/java/src/org/chromium/chrome/browser/price_tracking/PriceTrackingFeatures.java
@@ -1948,6 +2765,19 @@ diff --git a/chrome/browser/persisted_state_db/BUILD.gn b/chrome/browser/persist
      "//components/commerce/core:persisted_state_db_content_proto",
      "//components/keyed_service/content",
      "//components/leveldb_proto",
+diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
+--- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
++++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
+@@ -514,9 +514,6 @@ void ChromeBrowserMainExtraPartsProfiles::
+ #if !BUILDFLAG(IS_ANDROID)
+   CartServiceFactory::GetInstance();
+ #endif
+-#if BUILDFLAG(IS_ANDROID)
+-  MerchantViewerDataManagerFactory::GetInstance();
+-#endif
+ #if BUILDFLAG(IS_CHROMEOS_LACROS)
+   CertDbInitializerFactory::GetInstance();
+ #endif
 diff --git a/chrome/browser/tab/BUILD.gn b/chrome/browser/tab/BUILD.gn
 --- a/chrome/browser/tab/BUILD.gn
 +++ b/chrome/browser/tab/BUILD.gn
@@ -1959,18 +2789,51 @@ diff --git a/chrome/browser/tab/BUILD.gn b/chrome/browser/tab/BUILD.gn
      "//chrome/browser/contextmenu:java",
      "//chrome/browser/endpoint_fetcher:java",
      "//chrome/browser/flags:java",
+diff --git a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/CouponPersistedTabData.java b/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/CouponPersistedTabData.java
+--- a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/CouponPersistedTabData.java
++++ b/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/CouponPersistedTabData.java
+@@ -17,7 +17,6 @@ import org.chromium.base.Callback;
+ import org.chromium.base.Log;
+ import org.chromium.base.supplier.ObservableSupplierImpl;
+ import org.chromium.base.task.PostTask;
+-import org.chromium.chrome.browser.commerce.PriceUtils;
+ import org.chromium.chrome.browser.endpoint_fetcher.EndpointFetcher;
+ import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.browser.tab.EmptyTabObserver;
+@@ -212,8 +211,7 @@ public class CouponPersistedTabData extends PersistedTabData {
+                         new CurrencyFormatter(mCoupon.currencyCode, Locale.getDefault());
+                 long unitsInMicros = mCoupon.discountUnits * MICROS_TO_UNITS;
+ 
+-                String annotationText =
+-                        PriceUtils.formatPrice(mCurrencyFormatter, unitsInMicros) + OFF_STRING;
++                String annotationText = "";
+                 mCurrencyFormatter.destroy();
+ 
+                 return annotationText;
+diff --git a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/ShoppingPersistedTabData.java b/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/ShoppingPersistedTabData.java
+--- a/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/ShoppingPersistedTabData.java
++++ b/chrome/browser/tab/java/src/org/chromium/chrome/browser/tab/state/ShoppingPersistedTabData.java
+@@ -19,7 +19,6 @@ import org.chromium.base.supplier.ObservableSupplierImpl;
+ import org.chromium.base.task.PostTask;
+ import org.chromium.base.task.TaskTraits;
+ import org.chromium.build.annotations.DoNotClassMerge;
+-import org.chromium.chrome.browser.commerce.PriceUtils;
+ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.chrome.browser.optimization_guide.OptimizationGuideBridgeFactory;
+ import org.chromium.chrome.browser.page_annotations.BuyableProductPageAnnotation;
+@@ -953,7 +952,7 @@ public class ShoppingPersistedTabData extends PersistedTabData {
+             return "";
+         }
+         CurrencyFormatter currencyFormatter = getCurrencyFormatter(mPriceDropData.currencyCode);
+-        return PriceUtils.formatPrice(currencyFormatter, priceMicros);
++        return "";
+     }
+ 
+     private CurrencyFormatter getCurrencyFormatter(String currencyCode) {
 diff --git a/chrome/browser/ui/android/omnibox/BUILD.gn b/chrome/browser/ui/android/omnibox/BUILD.gn
 --- a/chrome/browser/ui/android/omnibox/BUILD.gn
 +++ b/chrome/browser/ui/android/omnibox/BUILD.gn
-@@ -149,7 +149,6 @@ android_library("java") {
-     "//chrome/browser/android/lifecycle:java",
-     "//chrome/browser/back_press/android:java",
-     "//chrome/browser/browser_controls/android:java",
--    "//chrome/browser/commerce/merchant_viewer/android:java",
-     "//chrome/browser/device:java",
-     "//chrome/browser/feature_engagement:java",
-     "//chrome/browser/flags:java",
-@@ -448,7 +447,6 @@ robolectric_library("junit") {
+@@ -448,7 +448,6 @@ robolectric_library("junit") {
      "//base:base_junit_test_support",
      "//build/android:build_java",
      "//chrome/android:base_module_java",
@@ -1978,20 +2841,64 @@ diff --git a/chrome/browser/ui/android/omnibox/BUILD.gn b/chrome/browser/ui/andr
      "//chrome/browser/device:java",
      "//chrome/browser/flags:java",
      "//chrome/browser/gsa:java",
+diff --git a/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkId.java b/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkId.java
+--- a/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkId.java
++++ b/components/bookmarks/common/android/java/src/org/chromium/components/bookmarks/BookmarkId.java
+@@ -15,9 +15,6 @@ import org.chromium.base.annotations.CalledByNative;
+ public class BookmarkId {
+     public static final int INVALID_FOLDER_ID = -2;
+     public static final int INVALID_ID = -1;
+-    public static final int SHOPPING_FILTER_ID = -3;
+-    public static final BookmarkId SHOPPING_FOLDER =
+-            new BookmarkId(SHOPPING_FILTER_ID, BookmarkType.NORMAL);
+ 
+     private static final String LOG_TAG = "BookmarkId";
+     private static final char TYPE_PARTNER = 'p';
 diff --git a/components/commerce/core/commerce_feature_list.cc b/components/commerce/core/commerce_feature_list.cc
 --- a/components/commerce/core/commerce_feature_list.cc
 +++ b/components/commerce/core/commerce_feature_list.cc
-@@ -131,7 +131,7 @@ BASE_FEATURE(kCommerceMerchantViewer,
- #if BUILDFLAG(IS_ANDROID)
- BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
-              "CommerceMerchantViewerRegionLaunched",
+@@ -110,61 +110,50 @@ const char kEnableChromeCart[] = "enable-chrome-cart";
+ }  // namespace switches
+ 
+ BASE_FEATURE(kCommerceAllowLocalImages,
+-             "CommerceAllowLocalImages",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "CommerceAllowLocalImages",            // guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
+ 
+ BASE_FEATURE(kCommerceAllowOnDemandBookmarkUpdates,
+-             "CommerceAllowOnDemandBookmarkUpdates",
 -             base::FEATURE_ENABLED_BY_DEFAULT);
-+             base::FEATURE_DISABLED_BY_DEFAULT);
- #else
++             "CommerceAllowOnDemandBookmarkUpdates",// guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
+ 
+ BASE_FEATURE(kCommerceAllowServerImages,
+-             "CommerceAllowServerImages",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "CommerceAllowServerImages",           // guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
+ 
+ BASE_FEATURE(kCommerceCoupons,
+-             "CommerceCoupons",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "CommerceCoupons",                     // guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
+ 
+ BASE_FEATURE(kCommerceMerchantViewer,
+-             "CommerceMerchantViewer",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
+-#if BUILDFLAG(IS_ANDROID)
+-BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
+-             "CommerceMerchantViewerRegionLaunched",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
+-#else
++             "CommerceMerchantViewer",              // guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
++
  BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
               "CommerceMerchantViewerRegionLaunched",
-@@ -139,8 +139,8 @@ BASE_FEATURE(kCommerceMerchantViewerRegionLaunched,
- #endif  // BUILDFLAG(IS_ANDROID)
+              base::FEATURE_DISABLED_BY_DEFAULT);
+-#endif  // BUILDFLAG(IS_ANDROID)
  
  BASE_FEATURE(kCommercePriceTracking,
 -             "CommercePriceTracking",
@@ -2001,7 +2908,66 @@ diff --git a/components/commerce/core/commerce_feature_list.cc b/components/comm
  
  const base::FeatureParam<bool> kDeleteAllMerchantsOnClearBrowsingHistory{
      &kCommerceMerchantViewer, "delete_all_merchants_on_clear_history", false};
-@@ -376,6 +376,7 @@ std::string GetCurrentCountryCode(variations::VariationsService* variations) {
+ 
+-BASE_FEATURE(kShoppingList, "ShoppingList", base::FEATURE_DISABLED_BY_DEFAULT);
+-#if BUILDFLAG(IS_ANDROID)
+-BASE_FEATURE(kShoppingListRegionLaunched,
+-             "ShoppingListRegionLaunched",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
+-#else
++BASE_FEATURE(kShoppingList, "ShoppingList", base::FEATURE_DISABLED_BY_DEFAULT); // guard this
+ BASE_FEATURE(kShoppingListRegionLaunched,
+-             "ShoppingListRegionLaunched",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
+-#endif  // BUILDFLAG(IS_ANDROID)
++             "ShoppingListRegionLaunched",           // guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);     // guard this
+ 
+ BASE_FEATURE(kShoppingPDPMetrics,
+              "ShoppingPDPMetrics",
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kShoppingPDPMetricsRegionLaunched,
+-             "ShoppingPDPMetricsRegionLaunched",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "ShoppingPDPMetricsRegionLaunched",    // guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
+ 
+-BASE_FEATURE(kRetailCoupons, "RetailCoupons", base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kRetailCoupons, "RetailCoupons", base::FEATURE_DISABLED_BY_DEFAULT); // guard this
+ 
+ BASE_FEATURE(kCommerceDeveloper,
+              "CommerceDeveloper",
+@@ -175,21 +164,21 @@ const char kRetailCouponsWithCodeParam[] = "RetailCouponsWithCodeParam";
+ // Params use for Discount Consent v2.
+ BASE_FEATURE(kDiscountConsentV2,
+              "DiscountConsentV2",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
+ 
+ BASE_FEATURE(kCommerceHintAndroid,
+-             "CommerceHintAndroid",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "CommerceHintAndroid",                 // guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
+ 
+ BASE_FEATURE(kMerchantWidePromotion,
+-             "MerchantWidePromotion",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "MerchantWidePromotion",               // guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
+ 
+ BASE_FEATURE(kCodeBasedRBD, "CodeBasedRBD", base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kChromeCartDomBasedHeuristics,
+-             "ChromeCartDomBasedHeuristics",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "ChromeCartDomBasedHeuristics",        // guard this
++             base::FEATURE_DISABLED_BY_DEFAULT);    // guard this
+ 
+ // Params for Discount Consent V2 in the NTP Cart module.
+ const char kNtpChromeCartModuleDiscountConsentNtpVariationParam[] =
+@@ -376,6 +365,7 @@ std::string GetCurrentCountryCode(variations::VariationsService* variations) {
  bool IsEnabledForCountryAndLocale(const base::Feature& feature,
                                    std::string country,
                                    std::string locale) {

@@ -57,15 +57,19 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../PrivacyGuidePagerAdapter.java             |  2 -
  .../privacy_guide/PrivacyGuideUtils.java      |  6 +-
  .../privacy_guide/StepDisplayHandlerImpl.java |  2 +-
- ...hrome_browser_main_extra_parts_profiles.cc |  4 +-
+ ...hrome_browser_main_extra_parts_profiles.cc | 10 +-
  chrome/browser/profiles/profile_impl.cc       |  4 +-
  chrome/browser/safe_browsing/BUILD.gn         |  4 +-
- chrome/browser/safe_browsing/android/BUILD.gn |  4 -
+ chrome/browser/safe_browsing/android/BUILD.gn |  5 -
  .../safe_browsing/SafeBrowsingBridge.java     | 91 -------------------
  .../android/safe_browsing_bridge.cc           | 59 ------------
  .../download_protection_service.cc            |  2 +
  .../download_protection_service.h             |  3 +-
  .../url_lookup_service_factory.cc             |  4 +
+ .../ssl/generated_https_first_mode_pref.cc    | 26 +-----
+ .../ssl/generated_https_first_mode_pref.h     | 12 +--
+ .../ssl/https_first_mode_settings_tracker.cc  | 16 ----
+ .../ssl/https_first_mode_settings_tracker.h   | 10 +-
  .../ssl/sct_reporting_service_factory.cc      | 11 +--
  .../browser/ssl/security_state_tab_helper.cc  |  9 +-
  ...urce_filter_web_contents_helper_factory.cc |  4 +
@@ -77,7 +81,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/renderer/BUILD.gn                      |  5 -
  .../chrome_content_renderer_client.cc         |  6 +-
  .../renderer/chrome_content_renderer_client.h |  3 -
- chrome/test/BUILD.gn                          |  3 -
+ chrome/test/BUILD.gn                          |  5 -
  components/BUILD.gn                           |  1 -
  .../installer_policies/BUILD.gn               |  2 -
  .../permissions/permission_request_manager.cc |  5 +-
@@ -94,7 +98,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../file_system_access_permission_context.h   |  6 --
  weblayer/BUILD.gn                             |  4 -
  weblayer/test/BUILD.gn                        |  1 -
- 85 files changed, 209 insertions(+), 680 deletions(-)
+ 89 files changed, 213 insertions(+), 749 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/google_services_preferences.xml b/chrome/android/java/res/xml/google_services_preferences.xml
 --- a/chrome/android/java/res/xml/google_services_preferences.xml
@@ -2093,7 +2097,20 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  #endif
  #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
    ChildAccountServiceFactory::GetInstance();
-@@ -884,7 +882,9 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -830,12 +828,6 @@ void ChromeBrowserMainExtraPartsProfiles::
+   safe_browsing::ExtensionTelemetryServiceFactory::GetInstance();
+   safe_browsing::HashRealTimeServiceFactory::GetInstance();
+ #endif
+-  safe_browsing::ChromePasswordProtectionServiceFactory::GetInstance();
+-  safe_browsing::ClientSideDetectionServiceFactory::GetInstance();
+-  safe_browsing::RealTimeUrlLookupServiceFactory::GetInstance();
+-  safe_browsing::SafeBrowsingMetricsCollectorFactory::GetInstance();
+-  safe_browsing::SafeBrowsingNavigationObserverManagerFactory::GetInstance();
+-  safe_browsing::VerdictCacheManagerFactory::GetInstance();
+ #if BUILDFLAG(IS_MAC)
+   if (screentime::IsScreenTimeEnabled()) {
+     screentime::HistoryBridgeFactory::GetInstance();
+@@ -884,7 +876,9 @@ void ChromeBrowserMainExtraPartsProfiles::
    }
  #endif
    TabRestoreServiceFactory::GetInstance();
@@ -2169,7 +2186,15 @@ diff --git a/chrome/browser/safe_browsing/BUILD.gn b/chrome/browser/safe_browsin
 diff --git a/chrome/browser/safe_browsing/android/BUILD.gn b/chrome/browser/safe_browsing/android/BUILD.gn
 --- a/chrome/browser/safe_browsing/android/BUILD.gn
 +++ b/chrome/browser/safe_browsing/android/BUILD.gn
-@@ -41,12 +41,8 @@ source_set("android") {
+@@ -17,7 +17,6 @@ source_set("android") {
+   deps = [
+     ":jni_headers",
+     "//chrome/browser/profiles:profile",
+-    "//chrome/browser/safe_browsing:advanced_protection",
+     "//components/password_manager/core/browser/leak_detection",
+     "//components/password_manager/core/common",
+     "//components/prefs",
+@@ -41,12 +40,8 @@ source_set("android") {
  android_library("java") {
    sources = [
      "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingBridge.java",
@@ -2413,6 +2438,155 @@ diff --git a/chrome/browser/safe_browsing/url_lookup_service_factory.cc b/chrome
  }
  
  }  // namespace safe_browsing
+diff --git a/chrome/browser/ssl/generated_https_first_mode_pref.cc b/chrome/browser/ssl/generated_https_first_mode_pref.cc
+--- a/chrome/browser/ssl/generated_https_first_mode_pref.cc
++++ b/chrome/browser/ssl/generated_https_first_mode_pref.cc
+@@ -27,20 +27,6 @@ GeneratedHttpsFirstModePref::GeneratedHttpsFirstModePref(Profile* profile)
+       base::BindRepeating(
+           &GeneratedHttpsFirstModePref::OnSourcePreferencesChanged,
+           base::Unretained(this)));
+-
+-  // Track Advanced Protection status.
+-  if (base::FeatureList::IsEnabled(
+-          features::kHttpsFirstModeForAdvancedProtectionUsers)) {
+-    obs_.Observe(
+-        safe_browsing::AdvancedProtectionStatusManagerFactory::GetForProfile(
+-            profile_));
+-    // On startup, AdvancedProtectionStatusManager runs before this class so we
+-    // don't get called back. Run the callback to get the AP setting.
+-    OnAdvancedProtectionStatusChanged(
+-        safe_browsing::AdvancedProtectionStatusManagerFactory::GetForProfile(
+-            profile_)
+-            ->IsUnderAdvancedProtection());
+-  }
+ }
+ 
+ GeneratedHttpsFirstModePref::~GeneratedHttpsFirstModePref() = default;
+@@ -49,13 +35,6 @@ void GeneratedHttpsFirstModePref::OnSourcePreferencesChanged() {
+   NotifyObservers(kGeneratedHttpsFirstModePref);
+ }
+ 
+-void GeneratedHttpsFirstModePref::OnAdvancedProtectionStatusChanged(
+-    bool enabled) {
+-  DCHECK(base::FeatureList::IsEnabled(
+-      features::kHttpsFirstModeForAdvancedProtectionUsers));
+-  NotifyObservers(kGeneratedHttpsFirstModePref);
+-}
+-
+ extensions::settings_private::SetPrefResult
+ GeneratedHttpsFirstModePref::SetPref(const base::Value* value) {
+   if (!value->is_bool()) {
+@@ -74,10 +53,7 @@ GeneratedHttpsFirstModePref::SetPref(const base::Value* value) {
+ }
+ 
+ settings_api::PrefObject GeneratedHttpsFirstModePref::GetPrefObject() const {
+-  bool is_advanced_protection_enabled =
+-      safe_browsing::AdvancedProtectionStatusManagerFactory::GetForProfile(
+-          profile_)
+-          ->IsUnderAdvancedProtection();
++  bool is_advanced_protection_enabled = false;
+ 
+   auto* backing_preference =
+       profile_->GetPrefs()->FindPreference(prefs::kHttpsOnlyModeEnabled);
+diff --git a/chrome/browser/ssl/generated_https_first_mode_pref.h b/chrome/browser/ssl/generated_https_first_mode_pref.h
+--- a/chrome/browser/ssl/generated_https_first_mode_pref.h
++++ b/chrome/browser/ssl/generated_https_first_mode_pref.h
+@@ -18,9 +18,7 @@
+ extern const char kGeneratedHttpsFirstModePref[];
+ 
+ class GeneratedHttpsFirstModePref
+-    : public extensions::settings_private::GeneratedPref,
+-      public safe_browsing::AdvancedProtectionStatusManager::
+-          StatusChangedObserver {
++    : public extensions::settings_private::GeneratedPref {
+  public:
+   explicit GeneratedHttpsFirstModePref(Profile* profile);
+   ~GeneratedHttpsFirstModePref() override;
+@@ -33,18 +31,10 @@ class GeneratedHttpsFirstModePref
+   // Fired when preferences used to generate this preference are changed.
+   void OnSourcePreferencesChanged();
+ 
+-  // safe_browsing::AdvancedProtectionStatusManager::StatusChangedObserver:
+-  void OnAdvancedProtectionStatusChanged(bool enabled) override;
+-
+  private:
+   // Non-owning pointer to the profile this preference is generated for.
+   const raw_ptr<Profile> profile_;
+   PrefChangeRegistrar user_prefs_registrar_;
+-
+-  base::ScopedObservation<
+-      safe_browsing::AdvancedProtectionStatusManager,
+-      safe_browsing::AdvancedProtectionStatusManager::StatusChangedObserver>
+-      obs_{this};
+ };
+ 
+ #endif  // CHROME_BROWSER_SSL_GENERATED_HTTPS_FIRST_MODE_PREF_H_
+diff --git a/chrome/browser/ssl/https_first_mode_settings_tracker.cc b/chrome/browser/ssl/https_first_mode_settings_tracker.cc
+--- a/chrome/browser/ssl/https_first_mode_settings_tracker.cc
++++ b/chrome/browser/ssl/https_first_mode_settings_tracker.cc
+@@ -38,20 +38,6 @@ HttpsFirstModeService::HttpsFirstModeService(Profile* profile)
+       base::BindRepeating(&HttpsFirstModeService::OnHttpsFirstModePrefChanged,
+                           base::Unretained(this)));
+ 
+-  // Track Advanced Protection status.
+-  if (base::FeatureList::IsEnabled(
+-          features::kHttpsFirstModeForAdvancedProtectionUsers)) {
+-    obs_.Observe(
+-        safe_browsing::AdvancedProtectionStatusManagerFactory::GetForProfile(
+-            profile_));
+-    // On startup, AdvancedProtectionStatusManager runs before this class so we
+-    // don't get called back. Run the callback to get the AP setting.
+-    OnAdvancedProtectionStatusChanged(
+-        safe_browsing::AdvancedProtectionStatusManagerFactory::GetForProfile(
+-            profile_)
+-            ->IsUnderAdvancedProtection());
+-  }
+-
+   // Make sure the pref state is logged and the synthetic field trial state is
+   // created at startup (as the pref may never change over the session).
+   bool enabled = profile_->GetPrefs()->GetBoolean(prefs::kHttpsOnlyModeEnabled);
+@@ -106,8 +92,6 @@ HttpsFirstModeServiceFactory::HttpsFirstModeServiceFactory()
+           // Incognito (which uses the settings of the main profile) and Guest
+           // Mode.
+           ProfileSelections::BuildForRegularProfile()) {
+-  DependsOn(
+-      safe_browsing::AdvancedProtectionStatusManagerFactory::GetInstance());
+ }
+ 
+ HttpsFirstModeServiceFactory::~HttpsFirstModeServiceFactory() = default;
+diff --git a/chrome/browser/ssl/https_first_mode_settings_tracker.h b/chrome/browser/ssl/https_first_mode_settings_tracker.h
+--- a/chrome/browser/ssl/https_first_mode_settings_tracker.h
++++ b/chrome/browser/ssl/https_first_mode_settings_tracker.h
+@@ -21,9 +21,7 @@ class Profile;
+ //   field trial based on that state.
+ // - Changing the pref based on user's Advanced Protection status.
+ class HttpsFirstModeService
+-    : public KeyedService,
+-      public safe_browsing::AdvancedProtectionStatusManager::
+-          StatusChangedObserver {
++    : public KeyedService {
+  public:
+   explicit HttpsFirstModeService(Profile* profile);
+   ~HttpsFirstModeService() override;
+@@ -32,17 +30,13 @@ class HttpsFirstModeService
+   HttpsFirstModeService& operator=(const HttpsFirstModeService&) = delete;
+ 
+   // safe_browsing::AdvancedProtectionStatusManager::StatusChangedObserver:
+-  void OnAdvancedProtectionStatusChanged(bool enabled) override;
++  void OnAdvancedProtectionStatusChanged(bool enabled);
+ 
+  private:
+   void OnHttpsFirstModePrefChanged();
+ 
+   raw_ptr<Profile> profile_;
+   PrefChangeRegistrar pref_change_registrar_;
+-  base::ScopedObservation<
+-      safe_browsing::AdvancedProtectionStatusManager,
+-      safe_browsing::AdvancedProtectionStatusManager::StatusChangedObserver>
+-      obs_{this};
+ };
+ 
+ // Factory boilerplate for creating the `HttpsFirstModeService` for each browser
 diff --git a/chrome/browser/ssl/sct_reporting_service_factory.cc b/chrome/browser/ssl/sct_reporting_service_factory.cc
 --- a/chrome/browser/ssl/sct_reporting_service_factory.cc
 +++ b/chrome/browser/ssl/sct_reporting_service_factory.cc
@@ -2755,7 +2929,16 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
        "//components/safe_browsing/content/common:interfaces",
        "//components/safe_browsing/content/renderer/phishing_classifier:phishing_classifier",
        "//components/safe_browsing/core/common/fbs:client_model",
-@@ -1466,7 +1465,6 @@ if (!is_android) {
+@@ -1322,8 +1321,6 @@ if (!is_android) {
+       "//chrome/browser/profiling_host:profiling_browsertests",
+       "//chrome/browser/resource_coordinator:mojo_bindings",
+       "//chrome/browser/resource_coordinator:tab_manager_features",
+-      "//chrome/browser/safe_browsing:advanced_protection",
+-      "//chrome/browser/safe_browsing:verdict_cache_manager_factory",
+       "//chrome/browser/segmentation_platform:test_utils",
+       "//chrome/browser/sharing/proto",
+       "//chrome/browser/storage_access_api:permissions",
+@@ -1466,7 +1463,6 @@ if (!is_android) {
        "//components/resources",
        "//components/safe_browsing:buildflags",
        "//components/safe_browsing/content/browser",
@@ -2763,7 +2946,7 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
        "//components/safe_browsing/content/browser:safe_browsing_service",
        "//components/safe_browsing/content/browser/password_protection",
        "//components/safe_browsing/content/browser/password_protection:test_support",
-@@ -6082,7 +6080,6 @@ test("unit_tests") {
+@@ -6082,7 +6078,6 @@ test("unit_tests") {
      "//components/resources",
      "//components/safe_browsing:buildflags",
      "//components/safe_browsing/content/browser",

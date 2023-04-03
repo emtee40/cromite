@@ -130,7 +130,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      private long mNativeBookmarkBridge;
      private boolean mIsDestroyed;
      private boolean mIsDoingExtensiveChanges;
-@@ -378,6 +385,16 @@ class BookmarkBridge {
+@@ -372,6 +379,16 @@ class BookmarkBridge {
                  mNativeBookmarkBridge, BookmarkBridge.this);
      }
  
@@ -147,7 +147,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * @return Id representing the special "other" folder from bookmark model.
       */
-@@ -1001,6 +1018,49 @@ class BookmarkBridge {
+@@ -992,6 +1009,49 @@ class BookmarkBridge {
                  mNativeBookmarkBridge, BookmarkBridge.this, title, url);
      }
  
@@ -197,7 +197,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * @param url The URL of the reading list item.
       * @return The reading list item with the URL, or null if no such reading list item.
-@@ -1217,6 +1277,7 @@ class BookmarkBridge {
+@@ -1208,6 +1268,7 @@ class BookmarkBridge {
          void getAllFoldersWithDepths(long nativeBookmarkBridge, BookmarkBridge caller,
                  List<BookmarkId> folderList, List<Integer> depthList);
          BookmarkId getRootFolderId(long nativeBookmarkBridge, BookmarkBridge caller);
@@ -416,7 +416,7 @@ diff --git a/components/bookmarks/browser/bookmark_codec.cc b/components/bookmar
    roots.Set(kBookmarkBarFolderNameKey, EncodeNode(bookmark_bar_node));
    roots.Set(kOtherBookmarkFolderNameKey, EncodeNode(other_folder_node));
    roots.Set(kMobileBookmarkFolderNameKey, EncodeNode(mobile_folder_node));
-+  roots.SetKey(kTabsBookmarkFolderNameKey, EncodeNode(tabs_folder_node));
++  roots.Set(kTabsBookmarkFolderNameKey, EncodeNode(tabs_folder_node));
    if (model_meta_info_map)
      roots.Set(kMetaInfo, EncodeMetaInfo(*model_meta_info_map));
    if (model_unsynced_meta_info_map) {
@@ -465,8 +465,8 @@ diff --git a/components/bookmarks/browser/bookmark_codec.cc b/components/bookmar
        roots->FindDict(kOtherBookmarkFolderNameKey);
    const base::Value::Dict* mobile_folder_value =
        roots->FindDict(kMobileBookmarkFolderNameKey);
-+  const base::Value* tabs_folder_value =
-+      roots->FindDictKey(kTabsBookmarkFolderNameKey);
++  const base::Value::Dict* tabs_folder_value =
++      roots->FindDict(kTabsBookmarkFolderNameKey);
  
    if (!bb_value || !other_folder_value || !mobile_folder_value)
      return false;

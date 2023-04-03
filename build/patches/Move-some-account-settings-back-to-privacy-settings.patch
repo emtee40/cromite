@@ -7,9 +7,9 @@ Search suggestions, autofill assistant and contextual search
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../java/res/xml/privacy_preferences.xml      | 13 ++++++++
- .../privacy/settings/PrivacySettings.java     | 32 ++++++++++++++++++-
+ .../privacy/settings/PrivacySettings.java     | 33 ++++++++++++++++++-
  .../strings/android_chrome_strings.grd        |  4 +++
- 3 files changed, 48 insertions(+), 1 deletion(-)
+ 3 files changed, 49 insertions(+), 1 deletion(-)
 
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
@@ -23,8 +23,8 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 +        android:title="@string/services_category_title">
 +      <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
 +          android:key="search_suggestions"
-+          android:title="@string/autocomplete_searches_and_urls_title"
-+          android:summary="@string/autocomplete_searches_and_urls_summary"
++          android:title="@string/improve_search_suggestions_title"
++          android:summary="@string/improve_search_suggestions_summary"
 +          android:persistent="false"/>
 +      <org.chromium.components.browser_ui.settings.ChromeBasePreference
 +          android:key="contextual_search"
@@ -37,7 +37,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -44,6 +44,12 @@ import org.chromium.components.user_prefs.UserPrefs;
+@@ -44,6 +44,13 @@ import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.ui.text.NoUnderlineClickableSpan;
  import org.chromium.ui.text.SpanApplier;
  
@@ -46,11 +46,12 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 +import org.chromium.chrome.browser.contextualsearch.ContextualSearchManager;
 +import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
 +import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
++import org.chromium.components.browser_ui.settings.ManagedPreferenceDelegate;
 +
  /**
   * Fragment to keep track of the all the privacy related preferences.
   */
-@@ -60,6 +66,17 @@ public class PrivacySettings
+@@ -60,6 +67,17 @@ public class PrivacySettings
      private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
      private static final String PREF_THIRD_PARTY_COOKIES = "third_party_cookies";
  
@@ -68,7 +69,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      private IncognitoLockSettings mIncognitoLockSettings;
  
      @Override
-@@ -107,6 +124,16 @@ public class PrivacySettings
+@@ -107,6 +125,16 @@ public class PrivacySettings
  
          setHasOptionsMenu(true);
  
@@ -85,7 +86,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
          canMakePaymentPref.setOnPreferenceChangeListener(this);
-@@ -158,6 +185,9 @@ public class PrivacySettings
+@@ -158,6 +186,9 @@ public class PrivacySettings
          } else if (PREF_HTTPS_FIRST_MODE.equals(key)) {
              UserPrefs.get(Profile.getLastUsedRegularProfile())
                      .setBoolean(Pref.HTTPS_ONLY_MODE_ENABLED, (boolean) newValue);
@@ -95,7 +96,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          }
          return true;
      }
-@@ -172,7 +202,7 @@ public class PrivacySettings
+@@ -172,7 +203,7 @@ public class PrivacySettings
       * Updates the preferences.
       */
      public void updatePreferences() {

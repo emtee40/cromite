@@ -47,13 +47,13 @@ Subject: Eyeo Adblock Remove
  components/resources/BUILD.gn                 |    1 -
  components/resources/adblock_resources.grdp   |    3 -
  components/resources/adblocking/.gitignore    |    2 +-
- components/resources/adblocking/BUILD.gn      |    4 +-
+ components/resources/adblocking/BUILD.gn      |   30 +-
  .../snippets/dist/isolated-first.jst          |   62 +
  .../snippets/dist/isolated-first.source.jst   | 3126 +++++++++++++++++
  .../blink/renderer/core/css/style_engine.cc   |    8 +
  .../blink/renderer/core/css/style_engine.h    |    1 +
  .../renderer/core/exported/web_document.cc    |   13 +-
- 50 files changed, 3279 insertions(+), 1131 deletions(-)
+ 50 files changed, 3278 insertions(+), 1158 deletions(-)
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.cc
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.h
  rename components/adblock/android/java/res/xml/{adblock_preferences.xml => eyeo_adblock_preferences.xml} (100%)
@@ -370,7 +370,7 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  #include "chrome/browser/adblock/resource_classification_runner_factory.h"
  #include "chrome/browser/adblock/session_stats_factory.h"
  #include "chrome/browser/adblock/sitekey_storage_factory.h"
-@@ -585,7 +584,6 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -584,7 +583,6 @@ void ChromeBrowserMainExtraPartsProfiles::
    ExitTypeServiceFactory::GetInstance();
  #endif
    adblock::AdblockControllerFactory::GetInstance();
@@ -1895,15 +1895,41 @@ diff --git a/components/resources/adblocking/BUILD.gn b/components/resources/adb
    compiled_action(target_name) {
      tool = "//components/adblock/core/converter:adblock_flatbuffer_converter"
      inputs = [ invoker.input ]
-@@ -51,7 +51,7 @@ make_preloaded_subscription("make_anticv") {
-   output = "${target_gen_dir}/anticv.fb"
+@@ -31,34 +31,6 @@ template("make_preloaded_subscription") {
+   }
  }
  
+-# Note, url is *not* used to download the list during build time, only to
+-# identify the subscription. Consider it metadata.
+-make_preloaded_subscription("make_easylist") {
+-  input = "//components/resources/adblocking/easylist.txt.gz"
+-  url = "https://easylist-downloads.adblockplus.org/easylist.txt"
+-  output = "${target_gen_dir}/easylist.fb"
+-}
+-
+-make_preloaded_subscription("make_exceptionrules") {
+-  input = "//components/resources/adblocking/exceptionrules.txt.gz"
+-  url = "https://easylist-downloads.adblockplus.org/exceptionrules.txt"
+-  output = "${target_gen_dir}/exceptionrules.fb"
+-}
+-
+-make_preloaded_subscription("make_anticv") {
+-  input = "//components/resources/adblocking/anticv.txt.gz"
+-  url = "https://easylist-downloads.adblockplus.org/abp-filters-anti-cv.txt"
+-  output = "${target_gen_dir}/anticv.fb"
+-}
+-
 -group("make_all_preloaded_subscriptions") {
-+group("make_all_preloaded_subscriptions_NO") {
-   deps = [
-     ":make_anticv",
-     ":make_easylist",
+-  deps = [
+-    ":make_anticv",
+-    ":make_easylist",
+-    ":make_exceptionrules",
+-  ]
+-}
+-
+ copy("copy_snippets_lib") {
+   if (is_debug) {
+     sources = [ "//components/resources/adblocking/snippets/dist/isolated-first.source.jst" ]
 diff --git a/components/resources/adblocking/snippets/dist/isolated-first.jst b/components/resources/adblocking/snippets/dist/isolated-first.jst
 new file mode 100755
 --- /dev/null

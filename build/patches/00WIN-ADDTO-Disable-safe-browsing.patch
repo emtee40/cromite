@@ -7,7 +7,7 @@ Subject: WIN ADDTO Disable safe browsing
  .../chrome_browsing_data_remover_delegate.cc  |   2 -
  chrome/browser/chrome_browser_main_win.cc     |   6 -
  .../bubble/download_bubble_controller.cc      |   2 +
- .../chrome_download_manager_delegate.cc       |   4 +-
+ .../chrome_download_manager_delegate.cc       |  16 +-
  .../browser/download/download_item_model.cc   |  93 +---------
  .../analysis/content_analysis_delegate.cc     | 164 +-----------------
  .../analysis/content_analysis_delegate.h      |   7 -
@@ -43,18 +43,18 @@ Subject: WIN ADDTO Disable safe browsing
  .../ui/views/download/download_item_view.cc   |  23 +--
  .../webui/downloads/downloads_dom_handler.cc  |  21 +--
  .../ui/webui/downloads/downloads_ui.cc        |   5 +-
- chrome/browser/ui/webui/intro/intro_ui.cc     |  11 +-
+ chrome/browser/ui/webui/intro/intro_ui.cc     |  33 +---
  chrome/browser/webshare/share_service_impl.cc |   4 +
  chrome/chrome_paks.gni                        |   2 -
  .../public/cpp/sandboxed_rar_analyzer.cc      |  16 +-
  .../public/cpp/sandboxed_rar_analyzer.h       |   2 -
  .../public/cpp/sandboxed_zip_analyzer.h       |   2 -
- chrome/test/BUILD.gn                          |   5 -
+ chrome/test/BUILD.gn                          |   4 -
  .../browser/mojo_safe_browsing_impl.cc        |   1 +
  .../core/common/safe_browsing_prefs.cc        |   2 +-
  printing/buildflags/buildflags.gni            |   2 +-
  .../tracked_persistent_pref_store_factory.cc  |  10 +-
- 51 files changed, 73 insertions(+), 795 deletions(-)
+ 51 files changed, 74 insertions(+), 827 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
@@ -82,7 +82,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/share",
      "//chrome/browser/sharing:buildflags",
      "//chrome/browser/sharing/proto",
-@@ -3655,18 +3648,12 @@ static_library("browser") {
+@@ -3657,18 +3650,12 @@ static_library("browser") {
        "enterprise/connectors/analysis/analysis_service_settings.h",
        "enterprise/connectors/analysis/analysis_settings.cc",
        "enterprise/connectors/analysis/analysis_settings.h",
@@ -101,7 +101,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "enterprise/connectors/analysis/request_handler_base.cc",
        "enterprise/connectors/analysis/request_handler_base.h",
        "enterprise/connectors/common.cc",
-@@ -7918,7 +7905,6 @@ static_library("test_support") {
+@@ -7920,7 +7907,6 @@ static_library("test_support") {
      ":browser",
      "//chrome/browser/autofill:test_support",
      "//chrome/browser/profiles:profile",
@@ -154,7 +154,38 @@ diff --git a/chrome/browser/download/bubble/download_bubble_controller.cc b/chro
 diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrome/browser/download/chrome_download_manager_delegate.cc
 --- a/chrome/browser/download/chrome_download_manager_delegate.cc
 +++ b/chrome/browser/download/chrome_download_manager_delegate.cc
-@@ -1706,8 +1706,8 @@ void ChromeDownloadManagerDelegate::CheckSavePackageAllowed(
+@@ -880,21 +880,11 @@ void ChromeDownloadManagerDelegate::OpenDownload(DownloadItem* download) {
+       content::DownloadItemUtils::GetWebContents(download);
+   Browser* browser =
+       web_contents ? chrome::FindBrowserWithWebContents(web_contents) : nullptr;
+-  std::unique_ptr<chrome::ScopedTabbedBrowserDisplayer> browser_displayer;
+-  if (!browser ||
+-      !browser->CanSupportWindowFeature(Browser::FEATURE_TABSTRIP)) {
+-    browser_displayer =
+-        std::make_unique<chrome::ScopedTabbedBrowserDisplayer>(profile_);
+-    browser = browser_displayer->browser();
+-  }
+   content::OpenURLParams params(
+       net::FilePathToFileURL(download->GetTargetFilePath()),
+       content::Referrer(), WindowOpenDisposition::NEW_FOREGROUND_TAB,
+       ui::PAGE_TRANSITION_LINK, false);
+ 
+-  if (download->GetMimeType() == "application/x-x509-user-cert")
+-    chrome::ShowSettingsSubPage(browser, "certificates");
+-  else
+     browser->OpenURL(params);
+ #endif  // BUILDFLAG(IS_ANDROID)
+ }
+@@ -942,7 +932,7 @@ void ChromeDownloadManagerDelegate::ShowDownloadInShell(
+ 
+ std::string
+ ChromeDownloadManagerDelegate::ApplicationClientIdForFileScanning() {
+-  return std::string(chrome::kApplicationClientIDStringForAVScanning);
++  return std::string();
+ }
+ 
+ #if BUILDFLAG(FULL_SAFE_BROWSING)
+@@ -1706,8 +1696,8 @@ void ChromeDownloadManagerDelegate::CheckSavePackageAllowed(
    DCHECK(download_item);
    DCHECK(download_item->IsSavePackageDownload());
  
@@ -1701,10 +1732,13 @@ diff --git a/chrome/browser/ui/webui/intro/intro_ui.cc b/chrome/browser/ui/webui
  namespace {
  #if BUILDFLAG(IS_CHROMEOS_LACROS)
  std::string GetPictureUrl(content::WebUI& web_ui,
-@@ -98,9 +103,11 @@ IntroUI::IntroUI(content::WebUI* web_ui) : content::WebUIController(web_ui) {
-   content::WebUIDataSource* source = content::WebUIDataSource::CreateAndAdd(
-       profile, chrome::kChromeUIIntroHost);
+@@ -95,12 +100,11 @@ IntroUI::IntroUI(content::WebUI* web_ui) : content::WebUIController(web_ui) {
+   DCHECK(base::FeatureList::IsEnabled(kForYouFre));
+   auto* profile = Profile::FromWebUI(web_ui);
  
+-  content::WebUIDataSource* source = content::WebUIDataSource::CreateAndAdd(
+-      profile, chrome::kChromeUIIntroHost);
+-
 +#if BUILDFLAG(ENABLE_DICE_SUPPORT)
    webui::SetupWebUIDataSource(
        source, base::make_span(kIntroResources, kIntroResourcesSize),
@@ -1713,6 +1747,32 @@ diff --git a/chrome/browser/ui/webui/intro/intro_ui.cc b/chrome/browser/ui/webui
  
  #if BUILDFLAG(ENABLE_DICE_SUPPORT)
    int title_id = 0;
+@@ -126,25 +130,6 @@ IntroUI::IntroUI(content::WebUI* web_ui) : content::WebUIController(web_ui) {
+   }
+ #endif
+ 
+-  webui::LocalizedString localized_strings[] = {
+-#if BUILDFLAG(ENABLE_DICE_SUPPORT)
+-    {"pageTitle", title_id},
+-    {"pageSubtitle", subtitle_id},
+-    {"devicesCardTitle", IDS_FRE_DEVICES_CARD_TITLE},
+-    {"devicesCardDescription", IDS_FRE_DEVICES_CARD_DESCRIPTION},
+-    {"securityCardTitle", IDS_FRE_SECURITY_CARD_TITLE},
+-    {"securityCardDescription", IDS_FRE_SECURITY_CARD_DESCRIPTION},
+-    {"backupCardTitle", IDS_FRE_BACKUP_CARD_TITLE},
+-    {"backupCardDescription", IDS_FRE_BACKUP_CARD_DESCRIPTION},
+-    {"declineSignInButtonTitle", IDS_FRE_DECLINE_SIGN_IN_BUTTON_TITLE},
+-    {"acceptSignInButtonTitle", IDS_FRE_ACCEPT_SIGN_IN_BUTTON_TITLE},
+-#endif
+-#if BUILDFLAG(IS_CHROMEOS_LACROS)
+-    {"proceedLabel", IDS_PRIMARY_PROFILE_FIRST_RUN_NEXT_BUTTON_LABEL},
+-#endif
+-  };
+-  source->AddLocalizedStrings(localized_strings);
+-
+   // TODO(crbug.com/1409028): Replace this function by a call to
+   // chrome::GetDeviceManagerIdentity()
+   const bool is_device_managed = chrome::ShouldDisplayManagedUi(profile);
 diff --git a/chrome/browser/webshare/share_service_impl.cc b/chrome/browser/webshare/share_service_impl.cc
 --- a/chrome/browser/webshare/share_service_impl.cc
 +++ b/chrome/browser/webshare/share_service_impl.cc
@@ -1854,15 +1914,7 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
      "//chrome/browser/sharing/proto",
      "//chrome/child",
      "//chrome/common:non_code_constants",
-@@ -1326,7 +1325,6 @@ if (!is_android) {
-       "//chrome/browser/resource_coordinator:mojo_bindings",
-       "//chrome/browser/resource_coordinator:tab_manager_features",
-       "//chrome/browser/safe_browsing:advanced_protection",
--      "//chrome/browser/safe_browsing:verdict_cache_manager_factory",
-       "//chrome/browser/segmentation_platform:test_utils",
-       "//chrome/browser/sharing/proto",
-       "//chrome/browser/storage_access_api:permissions",
-@@ -5935,9 +5933,6 @@ test("unit_tests") {
+@@ -5933,9 +5932,6 @@ test("unit_tests") {
      "//chrome/browser/profile_resetter:profile_reset_report_proto",
      "//chrome/browser/profiling_host",
      "//chrome/browser/push_messaging:budget_proto",

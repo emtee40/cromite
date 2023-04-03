@@ -29,9 +29,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../flags/android/chrome_feature_list.h       |   1 +
  .../browser/flags/ChromeFeatureList.java      |   1 +
  .../strings/android_chrome_strings.grd        |  23 +-
- .../endpoint_fetcher/endpoint_fetcher.cc      | 102 +++++++-
- .../endpoint_fetcher/endpoint_fetcher.h       |  22 +-
- 23 files changed, 897 insertions(+), 53 deletions(-)
+ .../endpoint_fetcher/endpoint_fetcher.cc      | 103 +++++++-
+ .../endpoint_fetcher/endpoint_fetcher.h       |  23 +-
+ 23 files changed, 899 insertions(+), 53 deletions(-)
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/omaha/inline/BromiteInlineUpdateController.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/omaha/inline/InlineUpdateController.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/omaha/inline/InlineUpdateControllerFactory.java
@@ -1481,12 +1481,13 @@ diff --git a/components/endpoint_fetcher/endpoint_fetcher.cc b/components/endpoi
  }
  
  void EndpointFetcher::OnResponseFetched(
-@@ -327,3 +383,37 @@ void EndpointFetcher::OnSanitizationResult(
+@@ -327,3 +383,38 @@ void EndpointFetcher::OnSanitizationResult(
  std::string EndpointFetcher::GetUrlForTesting() {
    return url_.spec();
  }
 +
 +void EndpointFetcher::OnSimpleLoaderRedirect(
++    const GURL& url_before_redirect,
 +    const net::RedirectInfo& redirect_info,
 +    const network::mojom::URLResponseHead& response_head,
 +    std::vector<std::string>* removed_headers) {
@@ -1555,18 +1556,19 @@ diff --git a/components/endpoint_fetcher/endpoint_fetcher.h b/components/endpoin
    // Used for tests. Can be used if caller constructs their own
    // url_loader_factory and identity_manager.
    EndpointFetcher(
-@@ -144,6 +156,10 @@ class EndpointFetcher {
+@@ -144,6 +156,11 @@ class EndpointFetcher {
    void OnSanitizationResult(std::unique_ptr<EndpointResponse> response,
                              EndpointFetcherCallback endpoint_fetcher_callback,
                              data_decoder::JsonSanitizer::Result result);
 +  void OnURLLoadComplete(scoped_refptr<net::HttpResponseHeaders> headers);
-+  void OnSimpleLoaderRedirect(const net::RedirectInfo& redirect_info,
++  void OnSimpleLoaderRedirect(const GURL& url_before_redirect,
++                              const net::RedirectInfo& redirect_info,
 +                              const network::mojom::URLResponseHead& response_head,
 +                              std::vector<std::string>* removed_headers);
  
    enum AuthType { CHROME_API_KEY, OAUTH, NO_AUTH };
    AuthType auth_type_;
-@@ -151,10 +167,11 @@ class EndpointFetcher {
+@@ -151,10 +168,11 @@ class EndpointFetcher {
    // Members set in constructor to be passed to network::ResourceRequest or
    // network::SimpleURLLoader.
    const std::string oauth_consumer_name_;
@@ -1579,7 +1581,7 @@ diff --git a/components/endpoint_fetcher/endpoint_fetcher.h b/components/endpoin
    const std::string post_data_;
    const std::vector<std::string> headers_;
    const std::vector<std::string> cors_exempt_headers_;
-@@ -172,6 +189,9 @@ class EndpointFetcher {
+@@ -172,6 +190,9 @@ class EndpointFetcher {
        access_token_fetcher_;
    std::unique_ptr<network::SimpleURLLoader> simple_url_loader_;
  

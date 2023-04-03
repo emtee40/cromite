@@ -6,10 +6,10 @@ Subject: WIN Fix windows build
  .../browser_process_platform_part_win.cc      |  3 ++
  chrome/browser/devtools/devtools_window.cc    |  1 +
  chrome/browser/ui/profile_picker.cc           |  2 +-
- .../browser/ui/startup/first_run_service.cc   | 13 ++------
+ .../browser/ui/startup/first_run_service.cc   | 14 +++-----
  chrome/browser/updater/BUILD.gn               |  9 -----
  .../browser/updater/browser_updater_client.cc | 33 +------------------
- 6 files changed, 9 insertions(+), 52 deletions(-)
+ 6 files changed, 10 insertions(+), 52 deletions(-)
 
 diff --git a/chrome/browser/browser_process_platform_part_win.cc b/chrome/browser/browser_process_platform_part_win.cc
 --- a/chrome/browser/browser_process_platform_part_win.cc
@@ -56,7 +56,23 @@ diff --git a/chrome/browser/ui/profile_picker.cc b/chrome/browser/ui/profile_pic
 diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/startup/first_run_service.cc
 --- a/chrome/browser/ui/startup/first_run_service.cc
 +++ b/chrome/browser/ui/startup/first_run_service.cc
-@@ -164,9 +164,6 @@ enum class FinishedReason {
+@@ -47,6 +47,7 @@
+ namespace {
+ 
+ bool IsFirstRunEligibleProfile(Profile* profile) {
++  if ((true)) return false;
+   if (profile->IsOffTheRecord()) {
+     return false;
+   }
+@@ -74,6 +75,7 @@ bool IsFirstRunEligibleProfile(Profile* profile) {
+ }
+ 
+ bool IsFirstRunEligibleProcess() {
++  if ((true)) return false;
+ #if !BUILDFLAG(IS_CHROMEOS_LACROS)
+   // On Lacros we want to run the FRE beyond the strict first run as defined by
+   // `IsChromeFirstRun()` for a few reasons:
+@@ -164,9 +166,6 @@ enum class FinishedReason {
  };
  
  void SetFirstRunFinished(FinishedReason reason) {
@@ -66,7 +82,7 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
  #if BUILDFLAG(IS_CHROMEOS_LACROS)
    absl::optional<ProfileMetrics::ProfileSignedInFlowOutcome> outcome;
    switch (reason) {
-@@ -193,9 +190,7 @@ void SetFirstRunFinished(FinishedReason reason) {
+@@ -193,9 +192,7 @@ void SetFirstRunFinished(FinishedReason reason) {
  // with it, or if for some other reason (e.g. policy or some other browser
  // state) we determine that we should not show it.
  bool IsFirstRunMarkedFinishedInPrefs() {
@@ -77,14 +93,23 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
  }
  
  // Processes the outcome from the FRE and resumes the user's interrupted task.
-@@ -234,7 +229,6 @@ void OnFirstRunHasExited(ResumeTaskCallback original_intent_callback,
+@@ -234,8 +231,6 @@ void OnFirstRunHasExited(ResumeTaskCallback original_intent_callback,
  
  // static
  void FirstRunService::RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
 -  registry->RegisterBooleanPref(prefs::kFirstRunFinished, false);
-   registry->RegisterStringPref(prefs::kFirstRunStudyGroup, "");
+-  registry->RegisterStringPref(prefs::kFirstRunStudyGroup, "");
  }
  
+ #if BUILDFLAG(ENABLE_DICE_SUPPORT)
+@@ -318,7 +313,6 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
+     return;
+   }
+ 
+-  auto* identity_manager = IdentityManagerFactory::GetForProfile(profile_);
+   bool has_set_up_profile =
+ #if BUILDFLAG(IS_CHROMEOS_LACROS)
+       // Indicates that the profile was likely migrated from pre-Lacros Ash.
 @@ -328,7 +322,7 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
        // the profile already has an account (e.g. the sentinel file was deleted
        // or `--force-first-run` was passed), this ensures we still skip it and
@@ -94,14 +119,6 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
  #endif
    if (has_set_up_profile) {
      SetFirstRunFinished(FinishedReason::kProfileAlreadySetUp);
-@@ -495,6 +489,5 @@ bool FirstRunServiceFactory::ServiceIsCreatedWithBrowserContext() const {
- // Helpers ---------------------------------------------------------------------
- 
- bool ShouldOpenFirstRun(Profile* profile) {
--  return IsFirstRunEligibleProcess() && IsFirstRunEligibleProfile(profile) &&
--         !IsFirstRunMarkedFinishedInPrefs();
-+  return false;
- }
 diff --git a/chrome/browser/updater/BUILD.gn b/chrome/browser/updater/BUILD.gn
 --- a/chrome/browser/updater/BUILD.gn
 +++ b/chrome/browser/updater/BUILD.gn

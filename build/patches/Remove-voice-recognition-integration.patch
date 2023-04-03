@@ -4,7 +4,7 @@ Subject: Remove voice recognition integration
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../start_surface/StartSurfaceMediator.java   |   7 +-
+ .../start_surface/StartSurfaceMediator.java   |  15 +--
  .../features/tasks/TasksSurfaceMediator.java  |   4 -
  .../init/ProcessInitializationHandler.java    |   5 -
  .../browser/metrics/UmaSessionStats.java      |  19 ---
@@ -23,12 +23,20 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../suggestions/AutocompleteController.java   |  21 ----
  .../suggestions/AutocompleteCoordinator.java  |   8 --
  .../suggestions/AutocompleteMediator.java     |   9 --
- 19 files changed, 12 insertions(+), 355 deletions(-)
+ 19 files changed, 12 insertions(+), 363 deletions(-)
 
 diff --git a/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java b/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
 --- a/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
 +++ b/chrome/android/features/start_surface/java/src/org/chromium/chrome/features/start_surface/StartSurfaceMediator.java
-@@ -473,8 +473,7 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
+@@ -73,7 +73,6 @@ import org.chromium.chrome.browser.ntp.NewTabPageLaunchOrigin;
+ import org.chromium.chrome.browser.omnibox.OmniboxFocusReason;
+ import org.chromium.chrome.browser.omnibox.OmniboxStub;
+ import org.chromium.chrome.browser.omnibox.UrlFocusChangeListener;
+-import org.chromium.chrome.browser.omnibox.voice.VoiceRecognitionHandler;
+ import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
+ import org.chromium.chrome.browser.preferences.Pref;
+ import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
+@@ -473,8 +472,7 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
  
              // Initialize
              // Note that isVoiceSearchEnabled will return false in incognito mode.
@@ -38,7 +46,21 @@ diff --git a/chrome/android/features/start_surface/java/src/org/chromium/chrome/
              boolean shouldShowLensButton = mOmniboxStub.isLensEnabled(LensEntryPoint.TASKS_SURFACE);
              LensMetrics.recordShown(LensEntryPoint.TASKS_SURFACE, shouldShowLensButton);
              mPropertyModel.set(IS_LENS_BUTTON_VISIBLE, shouldShowLensButton);
-@@ -1317,10 +1316,6 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
+@@ -518,13 +516,6 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
+                     }
+                 });
+                 mPropertyModel.set(VOICE_SEARCH_BUTTON_CLICK_LISTENER, v -> {
+-                    FeedReliabilityLogger feedReliabilityLogger = getFeedReliabilityLogger();
+-                    if (feedReliabilityLogger != null) {
+-                        feedReliabilityLogger.onVoiceSearch();
+-                    }
+-                    mOmniboxStub.getVoiceRecognitionHandler().startVoiceRecognition(
+-                            VoiceRecognitionHandler.VoiceInteractionSource.TASKS_SURFACE);
+-                    RecordUserAction.record("TasksSurface.FakeBox.VoiceSearch");
+                 });
+ 
+                 mPropertyModel.set(LENS_BUTTON_CLICK_LISTENER, v -> {
+@@ -1317,10 +1308,6 @@ class StartSurfaceMediator implements TabSwitcher.TabSwitcherViewObserver, View.
          // incorrect state if check synchronously.
          ThreadUtils.postOnUiThread(() -> {
              if (mOmniboxStub != null) {
@@ -524,7 +546,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
              mToolbarManager.destroy();
              mToolbarManager = null;
          }
-@@ -1069,19 +1063,11 @@ public class RootUiCoordinator
+@@ -1058,19 +1052,11 @@ public class RootUiCoordinator
                      new VoiceToolbarButtonController.VoiceSearchDelegate() {
                          @Override
                          public boolean isVoiceSearchEnabled() {
@@ -545,7 +567,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordi
                          }
                      };
              VoiceToolbarButtonController voiceToolbarButtonController =
-@@ -1130,13 +1116,6 @@ public class RootUiCoordinator
+@@ -1119,13 +1105,6 @@ public class RootUiCoordinator
              if (!mSupportsAppMenuSupplier.getAsBoolean()) {
                  mToolbarManager.getToolbar().disableMenuButton();
              }
