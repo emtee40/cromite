@@ -35,7 +35,7 @@ Subject: Eyeo Adblock Remove
  .../adblock/core/sitekey_storage_impl.cc      |    6 +
  ...filtering_configuration_maintainer_impl.cc |   10 -
  .../filtering_configuration_maintainer_impl.h |    1 -
- .../ongoing_subscription_request_impl.cc      |   15 +-
+ .../ongoing_subscription_request_impl.cc      |   27 +-
  .../preloaded_subscription_provider_impl.cc   |    4 +-
  .../core/subscription/subscription_config.cc  |    8 +-
  .../subscription_downloader_impl.cc           |   15 +-
@@ -53,7 +53,7 @@ Subject: Eyeo Adblock Remove
  .../blink/renderer/core/css/style_engine.cc   |    8 +
  .../blink/renderer/core/css/style_engine.h    |    1 +
  .../renderer/core/exported/web_document.cc    |   13 +-
- 50 files changed, 3278 insertions(+), 1158 deletions(-)
+ 50 files changed, 3290 insertions(+), 1158 deletions(-)
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.cc
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.h
  rename components/adblock/android/java/res/xml/{adblock_preferences.xml => eyeo_adblock_preferences.xml} (100%)
@@ -1564,7 +1564,23 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
  #include "net/http/http_request_headers.h"
  #include "services/network/public/cpp/resource_request.h"
  #include "services/network/public/mojom/url_response_head.mojom.h"
-@@ -48,7 +49,7 @@ const net::NetworkTrafficAnnotationTag kTrafficAnnotation =
+@@ -44,11 +45,23 @@ const net::NetworkTrafficAnnotationTag kTrafficAnnotation =
+             "Application name (ex. Chromium) "
+             "Application version (93.0.4572.0) "
+           destination: WEBSITE
++          internal {
++            contacts {
++              email: "uazo@users.noreply.github.com"
++            }
++            contacts {
++              email: "uazo@users.noreply.github.com"
++            }
++          }
++          user_data {
++            type: NONE
++          }
++          last_reviewed: "2023-01-01"
+         }
          policy {
            cookies_allowed: NO
            setting:
@@ -1573,7 +1589,7 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
            policy_exception_justification: "Not implemented."
          })");
  
-@@ -64,7 +65,7 @@ OngoingSubscriptionRequestImpl::OngoingSubscriptionRequestImpl(
+@@ -64,7 +77,7 @@ OngoingSubscriptionRequestImpl::OngoingSubscriptionRequestImpl(
  
  OngoingSubscriptionRequestImpl::~OngoingSubscriptionRequestImpl() {
    if (!url_.is_empty())
@@ -1582,7 +1598,7 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
  }
  
  void OngoingSubscriptionRequestImpl::Start(GURL url,
-@@ -86,7 +87,7 @@ void OngoingSubscriptionRequestImpl::Retry() {
+@@ -86,7 +99,7 @@ void OngoingSubscriptionRequestImpl::Retry() {
      return;
    }
    backoff_entry_->InformOfRequest(false);
@@ -1591,7 +1607,7 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
            << backoff_entry_->GetTimeUntilRelease();
    retry_timer_->Start(
        FROM_HERE, backoff_entry_->GetTimeUntilRelease(),
-@@ -100,7 +101,7 @@ void OngoingSubscriptionRequestImpl::Redirect(GURL redirect_url) {
+@@ -100,7 +113,7 @@ void OngoingSubscriptionRequestImpl::Redirect(GURL redirect_url) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
    DCHECK(!url_.is_empty()) << "Redirect() called before Start()";
    DCHECK(url_ != redirect_url) << "Invalid redirect. Same URL";
@@ -1600,7 +1616,7 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
    ++number_of_redirects_;
    url_ = std::move(redirect_url);
    StartInternal();
-@@ -120,10 +121,14 @@ void OngoingSubscriptionRequestImpl::StartInternal() {
+@@ -120,10 +133,14 @@ void OngoingSubscriptionRequestImpl::StartInternal() {
      // indefinitely.
      return;
    }
