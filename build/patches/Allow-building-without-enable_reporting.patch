@@ -14,6 +14,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  ...content_switch_dependent_feature_overrides.cc |  1 +
  net/reporting/reporting_service.cc               |  6 ++++++
  services/network/network_context.h               |  4 ++--
+ services/network/public/cpp/features.cc          |  6 +++---
  services/network/public/mojom/BUILD.gn           |  1 -
  .../network/public/mojom/network_context.mojom   |  2 ++
  .../blink/renderer/core/frame/local_frame.cc     |  3 +++
@@ -21,7 +22,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/core/frame/reporting_context.cc     |  9 +++++++++
  .../renderer/core/frame/reporting_context.h      |  7 +++++--
  .../renderer/core/frame/reporting_observer.cc    |  3 +--
- 17 files changed, 52 insertions(+), 27 deletions(-)
+ 18 files changed, 55 insertions(+), 30 deletions(-)
 
 diff --git a/chrome/browser/net/chrome_report_sender.cc b/chrome/browser/net/chrome_report_sender.cc
 --- a/chrome/browser/net/chrome_report_sender.cc
@@ -272,6 +273,23 @@ diff --git a/services/network/network_context.h b/services/network/network_conte
    void AddDomainReliabilityContextForTesting(
        const url::Origin& origin,
        const GURL& upload_url,
+diff --git a/services/network/public/cpp/features.cc b/services/network/public/cpp/features.cc
+--- a/services/network/public/cpp/features.cc
++++ b/services/network/public/cpp/features.cc
+@@ -15,10 +15,10 @@
+ namespace network::features {
+ 
+ BASE_FEATURE(kNetworkErrorLogging,
+-             "NetworkErrorLogging",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "NetworkErrorLogging",              // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT); // in bromite
+ 
+-BASE_FEATURE(kReporting, "Reporting", base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kReporting, "Reporting", base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Based on the field trial parameters, this feature will override the value of
+ // the maximum number of delayable requests allowed in flight. The number of
 diff --git a/services/network/public/mojom/BUILD.gn b/services/network/public/mojom/BUILD.gn
 --- a/services/network/public/mojom/BUILD.gn
 +++ b/services/network/public/mojom/BUILD.gn
