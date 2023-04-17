@@ -13,7 +13,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/android/chrome_java_resources.gni      |   1 +
  chrome/android/chrome_java_sources.gni        |   1 +
  chrome/android/java/AndroidManifest.xml       |  18 +++
- .../res/layout/sharing_intent_content.xml     |  83 ++++++++++++
+ .../res/layout/sharing_intent_content.xml     |  87 +++++++++++++
  .../chrome/browser/IntentHandler.java         |  16 ++-
  .../browser/LaunchIntentDispatcher.java       |   2 +-
  .../init/ProcessInitializationHandler.java    |   3 +
@@ -25,7 +25,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../flags/android/chrome_feature_list.h       |   1 +
  .../browser/flags/ChromeFeatureList.java      |   1 +
  .../strings/android_chrome_strings.grd        |  13 ++
- 15 files changed, 273 insertions(+), 2 deletions(-)
+ 15 files changed, 277 insertions(+), 2 deletions(-)
  create mode 100644 chrome/android/java/res/layout/sharing_intent_content.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/sharing/shared_intent/SharedIntentShareActivity.java
 
@@ -83,7 +83,7 @@ diff --git a/chrome/android/java/res/layout/sharing_intent_content.xml b/chrome/
 new file mode 100644
 --- /dev/null
 +++ b/chrome/android/java/res/layout/sharing_intent_content.xml
-@@ -0,0 +1,83 @@
+@@ -0,0 +1,87 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<!-- Copyright 2019 The Chromium Authors. All rights reserved.
 +     Use of this source code is governed by a BSD-style license that can be
@@ -106,18 +106,22 @@ new file mode 100644
 +      android:layout_width="match_parent"
 +      android:layout_height="wrap_content"
 +      android:orientation="vertical"
-+      android:background="@color/sheet_bg_color_baseline">
++      android:background="@android:color/transparent">
++
++    <org.chromium.components.browser_ui.widget.RoundedCornerImageView
++        android:layout_height="wrap_content"
++        android:layout_width ="match_parent"
++        app:cornerRadiusTopEnd="14dp"
++        app:cornerRadiusTopStart="14dp"
++        app:roundedfillColor="@color/sheet_bg_color_baseline"
++        app:srcCompat="@drawable/ic_launcher"/>
 +
 +    <LinearLayout
 +        android:layout_width="match_parent"
 +        android:layout_height="wrap_content"
 +        android:paddingBottom="32dp"
-+        android:orientation="vertical">
-+
-+      <ImageView
-+          android:layout_height="wrap_content"
-+          android:layout_width ="match_parent"
-+          app:srcCompat="@drawable/ic_launcher"/>
++        android:orientation="vertical"
++        android:background="@color/sheet_bg_color_baseline">
 +
 +      <TextView
 +        android:layout_width="match_parent"
@@ -367,7 +371,7 @@ new file mode 100644
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -8936,6 +8936,10 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -8939,6 +8939,10 @@ const FeatureEntry kFeatureEntries[] = {
  #endif  // !BUILDFLAG(IS_CHROMEOS)
  
  #if BUILDFLAG(IS_ANDROID)
