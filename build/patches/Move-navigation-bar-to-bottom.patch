@@ -28,7 +28,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ChromeAccessibilitySettingsDelegate.java  | 52 ++++++++++++
  .../chrome/browser/app/ChromeActivity.java    | 13 +++
  .../browser/app/flags/ChromeCachedFlags.java  |  1 +
- .../compositor/CompositorViewHolder.java      |  6 ++
+ .../compositor/CompositorViewHolder.java      |  9 ++-
  .../layouts/LayoutManagerChrome.java          | 18 ++++-
  .../layouts/LayoutManagerChromeTablet.java    |  4 +-
  .../layouts/ToolbarSwipeLayout.java           | 15 +++-
@@ -86,7 +86,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../accessibility/AccessibilitySettings.java  | 16 ++++
  .../AccessibilitySettingsDelegate.java        |  6 ++
  .../render_widget_host_view_android.cc        |  3 +
- 74 files changed, 866 insertions(+), 60 deletions(-)
+ 74 files changed, 868 insertions(+), 61 deletions(-)
 
 diff --git a/cc/base/features.cc b/cc/base/features.cc
 --- a/cc/base/features.cc
@@ -761,6 +761,16 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/Comp
                          forwarder.setCurrentTouchEventOffsets(0, top);
                      }
                  });
+@@ -940,7 +946,8 @@ public class CompositorViewHolder extends FrameLayout
+                 // the |WebContents|.
+                 keyboardHeight = KeyboardVisibilityDelegate.getInstance().calculateKeyboardHeight(
+                         this.getRootView());
+-                h += keyboardHeight;
++                if (!ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled())
++                    h += keyboardHeight;
+             }
+             webContents.setSize(w, h - controlsHeight);
+             if (mVirtualKeyboardMode == VirtualKeyboardMode.OVERLAYS_CONTENT) {
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java
@@ -1601,7 +1611,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/system/Statu
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -7084,6 +7084,11 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -7087,6 +7087,11 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kWindowsScrollingPersonalityDescription, kOsAll,
       FEATURE_VALUE_TYPE(features::kWindowsScrollingPersonality)},
  
