@@ -1,0 +1,94 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Thu, 20 Apr 2023 07:45:37 +0000
+Subject: Multi-Screen Window Placement API fix
+
+Links the use of screen.isExtended to WINDOW_MANAGEMENT permission
+granted by user
+---
+ .../blink/renderer/core/frame/screen.cc       | 25 +++++++++++++++++--
+ .../blink/renderer/core/frame/screen.h        |  8 ++++++
+ 2 files changed, 31 insertions(+), 2 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/frame/screen.cc b/third_party/blink/renderer/core/frame/screen.cc
+--- a/third_party/blink/renderer/core/frame/screen.cc
++++ b/third_party/blink/renderer/core/frame/screen.cc
+@@ -35,6 +35,7 @@
+ #include "third_party/blink/renderer/core/frame/local_frame.h"
+ #include "third_party/blink/renderer/core/frame/settings.h"
+ #include "third_party/blink/renderer/core/page/chrome_client.h"
++#include "third_party/blink/renderer/modules/permissions/permission_utils.h"
+ #include "ui/display/screen_info.h"
+ #include "ui/display/screen_infos.h"
+ 
+@@ -49,7 +50,26 @@ Screen::Screen(LocalDOMWindow* window,
+                bool use_size_override)
+     : ExecutionContextClient(window),
+       display_id_(display_id),
+-      use_size_override_(use_size_override) {}
++      use_size_override_(use_size_override),
++      permission_service_(window) {
++  if (!permission_service_.is_bound()) {
++    ConnectToPermissionService(
++        window, permission_service_.BindNewPipeAndPassReceiver(
++                    window->GetTaskRunner(TaskType::kMiscPlatformAPI)));
++  }
++
++  permission_service_->HasPermission(
++      CreatePermissionDescriptor(mojom::blink::PermissionName::WINDOW_MANAGEMENT),
++      WTF::BindOnce(&Screen::DidGetPermissionState,
++                    WrapPersistent(this)));
++}
++
++void Screen::DidGetPermissionState(
++    mojom::blink::PermissionStatus status) {
++  has_permission_ =
++    status == mojom::blink::PermissionStatus::GRANTED;
++  permission_service_.reset();
++}
+ 
+ // static
+ bool Screen::AreWebExposedScreenPropertiesEqual(
+@@ -159,6 +179,7 @@ int Screen::availWidth() const {
+ }
+ 
+ void Screen::Trace(Visitor* visitor) const {
++  visitor->Trace(permission_service_);
+   EventTargetWithInlineData::Trace(visitor);
+   ExecutionContextClient::Trace(visitor);
+   Supplementable<Screen>::Trace(visitor);
+@@ -181,7 +202,7 @@ bool Screen::isExtended() const {
+     return false;
+   }
+ 
+-  return GetScreenInfo().is_extended;
++  return GetScreenInfo().is_extended && has_permission_;
+ }
+ 
+ gfx::Rect Screen::GetRect(bool available) const {
+diff --git a/third_party/blink/renderer/core/frame/screen.h b/third_party/blink/renderer/core/frame/screen.h
+--- a/third_party/blink/renderer/core/frame/screen.h
++++ b/third_party/blink/renderer/core/frame/screen.h
+@@ -33,6 +33,8 @@
+ #include "third_party/blink/renderer/core/dom/events/event_target.h"
+ #include "third_party/blink/renderer/core/execution_context/execution_context_lifecycle_observer.h"
+ #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
++#include "third_party/blink/public/mojom/permissions/permission.mojom-blink.h"
++#include "third_party/blink/renderer/platform/mojo/heap_mojo_remote.h"
+ #include "third_party/blink/renderer/platform/supplementable.h"
+ #include "third_party/blink/renderer/platform/wtf/text/atomic_string.h"
+ #include "ui/gfx/geometry/rect.h"
+@@ -99,6 +101,12 @@ class CORE_EXPORT Screen : public EventTargetWithInlineData,
+   // dimensions match window.innerWidth/innerHeight while a page is fullscreen,
+   // but that is not always true. crbug.com/1367416
+   const bool use_size_override_;
++
++ private:
++  void DidGetPermissionState(mojom::blink::PermissionStatus status);
++
++  bool has_permission_ = false;
++  HeapMojoRemote<mojom::blink::PermissionService> permission_service_;
+ };
+ 
+ }  // namespace blink
+--
+2.25.1
