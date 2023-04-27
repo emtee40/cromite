@@ -169,7 +169,7 @@ HcmV?d00001
 diff --git a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
 --- a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
 +++ b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
-@@ -75,6 +75,10 @@ Also add new settings to site_settings_preferences_with_categories.xml!
+@@ -71,6 +71,10 @@ Also add new settings to site_settings_preferences_with_categories.xml!
      <org.chromium.components.browser_ui.settings.ChromeBasePreference
          android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings"
          android:key="protected_content" />
@@ -224,7 +224,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -132,6 +132,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -133,6 +133,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
                  return "cookies_permission_list";
              case ContentSettingsType.FEDERATED_IDENTITY_API:
                  return "federated_identity_api_list";
@@ -233,7 +233,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case ContentSettingsType.IDLE_DETECTION:
                  return "idle_detection_permission_list";
              case ContentSettingsType.JAVASCRIPT:
-@@ -509,6 +511,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -510,6 +512,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
  
              if (type == ContentSettingsType.ADS) {
                  setUpAdsPreference(preference);
@@ -242,7 +242,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              } else if (type == ContentSettingsType.SOUND) {
                  setUpSoundPreference(preference);
              } else if (type == ContentSettingsType.JAVASCRIPT) {
-@@ -1030,6 +1034,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
+@@ -1031,6 +1035,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
          setupContentSettingsPreference(preference, currentValue, false /* isEmbargoed */);
      }
  
@@ -343,7 +343,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -826,6 +826,7 @@ static void JNI_WebsitePreferenceBridge_SetContentSettingEnabled(
+@@ -827,6 +827,7 @@ static void JNI_WebsitePreferenceBridge_SetContentSettingEnabled(
        case ContentSettingsType::REQUEST_DESKTOP_SITE:
        case ContentSettingsType::SENSORS:
        case ContentSettingsType::SOUND:
@@ -356,7 +356,7 @@ diff --git a/components/browser_ui/strings/android/site_settings.grdp b/componen
 +++ b/components/browser_ui/strings/android/site_settings.grdp
 @@ -22,6 +22,15 @@
    <message name="IDS_ANTI_ABUSE_PERMISSION_TITLE" desc="Title for the anti-abuse permission [CHAR_LIMIT=32]">
-     Spam &amp; fraud reduction
+     Auto-verify
    </message>
 +  <message name="IDS_AUTOPLAY_TITLE" desc='Title for the Autoplay settings screen [CHAR-LIMIT=32]'>
 +    Autoplay
@@ -397,7 +397,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
 --- a/components/content_settings/core/common/content_settings.cc
 +++ b/components/content_settings/core/common/content_settings.cc
-@@ -213,6 +213,7 @@ bool RendererContentSettingRules::IsRendererContentSetting(
+@@ -214,6 +214,7 @@ bool RendererContentSettingRules::IsRendererContentSetting(
    return content_type == ContentSettingsType::IMAGES ||
           content_type == ContentSettingsType::JAVASCRIPT ||
           content_type == ContentSettingsType::POPUPS ||
@@ -405,7 +405,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
           content_type == ContentSettingsType::MIXEDSCRIPT ||
           content_type == ContentSettingsType::AUTO_DARK_WEB_CONTENT ||
           content_type == ContentSettingsType::TIMEZONE_OVERRIDE;
-@@ -226,6 +227,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
+@@ -227,6 +228,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
    FilterRulesForType(mixed_content_rules, outermost_main_frame_url);
    FilterRulesForType(auto_dark_content_rules, outermost_main_frame_url);
    FilterRulesForType(timezone_override_rules, outermost_main_frame_url);
@@ -496,7 +496,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
 diff --git a/components/page_info/android/page_info_controller_android.cc b/components/page_info/android/page_info_controller_android.cc
 --- a/components/page_info/android/page_info_controller_android.cc
 +++ b/components/page_info/android/page_info_controller_android.cc
-@@ -145,6 +145,7 @@ void PageInfoControllerAndroid::SetPermissionInfo(
+@@ -138,6 +138,7 @@ void PageInfoControllerAndroid::SetPermissionInfo(
    permissions_to_display.push_back(ContentSettingsType::ADS);
    permissions_to_display.push_back(
        ContentSettingsType::PROTECTED_MEDIA_IDENTIFIER);

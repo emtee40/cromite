@@ -49,7 +49,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -36,6 +36,7 @@ import org.chromium.chrome.browser.profiles.Profile;
+@@ -37,6 +37,7 @@ import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.settings.ChromeManagedPreferenceDelegate;
  import org.chromium.chrome.browser.settings.SettingsLauncherImpl;
  import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
@@ -57,7 +57,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  import org.chromium.components.browser_ui.settings.SettingsLauncher;
  import org.chromium.components.browser_ui.settings.SettingsUtils;
  import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
-@@ -53,6 +54,9 @@ import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
+@@ -54,6 +55,9 @@ import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
  import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
  import org.chromium.components.browser_ui.settings.ManagedPreferenceDelegate;
  
@@ -67,7 +67,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  /**
   * Fragment to keep track of the all the privacy related preferences.
   */
-@@ -84,6 +88,8 @@ public class PrivacySettings
+@@ -86,6 +90,8 @@ public class PrivacySettings extends PreferenceFragmentCompat
      private ChromeSwitchPreference allowCustomTabIntentsPref;
      private ChromeSwitchPreference openExternalLinksPref;
  
@@ -76,7 +76,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      @Override
      public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
          PrivacyPreferencesManagerImpl privacyPrefManager =
-@@ -151,6 +157,40 @@ public class PrivacySettings
+@@ -153,6 +159,40 @@ public class PrivacySettings extends PreferenceFragmentCompat
          Preference secureDnsPref = findPreference(PREF_SECURE_DNS);
          secureDnsPref.setVisible(SecureDnsSettings.isUiEnabled());
  
@@ -117,7 +117,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          Preference thirdPartyCookies = findPreference(PREF_THIRD_PARTY_COOKIES);
          if (thirdPartyCookies != null) {
              thirdPartyCookies.getExtras().putString(
-@@ -253,6 +293,29 @@ public class PrivacySettings
+@@ -255,6 +295,29 @@ public class PrivacySettings extends PreferenceFragmentCompat
          }
      }
  
@@ -162,7 +162,7 @@ diff --git a/chrome/browser/history/history_service_factory.cc b/chrome/browser/
 diff --git a/chrome/browser/preferences/BUILD.gn b/chrome/browser/preferences/BUILD.gn
 --- a/chrome/browser/preferences/BUILD.gn
 +++ b/chrome/browser/preferences/BUILD.gn
-@@ -47,6 +47,7 @@ java_cpp_strings("java_pref_names_srcjar") {
+@@ -49,6 +49,7 @@ java_cpp_strings("java_pref_names_srcjar") {
      "//components/signin/public/base/signin_pref_names.cc",
      "//components/supervised_user/core/common/pref_names.cc",
      "//components/translate/core/browser/translate_pref_names.cc",
@@ -173,18 +173,18 @@ diff --git a/chrome/browser/preferences/BUILD.gn b/chrome/browser/preferences/BU
 diff --git a/chrome/browser/profiles/profile_impl.cc b/chrome/browser/profiles/profile_impl.cc
 --- a/chrome/browser/profiles/profile_impl.cc
 +++ b/chrome/browser/profiles/profile_impl.cc
-@@ -370,6 +370,7 @@ std::unique_ptr<Profile> Profile::CreateProfile(const base::FilePath& path,
+@@ -369,6 +369,7 @@ std::unique_ptr<Profile> Profile::CreateProfile(const base::FilePath& path,
  void ProfileImpl::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kSavingBrowserHistoryDisabled, false);
 +  registry->RegisterIntegerPref(prefs::kExpireDaysThreshold, 90);
    registry->RegisterBooleanPref(prefs::kAllowDeletingBrowserHistory, true);
-   registry->RegisterBooleanPref(prefs::kForceGoogleSafeSearch, false);
-   registry->RegisterIntegerPref(prefs::kForceYouTubeRestrict,
+   registry->RegisterBooleanPref(policy::policy_prefs::kForceGoogleSafeSearch,
+                                 false);
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1276,6 +1276,18 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1279,6 +1279,18 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_CLEAR_HISTORY_TITLE" desc="Title for Clear History in Clear Browsing Data dialog">
          Browsing history
        </message>
@@ -307,7 +307,7 @@ diff --git a/components/browser_ui/settings/android/widget/java/src/org/chromium
 diff --git a/components/history/core/browser/expire_history_backend.cc b/components/history/core/browser/expire_history_backend.cc
 --- a/components/history/core/browser/expire_history_backend.cc
 +++ b/components/history/core/browser/expire_history_backend.cc
-@@ -387,7 +387,7 @@ const ExpiringVisitsReader*
+@@ -391,7 +391,7 @@ const ExpiringVisitsReader*
  
  void ExpireHistoryBackend::StartExpiringOldStuff(
      base::TimeDelta expiration_threshold) {
@@ -316,7 +316,7 @@ diff --git a/components/history/core/browser/expire_history_backend.cc b/compone
  
    // Remove all readers, just in case this was method was called before.
    readers_.clear();
-@@ -403,6 +403,11 @@ void ExpireHistoryBackend::StartExpiringOldStuff(
+@@ -407,6 +407,11 @@ void ExpireHistoryBackend::StartExpiringOldStuff(
    ScheduleExpire();
  }
  
@@ -328,7 +328,7 @@ diff --git a/components/history/core/browser/expire_history_backend.cc b/compone
  void ExpireHistoryBackend::DeleteFaviconsIfPossible(DeleteEffects* effects) {
    if (!favicon_db_)
      return;
-@@ -605,6 +610,12 @@ void ExpireHistoryBackend::DoExpireIteration() {
+@@ -609,6 +614,12 @@ void ExpireHistoryBackend::DoExpireIteration() {
      return;
    }
  
@@ -475,7 +475,7 @@ diff --git a/components/history/core/browser/history_service.h b/components/hist
    // Triggers the backend to load if it hasn't already, and then returns whether
    // it's finished loading.
    // Note: Virtual needed for mocking.
-@@ -1069,6 +1073,10 @@ class HistoryService : public KeyedService {
+@@ -1070,6 +1074,10 @@ class HistoryService : public KeyedService {
  
    base::OnceClosure origin_queried_closure_for_testing_;
  
@@ -489,7 +489,7 @@ diff --git a/components/history/core/browser/history_service.h b/components/hist
 diff --git a/components/history/core/common/pref_names.cc b/components/history/core/common/pref_names.cc
 --- a/components/history/core/common/pref_names.cc
 +++ b/components/history/core/common/pref_names.cc
-@@ -9,4 +9,8 @@ namespace prefs {
+@@ -9,6 +9,10 @@ namespace prefs {
  // Boolean controlling whether history saving is disabled.
  const char kSavingBrowserHistoryDisabled[] = "history.saving_disabled";
  
@@ -497,7 +497,9 @@ diff --git a/components/history/core/common/pref_names.cc b/components/history/c
 +// and is deleted.
 +const char kExpireDaysThreshold[] = "history.expire_days_threshold";
 +
- }  // namespace prefs
+ // Boolean controlling whether deleting browsing and download history is
+ // permitted.
+ const char kAllowDeletingBrowserHistory[] = "history.deleting_enabled";
 diff --git a/components/history/core/common/pref_names.h b/components/history/core/common/pref_names.h
 --- a/components/history/core/common/pref_names.h
 +++ b/components/history/core/common/pref_names.h
@@ -506,8 +508,8 @@ diff --git a/components/history/core/common/pref_names.h b/components/history/co
  
  extern const char kSavingBrowserHistoryDisabled[];
 +extern const char kExpireDaysThreshold[];
+ extern const char kAllowDeletingBrowserHistory[];
  
  }  // namespace prefs
- 
 --
 2.25.1

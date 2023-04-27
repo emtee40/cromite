@@ -22,7 +22,7 @@ samesite=none first-party cookies are sent in third-party contexts.
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -256,8 +256,8 @@ BASE_FEATURE(kSamePartyAttributeEnabled,
+@@ -252,8 +252,8 @@ BASE_FEATURE(kSamePartyAttributeEnabled,
               base::FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kPartitionedCookies,
@@ -33,7 +33,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
  
  BASE_FEATURE(kNoncedPartitionedCookies,
               "NoncedPartitionedCookies",
-@@ -276,8 +276,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
+@@ -268,8 +268,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kCookieDomainRejectNonASCII,
@@ -47,7 +47,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
 diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
 --- a/net/cookies/canonical_cookie.cc
 +++ b/net/cookies/canonical_cookie.cc
-@@ -1462,8 +1462,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
+@@ -1469,8 +1469,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
    if (IsPartitioned()) {
      if (CookiePartitionKey::HasNonce(partition_key_))
        return true;
@@ -56,7 +56,7 @@ diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
    }
  
    return true;
-@@ -1706,14 +1704,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
+@@ -1713,14 +1711,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
                                                 bool secure,
                                                 bool is_partitioned,
                                                 bool partition_has_nonce) {
@@ -112,7 +112,7 @@ diff --git a/net/cookies/parsed_cookie.h b/net/cookies/parsed_cookie.h
 diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
 --- a/net/extras/sqlite/sqlite_persistent_cookie_store.cc
 +++ b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
-@@ -861,6 +861,16 @@ bool SQLitePersistentCookieStore::Backend::DoInitializeDatabase() {
+@@ -862,6 +862,16 @@ bool SQLitePersistentCookieStore::Backend::DoInitializeDatabase() {
    if (!restore_old_session_cookies_)
      DeleteSessionCookiesOnStartup();
  
@@ -132,7 +132,7 @@ diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sq
 diff --git a/services/network/cookie_settings.cc b/services/network/cookie_settings.cc
 --- a/services/network/cookie_settings.cc
 +++ b/services/network/cookie_settings.cc
-@@ -33,6 +33,11 @@ bool IsExplicitSetting(const ContentSettingPatternSource& setting) {
+@@ -35,6 +35,11 @@ bool IsExplicitSetting(const ContentSettingPatternSource& setting) {
           !setting.secondary_pattern.MatchesAllHosts();
  }
  
@@ -144,7 +144,7 @@ diff --git a/services/network/cookie_settings.cc b/services/network/cookie_setti
  const ContentSettingPatternSource* FindMatchingSetting(
      const GURL& primary_url,
      const GURL& secondary_url,
-@@ -191,11 +196,14 @@ net::NetworkDelegate::PrivacySetting CookieSettings::IsPrivacyModeEnabled(
+@@ -193,11 +198,14 @@ net::NetworkDelegate::PrivacySetting CookieSettings::IsPrivacyModeEnabled(
  
  CookieSettings::ThirdPartyBlockingScope
  CookieSettings::GetThirdPartyBlockingScope(const GURL& first_party_url) const {
@@ -164,7 +164,7 @@ diff --git a/services/network/cookie_settings.cc b/services/network/cookie_setti
 diff --git a/services/network/restricted_cookie_manager.cc b/services/network/restricted_cookie_manager.cc
 --- a/services/network/restricted_cookie_manager.cc
 +++ b/services/network/restricted_cookie_manager.cc
-@@ -754,6 +754,9 @@ void RestrictedCookieManager::SetCookieFromString(
+@@ -770,6 +770,9 @@ void RestrictedCookieManager::SetCookieFromString(
    std::move(callback).Run(site_for_cookies_ok, top_frame_origin_ok);
    callback = base::DoNothing();
  
@@ -179,7 +179,7 @@ diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_init.idl b/t
 +++ b/third_party/blink/renderer/modules/cookie_store/cookie_init.idl
 @@ -17,5 +17,5 @@ dictionary CookieInit {
    USVString path = "/";
-   EpochTimeStamp? expires = null;
+   DOMHighResTimeStamp? expires = null;
    CookieSameSite sameSite = "strict";
 -  [RuntimeEnabled=PartitionedCookies] boolean partitioned = false;
 +  [RuntimeEnabled=PartitionedCookies] boolean partitioned = true;

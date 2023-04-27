@@ -23,7 +23,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1021,11 +1021,11 @@ void RegisterProfilePrefsForMigration(
+@@ -1069,11 +1069,11 @@ void RegisterProfilePrefsForMigration(
                                     PrefRegistry::LOSSY_PREF);
  
    // Deprecated 11/2022.
@@ -41,7 +41,7 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
 diff --git a/chrome/browser/ui/autofill/chrome_autofill_client.cc b/chrome/browser/ui/autofill/chrome_autofill_client.cc
 --- a/chrome/browser/ui/autofill/chrome_autofill_client.cc
 +++ b/chrome/browser/ui/autofill/chrome_autofill_client.cc
-@@ -162,12 +162,7 @@ ChromeAutofillClient::GetURLLoaderFactory() {
+@@ -177,12 +177,7 @@ ChromeAutofillClient::GetURLLoaderFactory() {
  }
  
  AutofillDownloadManager* ChromeAutofillClient::GetDownloadManager() {
@@ -54,7 +54,7 @@ diff --git a/chrome/browser/ui/autofill/chrome_autofill_client.cc b/chrome/brows
 +  return nullptr;
  }
  
- PersonalDataManager* ChromeAutofillClient::GetPersonalDataManager() {
+ AutofillOptimizationGuide* ChromeAutofillClient::GetAutofillOptimizationGuide()
 diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/components/autofill/core/browser/autofill_download_manager.cc
 --- a/components/autofill/core/browser/autofill_download_manager.cc
 +++ b/components/autofill/core/browser/autofill_download_manager.cc
@@ -154,8 +154,8 @@ diff --git a/components/autofill/core/browser/autofill_download_manager.h b/comp
 diff --git a/components/autofill/core/browser/browser_autofill_manager.h b/components/autofill/core/browser/browser_autofill_manager.h
 --- a/components/autofill/core/browser/browser_autofill_manager.h
 +++ b/components/autofill/core/browser/browser_autofill_manager.h
-@@ -743,9 +743,9 @@ class BrowserAutofillManager : public AutofillManager,
-   std::unique_ptr<CreditCardFormEventLogger> credit_card_form_event_logger_;
+@@ -778,9 +778,9 @@ class BrowserAutofillManager : public AutofillManager,
+       credit_card_form_event_logger_;
  
    // Have we logged whether Autofill is enabled for this page load?
 -  bool has_logged_autofill_enabled_ = false;
@@ -169,7 +169,7 @@ diff --git a/components/autofill/core/browser/browser_autofill_manager.h b/compo
 diff --git a/components/autofill/core/common/autofill_features.cc b/components/autofill/core/common/autofill_features.cc
 --- a/components/autofill/core/common/autofill_features.cc
 +++ b/components/autofill/core/common/autofill_features.cc
-@@ -701,8 +701,8 @@ BASE_FEATURE(kAutofillCreateDataForTest,
+@@ -729,8 +729,8 @@ BASE_FEATURE(kAutofillLogToTerminal,
  // "upload" resources.
  // i.e., https://other.autofill.server:port/tbproxy/af/
  BASE_FEATURE(kAutofillServerCommunication,
@@ -183,7 +183,7 @@ diff --git a/components/autofill/core/common/autofill_features.cc b/components/a
 diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/autofill/core/common/autofill_prefs.cc
 --- a/components/autofill/core/common/autofill_prefs.cc
 +++ b/components/autofill/core/common/autofill_prefs.cc
-@@ -103,7 +103,7 @@ const char kAutocompleteLastVersionRetentionPolicy[] =
+@@ -109,7 +109,7 @@ const char kAutocompleteLastVersionRetentionPolicy[] =
  void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
    // Synced prefs. Used for cross-device choices, e.g., credit card Autofill.
    registry->RegisterBooleanPref(
@@ -192,7 +192,7 @@ diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/auto
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterIntegerPref(
        prefs::kAutofillLastVersionDeduped, 0,
-@@ -113,10 +113,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -121,10 +121,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
        prefs::kAutofillLastVersionDisusedAddressesDeleted, 0,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterBooleanPref(
@@ -205,7 +205,7 @@ diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/auto
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
  
    // Non-synced prefs. Used for per-device choices, e.g., signin promo.
-@@ -140,7 +140,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -148,7 +148,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
  
    // Deprecated prefs registered for migration.
    registry->RegisterBooleanPref(

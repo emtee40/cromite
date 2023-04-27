@@ -19,7 +19,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -224,6 +224,7 @@ import org.chromium.content_public.browser.ScreenOrientationProvider;
+@@ -222,6 +222,7 @@ import org.chromium.content_public.browser.ScreenOrientationProvider;
  import org.chromium.content_public.browser.SelectionPopupController;
  import org.chromium.content_public.browser.WebContents;
  import org.chromium.content_public.common.ContentSwitches;
@@ -27,7 +27,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  import org.chromium.printing.PrintManagerDelegateImpl;
  import org.chromium.printing.PrintingController;
  import org.chromium.printing.PrintingControllerImpl;
-@@ -952,6 +953,8 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -951,6 +952,8 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
          super.onStartWithNative();
          ChromeActivitySessionTracker.getInstance().onStartWithNative();
          ChromeCachedFlags.getInstance().cacheNativeFlags();
@@ -39,10 +39,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
-@@ -67,6 +67,7 @@ public class ChromeCachedFlags {
- 
+@@ -69,6 +69,7 @@ public class ChromeCachedFlags {
          // clang-format off
          List<CachedFlag> featuresToCache = List.of(ChromeFeatureList.sAppMenuMobileSiteOption,
+                 ChromeFeatureList.sBackGestureActivityTabProvider,
 +                ChromeFeatureList.sAllowUserCertificates,
                  ChromeFeatureList.sBackGestureRefactorAndroid,
                  ChromeFeatureList.sBaselineGm3SurfaceColors,
@@ -50,7 +50,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/Chrom
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -8287,6 +8287,10 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -8617,6 +8617,10 @@ const FeatureEntry kFeatureEntries[] = {
       FEATURE_VALUE_TYPE(features::kWin10TabSearchCaptionButton)},
  #endif  // BUILDFLAG(IS_WIN)
  
@@ -93,14 +93,14 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
 @@ -146,6 +146,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
-     &feed::kFeedPerformanceStudy,
      &feed::kFeedShowSignInCommand,
+     &feed::kFeedBoCSigninInterstitial,
      &feed::kInterestFeedContentSuggestions,
 +    &kAllowUserCertificates,
      &feed::kInterestFeedV2,
      &feed::kInterestFeedV2Autoplay,
      &feed::kInterestFeedV2Hearts,
-@@ -446,6 +447,10 @@ BASE_FEATURE(kAllowNewIncognitoTabIntents,
+@@ -461,6 +462,10 @@ BASE_FEATURE(kAllowNewIncognitoTabIntents,
               "AllowNewIncognitoTabIntents",
               base::FEATURE_ENABLED_BY_DEFAULT);
  
@@ -114,14 +114,14 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -18,6 +18,7 @@ BASE_DECLARE_FEATURE(kAdaptiveButtonInTopToolbarCustomizationV2);
+@@ -20,6 +20,7 @@ BASE_DECLARE_FEATURE(kAdaptiveButtonInTopToolbarCustomizationV2);
  BASE_DECLARE_FEATURE(kAddEduAccountFromAccountSettingsForSupervisedUsers);
  BASE_DECLARE_FEATURE(kAddToHomescreenIPH);
  BASE_DECLARE_FEATURE(kAllowNewIncognitoTabIntents);
 +BASE_DECLARE_FEATURE(kAllowUserCertificates);
  BASE_DECLARE_FEATURE(kAndroidScrollOptimizations);
+ BASE_DECLARE_FEATURE(kAndroidWidgetFullscreenToast);
  BASE_DECLARE_FEATURE(kAndroidSearchEngineChoiceNotification);
- BASE_DECLARE_FEATURE(kAndroidImprovedBookmarks);
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
@@ -131,9 +131,9 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      /* Alphabetical: */
 +    public static final String ALLOW_USER_CERTIFICATES = "AllowUserCertificates";
      public static final String ADAPTIVE_BUTTON_IN_TOP_TOOLBAR = "AdaptiveButtonInTopToolbar";
-     public static final String ADAPTIVE_BUTTON_IN_TOP_TOOLBAR_CUSTOMIZATION_V2 =
-             "AdaptiveButtonInTopToolbarCustomizationV2";
-@@ -571,6 +572,8 @@ public abstract class ChromeFeatureList {
+     public static final String ADAPTIVE_BUTTON_IN_TOP_TOOLBAR_TRANSLATE =
+             "AdaptiveButtonInTopToolbarTranslate";
+@@ -586,6 +587,8 @@ public abstract class ChromeFeatureList {
      public static final String XSURFACE_METRICS_REPORTING = "XsurfaceMetricsReporting";
  
      /* Alphabetical: */
@@ -141,7 +141,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
 +            new CachedFlag(ALLOW_USER_CERTIFICATES, false);
      public static final CachedFlag sAppMenuMobileSiteOption =
              new CachedFlag(APP_MENU_MOBILE_SITE_OPTION, false);
-     public static final CachedFlag sBackGestureRefactorActivityAndroid =
+     public static final CachedFlag sBackGestureActivityTabProvider =
 diff --git a/net/android/java/src/org/chromium/net/X509Util.java b/net/android/java/src/org/chromium/net/X509Util.java
 --- a/net/android/java/src/org/chromium/net/X509Util.java
 +++ b/net/android/java/src/org/chromium/net/X509Util.java

@@ -5,14 +5,14 @@ Subject: Add support for ISupportHelpAndFeedback
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../chrome/browser/settings/SettingsActivity.java      | 10 ++++++++--
- .../components/browser_ui/settings/SettingsUtils.java  |  4 ++++
- 2 files changed, 12 insertions(+), 2 deletions(-)
+ .../chrome/browser/settings/SettingsActivity.java        | 9 +++++++--
+ .../components/browser_ui/settings/SettingsUtils.java    | 4 ++++
+ 2 files changed, 11 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
-@@ -71,6 +71,7 @@ import org.chromium.components.browser_ui.settings.CustomDividerFragment;
+@@ -72,6 +72,7 @@ import org.chromium.components.browser_ui.settings.CustomDividerFragment;
  import org.chromium.components.browser_ui.settings.FragmentSettingsLauncher;
  import org.chromium.components.browser_ui.settings.PaddedDividerItemDecoration;
  import org.chromium.components.browser_ui.settings.SettingsLauncher;
@@ -20,18 +20,17 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/Settin
  import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
  import org.chromium.components.browser_ui.site_settings.SiteSettingsPreferenceFragment;
  import org.chromium.components.browser_ui.util.TraceEventVectorDrawableCompat;
-@@ -391,8 +392,13 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+@@ -382,8 +383,12 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
              finish();
              return true;
          } else if (item.getItemId() == R.id.menu_id_general_help) {
--            HelpAndFeedbackLauncherImpl.getInstance().show(
--                    this, getString(R.string.help_context_settings), mProfile, null);
+-            HelpAndFeedbackLauncherImpl.getForProfile(mProfile).show(
+-                    this, getString(R.string.help_context_settings), null);
 +            if (mainFragment instanceof SettingsUtils.ISupportHelpAndFeedback) {
 +                ((SettingsUtils.ISupportHelpAndFeedback)mainFragment).onHelpAndFeebackPressed();
 +            } else {
-+                HelpAndFeedbackLauncherImpl.getInstance().show(this,
-+                        getString(R.string.help_context_settings), Profile.getLastUsedRegularProfile(),
-+                        null);
++                HelpAndFeedbackLauncherImpl.getForProfile(mProfile).show(
++                        this, getString(R.string.help_context_settings), null);
 +            }
              return true;
          }

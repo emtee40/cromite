@@ -27,7 +27,7 @@ you can remove the message by going to chrome://flags/#no-hw-aes-warning
 diff --git a/base/base_switches.cc b/base/base_switches.cc
 --- a/base/base_switches.cc
 +++ b/base/base_switches.cc
-@@ -179,6 +179,8 @@ extern const char kEnableCrashpad[] = "enable-crashpad";
+@@ -176,6 +176,8 @@ extern const char kEnableCrashpad[] = "enable-crashpad";
  
  const char kDesktopModeViewportMetaEnabled[] = "dm-viewport-meta-enabled";
  
@@ -50,7 +50,7 @@ diff --git a/base/base_switches.h b/base/base_switches.h
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
-@@ -415,6 +415,7 @@ if (is_win) {
+@@ -447,6 +447,7 @@ if (is_win) {
        "//components/policy:generated",
        "//content/public/app",
        "//crypto",
@@ -58,15 +58,15 @@ diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
        "//headless:headless_non_renderer",
        "//headless:headless_shell_browser_lib",
        "//net:net_resources",
-@@ -1666,6 +1667,8 @@ if (is_android) {
+@@ -1681,6 +1682,8 @@ if (is_android) {
        "//chrome/common/profiler",
        "//chrome/gpu",
        "//chrome/renderer",
 +      "//crypto",
 +      "//third_party/boringssl",
-       "//components/gwp_asan/buildflags",
-       "//components/heap_profiling/in_process",
        "//components/minidump_uploader",
+       "//components/safe_browsing:buildflags",
+       "//components/safe_browsing/android:safe_browsing_api_handler",
 diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegate.cc
 --- a/chrome/app/chrome_main_delegate.cc
 +++ b/chrome/app/chrome_main_delegate.cc
@@ -80,7 +80,7 @@ diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegat
  
  #if BUILDFLAG(IS_WIN)
  #include <malloc.h>
-@@ -1075,6 +1078,13 @@ absl::optional<int> ChromeMainDelegate::BasicStartupComplete() {
+@@ -1054,6 +1057,13 @@ absl::optional<int> ChromeMainDelegate::BasicStartupComplete() {
      return chrome::RESULT_CODE_INVALID_SANDBOX_STATE;
  #endif
  
@@ -97,7 +97,7 @@ diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegat
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -6334,6 +6334,10 @@ Keep your key file in a safe place. You will need it to create new versions of y
+@@ -6394,6 +6394,10 @@ Keep your key file in a safe place. You will need it to create new versions of y
          You are using an unsupported feature flag: <ph name="BAD_FLAG">$1<ex>SignedHTTPExchange</ex></ph>. Stability and security will suffer.
        </message>
  
@@ -111,7 +111,7 @@ diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -7111,6 +7111,10 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -7412,6 +7412,10 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kDevicePostureDescription, kOsAll,
       FEATURE_VALUE_TYPE(features::kDevicePosture)},
  
@@ -125,7 +125,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -781,6 +781,10 @@ const char kDevicePostureName[] = "Device Posture API";
+@@ -786,6 +786,10 @@ const char kDevicePostureName[] = "Device Posture API";
  const char kDevicePostureDescription[] =
      "Enables Device Posture API (foldable devices)";
  
@@ -139,7 +139,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -576,6 +576,9 @@ extern const char kDeviceForceScheduledRebootDescription[];
+@@ -577,6 +577,9 @@ extern const char kDeviceForceScheduledRebootDescription[];
  extern const char kDevicePostureName[];
  extern const char kDevicePostureDescription[];
  
@@ -171,7 +171,7 @@ diff --git a/chrome/browser/ui/startup/bad_flags_prompt.cc b/chrome/browser/ui/s
 diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content/browser/renderer_host/render_process_host_impl.cc
 --- a/content/browser/renderer_host/render_process_host_impl.cc
 +++ b/content/browser/renderer_host/render_process_host_impl.cc
-@@ -3504,6 +3504,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+@@ -3530,6 +3530,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
      switches::kLacrosUseChromeosProtectedAv1,
  #endif
      switches::kDesktopModeViewportMetaEnabled,
@@ -182,7 +182,7 @@ diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 --- a/content/public/common/content_features.cc
 +++ b/content/public/common/content_features.cc
-@@ -792,6 +792,11 @@ BASE_FEATURE(kNoStatePrefetchHoldback,
+@@ -790,6 +790,11 @@ BASE_FEATURE(kNoStatePrefetchHoldback,
               "NoStatePrefetchHoldback",
               base::FEATURE_DISABLED_BY_DEFAULT);
  

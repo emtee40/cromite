@@ -6,10 +6,10 @@ Subject: WIN Fix windows build
  .../browser_process_platform_part_win.cc      |  3 ++
  chrome/browser/devtools/devtools_window.cc    |  1 +
  chrome/browser/ui/profile_picker.cc           |  2 +-
- .../browser/ui/startup/first_run_service.cc   | 14 +++-----
- chrome/browser/updater/BUILD.gn               |  9 -----
- .../browser/updater/browser_updater_client.cc | 33 +------------------
- 6 files changed, 10 insertions(+), 52 deletions(-)
+ .../browser/ui/startup/first_run_service.cc   | 12 +++----
+ chrome/browser/updater/BUILD.gn               |  9 ------
+ .../browser/updater/browser_updater_client.cc | 32 +------------------
+ 6 files changed, 10 insertions(+), 49 deletions(-)
 
 diff --git a/chrome/browser/browser_process_platform_part_win.cc b/chrome/browser/browser_process_platform_part_win.cc
 --- a/chrome/browser/browser_process_platform_part_win.cc
@@ -44,7 +44,7 @@ diff --git a/chrome/browser/devtools/devtools_window.cc b/chrome/browser/devtool
 diff --git a/chrome/browser/ui/profile_picker.cc b/chrome/browser/ui/profile_picker.cc
 --- a/chrome/browser/ui/profile_picker.cc
 +++ b/chrome/browser/ui/profile_picker.cc
-@@ -102,7 +102,7 @@ ProfilePicker::Params ProfilePicker::Params::ForFirstRun(
+@@ -103,7 +103,7 @@ ProfilePicker::Params ProfilePicker::Params::ForFirstRun(
  #endif
  
    Params params(
@@ -56,15 +56,15 @@ diff --git a/chrome/browser/ui/profile_picker.cc b/chrome/browser/ui/profile_pic
 diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/startup/first_run_service.cc
 --- a/chrome/browser/ui/startup/first_run_service.cc
 +++ b/chrome/browser/ui/startup/first_run_service.cc
-@@ -47,6 +47,7 @@
- namespace {
+@@ -43,6 +43,7 @@
  
+ namespace {
  bool IsFirstRunEligibleProfile(Profile* profile) {
 +  if ((true)) return false;
    if (profile->IsOffTheRecord()) {
      return false;
    }
-@@ -74,6 +75,7 @@ bool IsFirstRunEligibleProfile(Profile* profile) {
+@@ -70,6 +71,7 @@ bool IsFirstRunEligibleProfile(Profile* profile) {
  }
  
  bool IsFirstRunEligibleProcess() {
@@ -72,17 +72,15 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
  #if !BUILDFLAG(IS_CHROMEOS_LACROS)
    // On Lacros we want to run the FRE beyond the strict first run as defined by
    // `IsChromeFirstRun()` for a few reasons:
-@@ -164,9 +166,6 @@ enum class FinishedReason {
- };
- 
- void SetFirstRunFinished(FinishedReason reason) {
--  PrefService* local_state = g_browser_process->local_state();
--  local_state->SetBoolean(prefs::kFirstRunFinished, true);
+@@ -169,7 +171,6 @@ void SetFirstRunFinished(FinishedReason reason) {
+   PrefService* local_state = g_browser_process->local_state();
+   local_state->SetBoolean(prefs::kFirstRunFinished, true);
+   base::UmaHistogramEnumeration("ProfilePicker.FirstRun.FinishReason", reason);
 -
  #if BUILDFLAG(IS_CHROMEOS_LACROS)
    absl::optional<ProfileMetrics::ProfileSignedInFlowOutcome> outcome;
    switch (reason) {
-@@ -193,9 +192,7 @@ void SetFirstRunFinished(FinishedReason reason) {
+@@ -196,9 +197,7 @@ void SetFirstRunFinished(FinishedReason reason) {
  // with it, or if for some other reason (e.g. policy or some other browser
  // state) we determine that we should not show it.
  bool IsFirstRunMarkedFinishedInPrefs() {
@@ -91,9 +89,9 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
 -  return local_state && local_state->GetBoolean(prefs::kFirstRunFinished);
 +  return true;
  }
+ }  // namespace
  
- // Processes the outcome from the FRE and resumes the user's interrupted task.
-@@ -234,8 +231,6 @@ void OnFirstRunHasExited(ResumeTaskCallback original_intent_callback,
+@@ -206,8 +205,6 @@ bool IsFirstRunMarkedFinishedInPrefs() {
  
  // static
  void FirstRunService::RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
@@ -101,8 +99,8 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
 -  registry->RegisterStringPref(prefs::kFirstRunStudyGroup, "");
  }
  
- #if BUILDFLAG(ENABLE_DICE_SUPPORT)
-@@ -318,7 +313,6 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
+ FirstRunService::FirstRunService(Profile* profile) : profile_(profile) {}
+@@ -231,7 +228,6 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
      return;
    }
  
@@ -110,7 +108,7 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
    bool has_set_up_profile =
  #if BUILDFLAG(IS_CHROMEOS_LACROS)
        // Indicates that the profile was likely migrated from pre-Lacros Ash.
-@@ -328,7 +322,7 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
+@@ -241,7 +237,7 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
        // the profile already has an account (e.g. the sentinel file was deleted
        // or `--force-first-run` was passed), this ensures we still skip it and
        // avoid having to handle too strange states later.
@@ -161,7 +159,7 @@ diff --git a/chrome/browser/updater/browser_updater_client.cc b/chrome/browser/u
  }
  
  void BrowserUpdaterClient::RegistrationCompleted(base::OnceClosure complete,
-@@ -72,19 +59,6 @@ void BrowserUpdaterClient::GetUpdaterVersionCompleted(
+@@ -72,18 +59,6 @@ void BrowserUpdaterClient::GetUpdaterVersionCompleted(
  void BrowserUpdaterClient::CheckForUpdate(
      updater::UpdateService::StateChangeCallback version_updater_callback) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -173,7 +171,6 @@ diff --git a/chrome/browser/updater/browser_updater_client.cc b/chrome/browser/u
 -  update_service_->Update(
 -      GetAppId(), {}, updater::UpdateService::Priority::kForeground,
 -      updater::UpdateService::PolicySameVersionUpdate::kNotAllowed,
--      /*do_update_check_only=*/false,
 -      base::BindPostTaskToCurrentDefault(version_updater_callback),
 -      base::BindPostTaskToCurrentDefault(
 -          base::BindOnce(&BrowserUpdaterClient::UpdateCompleted, this,
@@ -181,7 +178,7 @@ diff --git a/chrome/browser/updater/browser_updater_client.cc b/chrome/browser/u
  }
  
  void BrowserUpdaterClient::UpdateCompleted(
-@@ -130,12 +104,7 @@ void BrowserUpdaterClient::IsBrowserRegisteredCompleted(
+@@ -129,12 +104,7 @@ void BrowserUpdaterClient::IsBrowserRegisteredCompleted(
      base::OnceCallback<void(bool)> callback,
      const std::vector<updater::UpdateService::AppState>& apps) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);

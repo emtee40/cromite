@@ -32,7 +32,7 @@ diff --git a/chrome/browser/ssl/https_only_mode_upgrade_interceptor.cc b/chrome/
 diff --git a/chrome/browser/ssl/https_upgrades_interceptor.cc b/chrome/browser/ssl/https_upgrades_interceptor.cc
 --- a/chrome/browser/ssl/https_upgrades_interceptor.cc
 +++ b/chrome/browser/ssl/https_upgrades_interceptor.cc
-@@ -231,6 +231,7 @@ void HttpsUpgradesInterceptor::MaybeCreateLoader(
+@@ -279,6 +279,7 @@ void HttpsUpgradesInterceptor::MaybeCreateLoader(
    network::mojom::NetworkContext* network_context =
        profile->GetDefaultStoragePartition()->GetNetworkContext();
    network_context->IsHSTSActiveForHost(
@@ -151,7 +151,7 @@ diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_
 +  return GetSTSState(nak, host, &unused_sts) || GetPKPState(nak, host, &unused_pkp);
  }
  
- base::Value TransportSecurityState::NetLogUpgradeToSSLParam(
+ base::Value::Dict TransportSecurityState::NetLogUpgradeToSSLParam(
 +    const NetworkAnonymizationKey& nak,
      const std::string& host) {
    STSState sts_state;
@@ -162,7 +162,7 @@ diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_
    dict.Set("should_upgrade_to_ssl", sts_state.ShouldUpgradeToSSL());
    dict.Set("host_found_in_hsts_bypass_list",
             hsts_host_bypass_list_.find(host) != hsts_host_bypass_list_.end());
-@@ -413,13 +437,14 @@ base::Value TransportSecurityState::NetLogUpgradeToSSLParam(
+@@ -413,13 +437,14 @@ base::Value::Dict TransportSecurityState::NetLogUpgradeToSSLParam(
  }
  
  bool TransportSecurityState::ShouldUpgradeToSSL(
@@ -357,7 +357,7 @@ diff --git a/net/http/transport_security_state.cc b/net/http/transport_security_
 diff --git a/net/http/transport_security_state.h b/net/http/transport_security_state.h
 --- a/net/http/transport_security_state.h
 +++ b/net/http/transport_security_state.h
-@@ -327,8 +327,8 @@ class NET_EXPORT TransportSecurityState {
+@@ -328,8 +328,8 @@ class NET_EXPORT TransportSecurityState {
    // primary public interface; direct access to STS and PKP states is best
    // left to tests. The caller needs to handle the optional pinning override
    // when is_issued_by_known_root is false.
@@ -368,7 +368,7 @@ diff --git a/net/http/transport_security_state.h b/net/http/transport_security_s
                            const NetLogWithSource& net_log = NetLogWithSource());
    PKPStatus CheckPublicKeyPins(
        const HostPortPair& host_port_pair,
-@@ -339,7 +339,7 @@ class NET_EXPORT TransportSecurityState {
+@@ -340,7 +340,7 @@ class NET_EXPORT TransportSecurityState {
        const PublicKeyPinReportStatus report_status,
        const NetworkAnonymizationKey& network_anonymization_key,
        std::string* failure_log);
@@ -377,7 +377,7 @@ diff --git a/net/http/transport_security_state.h b/net/http/transport_security_s
  
    // Returns CT_REQUIREMENTS_NOT_MET if a connection violates CT policy
    // requirements: that is, if a connection to |host|, using the validated
-@@ -428,7 +428,7 @@ class NET_EXPORT TransportSecurityState {
+@@ -429,7 +429,7 @@ class NET_EXPORT TransportSecurityState {
    //
    // If an entry is deleted, the new state will be persisted through
    // the Delegate (if any).
@@ -386,7 +386,7 @@ diff --git a/net/http/transport_security_state.h b/net/http/transport_security_s
  
    // Returns true and updates |*result| if |host| has dynamic or static
    // HSTS/HPKP (respectively) state. If multiple entries match |host|, dynamic
-@@ -438,8 +438,8 @@ class NET_EXPORT TransportSecurityState {
+@@ -439,8 +439,8 @@ class NET_EXPORT TransportSecurityState {
    //
    // Note that these methods are not const because they opportunistically remove
    // entries that have expired.
@@ -397,7 +397,7 @@ diff --git a/net/http/transport_security_state.h b/net/http/transport_security_s
  
    // Returns true and updates |*result| iff |host| has static HSTS/HPKP
    // (respectively) state. If multiple entries match |host|, the most specific
-@@ -453,22 +453,24 @@ class NET_EXPORT TransportSecurityState {
+@@ -454,22 +454,24 @@ class NET_EXPORT TransportSecurityState {
    //
    // Note that these methods are not const because they opportunistically remove
    // entries that have expired.
@@ -427,16 +427,16 @@ diff --git a/net/http/transport_security_state.h b/net/http/transport_security_s
                 const base::Time& expiry,
                 bool include_subdomains,
                 const HashValueVector& hashes,
-@@ -516,7 +518,7 @@ class NET_EXPORT TransportSecurityState {
+@@ -517,7 +519,7 @@ class NET_EXPORT TransportSecurityState {
    typedef ExpiringCache<std::string, bool, base::TimeTicks, std::less<>>
        ReportCache;
  
--  base::Value NetLogUpgradeToSSLParam(const std::string& host);
-+  base::Value NetLogUpgradeToSSLParam(const NetworkAnonymizationKey& nak, const std::string& host);
+-  base::Value::Dict NetLogUpgradeToSSLParam(const std::string& host);
++  base::Value::Dict NetLogUpgradeToSSLParam(const NetworkAnonymizationKey& nak, const std::string& host);
  
    // IsBuildTimely returns true if the current build is new enough ensure that
    // built in security information (i.e. HSTS preloading and pinning
-@@ -542,11 +544,13 @@ class NET_EXPORT TransportSecurityState {
+@@ -543,11 +545,13 @@ class NET_EXPORT TransportSecurityState {
    // any previous state for the |host|, including static entries.
    //
    // The new state for |host| is persisted using the Delegate (if any).
@@ -533,7 +533,7 @@ diff --git a/net/url_request/url_request_http_job.cc b/net/url_request/url_reque
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -1727,17 +1727,19 @@ void NetworkContext::SetCorsOriginAccessListsForOrigin(
+@@ -1767,17 +1767,19 @@ void NetworkContext::SetCorsOriginAccessListsForOrigin(
    std::move(callback).Run();
  }
  
@@ -556,7 +556,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
                                           IsHSTSActiveForHostCallback callback) {
    net::TransportSecurityState* security_state =
        url_request_context_->transport_security_state();
-@@ -1747,10 +1749,10 @@ void NetworkContext::IsHSTSActiveForHost(const std::string& host,
+@@ -1787,10 +1789,10 @@ void NetworkContext::IsHSTSActiveForHost(const std::string& host,
      return;
    }
  
@@ -569,7 +569,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
                                    GetHSTSStateCallback callback) {
    base::Value::Dict result;
  
-@@ -1786,10 +1788,10 @@ void NetworkContext::GetHSTSState(const std::string& domain,
+@@ -1826,10 +1828,10 @@ void NetworkContext::GetHSTSState(const std::string& domain,
        net::TransportSecurityState::STSState dynamic_sts_state;
        net::TransportSecurityState::PKPState dynamic_pkp_state;
        bool found_sts_dynamic = transport_security_state->GetDynamicSTSState(
@@ -582,7 +582,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
        if (found_sts_dynamic) {
          result.Set("dynamic_upgrade_mode",
                     static_cast<int>(dynamic_sts_state.upgrade_mode));
-@@ -1825,6 +1827,7 @@ void NetworkContext::GetHSTSState(const std::string& domain,
+@@ -1865,6 +1867,7 @@ void NetworkContext::GetHSTSState(const std::string& domain,
  }
  
  void NetworkContext::DeleteDynamicDataForHost(
@@ -590,7 +590,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
      const std::string& host,
      DeleteDynamicDataForHostCallback callback) {
    net::TransportSecurityState* transport_security_state =
-@@ -1835,7 +1838,7 @@ void NetworkContext::DeleteDynamicDataForHost(
+@@ -1875,7 +1878,7 @@ void NetworkContext::DeleteDynamicDataForHost(
    }
  
    std::move(callback).Run(
@@ -599,7 +599,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
  }
  
  void NetworkContext::EnableStaticKeyPinningForTesting(
-@@ -1876,7 +1879,7 @@ void NetworkContext::PreconnectSockets(
+@@ -1916,7 +1919,7 @@ void NetworkContext::PreconnectSockets(
    DCHECK(!require_network_isolation_key_ ||
           !network_anonymization_key.IsEmpty());
  
@@ -608,7 +608,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
  
    // |PreconnectSockets| may receive arguments from the renderer, which is not
    // guaranteed to validate them.
-@@ -2662,12 +2665,15 @@ void NetworkContext::OnConnectionError() {
+@@ -2703,12 +2706,15 @@ void NetworkContext::OnConnectionError() {
      std::move(on_connection_close_callback_).Run(this);
  }
  
@@ -628,7 +628,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
 diff --git a/services/network/network_context.h b/services/network/network_context.h
 --- a/services/network/network_context.h
 +++ b/services/network/network_context.h
-@@ -412,15 +412,17 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
+@@ -414,15 +414,17 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
        const std::string& ocsp_result,
        const std::string& sct_list,
        VerifyCertForSignedExchangeCallback callback) override;
@@ -649,7 +649,7 @@ diff --git a/services/network/network_context.h b/services/network/network_conte
        const std::string& host,
        DeleteDynamicDataForHostCallback callback) override;
    void SetCorsOriginAccessListsForOrigin(
-@@ -665,7 +667,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
+@@ -671,7 +673,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
        mojo::PendingRemote<mojom::CookieAccessObserver> cookie_observer,
        net::FirstPartySetMetadata first_party_set_metadata);
  
@@ -662,7 +662,7 @@ diff --git a/services/network/network_context.h b/services/network/network_conte
 diff --git a/services/network/public/mojom/network_context.mojom b/services/network/public/mojom/network_context.mojom
 --- a/services/network/public/mojom/network_context.mojom
 +++ b/services/network/public/mojom/network_context.mojom
-@@ -1377,16 +1377,16 @@ interface NetworkContext {
+@@ -1375,16 +1375,16 @@ interface NetworkContext {
  
    // Adds explicitly-specified data as if it was processed from an
    // HSTS header. Used by tests and implementation of chrome://net-internals.
@@ -682,7 +682,7 @@ diff --git a/services/network/public/mojom/network_context.mojom b/services/netw
        => (mojo_base.mojom.DictionaryValue state);
  
    // Sets allowed and blocked origins respectively for the URLLoaderFactory
-@@ -1405,7 +1405,7 @@ interface NetworkContext {
+@@ -1403,7 +1403,7 @@ interface NetworkContext {
    // Deletes any dynamic data stored for |host| from the transport
    // security state. Returns true iff an entry was deleted.
    // See net::TransportSecurityState::DeleteDynamicDataForHost for more detail.

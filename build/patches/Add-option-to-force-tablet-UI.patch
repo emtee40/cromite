@@ -50,7 +50,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/s
 diff --git a/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/ChromePreferenceKeys.java b/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/ChromePreferenceKeys.java
 --- a/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/ChromePreferenceKeys.java
 +++ b/chrome/browser/preferences/android/java/src/org/chromium/chrome/browser/preferences/ChromePreferenceKeys.java
-@@ -395,6 +395,7 @@ public final class ChromePreferenceKeys {
+@@ -388,6 +388,7 @@ public final class ChromePreferenceKeys {
              AccessibilityConstants.FONT_USER_SET_FORCE_ENABLE_ZOOM;
  
      public static final String HISTORY_SHOW_HISTORY_INFO = "history_home_show_info";
@@ -72,19 +72,19 @@ diff --git a/chrome/browser/preferences/android/java/src/org/chromium/chrome/bro
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/LocationBarCoordinator.java
-@@ -394,7 +394,7 @@ public class LocationBarCoordinator implements LocationBar, NativeInitObserver,
-     // OmniboxSuggestionsDropdownEmbedder implementation
-     @Override
-     public boolean isTablet() {
+@@ -670,7 +670,7 @@ public class LocationBarCoordinator
+     }
+ 
+     private boolean isTabletWindow() {
 -        return DeviceFormFactor.isWindowOnTablet(mWindowAndroid);
 +        return DeviceFormFactor.isWindowOnTablet(mWindowAndroid) || isTabletLayout();
      }
  
-     @Override
+     /* package */ LocationBarMediator getMediatorForTesting() {
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1582,6 +1582,12 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1585,6 +1585,12 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_PRIVACY_GUIDE_SB_ENHANCED_ITEM_SEVEN" desc="Seventh bullet point that describes the details of the Safe Browsing control.">
          Temporarily links this data to your Google Account when you’re signed in, to protect you across Google apps
        </message>
@@ -100,10 +100,10 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
 --- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
 +++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
-@@ -147,42 +147,6 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
-         mToolbarContainer.setPostInitializationDependencies(mToolbar, constraintsSupplier,
+@@ -153,42 +153,6 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
                  tabSupplier, compositorInMotionSupplier,
-                 browserStateBrowserControlsVisibilityDelegate, isVisible);
+                 browserStateBrowserControlsVisibilityDelegate, isVisible,
+                 layoutStateProviderSupplier);
 -
 -        View toolbarView = findViewById(R.id.toolbar);
 -        assert toolbarView != null;
@@ -155,7 +155,7 @@ diff --git a/components/BUILD.gn b/components/BUILD.gn
    disallowed_extension_deps_ = [
      # Components should largely not depend on //extensions. Since // extensions
      # is not a component target and is linked with //chrome, depending on most
-@@ -690,7 +690,7 @@ test("components_unittests") {
+@@ -696,7 +696,7 @@ test("components_unittests") {
    # On other platforms, no components should depend on Chrome.
    # Since //chrome depends on //extensions, we also only assert_no_deps on
    # extensions targets for non-lacros builds.
@@ -164,7 +164,7 @@ diff --git a/components/BUILD.gn b/components/BUILD.gn
      assert_no_deps = [ "//chrome/*" ]
      assert_no_deps += disallowed_extension_deps_
    }
-@@ -957,7 +957,7 @@ if (!is_ios) {
+@@ -964,7 +964,7 @@ if (!is_ios) {
      # dependency. On other platforms, no components should depend on Chrome.
      # Since //chrome depends on //extensions, we also only assert_no_deps on
      # extensions targets for non-lacros builds.
@@ -245,7 +245,7 @@ diff --git a/components/browser_ui/accessibility/android/java/src/org/chromium/c
 diff --git a/ui/android/BUILD.gn b/ui/android/BUILD.gn
 --- a/ui/android/BUILD.gn
 +++ b/ui/android/BUILD.gn
-@@ -382,6 +382,8 @@ android_library("ui_no_recycler_view_java") {
+@@ -383,6 +383,8 @@ android_library("ui_no_recycler_view_java") {
    deps = [
      ":ui_java_resources",
      ":ui_utils_java",

@@ -10,7 +10,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/BUILD.gn                       |   8 -
  .../android/metrics/uma_session_stats.cc      |  10 -
  chrome/browser/browser_process_impl.cc        |   1 -
- .../browser/chrome_content_browser_client.cc  |  17 -
+ .../browser/chrome_content_browser_client.cc  |  19 --
  .../domain_reliability/service_factory.cc     |  33 +-
  chrome/browser/extensions/BUILD.gn            |   1 -
  .../log_sources/chrome_internal_log_source.cc |   5 -
@@ -19,14 +19,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../long_screenshots_tab_service.cc           |  22 --
  .../metrics/chrome_metrics_service_client.cc  |   2 +-
  .../chrome_metrics_services_manager_client.cc |   5 +-
- .../metrics/metrics_reporting_state.cc        |  76 -----
+ .../metrics/metrics_reporting_state.cc        |  78 +----
  .../net/system_network_context_manager.cc     |   1 -
  .../modules/recipes/recipes_service.cc        |   3 +-
  .../one_google_bar_loader_impl.cc             |   3 +-
  .../new_tab_page/promos/promo_service.cc      |   6 +-
  .../from_gws_page_load_metrics_observer.cc    |   6 +-
  .../page_load_metrics_initialize.cc           |   2 -
- ...hrome_browser_main_extra_parts_profiles.cc |   1 -
  .../ui_thread_search_terms_data.cc            |   4 -
  chrome/browser/ui/BUILD.gn                    |   1 -
  .../ui/webui/new_tab_page/new_tab_page_ui.cc  |   5 -
@@ -53,12 +52,12 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/url_matcher/url_util.cc            |  83 -----
  net/base/url_util.cc                          |  21 --
  services/network/network_context.cc           |   2 +-
- 46 files changed, 60 insertions(+), 763 deletions(-)
+ 45 files changed, 61 insertions(+), 765 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -975,10 +975,6 @@ static_library("browser") {
+@@ -973,10 +973,6 @@ static_library("browser") {
      "page_load_metrics/observers/foreground_duration_ukm_observer.h",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.cc",
      "page_load_metrics/observers/formfill_page_load_metrics_observer.h",
@@ -69,7 +68,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "page_load_metrics/observers/histogram_suffixes.cc",
      "page_load_metrics/observers/histogram_suffixes.h",
      "page_load_metrics/observers/https_engagement_metrics/https_engagement_page_load_metrics_observer.cc",
-@@ -1899,7 +1895,6 @@ static_library("browser") {
+@@ -1854,7 +1850,6 @@ static_library("browser") {
      "//chrome/browser/autofill",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -77,7 +76,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/profiling_host",
  
      # TODO(crbug.com/1335199): break this dep when favicon is in its own target
-@@ -1923,7 +1918,6 @@ static_library("browser") {
+@@ -1878,7 +1873,6 @@ static_library("browser") {
  
    public_deps = [
      "//base",
@@ -85,10 +84,10 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
      "//chrome/browser/headless",
      "//chrome/common",
      "//chrome/common:buildflags",
-@@ -7375,8 +7369,6 @@ static_library("browser") {
-       "supervised_user/parental_control_metrics.cc",
+@@ -7363,8 +7357,6 @@ static_library("browser") {
        "supervised_user/parental_control_metrics.h",
-       "supervised_user/permission_request_creator.h",
+       "supervised_user/supervised_user_browser_utils.cc",
+       "supervised_user/supervised_user_browser_utils.h",
 -      "supervised_user/supervised_user_google_auth_navigation_throttle.cc",
 -      "supervised_user/supervised_user_google_auth_navigation_throttle.h",
        "supervised_user/supervised_user_interstitial.cc",
@@ -97,10 +96,10 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/android/metrics/uma_session_stats.cc b/chrome/browser/android/metrics/uma_session_stats.cc
 --- a/chrome/browser/android/metrics/uma_session_stats.cc
 +++ b/chrome/browser/android/metrics/uma_session_stats.cc
-@@ -208,16 +208,6 @@ static void JNI_UmaSessionStats_ChangeMetricsReportingConsent(
-     JNIEnv*,
-     jboolean consent) {
-   UpdateMetricsPrefsOnPermissionChange(consent);
+@@ -210,16 +210,6 @@ static void JNI_UmaSessionStats_ChangeMetricsReportingConsent(
+     jint called_from) {
+   UpdateMetricsPrefsOnPermissionChange(
+       consent, static_cast<ChangeMetricsReportingStateCalledFrom>(called_from));
 -
 -  // This function ensures a consent file in the data directory is either
 -  // created, or deleted, depending on consent. Starting up metrics services
@@ -117,7 +116,7 @@ diff --git a/chrome/browser/android/metrics/uma_session_stats.cc b/chrome/browse
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1091,7 +1091,6 @@ BrowserProcessImpl::component_updater() {
+@@ -1123,7 +1123,6 @@ BrowserProcessImpl::component_updater() {
        std::make_unique<component_updater::TimerUpdateScheduler>();
  
    std::string brand;
@@ -128,7 +127,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -2865,7 +2865,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
+@@ -2859,7 +2859,6 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
        switches::kForcePNaClSubzero,
  #endif
        switches::kForceUIDirection,
@@ -136,7 +135,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
        switches::kJavaScriptHarmony,
        switches::kEnableExperimentalWebAssemblyFeatures,
        embedder_support::kOriginTrialDisabledFeatures,
-@@ -4938,12 +4937,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
+@@ -4964,12 +4963,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
                     &throttles);
  #endif
  
@@ -149,13 +148,15 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    if (auto* throttle_manager =
            subresource_filter::ContentSubresourceFilterThrottleManager::
                FromNavigationHandle(*handle)) {
-@@ -5477,16 +5470,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
+@@ -5519,18 +5512,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
    }
  #endif
  
 -  chrome::mojom::DynamicParams dynamic_params = {
--      profile->GetPrefs()->GetBoolean(prefs::kForceGoogleSafeSearch),
--      profile->GetPrefs()->GetInteger(prefs::kForceYouTubeRestrict),
+-      profile->GetPrefs()->GetBoolean(
+-          policy::policy_prefs::kForceGoogleSafeSearch),
+-      profile->GetPrefs()->GetInteger(
+-          policy::policy_prefs::kForceYouTubeRestrict),
 -      profile->GetPrefs()->GetString(prefs::kAllowedDomainsForApps)};
 -  result.push_back(std::make_unique<GoogleURLLoaderThrottle>(
 -#if BUILDFLAG(IS_ANDROID)
@@ -215,7 +216,7 @@ diff --git a/chrome/browser/domain_reliability/service_factory.cc b/chrome/brows
 diff --git a/chrome/browser/extensions/BUILD.gn b/chrome/browser/extensions/BUILD.gn
 --- a/chrome/browser/extensions/BUILD.gn
 +++ b/chrome/browser/extensions/BUILD.gn
-@@ -787,7 +787,6 @@ static_library("extensions") {
+@@ -795,7 +795,6 @@ static_library("extensions") {
      "//chrome/browser/browsing_data:constants",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -234,7 +235,7 @@ diff --git a/chrome/browser/feedback/system_logs/log_sources/chrome_internal_log
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
  constexpr char kUpdateErrorCode[] = "update_error_code";
  constexpr char kUpdateHresult[] = "update_hresult";
-@@ -593,10 +592,6 @@ void ChromeInternalLogSource::PopulateEnrolledToDomain(
+@@ -592,10 +591,6 @@ void ChromeInternalLogSource::PopulateEnrolledToDomain(
  
  void ChromeInternalLogSource::PopulateInstallerBrandCode(
      SystemLogsResponse* response) {
@@ -276,8 +277,8 @@ diff --git a/chrome/browser/google/BUILD.gn b/chrome/browser/google/BUILD.gn
    sources = [
      "google_brand.cc",
      "google_brand.h",
-@@ -93,7 +93,7 @@ source_set("unit_tests") {
-   ]
+@@ -81,7 +81,7 @@ source_set("unit_tests") {
+   sources = [ "google_update_settings_unittest.cc" ]
  
    deps = [
 -    ":google",
@@ -332,7 +333,7 @@ diff --git a/chrome/browser/long_screenshots/long_screenshots_tab_service.cc b/c
 diff --git a/chrome/browser/metrics/chrome_metrics_service_client.cc b/chrome/browser/metrics/chrome_metrics_service_client.cc
 --- a/chrome/browser/metrics/chrome_metrics_service_client.cc
 +++ b/chrome/browser/metrics/chrome_metrics_service_client.cc
-@@ -579,7 +579,7 @@ ChromeMetricsServiceClient::GetNetworkTimeTracker() {
+@@ -605,7 +605,7 @@ ChromeMetricsServiceClient::GetNetworkTimeTracker() {
  }
  
  bool ChromeMetricsServiceClient::GetBrand(std::string* brand_code) {
@@ -344,7 +345,7 @@ diff --git a/chrome/browser/metrics/chrome_metrics_service_client.cc b/chrome/br
 diff --git a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
 --- a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
 +++ b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
-@@ -102,9 +102,6 @@ void PostStoreMetricsClientInfo(const metrics::ClientInfo& client_info) {
+@@ -103,9 +103,6 @@ void PostStoreMetricsClientInfo(const metrics::ClientInfo& client_info) {
    // This must happen on the same sequence as the tasks to enable/disable
    // metrics reporting. Otherwise, this may run while disabling metrics
    // reporting if the user quickly enables and disables metrics reporting.
@@ -354,7 +355,7 @@ diff --git a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc b/
  }
  
  #if BUILDFLAG(IS_ANDROID)
-@@ -321,7 +318,7 @@ ChromeMetricsServicesManagerClient::GetMetricsStateManager() {
+@@ -322,7 +319,7 @@ ChromeMetricsServicesManagerClient::GetMetricsStateManager() {
                      cc::switches::kEnableGpuBenchmarking),
          },
          base::BindRepeating(&PostStoreMetricsClientInfo),
@@ -450,19 +451,21 @@ diff --git a/chrome/browser/metrics/metrics_reporting_state.cc b/chrome/browser/
  }
  
  void UpdateMetricsPrefsOnPermissionChange(
-@@ -214,12 +144,6 @@ void ApplyMetricsReportingPolicy() {
-     return;
-   }
- #endif  // BUILDFLAG(IS_ANDROID)
--
+@@ -215,13 +145,7 @@ void UpdateMetricsPrefsOnPermissionChange(
+   crash_keys::ClearMetricsClientId();
+ }
+ 
+-void ApplyMetricsReportingPolicy() {
 -  GoogleUpdateSettings::CollectStatsConsentTaskRunner()->PostTask(
 -      FROM_HERE,
 -      base::BindOnce(
 -          base::IgnoreResult(&GoogleUpdateSettings::SetCollectStatsConsent),
 -          ChromeMetricsServiceAccessor::IsMetricsAndCrashReportingEnabled()));
- }
+-}
++void ApplyMetricsReportingPolicy() {}
  
  bool IsMetricsReportingPolicyManaged() {
+ #if BUILDFLAG(IS_CHROMEOS_ASH)
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
@@ -556,17 +559,6 @@ diff --git a/chrome/browser/page_load_metrics/page_load_metrics_initialize.cc b/
      tracker->AddObserver(std::make_unique<ForegroundDurationUKMObserver>());
      tracker->AddObserver(
          std::make_unique<DocumentWritePageLoadMetricsObserver>());
-diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
---- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-+++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -592,7 +592,6 @@ void ChromeBrowserMainExtraPartsProfiles::
-   GalleryWatchManager::EnsureFactoryBuilt();
-   GlobalErrorServiceFactory::GetInstance();
- #endif
--  GoogleSearchDomainMixingMetricsEmitterFactory::GetInstance();
-   HeavyAdServiceFactory::GetInstance();
- #if !BUILDFLAG(IS_ANDROID)
-   HidChooserContextFactory::GetInstance();
 diff --git a/chrome/browser/search_engines/ui_thread_search_terms_data.cc b/chrome/browser/search_engines/ui_thread_search_terms_data.cc
 --- a/chrome/browser/search_engines/ui_thread_search_terms_data.cc
 +++ b/chrome/browser/search_engines/ui_thread_search_terms_data.cc
@@ -584,7 +576,7 @@ diff --git a/chrome/browser/search_engines/ui_thread_search_terms_data.cc b/chro
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -403,7 +403,6 @@ static_library("ui") {
+@@ -405,7 +405,6 @@ static_library("ui") {
      "//chrome/browser/chrome_for_testing:buildflags",
      "//chrome/browser/devtools",
      "//chrome/browser/favicon",
@@ -595,7 +587,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 diff --git a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 --- a/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
 +++ b/chrome/browser/ui/webui/new_tab_page/new_tab_page_ui.cc
-@@ -536,11 +536,6 @@ content::WebUIDataSource* CreateAndAddNewTabPageUiHtmlSource(Profile* profile) {
+@@ -559,11 +559,6 @@ content::WebUIDataSource* CreateAndAddNewTabPageUiHtmlSource(Profile* profile) {
    // chrome-untrusted://new-tab-page for other external content and resources.
    // NOTE: Use caution when overriding content security policies as that cean
    // lead to subtle security bugs such as https://crbug.com/1251541.
@@ -645,7 +637,7 @@ diff --git a/chrome/common/BUILD.gn b/chrome/common/BUILD.gn
 diff --git a/chrome/renderer/url_loader_throttle_provider_impl.cc b/chrome/renderer/url_loader_throttle_provider_impl.cc
 --- a/chrome/renderer/url_loader_throttle_provider_impl.cc
 +++ b/chrome/renderer/url_loader_throttle_provider_impl.cc
-@@ -180,12 +180,6 @@ URLLoaderThrottleProviderImpl::CreateThrottles(
+@@ -186,12 +186,6 @@ URLLoaderThrottleProviderImpl::CreateThrottles(
    }
  #endif
  
@@ -656,12 +648,12 @@ diff --git a/chrome/renderer/url_loader_throttle_provider_impl.cc b/chrome/rende
 -      ChromeRenderThreadObserver::GetDynamicParams()));
 -
  #if BUILDFLAG(IS_CHROMEOS_ASH)
-   throttles.emplace_back(std::make_unique<MergeSessionLoaderThrottle>(
+   throttles.emplace_back(std::make_unique<AshMergeSessionLoaderThrottle>(
        chrome_content_renderer_client_->GetChromeObserver()
 diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 --- a/chrome/test/BUILD.gn
 +++ b/chrome/test/BUILD.gn
-@@ -5894,7 +5894,6 @@ test("unit_tests") {
+@@ -5978,7 +5978,6 @@ test("unit_tests") {
      "//chrome/browser/favicon",
      "//chrome/browser/feature_guide/notifications:unit_tests",
      "//chrome/browser/first_party_sets",
@@ -1554,7 +1546,7 @@ diff --git a/net/base/url_util.cc b/net/base/url_util.cc
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -2575,7 +2575,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
+@@ -2616,7 +2616,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
    }
  #endif  // BUILDFLAG(IS_CT_SUPPORTED)
  

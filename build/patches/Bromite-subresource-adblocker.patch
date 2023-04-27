@@ -63,7 +63,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -249,6 +249,7 @@ if (current_toolchain == default_toolchain) {
+@@ -238,6 +238,7 @@ if (current_toolchain == default_toolchain) {
        "//chrome/android/modules/image_editor/provider:java",
        "//chrome/android/modules/stack_unwinder/provider:java",
        "//chrome/android/webapk/libs/client:client_java",
@@ -82,18 +82,18 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
    "java/res/layout/auto_sign_in_first_run_dialog.xml",
    "java/res/layout/autofill_billing_address_dropdown.xml",
    "java/res/layout/autofill_card_unmask_prompt.xml",
-@@ -629,6 +630,7 @@ chrome_java_resources = [
+@@ -628,6 +629,7 @@ chrome_java_resources = [
    "java/res/xml/about_chrome_preferences.xml",
    "java/res/xml/account_management_preferences.xml",
    "java/res/xml/account_management_preferences_legacy.xml",
 +  "java/res/xml/adblock_preferences.xml",
-   "java/res/xml/autofill_assistant_preferences.xml",
    "java/res/xml/bookmark_widget_info.xml",
    "java/res/xml/clear_browsing_data_preferences_tab.xml",
+   "java/res/xml/developer_preferences.xml",
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -887,6 +887,8 @@ chrome_java_sources = [
+@@ -888,6 +888,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/permissions/PermissionSettingsBridge.java",
    "java/src/org/chromium/chrome/browser/permissions/PermissionUpdateRequester.java",
    "java/src/org/chromium/chrome/browser/photo_picker/DecoderServiceImpl.java",
@@ -436,7 +436,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabmodel/TabMod
 diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -12972,6 +12972,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
+@@ -13152,6 +13152,16 @@ Please help our engineers fix this problem. Tell us what happened right before y
        Never show this again.
      </message>
  
@@ -496,7 +496,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
  namespace extensions {
  class EventRouterForwarder;
  }
-@@ -230,6 +235,7 @@ class BrowserProcess {
+@@ -237,6 +242,7 @@ class BrowserProcess {
  #endif
  
    virtual component_updater::ComponentUpdateService* component_updater() = 0;
@@ -507,7 +507,7 @@ diff --git a/chrome/browser/browser_process.h b/chrome/browser/browser_process.h
 diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -1100,6 +1100,26 @@ BrowserProcessImpl::component_updater() {
+@@ -1132,6 +1132,26 @@ BrowserProcessImpl::component_updater() {
    return component_updater_.get();
  }
  
@@ -537,7 +537,7 @@ diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_pro
 diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_process_impl.h
 --- a/chrome/browser/browser_process_impl.h
 +++ b/chrome/browser/browser_process_impl.h
-@@ -192,6 +192,7 @@ class BrowserProcessImpl : public BrowserProcess,
+@@ -194,6 +194,7 @@ class BrowserProcessImpl : public BrowserProcess,
  #endif
  
    component_updater::ComponentUpdateService* component_updater() override;
@@ -545,7 +545,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
    MediaFileSystemRegistry* media_file_system_registry() override;
    WebRtcLogUploader* webrtc_log_uploader() override;
    network_time::NetworkTimeTracker* network_time_tracker() override;
-@@ -376,6 +377,7 @@ class BrowserProcessImpl : public BrowserProcess,
+@@ -378,6 +379,7 @@ class BrowserProcessImpl : public BrowserProcess,
    // to concerns over integrity of data shared between profiles,
    // but some users of component updater only install per-user.
    std::unique_ptr<component_updater::ComponentUpdateService> component_updater_;
@@ -556,7 +556,7 @@ diff --git a/chrome/browser/browser_process_impl.h b/chrome/browser/browser_proc
 diff --git a/chrome/browser/chrome_browser_main.cc b/chrome/browser/chrome_browser_main.cc
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -415,6 +415,9 @@ StartupProfileInfo CreateInitialProfile(
+@@ -416,6 +416,9 @@ StartupProfileInfo CreateInitialProfile(
    // missing code in the above test.
    CHECK(profile_info.profile) << "Cannot get default profile.";
  
@@ -679,7 +679,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 --- a/chrome/common/pref_names.cc
 +++ b/chrome/common/pref_names.cc
-@@ -2363,6 +2363,9 @@ const char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
+@@ -2298,6 +2298,9 @@ const char kAudioCaptureAllowed[] = "hardware.audio_capture_enabled";
  // capture devices without prompt.
  const char kAudioCaptureAllowedUrls[] = "hardware.audio_capture_allowed_urls";
  
@@ -1516,7 +1516,7 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
 diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/components/subresource_filter/content/browser/ruleset_service.cc
 --- a/components/subresource_filter/content/browser/ruleset_service.cc
 +++ b/components/subresource_filter/content/browser/ruleset_service.cc
-@@ -44,9 +44,7 @@ namespace {
+@@ -46,9 +46,7 @@ namespace {
  
  void RecordIndexAndWriteRulesetResult(
      RulesetService::IndexAndWriteRulesetResult result) {
@@ -1527,7 +1527,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
  }
  
  // Implements operations on a `sentinel file`, which is used as a safeguard to
-@@ -226,10 +224,13 @@ RulesetService::RulesetService(
+@@ -228,10 +226,13 @@ RulesetService::RulesetService(
  RulesetService::~RulesetService() {}
  
  void RulesetService::IndexAndStoreAndPublishRulesetIfNeeded(
@@ -1543,7 +1543,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
    // Trying to store a ruleset with the same version for a second time would
    // not only be futile, but would fail on Windows due to "File System
    // Tunneling" as long as the previously stored copy of the rules is still
-@@ -239,13 +240,16 @@ void RulesetService::IndexAndStoreAndPublishRulesetIfNeeded(
+@@ -241,13 +242,16 @@ void RulesetService::IndexAndStoreAndPublishRulesetIfNeeded(
    if (most_recently_indexed_version.IsCurrentFormatVersion() &&
        most_recently_indexed_version.content_version ==
            unindexed_ruleset_info.content_version) {
@@ -1560,7 +1560,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
      return;
    }
  
-@@ -264,6 +268,18 @@ IndexedRulesetVersion RulesetService::GetMostRecentlyIndexedVersion() const {
+@@ -266,6 +270,18 @@ IndexedRulesetVersion RulesetService::GetMostRecentlyIndexedVersion() const {
  IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
      const base::FilePath& indexed_ruleset_base_dir,
      const UnindexedRulesetInfo& unindexed_ruleset_info) {
@@ -1579,7 +1579,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
    base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                  base::BlockingType::MAY_BLOCK);
  
-@@ -271,6 +287,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -273,6 +289,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
        unindexed_ruleset_info);
  
    if (!unindexed_ruleset_stream_generator.ruleset_stream()) {
@@ -1587,7 +1587,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
      RecordIndexAndWriteRulesetResult(
          IndexAndWriteRulesetResult::FAILED_OPENING_UNINDEXED_RULESET);
      return IndexedRulesetVersion();
-@@ -284,6 +301,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -286,6 +303,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
            indexed_ruleset_base_dir, indexed_version);
  
    if (!base::CreateDirectory(indexed_ruleset_version_dir)) {
@@ -1595,7 +1595,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
      RecordIndexAndWriteRulesetResult(
          IndexAndWriteRulesetResult::FAILED_CREATING_VERSION_DIR);
      return IndexedRulesetVersion();
-@@ -309,6 +327,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -311,6 +329,7 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
  
    RulesetIndexer indexer;
    if (!(*g_index_ruleset_func)(&unindexed_ruleset_stream_generator, &indexer)) {
@@ -1603,7 +1603,7 @@ diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/
      RecordIndexAndWriteRulesetResult(
          IndexAndWriteRulesetResult::FAILED_PARSING_UNINDEXED_RULESET);
      return IndexedRulesetVersion();
-@@ -329,6 +348,8 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
+@@ -331,6 +350,8 @@ IndexedRulesetVersion RulesetService::IndexAndWriteRuleset(
    if (result != IndexAndWriteRulesetResult::SUCCESS)
      return IndexedRulesetVersion();
  
@@ -1864,7 +1864,7 @@ diff --git a/components/subresource_filter/core/common/indexed_ruleset.cc b/comp
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -35,8 +35,8 @@ BASE_FEATURE(kAttributionReportingCrossAppWeb,
+@@ -42,8 +42,8 @@ BASE_FEATURE(kAutofillDetectRemovedFormControls,
  // Apply lazy-loading to ad frames which have embeds likely impacting Core Web
  // Vitals.
  BASE_FEATURE(kAutomaticLazyFrameLoadingToAds,
@@ -1875,7 +1875,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // The timeout value that forces loading iframes that are lazy loaded by
  // LazyAds. After this timeout, the frame loading is triggered even when the
-@@ -56,8 +56,8 @@ const base::FeatureParam<int> kSkipFrameCountForLazyAds(
+@@ -63,8 +63,8 @@ const base::FeatureParam<int> kSkipFrameCountForLazyAds(
  // Apply lazy-loading to frames which have embeds likely impacting Core Web
  // Vitals.
  BASE_FEATURE(kAutomaticLazyFrameLoadingToEmbeds,
@@ -1886,7 +1886,7 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // The timeout value that forces loading iframes that are lazy loaded by
  // LazyEmbeds. After this timeout, the frame loading is triggered even when the
-@@ -79,8 +79,8 @@ const base::FeatureParam<int> kSkipFrameCountForLazyEmbeds(
+@@ -86,8 +86,8 @@ const base::FeatureParam<int> kSkipFrameCountForLazyEmbeds(
  // to gather Blink.AutomaticLazyLoadFrame.LazyEmbedFrameCount UKM data even when
  // kAutomaticLazyFrameLoadingToEmbeds is disabled.
  BASE_FEATURE(kAutomaticLazyFrameLoadingToEmbedUrls,
