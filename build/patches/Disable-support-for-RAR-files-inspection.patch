@@ -4,15 +4,16 @@ Subject: Disable support for RAR files inspection
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../download_protection/file_analyzer.cc      |  2 +-
- chrome/common/safe_browsing/BUILD.gn          | 19 -------------------
- .../file_util/safe_archive_analyzer.cc        |  4 +---
- 3 files changed, 2 insertions(+), 23 deletions(-)
+ .../download_protection/file_analyzer.cc        |  2 +-
+ chrome/common/safe_browsing/BUILD.gn            |  2 --
+ .../services/file_util/safe_archive_analyzer.cc | 17 +++--------------
+ .../services/file_util/safe_archive_analyzer.h  |  2 --
+ 4 files changed, 4 insertions(+), 19 deletions(-)
 
 diff --git a/chrome/browser/safe_browsing/download_protection/file_analyzer.cc b/chrome/browser/safe_browsing/download_protection/file_analyzer.cc
 --- a/chrome/browser/safe_browsing/download_protection/file_analyzer.cc
 +++ b/chrome/browser/safe_browsing/download_protection/file_analyzer.cc
-@@ -95,7 +95,7 @@ void FileAnalyzer::Start(const base::FilePath& target_path,
+@@ -78,7 +78,7 @@ void FileAnalyzer::Start(const base::FilePath& target_path,
    if (inspection_type == DownloadFileType::ZIP) {
      StartExtractZipFeatures();
    } else if (inspection_type == DownloadFileType::RAR) {
@@ -24,60 +25,60 @@ diff --git a/chrome/browser/safe_browsing/download_protection/file_analyzer.cc b
 diff --git a/chrome/common/safe_browsing/BUILD.gn b/chrome/common/safe_browsing/BUILD.gn
 --- a/chrome/common/safe_browsing/BUILD.gn
 +++ b/chrome/common/safe_browsing/BUILD.gn
-@@ -56,24 +56,6 @@ if (safe_browsing_mode == 1) {
-     public_deps = [ "//components/safe_browsing/core/common/proto:csd_proto" ]
-   }
- 
--  source_set("rar_analyzer") {
--    sources = [
+@@ -137,8 +137,6 @@ source_set("safe_browsing") {
+       "protobuf_message_log_macros.h",
+       "protobuf_message_read_macros.h",
+       "protobuf_message_write_macros.h",
 -      "rar_analyzer.cc",
 -      "rar_analyzer.h",
--    ]
--
--    deps = [
--      ":archive_analyzer_results",
--      ":download_type_util",
--      "//base",
--      "//base:i18n",
--      "//components/safe_browsing/core/common",
--      "//third_party/unrar:unrar",
--    ]
--
--    public_deps = [ "//components/safe_browsing/core/common/proto:csd_proto" ]
--  }
--
-   if (is_linux || is_win) {
-     source_set("document_analyzer") {
-       sources = [
-@@ -165,7 +147,6 @@ source_set("safe_browsing") {
-       ":archive_analyzer_results",
-       ":binary_feature_extractor",
-       ":download_type_util",
--      ":rar_analyzer",
-       "//components/safe_browsing/core/common",
-       "//third_party/lzma_sdk/google:seven_zip_reader",
-     ]
+       "seven_zip_analyzer.cc",
+       "seven_zip_analyzer.h",
+       "zip_analyzer.cc",
 diff --git a/chrome/services/file_util/safe_archive_analyzer.cc b/chrome/services/file_util/safe_archive_analyzer.cc
 --- a/chrome/services/file_util/safe_archive_analyzer.cc
 +++ b/chrome/services/file_util/safe_archive_analyzer.cc
-@@ -6,7 +6,6 @@
- 
- #include "build/build_config.h"
- #include "chrome/common/safe_browsing/archive_analyzer_results.h"
--#include "chrome/common/safe_browsing/rar_analyzer.h"
- #include "chrome/common/safe_browsing/seven_zip_analyzer.h"
- #include "chrome/common/safe_browsing/zip_analyzer.h"
- 
-@@ -47,9 +46,8 @@ void SafeArchiveAnalyzer::AnalyzeRarFile(base::File rar_file,
-                                          AnalyzeRarFileCallback callback) {
+@@ -62,20 +62,9 @@ void SafeArchiveAnalyzer::AnalyzeRarFile(
+     mojo::PendingRemote<chrome::mojom::TemporaryFileGetter> temp_file_getter,
+     AnalyzeRarFileCallback callback) {
    DCHECK(rar_file.IsValid());
- 
+-  temp_file_getter_.Bind(std::move(temp_file_getter));
+-  callback_ = std::move(callback);
+-  AnalysisFinishedCallback analysis_finished_callback =
+-      base::BindOnce(&SafeArchiveAnalyzer::AnalysisFinished,
+-                     weak_factory_.GetWeakPtr(), base::FilePath());
+-  base::RepeatingCallback<void(GetTempFileCallback callback)>
+-      temp_file_getter_callback =
+-          base::BindRepeating(&SafeArchiveAnalyzer::RequestTemporaryFile,
+-                              weak_factory_.GetWeakPtr());
+-  timeout_timer_.Start(FROM_HERE, kArchiveAnalysisTimeout, this,
+-                       &SafeArchiveAnalyzer::Timeout);
+-  rar_analyzer_.Init(std::move(rar_file), base::FilePath(),
+-                     std::move(analysis_finished_callback),
+-                     std::move(temp_file_getter_callback), &results_);
 +  LOG(FATAL) << "AnalyzeRarFile is disabled in this build";
-   safe_browsing::ArchiveAnalyzerResults results;
--  safe_browsing::rar_analyzer::AnalyzeRarFile(
--      std::move(rar_file), std::move(temporary_file), &results);
-   std::move(callback).Run(results);
++  safe_browsing::ArchiveAnalyzerResults results;
++  std::move(callback).Run(results);
  }
  
+ void SafeArchiveAnalyzer::AnalyzeSevenZipFile(
+diff --git a/chrome/services/file_util/safe_archive_analyzer.h b/chrome/services/file_util/safe_archive_analyzer.h
+--- a/chrome/services/file_util/safe_archive_analyzer.h
++++ b/chrome/services/file_util/safe_archive_analyzer.h
+@@ -6,7 +6,6 @@
+ #define CHROME_SERVICES_FILE_UTIL_SAFE_ARCHIVE_ANALYZER_H_
+ 
+ #include "chrome/common/safe_browsing/archive_analyzer_results.h"
+-#include "chrome/common/safe_browsing/rar_analyzer.h"
+ #include "chrome/services/file_util/public/mojom/safe_archive_analyzer.mojom.h"
+ #include "mojo/public/cpp/bindings/remote.h"
+ 
+@@ -59,7 +58,6 @@ class SafeArchiveAnalyzer : public chrome::mojom::SafeArchiveAnalyzer {
+   void Timeout();
+ 
+   safe_browsing::ZipAnalyzer zip_analyzer_;
+-  safe_browsing::RarAnalyzer rar_analyzer_;
+ 
+   // A timer to ensure no archive takes too long to unpack.
+   base::OneShotTimer timeout_timer_;
 --
 2.25.1

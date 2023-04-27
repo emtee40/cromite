@@ -14,19 +14,19 @@ Subject: WIN ADDTO Remove signin and sync integrations
  ...rofile_picker_signed_in_flow_controller.cc |  37 --
  ...profile_picker_signed_in_flow_controller.h |   2 -
  .../signin/profile_customization_handler.cc   |   2 +
- .../webui/signin/profile_customization_ui.cc  |   3 +-
+ .../webui/signin/profile_customization_ui.cc  |   2 +
  .../ui/webui/signin/profile_picker_handler.cc |   5 +-
  components/signin/public/android/BUILD.gn     |   1 -
  .../identitymanager/IdentityManager.java      |  21 +-
  .../identity_manager/identity_manager.cc      | 463 ++----------------
  .../identity_manager/identity_manager.h       |  47 +-
  .../identity_manager_builder.cc               |   3 +
- 18 files changed, 45 insertions(+), 604 deletions(-)
+ 18 files changed, 45 insertions(+), 603 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -4165,8 +4165,6 @@ static_library("browser") {
+@@ -4134,8 +4134,6 @@ static_library("browser") {
        "sharing_hub/sharing_hub_service_factory.h",
        "signin/signin_promo.cc",
        "signin/signin_promo.h",
@@ -35,7 +35,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "signin/signin_ui_util.cc",
        "signin/signin_ui_util.h",
        "speech/chrome_speech_recognition_service.cc",
-@@ -6712,12 +6710,6 @@ static_library("browser") {
+@@ -6695,12 +6693,6 @@ static_library("browser") {
        "signin/signin_ui_delegate_impl_dice.cc",
        "signin/signin_ui_delegate_impl_dice.h",
      ]
@@ -59,7 +59,7 @@ diff --git a/chrome/browser/signin/identity_manager_factory.cc b/chrome/browser/
  #endif
  
  void IdentityManagerFactory::RegisterProfilePrefs(
-@@ -155,12 +154,6 @@ KeyedService* IdentityManagerFactory::BuildServiceInstanceFor(
+@@ -162,12 +161,6 @@ KeyedService* IdentityManagerFactory::BuildServiceInstanceFor(
    params.is_regular_profile = is_regular_profile;
  #endif
  
@@ -181,7 +181,7 @@ diff --git a/chrome/browser/signin/signin_ui_util.cc b/chrome/browser/signin/sig
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -3691,12 +3691,6 @@ static_library("ui") {
+@@ -3735,12 +3735,6 @@ static_library("ui") {
        "webui/signin/signin_ui_error.h",
        "webui/signin/signin_utils_desktop.cc",
        "webui/signin/signin_utils_desktop.h",
@@ -197,20 +197,20 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 diff --git a/chrome/browser/ui/startup/startup_browser_creator_impl.cc b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 --- a/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
-@@ -413,8 +413,7 @@ StartupBrowserCreatorImpl::DetermineURLsAndLaunch(
-   if (AccountConsistencyModeManager::IsMirrorEnabledForProfile(profile_))
-     welcome_enabled = false;
- #elif !BUILDFLAG(IS_CHROMEOS_ASH)
+@@ -411,8 +411,7 @@ StartupBrowserCreatorImpl::DetermineURLsAndLaunch(
+ 
+   bool welcome_enabled = false;
+ #if BUILDFLAG(ENABLE_DICE_SUPPORT)
 -  welcome_enabled =
 -      welcome::IsEnabled(profile_) && welcome::HasModulesToShow(profile_);
 +  welcome_enabled = false;
- #endif  // !BUILDFLAG(IS_CHROMEOS_ASH)
+ #endif  // BUILDFLAG(ENABLE_DICE_SUPPORT)
  
    const bool whats_new_enabled =
 diff --git a/chrome/browser/ui/startup/startup_tab_provider.cc b/chrome/browser/ui/startup/startup_tab_provider.cc
 --- a/chrome/browser/ui/startup/startup_tab_provider.cc
 +++ b/chrome/browser/ui/startup/startup_tab_provider.cc
-@@ -185,11 +185,6 @@ StartupTabs StartupTabProviderImpl::GetWelcomeBackTabs(
+@@ -186,11 +186,6 @@ StartupTabs StartupTabProviderImpl::GetWelcomeBackTabs(
        !browser_creator) {
      return tabs;
    }
@@ -236,18 +236,19 @@ diff --git a/chrome/browser/ui/views/profiles/profile_customization_bubble_view.
 diff --git a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.cc b/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.cc
 --- a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.cc
 +++ b/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.cc
-@@ -10,10 +10,8 @@
+@@ -10,11 +10,9 @@
  #include "chrome/browser/themes/theme_service.h"
  #include "chrome/browser/themes/theme_service_factory.h"
  #include "chrome/browser/ui/views/profiles/profile_management_utils.h"
 -#include "chrome/browser/ui/views/profiles/profile_picker_turn_sync_on_delegate.h"
  #include "chrome/browser/ui/webui/signin/signin_url_utils.h"
+ #include "chrome/browser/ui/webui/signin/signin_utils.h"
  #include "chrome/browser/ui/webui/signin/sync_confirmation_ui.h"
 -#include "chrome/browser/ui/webui/signin/turn_sync_on_helper.h"
  #include "chrome/common/webui_url_constants.h"
  #include "components/signin/public/base/signin_metrics.h"
  #include "components/signin/public/identity_manager/account_info.h"
-@@ -30,7 +28,6 @@ ProfilePickerSignedInFlowController::ProfilePickerSignedInFlowController(
+@@ -31,7 +29,6 @@ ProfilePickerSignedInFlowController::ProfilePickerSignedInFlowController(
      : host_(host),
        profile_(profile),
        contents_(std::move(contents)),
@@ -255,7 +256,7 @@ diff --git a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_cont
        profile_color_(profile_color) {
    DCHECK(profile_);
    DCHECK(contents_);
-@@ -49,27 +46,6 @@ void ProfilePickerSignedInFlowController::Init() {
+@@ -50,27 +47,6 @@ void ProfilePickerSignedInFlowController::Init() {
    DCHECK(!IsInitialized());
  
    contents()->SetDelegate(this);
@@ -283,7 +284,7 @@ diff --git a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_cont
  }
  
  void ProfilePickerSignedInFlowController::Cancel() {}
-@@ -161,19 +137,6 @@ void ProfilePickerSignedInFlowController::
+@@ -169,19 +145,6 @@ void ProfilePickerSignedInFlowController::
          signin::SigninChoiceCallback proceed_callback) {
    DCHECK(IsInitialized());
    // Initialize the WebUI page once we know it's committed.
@@ -306,7 +307,7 @@ diff --git a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_cont
 diff --git a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.h b/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.h
 --- a/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.h
 +++ b/chrome/browser/ui/views/profiles/profile_picker_signed_in_flow_controller.h
-@@ -129,8 +129,6 @@ class ProfilePickerSignedInFlowController
+@@ -136,8 +136,6 @@ class ProfilePickerSignedInFlowController
    // sign-in flow.
    std::unique_ptr<content::WebContents> contents_;
  
@@ -337,7 +338,7 @@ diff --git a/chrome/browser/ui/webui/signin/profile_customization_handler.cc b/c
 diff --git a/chrome/browser/ui/webui/signin/profile_customization_ui.cc b/chrome/browser/ui/webui/signin/profile_customization_ui.cc
 --- a/chrome/browser/ui/webui/signin/profile_customization_ui.cc
 +++ b/chrome/browser/ui/webui/signin/profile_customization_ui.cc
-@@ -102,10 +102,11 @@ ProfileCustomizationUI::ProfileCustomizationUI(content::WebUI* web_ui)
+@@ -103,9 +103,11 @@ ProfileCustomizationUI::ProfileCustomizationUI(content::WebUI* web_ui)
        "profileCustomizationInDialogDesign",
        base::FeatureList::IsEnabled(kSyncPromoAfterSigninIntercept));
    const GURL& url = web_ui->GetWebContents()->GetVisibleURL();
@@ -345,15 +346,14 @@ diff --git a/chrome/browser/ui/webui/signin/profile_customization_ui.cc b/chrome
    source->AddBoolean("isLocalProfileCreation",
                       GetProfileCustomizationStyle(url) ==
                           ProfileCustomizationStyle::kLocalProfileCreation);
--
 +#endif
-   if (url.query() == "debug") {
-     // Not intended to be hooked to anything. The bubble will not initialize it
-     // so we force it here.
+   source->AddString(
+       "chromeRefresh2023Attribute",
+       features::IsChromeRefresh2023() ? "chrome-refresh-2023" : "");
 diff --git a/chrome/browser/ui/webui/signin/profile_picker_handler.cc b/chrome/browser/ui/webui/signin/profile_picker_handler.cc
 --- a/chrome/browser/ui/webui/signin/profile_picker_handler.cc
 +++ b/chrome/browser/ui/webui/signin/profile_picker_handler.cc
-@@ -962,6 +962,7 @@ void ProfilePickerHandler::HandleSelectNewAccount(
+@@ -953,6 +953,7 @@ void ProfilePickerHandler::HandleSelectNewAccount(
      const base::Value::List& args) {
    AllowJavascript();
    CHECK_EQ(1U, args.size());
@@ -361,7 +361,7 @@ diff --git a/chrome/browser/ui/webui/signin/profile_picker_handler.cc b/chrome/b
    absl::optional<SkColor> profile_color = args[0].GetIfInt();
  #if BUILDFLAG(IS_CHROMEOS_LACROS)
    SelectAccountLacrosInternal("", profile_color);
-@@ -977,6 +978,7 @@ void ProfilePickerHandler::HandleSelectNewAccount(
+@@ -968,6 +969,7 @@ void ProfilePickerHandler::HandleSelectNewAccount(
  #else
    NOTERACHED();
  #endif
@@ -369,7 +369,7 @@ diff --git a/chrome/browser/ui/webui/signin/profile_picker_handler.cc b/chrome/b
  }
  
  #if BUILDFLAG(IS_CHROMEOS_LACROS)
-@@ -1068,9 +1070,6 @@ void ProfilePickerHandler::OnSwitchToProfileCompleteOpenCustomization(
+@@ -1059,9 +1061,6 @@ void ProfilePickerHandler::OnSwitchToProfileCompleteOpenCustomization(
      BeginFirstWebContentsProfiling(browser, profile_picked_time_on_startup_);
    }
  

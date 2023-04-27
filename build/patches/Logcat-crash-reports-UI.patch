@@ -6,7 +6,7 @@ Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../crash/MinidumpUploadServiceImpl.java      |  22 +++
- .../crash_upload_list_android.cc              |  22 ++-
+ .../crash_upload_list_android.cc              |  25 ++-
  .../crash_upload_list_android.h               |   1 +
  chrome/browser/net/chrome_network_delegate.cc |   7 +
  chrome/browser/ui/BUILD.gn                    |   1 +
@@ -23,7 +23,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../upload_list/text_log_upload_list.cc       |   1 +
  components/upload_list/upload_list.cc         |  14 ++
  components/upload_list/upload_list.h          |   9 +
- 18 files changed, 373 insertions(+), 133 deletions(-)
+ 18 files changed, 375 insertions(+), 134 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/crash/MinidumpUploadServiceImpl.java
@@ -85,7 +85,7 @@ diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.cc b/chr
 +}
 +
  void CrashUploadListAndroid::LoadUnsuccessfulUploadList(
-     std::vector<UploadInfo>* uploads) {
+     std::vector<std::unique_ptr<UploadInfo>>* uploads) {
    const char pending_uploads[] = ".dmp";
    const char skipped_uploads[] = ".skipped";
    const char manually_forced_uploads[] = ".forced";
@@ -111,34 +111,35 @@ diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.cc b/chr
      // Crash reports can have multiple extensions (e.g. foo.dmp, foo.dmp.try1,
      // foo.skipped.try0).
      file = file.BaseName();
-@@ -136,8 +149,15 @@ void CrashUploadListAndroid::LoadUnsuccessfulUploadList(
+@@ -136,7 +149,15 @@ void CrashUploadListAndroid::LoadUnsuccessfulUploadList(
      RecordUnsuccessfulUploadListState(
          UnsuccessfulUploadListState::ADDING_AN_UPLOAD_ENTRY);
      id = id.substr(pos + 1);
+-    uploads->push_back(std::make_unique<UploadList::UploadInfo>(
+-        id, info.creation_time, upload_state, ui::FormatBytes(file_size)));
 +    // Since current thread is an IO thread
 +    // to avoid failed DCHECK ThreadRestrictions::AssertSingletonAllowed()
 +    // remove ui::FormatBytes(): dcheck fail because it use base::FormatDouble()
 +    // and LazyInstance<NumberFormatWrapper>::DestructorAtExit().
 +    // also "upload.file_size" is unused.
 +    std::u16string file_size_string;
-     UploadList::UploadInfo upload(id, info.creation_time, upload_state,
--                                  ui::FormatBytes(file_size));
-+                                  file_size_string);
++    auto upload = std::make_unique<UploadList::UploadInfo>(
++        id, info.creation_time, upload_state, file_size_string);
 +    upload.file_path = file_path;
-     uploads->push_back(upload);
++    uploads->push_back(upload);
    }
  }
 diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.h b/chrome/browser/crash_upload_list/crash_upload_list_android.h
 --- a/chrome/browser/crash_upload_list/crash_upload_list_android.h
 +++ b/chrome/browser/crash_upload_list/crash_upload_list_android.h
-@@ -34,6 +34,7 @@ class CrashUploadListAndroid : public TextLogUploadList {
- 
-   std::vector<UploadInfo> LoadUploadList() override;
+@@ -35,6 +35,7 @@ class CrashUploadListAndroid : public TextLogUploadList {
+   std::vector<std::unique_ptr<UploadList::UploadInfo>> LoadUploadList()
+       override;
    void RequestSingleUpload(const std::string& local_id) override;
 +  void RequestNewExtraction() override;
  
   private:
-   void LoadUnsuccessfulUploadList(std::vector<UploadInfo>* uploads);
+   void LoadUnsuccessfulUploadList(
 diff --git a/chrome/browser/net/chrome_network_delegate.cc b/chrome/browser/net/chrome_network_delegate.cc
 --- a/chrome/browser/net/chrome_network_delegate.cc
 +++ b/chrome/browser/net/chrome_network_delegate.cc
@@ -159,7 +160,7 @@ diff --git a/chrome/browser/net/chrome_network_delegate.cc b/chrome/browser/net/
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -644,6 +644,7 @@ static_library("ui") {
+@@ -646,6 +646,7 @@ static_library("ui") {
      "//third_party/re2",
      "//third_party/webrtc_overrides:webrtc_component",
      "//third_party/zlib",
@@ -879,7 +880,7 @@ diff --git a/components/minidump_uploader/android/java/src/org/chromium/componen
 diff --git a/components/upload_list/text_log_upload_list.cc b/components/upload_list/text_log_upload_list.cc
 --- a/components/upload_list/text_log_upload_list.cc
 +++ b/components/upload_list/text_log_upload_list.cc
-@@ -111,6 +111,7 @@ std::unique_ptr<TextLogUploadList::UploadInfo> TryParseCsvLogEntry(
+@@ -165,6 +165,7 @@ std::unique_ptr<UploadList::UploadInfo> TextLogUploadList::TryParseCsvLogEntry(
    }
    auto info = std::make_unique<TextLogUploadList::UploadInfo>(components[1],
                                                                upload_time);
@@ -890,8 +891,8 @@ diff --git a/components/upload_list/text_log_upload_list.cc b/components/upload_
 diff --git a/components/upload_list/upload_list.cc b/components/upload_list/upload_list.cc
 --- a/components/upload_list/upload_list.cc
 +++ b/components/upload_list/upload_list.cc
-@@ -95,6 +95,11 @@ void UploadList::GetUploads(size_t max_count,
-             std::back_inserter(*uploads));
+@@ -99,6 +99,11 @@ std::vector<const UploadList::UploadInfo*> UploadList::GetUploads(
+   return uploads;
  }
  
 +void UploadList::RequestNewExtraction() {
@@ -899,10 +900,10 @@ diff --git a/components/upload_list/upload_list.cc b/components/upload_list/uplo
 +  NOTREACHED();
 +}
 +
- void UploadList::OnLoadComplete(const std::vector<UploadInfo>& uploads) {
-   uploads_ = uploads;
-   if (!load_callback_.is_null())
-@@ -105,3 +110,12 @@ void UploadList::OnClearComplete() {
+ void UploadList::OnLoadComplete(
+     std::vector<std::unique_ptr<UploadInfo>> uploads) {
+   uploads_ = std::move(uploads);
+@@ -111,3 +116,12 @@ void UploadList::OnClearComplete() {
    if (!clear_callback_.is_null())
      std::move(clear_callback_).Run();
  }
@@ -918,7 +919,7 @@ diff --git a/components/upload_list/upload_list.cc b/components/upload_list/uplo
 diff --git a/components/upload_list/upload_list.h b/components/upload_list/upload_list.h
 --- a/components/upload_list/upload_list.h
 +++ b/components/upload_list/upload_list.h
-@@ -68,6 +68,9 @@ class UploadList : public base::RefCountedThreadSafe<UploadList> {
+@@ -69,6 +69,9 @@ class UploadList : public base::RefCountedThreadSafe<UploadList> {
  
      // Formatted file size for locally stored data.
      std::u16string file_size;
@@ -928,9 +929,9 @@ diff --git a/components/upload_list/upload_list.h b/components/upload_list/uploa
    };
  
    UploadList();
-@@ -97,6 +100,12 @@ class UploadList : public base::RefCountedThreadSafe<UploadList> {
-   // Must be called only after a Load() callback has been received.
-   void GetUploads(size_t max_count, std::vector<UploadInfo>* uploads);
+@@ -99,6 +102,12 @@ class UploadList : public base::RefCountedThreadSafe<UploadList> {
+   // The |UploadInfo| pointers are still owned by this |UploadList| instance.
+   std::vector<const UploadInfo*> GetUploads(size_t max_count) const;
  
 +  // Get full path of crash file for local_id
 +  std::string GetFilePathByLocalId(const std::string& local_id);

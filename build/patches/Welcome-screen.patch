@@ -6,33 +6,14 @@ Allow toggling automatic updates
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../android/java/res/layout/fre_tosanduma.xml |   4 +-
- .../firstrun/ChildAccountStatusSupplier.java  |  14 +-
- .../browser/firstrun/FirstRunActivity.java    |  42 +----
- .../firstrun/FirstRunActivityBase.java        |  11 +-
- .../firstrun/FirstRunFlowSequencer.java       |  55 ++----
- .../browser/firstrun/FirstRunUtils.java       |  16 +-
- .../firstrun/ToSAndUMAFirstRunFragment.java   | 166 +++++-------------
- .../strings/android_chrome_strings.grd        |  27 ++-
- 8 files changed, 83 insertions(+), 252 deletions(-)
+ .../firstrun/ChildAccountStatusSupplier.java  | 14 +----
+ .../browser/firstrun/FirstRunActivity.java    | 18 -------
+ .../firstrun/FirstRunActivityBase.java        |  6 +--
+ .../firstrun/FirstRunFlowSequencer.java       | 52 +++++--------------
+ .../browser/firstrun/FirstRunUtils.java       | 16 ++----
+ .../strings/android_chrome_strings.grd        | 24 ++++++++-
+ 6 files changed, 40 insertions(+), 90 deletions(-)
 
-diff --git a/chrome/android/java/res/layout/fre_tosanduma.xml b/chrome/android/java/res/layout/fre_tosanduma.xml
---- a/chrome/android/java/res/layout/fre_tosanduma.xml
-+++ b/chrome/android/java/res/layout/fre_tosanduma.xml
-@@ -86,11 +86,11 @@ found in the LICENSE file.
-                         android:textAppearance="@style/TextAppearance.TextMedium.Primary" />
- 
-                     <CheckBox
--                        android:id="@+id/send_report_checkbox"
-+                        android:id="@+id/auto_updater_checkbox"
-                         android:layout_width="wrap_content"
-                         android:layout_height="wrap_content"
-                         android:lineSpacingMultiplier="1.4"
--                        android:text="@string/fre_send_report_check"
-+                        android:text="@string/auto_updater_check"
-                         android:paddingStart="@dimen/fre_tos_checkbox_padding"
-                         android:textAppearance="@style/TextAppearance.TextMedium.Primary" />
-                 </LinearLayout>
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildAccountStatusSupplier.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildAccountStatusSupplier.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildAccountStatusSupplier.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildAccountStatusSupplier.java
@@ -68,9 +49,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildA
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivity.java
-@@ -29,9 +29,6 @@ import org.chromium.chrome.browser.customtabs.CustomTabActivity;
- import org.chromium.chrome.browser.fonts.FontPreloader;
+@@ -28,9 +28,6 @@ import org.chromium.chrome.browser.fonts.FontPreloader;
  import org.chromium.chrome.browser.metrics.UmaUtils;
+ import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
 -import org.chromium.chrome.browser.signin.SigninCheckerProvider;
 -import org.chromium.chrome.browser.signin.SigninFirstRunFragment;
@@ -78,43 +59,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  import org.chromium.components.browser_ui.modaldialog.AppModalPresenter;
  import org.chromium.components.metrics.LowEntropySource;
  import org.chromium.ui.base.LocalizationUtils;
-@@ -135,18 +132,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
-     /** Creates first page and sets up adapter. Should result UI being shown on the screen. */
-     private void createFirstPage() {
-         BooleanSupplier showWelcomePage = () -> !FirstRunStatus.shouldSkipWelcomePage();
--        if (FREMobileIdentityConsistencyFieldTrial.isEnabled()) {
--            mPages.add(new FirstRunPage<>(SigninFirstRunFragment.class, showWelcomePage));
--        } else {
--            // TODO(crbug.com/1111490): Revisit during post-MVP.
--            // There's an edge case where we accept the welcome page in the main app, abort the FRE,
--            // then go through this CCT FRE again.
--            mPages.add(shouldCreateEnterpriseCctTosPage()
--                            ? new FirstRunPage<>(
--                                    TosAndUmaFirstRunFragmentWithEnterpriseSupport.class,
--                                    showWelcomePage)
--                            : new FirstRunPage<>(ToSAndUMAFirstRunFragment.class, showWelcomePage));
--        }
-+        mPages.add(new FirstRunPage<>(ToSAndUMAFirstRunFragment.class, showWelcomePage));
-         mFreProgressStates.add(MobileFreProgress.WELCOME_SHOWN);
-         mPagerAdapter = new FirstRunPagerAdapter(FirstRunActivity.this, mPages);
-         mPager.setAdapter(mPagerAdapter);
-@@ -154,15 +140,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
-         // native and policy service have been initialized.
-     }
- 
--    private boolean shouldCreateEnterpriseCctTosPage() {
--        // TODO(crbug.com/1111490): Revisit case when #shouldSkipWelcomePage = true.
--        //  If the client has already accepted ToS (FirstRunStatus#shouldSkipWelcomePage), do not
--        //  use the subclass ToSAndUmaCCTFirstRunFragment. Instead, use the base class
--        //  (ToSAndUMAFirstRunFragment) which simply shows a loading spinner while waiting for
--        //  native to be loaded.
--        return mLaunchedFromCCT && !FirstRunStatus.shouldSkipWelcomePage();
--    }
--
-     /**
-      * Create the page sequence which requires native initialized, and policies loaded if any
-      * on-device policies may exists.
-@@ -177,13 +154,11 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -140,13 +137,11 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
          //
          // TODO(b/245912657): explicitly sign in supervised users in {@link
          // SigninFirstRunMediator#handleContinueWithNative} rather than relying on SigninChecker.
@@ -128,7 +73,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          // An optional page to select a default search engine.
          if (showSearchEnginePromo.getAsBoolean()) {
-@@ -192,11 +167,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -155,11 +150,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
              mFreProgressStates.add(MobileFreProgress.DEFAULT_SEARCH_ENGINE_SHOWN);
          }
  
@@ -140,27 +85,18 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          if (mPagerAdapter != null) {
              mPagerAdapter.notifyDataSetChanged();
          }
-@@ -241,10 +211,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -204,10 +194,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
  
      @Override
      public void triggerLayoutInflation() {
 -        // Generate trial group as early as possible to guarantee it's available by the time native
 -        // needs to register the synthetic trial group. See https://crbug.com/1295692 for details.
--        FREMobileIdentityConsistencyFieldTrial.createFirstRunTrial();
+-        FREMobileIdentityConsistencyFieldTrial.createFirstRunVariationsTrial();
 -
          super.triggerLayoutInflation();
  
          initializeStateFromLaunchData();
-@@ -254,7 +220,7 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
-         setFinishOnTouchOutside(true);
- 
-         setContentView(createContentView());
--        if (FREMobileIdentityConsistencyFieldTrial.isEnabled() && mPagerAdapter == null) {
-+        if (mPagerAdapter == null) {
-             // SigninFirstRunFragment doesn't use getProperties() and can be shown right away,
-             // without waiting for FirstRunFlowSequencer.
-             createFirstPage();
-@@ -531,10 +497,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
+@@ -488,10 +474,6 @@ public class FirstRunActivity extends FirstRunActivityBase implements FirstRunPa
      public void acceptTermsOfService(boolean allowMetricsAndCrashUploading) {
          assert mNativeInitializationPromise.isFulfilled();
  
@@ -183,18 +119,13 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
  /** Base class for First Run Experience. */
  public abstract class FirstRunActivityBase
-@@ -100,14 +98,7 @@ public abstract class FirstRunActivityBase
+@@ -100,9 +98,7 @@ public abstract class FirstRunActivityBase
      @Override
      @CallSuper
      public void triggerLayoutInflation() {
 -        AccountManagerFacade accountManagerFacade = AccountManagerFacadeProvider.getInstance();
--        if (FREMobileIdentityConsistencyFieldTrial.isEnabled()) {
--            mChildAccountStatusSupplier = new ChildAccountStatusSupplier(
--                    accountManagerFacade, mFirstRunAppRestrictionInfo);
--        } else {
--            mChildAccountStatusSupplier =
--                    new ChildAccountStatusSupplier(accountManagerFacade, null);
--        }
+-        mChildAccountStatusSupplier =
+-                new ChildAccountStatusSupplier(accountManagerFacade, mFirstRunAppRestrictionInfo);
 +        mChildAccountStatusSupplier = new ChildAccountStatusSupplier();
      }
  
@@ -202,11 +133,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
-@@ -26,15 +26,9 @@ import org.chromium.chrome.browser.flags.ChromeSwitches;
+@@ -25,14 +25,9 @@ import org.chromium.chrome.browser.flags.ChromeSwitches;
  import org.chromium.chrome.browser.locale.LocaleManager;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.search_engines.SearchEnginePromoType;
--import org.chromium.chrome.browser.signin.services.FREMobileIdentityConsistencyFieldTrial;
 -import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
 -import org.chromium.chrome.browser.signin.services.SigninManager;
  import org.chromium.components.crash.CrashKeyIndex;
@@ -218,7 +148,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
  import java.util.List;
  
-@@ -59,27 +53,7 @@ public abstract class FirstRunFlowSequencer  {
+@@ -57,38 +52,19 @@ public abstract class FirstRunFlowSequencer  {
          /** Returns true if the sync consent promo page should be shown. */
          boolean shouldShowSyncConsentPage(
                  Activity activity, List<Account> accounts, boolean isChild) {
@@ -234,19 +164,20 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -                // if sync is not allowed.
                  return false;
 -            }
--            if (FREMobileIdentityConsistencyFieldTrial.isEnabled()) {
 -                // Show the sync consent page only to the signed-in users.
--                return identityManager.hasPrimaryAccount(ConsentLevel.SIGNIN);
--            } else {
--                // We show the sync consent page if sync is allowed, and not signed in, and
--                // - "skip the first use hints" is not set, or
--                // - "skip the first use hints" is set, but there is at least one account.
--                return !shouldSkipFirstUseHints(activity) || !accounts.isEmpty();
--            }
+-            return identityManager.hasPrimaryAccount(ConsentLevel.SIGNIN);
          }
  
          /** @return true if the Search Engine promo page should be shown. */
-@@ -94,10 +68,7 @@ public abstract class FirstRunFlowSequencer  {
+         @VisibleForTesting
+         public boolean shouldShowSearchEnginePage() {
+-            @SearchEnginePromoType
+-            int searchPromoType = LocaleManager.getInstance().getSearchEnginePromoShowType();
+-            return searchPromoType == SearchEnginePromoType.SHOW_NEW
+-                    || searchPromoType == SearchEnginePromoType.SHOW_EXISTING;
++            return false;
+         }
+ 
          /** @return true if Sync is allowed for the current user. */
          @VisibleForTesting
          protected boolean isSyncAllowed() {
@@ -256,9 +187,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -                    && signinManager.isSigninSupported();
 +            return false;
          }
+     }
  
-         /** @return true if first use hints should be skipped. */
-@@ -149,12 +120,8 @@ public abstract class FirstRunFlowSequencer  {
+@@ -132,12 +108,8 @@ public abstract class FirstRunFlowSequencer  {
       *                                  method.
       */
      void start() {
@@ -273,7 +204,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      }
  
      @VisibleForTesting
-@@ -179,14 +146,10 @@ public abstract class FirstRunFlowSequencer  {
+@@ -162,14 +134,10 @@ public abstract class FirstRunFlowSequencer  {
      }
  
      private void maybeProcessFreEnvironmentPreNative() {
@@ -288,7 +219,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
          onFlowIsKnown(freProperties);
      }
-@@ -197,8 +160,8 @@ public abstract class FirstRunFlowSequencer  {
+@@ -180,8 +148,8 @@ public abstract class FirstRunFlowSequencer  {
       * @param freProperties Resulting FRE properties bundle.
       */
      public void updateFirstRunProperties(Bundle freProperties) {
@@ -299,7 +230,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
          freProperties.putBoolean(
                  FirstRunActivity.SHOW_SEARCH_ENGINE_PAGE, shouldShowSearchEnginePage());
      }
-@@ -299,13 +262,17 @@ public abstract class FirstRunFlowSequencer  {
+@@ -282,13 +250,17 @@ public abstract class FirstRunFlowSequencer  {
              if (!(caller instanceof Activity)) {
                  freIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
              }
@@ -322,7 +253,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunUtils.java
-@@ -17,9 +17,6 @@ import org.chromium.chrome.browser.metrics.UmaSessionStats;
+@@ -18,9 +18,6 @@ import org.chromium.chrome.browser.metrics.UmaSessionStats;
  import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
  import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
  import org.chromium.chrome.browser.util.ChromeAccessibilityUtil;
@@ -332,7 +263,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
  
  /** Provides first run related utility functions. */
  public class FirstRunUtils {
-@@ -81,16 +78,12 @@ public class FirstRunUtils {
+@@ -83,16 +80,12 @@ public class FirstRunUtils {
       * @return Whether or not sync is allowed on this device.
       */
      static boolean canAllowSync() {
@@ -351,7 +282,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      }
  
      @VisibleForTesting
-@@ -100,10 +93,7 @@ public class FirstRunUtils {
+@@ -102,10 +95,7 @@ public class FirstRunUtils {
  
      @VisibleForTesting
      static boolean hasGoogleAccounts() {
@@ -363,307 +294,12 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
      }
  
      @SuppressLint("InlinedApi")
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java
-@@ -16,16 +16,18 @@ import android.widget.Button;
- import android.widget.CheckBox;
- import android.widget.TextView;
- 
-+import android.content.SharedPreferences;
-+import org.chromium.chrome.browser.omaha.OmahaBase;
-+
- import androidx.annotation.NonNull;
- import androidx.annotation.Nullable;
- import androidx.annotation.VisibleForTesting;
- import androidx.fragment.app.Fragment;
- 
-+import org.chromium.base.Log;
- import org.chromium.base.metrics.RecordHistogram;
- import org.chromium.chrome.R;
- import org.chromium.chrome.browser.privacy.settings.PrivacyPreferencesManagerImpl;
--import org.chromium.chrome.browser.signin.services.FREMobileIdentityConsistencyFieldTrial;
--import org.chromium.chrome.browser.ui.signin.fre.FreUMADialogCoordinator;
- import org.chromium.components.version_info.VersionInfo;
- import org.chromium.ui.modaldialog.ModalDialogManagerHolder;
- import org.chromium.ui.text.NoUnderlineClickableSpan;
-@@ -41,7 +43,7 @@ import java.util.List;
-  * User Metrics Analysis) as defined in the Chrome Privacy Notice.
-  */
- public class ToSAndUMAFirstRunFragment
--        extends Fragment implements FirstRunFragment, FreUMADialogCoordinator.Listener {
-+        extends Fragment implements FirstRunFragment {
-     /** Alerts about some methods once ToSAndUMAFirstRunFragment executes them. */
-     public interface Observer {
-         /** See {@link #onNativeInitialized}. */
-@@ -62,7 +64,8 @@ public class ToSAndUMAFirstRunFragment
-     private boolean mUserInteractedWithUmaCheckbox;
- 
-     private Button mAcceptButton;
--    private CheckBox mSendReportCheckBox;
-+    private CheckBox mAutoUpdaterCheckBox;
-+    private boolean mAutoUpdaterChecked;
-     private TextView mTosAndPrivacy;
-     private View mTitle;
-     private View mProgressSpinner;
-@@ -89,14 +92,14 @@ public class ToSAndUMAFirstRunFragment
-         mProgressSpinner = view.findViewById(R.id.progress_spinner);
-         mProgressSpinner.setVisibility(View.GONE);
-         mAcceptButton = (Button) view.findViewById(R.id.terms_accept);
--        mSendReportCheckBox = (CheckBox) view.findViewById(R.id.send_report_checkbox);
-+        mAutoUpdaterCheckBox = (CheckBox) view.findViewById(R.id.auto_updater_checkbox);
-         mTosAndPrivacy = (TextView) view.findViewById(R.id.tos_and_privacy);
- 
-         // Register event listeners.
-         mAcceptButton.setOnClickListener((v) -> onTosButtonClicked());
--        mSendReportCheckBox.setOnCheckedChangeListener(((compoundButton, isChecked) -> {
--            mAllowMetricsAndCrashUploading = isChecked;
--            mUserInteractedWithUmaCheckbox = true;
-+        mAutoUpdaterCheckBox.setOnCheckedChangeListener(
-+                ((compoundButton, isChecked) -> {
-+            mAutoUpdaterChecked = isChecked;
-         }));
- 
-         // Make TextView links clickable.
-@@ -113,7 +116,9 @@ public class ToSAndUMAFirstRunFragment
-         // initialized at which point the activity will skip the page.
-         // We distinguish case 1 from case 2 by the value of |mNativeInitialized|, as that is set
-         // via onAttachFragment() from FirstRunActivity - which is before this onViewCreated().
--        if (isWaitingForNativeAndPolicyInit() && FirstRunStatus.shouldSkipWelcomePage()) {
-+        boolean isW = isWaitingForNativeAndPolicyInit();
-+        boolean ssw = FirstRunStatus.shouldSkipWelcomePage();
-+        if (isW && ssw) {
-             setSpinnerVisible(true);
-         }
-     }
-@@ -139,7 +144,7 @@ public class ToSAndUMAFirstRunFragment
-             // On certain versions of Android, the checkbox will appear unchecked upon revisiting
-             // the page.  Force it to the end state of the drawable animation as a work around.
-             // crbug.com/666258
--            mSendReportCheckBox.jumpDrawablesToCurrentState();
-+            mAutoUpdaterCheckBox.jumpDrawablesToCurrentState();
-         }
-     }
- 
-@@ -166,13 +171,7 @@ public class ToSAndUMAFirstRunFragment
-         assert !isWaitingForNativeAndPolicyInit();
- 
-         setSpinnerVisible(false);
--        mSendReportCheckBox.setChecked(mAllowMetricsAndCrashUploading);
--    }
--
--    /** Implements {@link FreUMADialogCoordinator.Listener} */
--    @Override
--    public void onAllowMetricsAndCrashUploadingChecked(boolean allowMetricsAndCrashUploading) {
--        mAllowMetricsAndCrashUploading = allowMetricsAndCrashUploading;
-+        mAutoUpdaterCheckBox.setChecked(true);
-     }
- 
-     private void updateView() {
-@@ -181,116 +180,39 @@ public class ToSAndUMAFirstRunFragment
-             return;
-         }
- 
--        final boolean umaDialogMayBeShown =
--                FREMobileIdentityConsistencyFieldTrial.shouldShowOldFreWithUmaDialog();
--        final boolean hasChildAccount = getPageDelegate().getProperties().getBoolean(
--                SyncConsentFirstRunFragment.IS_CHILD_ACCOUNT, false);
--        final boolean isMetricsReportingDisabledByPolicy = !isWaitingForNativeAndPolicyInit()
--                && !PrivacyPreferencesManagerImpl.getInstance()
--                            .isUsageAndCrashReportingPermittedByPolicy();
--
--        updateTosText(umaDialogMayBeShown, hasChildAccount, isMetricsReportingDisabledByPolicy);
--
--        updateReportCheckbox(umaDialogMayBeShown, isMetricsReportingDisabledByPolicy);
--    }
--
--    private SpanInfo buildTermsOfServiceLink() {
--        NoUnderlineClickableSpan clickableGoogleTermsSpan =
--                new NoUnderlineClickableSpan(getContext(), (view1) -> {
--                    if (!isAdded()) return;
--                    getPageDelegate().showInfoPage(R.string.google_terms_of_service_url);
--                });
--        return new SpanInfo("<TOS_LINK>", "</TOS_LINK>", clickableGoogleTermsSpan);
--    }
-+        updateTosText();
- 
--    private SpanInfo buildAdditionalTermsOfServiceLink() {
--        NoUnderlineClickableSpan clickableChromeAdditionalTermsSpan =
--                new NoUnderlineClickableSpan(getContext(), (view1) -> {
--                    if (!isAdded()) return;
--                    getPageDelegate().showInfoPage(R.string.chrome_additional_terms_of_service_url);
--                });
--        return new SpanInfo("<ATOS_LINK>", "</ATOS_LINK>", clickableChromeAdditionalTermsSpan);
-+        updateReportCheckbox();
-     }
- 
--    private SpanInfo buildPrivacyPolicyLink() {
--        NoUnderlineClickableSpan clickableFamilyLinkPrivacySpan =
-+    private SpanInfo buildPrivacyPolicyLink(String suffix, int url) {
-+        NoUnderlineClickableSpan clickableSpan =
-                 new NoUnderlineClickableSpan(getContext(), (view1) -> {
-                     if (!isAdded()) return;
--                    getPageDelegate().showInfoPage(R.string.google_privacy_policy_url);
-+                    getPageDelegate().showInfoPage(url);
-                 });
- 
--        return new SpanInfo("<PRIVACY_LINK>", "</PRIVACY_LINK>", clickableFamilyLinkPrivacySpan);
--    }
--
--    private SpanInfo buildMetricsAndCrashReportingLink() {
--        NoUnderlineClickableSpan clickableUMADialogSpan =
--                new NoUnderlineClickableSpan(getContext(), (view1) -> openUmaDialog());
--        return new SpanInfo("<UMA_LINK>", "</UMA_LINK>", clickableUMADialogSpan);
-+        return new SpanInfo("<PRIVACY_LINK" + suffix + ">", "</PRIVACY_LINK" + suffix + ">", clickableSpan);
-     }
- 
--    private void updateTosText(boolean umaDialogMayBeShown, boolean hasChildAccount,
--            boolean isMetricsReportingDisabledByPolicy) {
-+    private void updateTosText() {
-         List<SpanInfo> spans = new LinkedList<SpanInfo>();
- 
--        // Description always has a Terms of Service link.
--        spans.add(buildTermsOfServiceLink());
-+        spans.add(buildPrivacyPolicyLink("1", R.string.adblock_wiki_url));
- 
--        // Additional terms of service link.
--        if (!umaDialogMayBeShown) {
--            spans.add(buildAdditionalTermsOfServiceLink());
--        }
-+        spans.add(buildPrivacyPolicyLink("2", R.string.adblock_updater_privacy_policy_url));
- 
--        // Privacy policy link.
--        if (hasChildAccount) {
--            spans.add(buildPrivacyPolicyLink());
--        }
-+        spans.add(buildPrivacyPolicyLink("3", R.string.auto_updates_wiki_url));
- 
--        // Metrics and crash reporting link.
--        if (umaDialogMayBeShown && !isMetricsReportingDisabledByPolicy) {
--            spans.add(buildMetricsAndCrashReportingLink());
--        }
-+        spans.add(buildPrivacyPolicyLink("4", R.string.bromite_updater_privacy_policy_url));
- 
--        String tosString;
--        if (umaDialogMayBeShown) {
--            tosString =
--                    getString(hasChildAccount ? R.string.signin_fre_footer_tos_with_supervised_user
--                                              : R.string.signin_fre_footer_tos);
--
--            if (!isMetricsReportingDisabledByPolicy) {
--                tosString += "\n" + getString(R.string.signin_fre_footer_metrics_reporting);
--            }
--        } else {
--            tosString = getString(hasChildAccount ? R.string.fre_tos_and_privacy_child_account
--                                                  : R.string.fre_tos);
--        }
-+        String tosString = getString(R.string.bromite_fre_footer_privacy_policy);
- 
-         mTosAndPrivacy.setText(SpanApplier.applySpans(tosString, spans.toArray(new SpanInfo[0])));
-     }
- 
--    private void updateReportCheckbox(
--            boolean umaDialogMayBeShown, boolean isMetricsReportingDisabledByPolicy) {
--        // The user can only interact with the UMA checkbox after it's visible on the screen, in
--        // which case a previous call to this method has already checked the checkbox expected
--        // initial state.
--        if (!mUserInteractedWithUmaCheckbox) {
--            mAllowMetricsAndCrashUploading = getUmaCheckBoxInitialState();
--            mSendReportCheckBox.setChecked(mAllowMetricsAndCrashUploading);
--        }
--
--        if (!canShowUmaCheckBox()) {
--            if (!umaDialogMayBeShown) {
--                mAllowMetricsAndCrashUploading =
--                        (sShowUmaCheckBoxForTesting || VersionInfo.isOfficialBuild())
--                        && !isMetricsReportingDisabledByPolicy;
--            }
--            mSendReportCheckBox.setVisibility(View.GONE);
--        }
--    }
--
--    private void openUmaDialog() {
--        new FreUMADialogCoordinator(requireContext(),
--                ((ModalDialogManagerHolder) getActivity()).getModalDialogManager(), this,
--                mAllowMetricsAndCrashUploading);
-+    private void updateReportCheckbox() {
-+        mAutoUpdaterCheckBox.setChecked(true);
-     }
- 
-     private void onPolicyServiceInitialized(boolean onDevicePolicyFound) {
-@@ -317,6 +239,12 @@ public class ToSAndUMAFirstRunFragment
-     private void onTosButtonClicked() {
-         mTosButtonClicked = true;
-         mTosAcceptedTime = SystemClock.elapsedRealtime();
-+
-+        // save updater configuration only on button click
-+        SharedPreferences.Editor sharedPreferenceEditor = OmahaBase.getSharedPreferences().edit();
-+        sharedPreferenceEditor.putBoolean(OmahaBase.PREF_ALLOW_INLINE_UPDATE, mAutoUpdaterChecked);
-+        sharedPreferenceEditor.apply();
-+
-         tryMarkTermsAccepted(true);
-     }
- 
-@@ -327,7 +255,8 @@ public class ToSAndUMAFirstRunFragment
-      * @param fromButtonClicked Whether called from {@link #onTosButtonClicked()}.
-      */
-     private void tryMarkTermsAccepted(boolean fromButtonClicked) {
--        if (!mTosButtonClicked || isWaitingForNativeAndPolicyInit()) {
-+        boolean isW = isWaitingForNativeAndPolicyInit();
-+        if (!mTosButtonClicked || isW) {
-             if (fromButtonClicked) setSpinnerVisible(true);
-             return;
-         }
-@@ -338,7 +267,7 @@ public class ToSAndUMAFirstRunFragment
-             RecordHistogram.recordTimesHistogram("MobileFre.TosFragment.SpinnerVisibleDuration",
-                     SystemClock.elapsedRealtime() - mTosAcceptedTime);
-         }
--        getPageDelegate().acceptTermsOfService(mAllowMetricsAndCrashUploading);
-+        getPageDelegate().acceptTermsOfService(false);
-         getPageDelegate().advanceToNextPage();
-     }
- 
-@@ -381,10 +310,7 @@ public class ToSAndUMAFirstRunFragment
- 
-         mAcceptButton.setVisibility(visibility);
-         mTosAndPrivacy.setVisibility(visibility);
--        // Avoid updating visibility if the UMA check box can't be shown right now.
--        if (canShowUmaCheckBox()) {
--            mSendReportCheckBox.setVisibility(visibility);
--        }
-+        mAutoUpdaterCheckBox.setVisibility(visibility);
-     }
- 
-     protected View getToSAndPrivacyText() {
-@@ -397,18 +323,6 @@ public class ToSAndUMAFirstRunFragment
-         }
-     }
- 
--    /**
--     * @return Whether the check box for Uma metrics can be shown. It should be used in conjunction
--     *         with whether other non-spinner elements can generally be shown.
--     */
--    protected boolean canShowUmaCheckBox() {
--        return !FREMobileIdentityConsistencyFieldTrial.shouldShowOldFreWithUmaDialog()
--                && (sShowUmaCheckBoxForTesting || VersionInfo.isOfficialBuild())
--                && (isWaitingForNativeAndPolicyInit()
--                        || PrivacyPreferencesManagerImpl.getInstance()
--                                   .isUsageAndCrashReportingPermittedByPolicy());
--    }
--
-     @VisibleForTesting
-     public static void setShowUmaCheckBoxForTesting(boolean showForTesting) {
-         sShowUmaCheckBoxForTesting = showForTesting;
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3076,11 +3076,30 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
-       <message name="IDS_LIGHTWEIGHT_FRE_ASSOCIATED_APP_TOS_AND_PRIVACY_CHILD_ACCOUNT" desc="Message explaining that use of Chrome is governed by Chrome's terms of service, and the Google Privacy Policy.">
+@@ -3077,7 +3077,29 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
          <ph name="APP_NAME">%1$s<ex>Google Maps</ex></ph> will open in Chrome. By continuing, you agree to the <ph name="BEGIN_LINK1">&lt;LINK1&gt;</ph>Google Terms of Service<ph name="END_LINK1">&lt;/LINK1&gt;</ph>, and the <ph name="BEGIN_LINK2">&lt;LINK2&gt;</ph>Google Chrome and ChromeOS Additional Terms of Service<ph name="END_LINK2">&lt;/LINK2&gt;</ph>. The <ph name="BEGIN_LINK3">&lt;LINK3&gt;</ph>Privacy Policy<ph name="END_LINK3">&lt;/LINK3&gt;</ph> also applies.
        </message>
--      <message name="IDS_FRE_SEND_REPORT_CHECK" desc="Text for asking the user to allow sending stats and crash reports">
--        Help make Chrome better by sending usage statistics and crash reports to Google.
--      </message>
        <message name="IDS_FRE_ACCEPT_CONTINUE" desc="Text for first page accept and continue button [CHAR_LIMIT=20]">
 -        Accept &amp; continue
 +        Continue

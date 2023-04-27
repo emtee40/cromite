@@ -13,7 +13,6 @@ Subject: Add browser policy
  .../ui/webui/policy/policy_ui_handler.h       |   2 +
  .../core/browser/browser_policy_connector.cc  |   3 +
  .../common/command_line_policy_provider.cc    |   3 +
- components/policy/core/common/features.cc     |   4 +-
  .../core/common/policy_loader_command_line.cc | 120 +++++++++++++++---
  .../policy/core/common/policy_pref_names.cc   |   3 +
  .../policy/core/common/policy_pref_names.h    |   1 +
@@ -27,14 +26,14 @@ Subject: Add browser policy
  components/signin/features.gni                |   6 +-
  .../gaia_cookie_manager_service.cc            |   4 +
  google_apis/gaia/gaia_auth_fetcher.cc         |   1 +
- 24 files changed, 295 insertions(+), 35 deletions(-)
+ 23 files changed, 293 insertions(+), 33 deletions(-)
 
 diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 --- a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 +++ b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
-@@ -61,6 +61,11 @@ JNI_PrivacyPreferencesManagerImpl_IsMetricsReportingDisabledByPolicy(
-   }
- 
+@@ -55,6 +55,11 @@ static jboolean
+ JNI_PrivacyPreferencesManagerImpl_IsMetricsReportingDisabledByPolicy(
+     JNIEnv* env) {
    const PrefService* local_state = g_browser_process->local_state();
 +  // this point (policy with 'future') gave me false, false
 +  // LOG(INFO) << "---IsMetricsReportingDisabledByPolicy "
@@ -88,7 +87,7 @@ diff --git a/chrome/browser/policy/chrome_browser_policy_connector.cc b/chrome/b
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
-@@ -1883,9 +1883,9 @@ bool AreFuturePoliciesEnabledByDefault() {
+@@ -1923,9 +1923,9 @@ bool AreFuturePoliciesEnabledByDefault() {
    // Enable future policies for branded browser tests.
    if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kTestType))
      return true;
@@ -104,7 +103,7 @@ diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc 
 diff --git a/chrome/browser/signin/account_consistency_mode_manager.cc b/chrome/browser/signin/account_consistency_mode_manager.cc
 --- a/chrome/browser/signin/account_consistency_mode_manager.cc
 +++ b/chrome/browser/signin/account_consistency_mode_manager.cc
-@@ -31,7 +31,14 @@
+@@ -34,7 +34,14 @@
  #error "Dice and Mirror cannot be both enabled."
  #endif
  
@@ -120,7 +119,7 @@ diff --git a/chrome/browser/signin/account_consistency_mode_manager.cc b/chrome/
  // #error "Either Dice or Mirror should be enabled."
  // #endif
  
-@@ -189,7 +196,8 @@ AccountConsistencyModeManager::ComputeAccountConsistencyMethod(
+@@ -198,7 +205,8 @@ AccountConsistencyModeManager::ComputeAccountConsistencyMethod(
  #endif
  
  #if BUILDFLAG(ENABLE_MIRROR)
@@ -130,7 +129,7 @@ diff --git a/chrome/browser/signin/account_consistency_mode_manager.cc b/chrome/
  #endif
  
  #if BUILDFLAG(ENABLE_DICE_SUPPORT)
-@@ -199,8 +207,12 @@ AccountConsistencyModeManager::ComputeAccountConsistencyMethod(
+@@ -208,8 +216,12 @@ AccountConsistencyModeManager::ComputeAccountConsistencyMethod(
      return AccountConsistencyMethod::kDisabled;
    }
  
@@ -163,7 +162,7 @@ diff --git a/chrome/browser/signin/chrome_signin_client.cc b/chrome/browser/sign
 @@ -239,6 +241,8 @@ void ChromeSigninClient::OnConnectionChanged(
  #endif
  
- void ChromeSigninClient::DelayNetworkCall(base::OnceClosure callback) {
+ bool ChromeSigninClient::AreNetworkCallsDelayed() {
 +  // Make ChromeSigninClient compliant to SigninAllowed policy
 +  if (!AreSigninCookiesAllowed()) return;
  #if BUILDFLAG(IS_CHROMEOS_ASH)
@@ -194,7 +193,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
  #include "components/policy/core/common/policy_scheduler.h"
  #include "components/policy/core/common/policy_types.h"
  #include "components/policy/core/common/remote_commands/remote_commands_service.h"
-@@ -168,6 +171,10 @@ void PolicyUIHandler::RegisterMessages() {
+@@ -160,6 +163,10 @@ void PolicyUIHandler::RegisterMessages() {
        "exportPoliciesJSON",
        base::BindRepeating(&PolicyUIHandler::HandleExportPoliciesJson,
                            base::Unretained(this)));
@@ -205,7 +204,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
    web_ui()->RegisterMessageCallback(
        "listenPoliciesUpdates",
        base::BindRepeating(&PolicyUIHandler::HandleListenPoliciesUpdates,
-@@ -331,8 +338,102 @@ void PolicyUIHandler::SendPolicies() {
+@@ -323,8 +330,102 @@ void PolicyUIHandler::SendPolicies() {
        "policies-updated",
        base::Value(
            policy_value_and_status_aggregator_->GetAggregatedPolicyNames()),
@@ -348,20 +347,6 @@ diff --git a/components/policy/core/common/command_line_policy_provider.cc b/com
  #if BUILDFLAG(IS_ANDROID)
    if (channel == version_info::Channel::STABLE ||
        channel == version_info::Channel::BETA) {
-diff --git a/components/policy/core/common/features.cc b/components/policy/core/common/features.cc
---- a/components/policy/core/common/features.cc
-+++ b/components/policy/core/common/features.cc
-@@ -27,8 +27,8 @@ BASE_FEATURE(kEnableUserCloudSigninRestrictionPolicyFetcher,
-              base::FEATURE_ENABLED_BY_DEFAULT);
- 
- BASE_FEATURE(kActivateMetricsReportingEnabledPolicyAndroid,
--             "ActivateMetricsReportingEnabledPolicyAndroid",
--             base::FEATURE_ENABLED_BY_DEFAULT);
-+             "ActivateMetricsReportingEnabledPolicyAndroid", // guard this
-+             base::FEATURE_ENABLED_BY_DEFAULT);              // guard this
- 
- BASE_FEATURE(kDmTokenDeletion,
-              "DmTokenDeletion",
 diff --git a/components/policy/core/common/policy_loader_command_line.cc b/components/policy/core/common/policy_loader_command_line.cc
 --- a/components/policy/core/common/policy_loader_command_line.cc
 +++ b/components/policy/core/common/policy_loader_command_line.cc
@@ -505,7 +490,7 @@ diff --git a/components/policy/core/common/policy_loader_command_line.cc b/compo
 diff --git a/components/policy/core/common/policy_pref_names.cc b/components/policy/core/common/policy_pref_names.cc
 --- a/components/policy/core/common/policy_pref_names.cc
 +++ b/components/policy/core/common/policy_pref_names.cc
-@@ -95,6 +95,9 @@ const char kBackForwardCacheEnabled[] = "policy.back_forward_cache_enabled";
+@@ -90,6 +90,9 @@ const char kBackForwardCacheEnabled[] = "policy.back_forward_cache_enabled";
  const char kUserAgentClientHintsGREASEUpdateEnabled[] =
      "policy.user_agent_client_hints_grease_update_enabled";
  
@@ -518,18 +503,18 @@ diff --git a/components/policy/core/common/policy_pref_names.cc b/components/pol
 diff --git a/components/policy/core/common/policy_pref_names.h b/components/policy/core/common/policy_pref_names.h
 --- a/components/policy/core/common/policy_pref_names.h
 +++ b/components/policy/core/common/policy_pref_names.h
-@@ -33,6 +33,7 @@ POLICY_EXPORT extern const char kUrlAllowlist[];
- POLICY_EXPORT extern const char kUserPolicyRefreshRate[];
- POLICY_EXPORT extern const char kIntensiveWakeUpThrottlingEnabled[];
- POLICY_EXPORT extern const char kUserAgentClientHintsGREASEUpdateEnabled[];
-+POLICY_EXPORT extern const char kDisabledDefaultPoliciesList[];
- POLICY_EXPORT extern const char kUnthrottledNestedTimeoutEnabled[];
+@@ -33,6 +33,7 @@ extern const char kUrlAllowlist[];
+ extern const char kUserPolicyRefreshRate[];
+ extern const char kIntensiveWakeUpThrottlingEnabled[];
+ extern const char kUserAgentClientHintsGREASEUpdateEnabled[];
++extern const char kDisabledDefaultPoliciesList[];
  #if BUILDFLAG(IS_ANDROID)
- POLICY_EXPORT extern const char kBackForwardCacheEnabled[];
+ extern const char kBackForwardCacheEnabled[];
+ #endif  // BUILDFLAG(IS_ANDROID)
 diff --git a/components/policy/core/common/policy_service_impl.cc b/components/policy/core/common/policy_service_impl.cc
 --- a/components/policy/core/common/policy_service_impl.cc
 +++ b/components/policy/core/common/policy_service_impl.cc
-@@ -66,6 +66,9 @@ void IgnoreUserCloudPrecedencePolicies(PolicyMap* policies) {
+@@ -64,6 +64,9 @@ void IgnoreUserCloudPrecedencePolicies(PolicyMap* policies) {
  // Metrics should not be enforced so if this policy is set as mandatory
  // downgrade it to a recommended level policy.
  void DowngradeMetricsReportingToRecommendedPolicy(PolicyMap* policies) {
@@ -554,13 +539,13 @@ diff --git a/components/policy/core/common/policy_switches.cc b/components/polic
 diff --git a/components/policy/core/common/policy_switches.h b/components/policy/core/common/policy_switches.h
 --- a/components/policy/core/common/policy_switches.h
 +++ b/components/policy/core/common/policy_switches.h
-@@ -18,6 +18,7 @@ POLICY_EXPORT extern const char kRealtimeReportingUrl[];
- POLICY_EXPORT extern const char kEncryptedReportingUrl[];
- POLICY_EXPORT extern const char kChromePolicy[];
- POLICY_EXPORT extern const char kSecureConnectApiUrl[];
-+POLICY_EXPORT extern const char kForceDisabledPolicies[];
+@@ -18,6 +18,7 @@ extern const char kRealtimeReportingUrl[];
+ extern const char kEncryptedReportingUrl[];
+ extern const char kChromePolicy[];
+ extern const char kSecureConnectApiUrl[];
++extern const char kForceDisabledPolicies[];
  #if BUILDFLAG(IS_CHROMEOS_ASH)
- POLICY_EXPORT extern const char kDisablePolicyKeyVerification[];
+ extern const char kDisablePolicyKeyVerification[];
  #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 diff --git a/components/policy/resources/templates/policy_definitions/Miscellaneous/SyncDisabled.yaml b/components/policy/resources/templates/policy_definitions/Miscellaneous/SyncDisabled.yaml
 --- a/components/policy/resources/templates/policy_definitions/Miscellaneous/SyncDisabled.yaml
@@ -638,7 +623,7 @@ diff --git a/components/policy/resources/webui/policy_row.js b/components/policy
 diff --git a/components/policy_strings.grdp b/components/policy_strings.grdp
 --- a/components/policy_strings.grdp
 +++ b/components/policy_strings.grdp
-@@ -588,8 +588,8 @@ Additional details:
+@@ -591,8 +591,8 @@ Additional details:
    <message name="IDS_POLICY_SOURCE_DEFAULT" desc="Indicates that a policy is set by default and can be overridden.">
      Default
    </message>

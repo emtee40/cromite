@@ -7,7 +7,7 @@ Subject: Eyeo Adblock Remove
  chrome/browser/BUILD.gn                       |    2 -
  .../adblock/adblock_content_browser_client.cc |   17 -
  .../adblock/adblock_controller_factory.cc     |    3 +-
- .../adblock_telemetry_service_factory.cc      |  138 -
+ .../adblock_telemetry_service_factory.cc      |  127 -
  .../adblock_telemetry_service_factory.h       |   56 -
  .../adblock/subscription_service_factory.cc   |    2 +-
  ...hrome_browser_main_extra_parts_profiles.cc |    2 -
@@ -53,7 +53,7 @@ Subject: Eyeo Adblock Remove
  .../blink/renderer/core/css/style_engine.cc   |    8 +
  .../blink/renderer/core/css/style_engine.h    |    1 +
  .../renderer/core/exported/web_document.cc    |   13 +-
- 50 files changed, 3290 insertions(+), 1158 deletions(-)
+ 50 files changed, 3290 insertions(+), 1147 deletions(-)
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.cc
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.h
  rename components/adblock/android/java/res/xml/{adblock_preferences.xml => eyeo_adblock_preferences.xml} (100%)
@@ -133,9 +133,9 @@ diff --git a/chrome/browser/adblock/adblock_content_browser_client.cc b/chrome/b
 diff --git a/chrome/browser/adblock/adblock_controller_factory.cc b/chrome/browser/adblock/adblock_controller_factory.cc
 --- a/chrome/browser/adblock/adblock_controller_factory.cc
 +++ b/chrome/browser/adblock/adblock_controller_factory.cc
-@@ -63,8 +63,7 @@ KeyedService* AdblockControllerFactory::BuildServiceInstanceFor(
-   auto adblock_filtering_configuration =
-       std::make_unique<PersistentFilteringConfiguration>(prefs, "adblock");
+@@ -65,8 +65,7 @@ KeyedService* AdblockControllerFactory::BuildServiceInstanceFor(
+       std::make_unique<PersistentFilteringConfiguration>(
+           prefs, kAdblockFilteringConfigurationName);
  
 -  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
 -          adblock::switches::kDisableAcceptableAds)) {
@@ -147,7 +147,7 @@ diff --git a/chrome/browser/adblock/adblock_telemetry_service_factory.cc b/chrom
 deleted file mode 100644
 --- a/chrome/browser/adblock/adblock_telemetry_service_factory.cc
 +++ /dev/null
-@@ -1,138 +0,0 @@
+@@ -1,127 +0,0 @@
 -/*
 - * This file is part of eyeo Chromium SDK,
 - * Copyright (C) 2006-present eyeo GmbH
@@ -186,7 +186,6 @@ deleted file mode 100644
 -namespace {
 -std::optional<base::TimeDelta> g_check_interval_for_testing;
 -std::optional<base::TimeDelta> g_initial_delay_for_testing;
--constexpr base::StringPiece kAdblockFilteringConfigurationName = "adblock";
 -
 -base::TimeDelta GetInitialDelay() {
 -  static base::TimeDelta kInitialDelay =
@@ -202,17 +201,6 @@ deleted file mode 100644
 -  return kCheckInterval;
 -}
 -
--FilteringConfiguration* GetAdblockFilteringConfiguration(
--    content::BrowserContext* context) {
--  auto filtering_configurations =
--      SubscriptionServiceFactory::GetForBrowserContext(context)
--          ->GetInstalledFilteringConfigurations();
--  const auto it = base::ranges::find(filtering_configurations,
--                                     kAdblockFilteringConfigurationName,
--                                     &FilteringConfiguration::GetName);
--  DCHECK(it != filtering_configurations.end());
--  return *it;
--}
 -}  // namespace
 -
 -// static
@@ -249,8 +237,9 @@ deleted file mode 100644
 -          ->GetURLLoaderFactoryForBrowserProcess();
 -  auto* prefs = Profile::FromBrowserContext(context)->GetPrefs();
 -  auto service = std::make_unique<AdblockTelemetryService>(
--      GetAdblockFilteringConfiguration(context), url_loader_factory,
--      GetInitialDelay(), GetCheckInterval());
+-      SubscriptionServiceFactory::GetForBrowserContext(context)
+-          ->GetAdblockFilteringConfiguration(),
+-      url_loader_factory, GetInitialDelay(), GetCheckInterval());
 -  service->AddTopicProvider(std::make_unique<ActivepingTelemetryTopicProvider>(
 -      utils::GetAppInfo(), prefs,
 -      AdblockControllerFactory::GetForBrowserContext(context),
@@ -362,26 +351,26 @@ diff --git a/chrome/browser/adblock/subscription_service_factory.cc b/chrome/bro
 diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 --- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
 +++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -16,7 +16,6 @@
+@@ -17,7 +17,6 @@
  #include "chrome/browser/accessibility/accessibility_labels_service_factory.h"
  #include "chrome/browser/accessibility/page_colors_factory.h"
  #include "chrome/browser/adblock/adblock_controller_factory.h"
 -#include "chrome/browser/adblock/adblock_telemetry_service_factory.h"
+ #include "chrome/browser/adblock/content_security_policy_injector_factory.h"
+ #include "chrome/browser/adblock/element_hider_factory.h"
  #include "chrome/browser/adblock/resource_classification_runner_factory.h"
- #include "chrome/browser/adblock/session_stats_factory.h"
- #include "chrome/browser/adblock/sitekey_storage_factory.h"
-@@ -584,7 +583,6 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -637,7 +636,6 @@ void ChromeBrowserMainExtraPartsProfiles::
    ExitTypeServiceFactory::GetInstance();
  #endif
    adblock::AdblockControllerFactory::GetInstance();
 -  adblock::AdblockTelemetryServiceFactory::GetInstance();
+   adblock::ContentSecurityPolicyInjectorFactory::GetInstance();
+   adblock::ElementHiderFactory::GetInstance();
    adblock::ResourceClassificationRunnerFactory::GetInstance();
-   adblock::SessionStatsFactory::GetInstance();
-   adblock::SitekeyStorageFactory::GetInstance();
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -325,6 +325,8 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -326,6 +326,8 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
    }
  #endif
  
@@ -393,14 +382,14 @@ diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 --- a/chrome/test/BUILD.gn
 +++ b/chrome/test/BUILD.gn
-@@ -26,7 +26,6 @@ import("//chrome/test/base/js2gtest.gni")
+@@ -27,7 +27,6 @@ import("//chrome/test/base/js2gtest.gni")
  import("//chrome/test/include_js_tests.gni")
  import("//chrome/version.gni")
  import("//chromeos/ash/components/assistant/assistant.gni")
 -import("//components/adblock/features.gni")
  import("//components/captive_portal/core/features.gni")
  import("//components/feed/features.gni")
- import("//components/gwp_asan/buildflags/buildflags.gni")
+ import("//components/lens/features.gni")
 diff --git a/components/adblock/android/BUILD.gn b/components/adblock/android/BUILD.gn
 --- a/components/adblock/android/BUILD.gn
 +++ b/components/adblock/android/BUILD.gn
@@ -1340,7 +1329,7 @@ diff --git a/components/adblock/core/common/adblock_constants.cc b/components/ad
 -
  const char kAllowlistEverythingFilter[] = "@@*$document";
  
- const char kBlankHtml[] =
+ const char kAdblockFilteringConfigurationName[] = "adblock";
 diff --git a/components/adblock/core/common/adblock_constants.h b/components/adblock/core/common/adblock_constants.h
 --- a/components/adblock/core/common/adblock_constants.h
 +++ b/components/adblock/core/common/adblock_constants.h
@@ -1350,8 +1339,8 @@ diff --git a/components/adblock/core/common/adblock_constants.h b/components/adb
  
 -extern const char kSiteKeyHeaderKey[];
  extern const char kAllowlistEverythingFilter[];
+ extern const char kAdblockFilteringConfigurationName[];
  
- const std::string& CurrentSchemaVersion();
 diff --git a/components/adblock/core/common/adblock_prefs.cc b/components/adblock/core/common/adblock_prefs.cc
 --- a/components/adblock/core/common/adblock_prefs.cc
 +++ b/components/adblock/core/common/adblock_prefs.cc
@@ -1589,16 +1578,16 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
            policy_exception_justification: "Not implemented."
          })");
  
-@@ -64,7 +77,7 @@ OngoingSubscriptionRequestImpl::OngoingSubscriptionRequestImpl(
+@@ -66,7 +79,7 @@ OngoingSubscriptionRequestImpl::OngoingSubscriptionRequestImpl(
  
  OngoingSubscriptionRequestImpl::~OngoingSubscriptionRequestImpl() {
-   if (!url_.is_empty())
+   if (!url_.is_empty()) {
 -    VLOG(1) << "[eyeo] Cancelling download of " << url_;
 +    LOG(INFO) << "[eyeo] Cancelling download of " << url_;
+   }
+   net::NetworkChangeNotifier::RemoveNetworkChangeObserver(this);
  }
- 
- void OngoingSubscriptionRequestImpl::Start(GURL url,
-@@ -86,7 +99,7 @@ void OngoingSubscriptionRequestImpl::Retry() {
+@@ -92,7 +105,7 @@ void OngoingSubscriptionRequestImpl::Retry() {
      return;
    }
    backoff_entry_->InformOfRequest(false);
@@ -1607,7 +1596,7 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
            << backoff_entry_->GetTimeUntilRelease();
    retry_timer_->Start(
        FROM_HERE, backoff_entry_->GetTimeUntilRelease(),
-@@ -100,7 +113,7 @@ void OngoingSubscriptionRequestImpl::Redirect(GURL redirect_url) {
+@@ -106,7 +119,7 @@ void OngoingSubscriptionRequestImpl::Redirect(GURL redirect_url) {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
    DCHECK(!url_.is_empty()) << "Redirect() called before Start()";
    DCHECK(url_ != redirect_url) << "Invalid redirect. Same URL";
@@ -1616,7 +1605,7 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
    ++number_of_redirects_;
    url_ = std::move(redirect_url);
    StartInternal();
-@@ -120,10 +133,14 @@ void OngoingSubscriptionRequestImpl::StartInternal() {
+@@ -126,10 +139,14 @@ void OngoingSubscriptionRequestImpl::StartInternal() {
      // indefinitely.
      return;
    }
@@ -1766,7 +1755,7 @@ diff --git a/components/adblock/core/subscription/subscription_persistent_storag
 diff --git a/components/adblock/core/subscription/subscription_service_impl.cc b/components/adblock/core/subscription/subscription_service_impl.cc
 --- a/components/adblock/core/subscription/subscription_service_impl.cc
 +++ b/components/adblock/core/subscription/subscription_service_impl.cc
-@@ -113,7 +113,7 @@ void SubscriptionServiceImpl::OnEnabledStateChanged(
+@@ -158,7 +158,7 @@ void SubscriptionServiceImpl::OnEnabledStateChanged(
    });
    DCHECK(it != maintainers_.end()) << "Received OnEnabledStateChanged from "
                                        "unregistered FilteringConfiguration";
@@ -1874,7 +1863,7 @@ deleted file mode 100644
 diff --git a/components/resources/BUILD.gn b/components/resources/BUILD.gn
 --- a/components/resources/BUILD.gn
 +++ b/components/resources/BUILD.gn
-@@ -75,7 +75,6 @@ grit("components_resources") {
+@@ -79,7 +79,6 @@ grit("components_resources") {
  
    deps += [
      "//components/resources/adblocking:copy_snippets_lib",
@@ -5149,7 +5138,7 @@ new file mode 100755
 diff --git a/third_party/blink/renderer/core/css/style_engine.cc b/third_party/blink/renderer/core/css/style_engine.cc
 --- a/third_party/blink/renderer/core/css/style_engine.cc
 +++ b/third_party/blink/renderer/core/css/style_engine.cc
-@@ -539,6 +539,14 @@ void StyleEngine::UpdateActiveStyleSheetsInShadow(
+@@ -540,6 +540,14 @@ void StyleEngine::UpdateActiveStyleSheetsInShadow(
    }
  }
  
@@ -5178,7 +5167,7 @@ diff --git a/third_party/blink/renderer/core/css/style_engine.h b/third_party/bl
 diff --git a/third_party/blink/renderer/core/exported/web_document.cc b/third_party/blink/renderer/core/exported/web_document.cc
 --- a/third_party/blink/renderer/core/exported/web_document.cc
 +++ b/third_party/blink/renderer/core/exported/web_document.cc
-@@ -270,6 +270,16 @@ WebStyleSheetKey WebDocument::InsertAbpElemhideStylesheet(
+@@ -274,6 +274,16 @@ WebStyleSheetKey WebDocument::InsertAbpElemhideStylesheet(
    Document* document = Unwrap<Document>();
    DCHECK(document);
  
@@ -5195,7 +5184,7 @@ diff --git a/third_party/blink/renderer/core/exported/web_document.cc b/third_pa
    auto* parsed_sheet = MakeGarbageCollected<StyleSheetContents>(
        MakeGarbageCollected<CSSParserContext>(*document));
    parsed_sheet->ParseString(source_code);
-@@ -291,9 +301,6 @@ WebStyleSheetKey WebDocument::InsertAbpElemhideStylesheet(
+@@ -295,9 +305,6 @@ WebStyleSheetKey WebDocument::InsertAbpElemhideStylesheet(
          {SchedulingPolicy::DisableBackForwardCache()});
    }
  
