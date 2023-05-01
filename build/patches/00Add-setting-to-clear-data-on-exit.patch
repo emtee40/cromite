@@ -1,4 +1,4 @@
-From: Your Name <you@example.com>
+From: uazo <uazo@users.noreply.github.com>
 Date: Thu, 16 Feb 2023 15:28:16 +0000
 Subject: Add setting to clear data on exit
 
@@ -23,9 +23,9 @@ Subject: Add setting to clear data on exit
  .../settings_localized_strings_provider.cc    |  1 +
  .../browsing_data/core/browsing_data_utils.cc | 34 +++++++++
  .../core/clear_browsing_data_tab.h            |  2 +-
- components/browsing_data/core/pref_names.cc   | 35 +++++++++
+ components/browsing_data/core/pref_names.cc   | 27 +++++++
  components/browsing_data/core/pref_names.h    |  9 +++
- 22 files changed, 305 insertions(+), 6 deletions(-)
+ 22 files changed, 297 insertions(+), 6 deletions(-)
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragmentAtStart.java
 
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
@@ -571,34 +571,26 @@ diff --git a/components/browsing_data/core/pref_names.cc b/components/browsing_d
  // Clear browsing data deletion time period.
  const char kDeleteTimePeriod[] = "browser.clear_data.time_period";
  const char kDeleteTimePeriodBasic[] = "browser.clear_data.time_period_basic";
-@@ -89,6 +99,31 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -89,6 +99,23 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterIntegerPref(
        kClearBrowsingDataHistoryNoticeShownTimes, 0);
  
 +  registry->RegisterBooleanPref(
-+      kDeleteBrowsingHistoryAtStart, false,
-+      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
++      kDeleteBrowsingHistoryAtStart, false);
 +  registry->RegisterBooleanPref(
-+      kDeleteDownloadHistoryAtStart, false,
-+      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
++      kDeleteDownloadHistoryAtStart, false);
 +  registry->RegisterBooleanPref(
-+      kDeleteCacheAtStart, false,
-+      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
++      kDeleteCacheAtStart, false);
 +  registry->RegisterBooleanPref(
-+      kDeleteCookiesAtStart, false,
-+      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
++      kDeleteCookiesAtStart, false);
 +  registry->RegisterBooleanPref(
-+      kDeletePasswordsAtStart, false,
-+      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
++      kDeletePasswordsAtStart, false);
 +  registry->RegisterBooleanPref(
-+      kDeleteFormDataAtStart, false,
-+      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
++      kDeleteFormDataAtStart, false);
 +  registry->RegisterBooleanPref(
-+      kDeleteHostedAppsDataAtStart, false,
-+      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
++      kDeleteHostedAppsDataAtStart, false);
 +  registry->RegisterBooleanPref(
-+      kDeleteSiteSettingsAtStart, false,
-+      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
++      kDeleteSiteSettingsAtStart, false);
 +
  #if !BUILDFLAG(IS_IOS)
    registry->RegisterBooleanPref(

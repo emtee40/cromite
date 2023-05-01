@@ -1,4 +1,4 @@
-From: Your Name <you@example.com>
+From: uazo <uazo@users.noreply.github.com>
 Date: Tue, 22 Nov 2022 16:49:58 +0000
 Subject: Add browser policy
 
@@ -8,7 +8,7 @@ Subject: Add browser policy
  .../policy/chrome_browser_policy_connector.cc |   2 -
  ...nfiguration_policy_handler_list_factory.cc |   6 +-
  .../account_consistency_mode_manager.cc       |  22 +++-
- chrome/browser/signin/chrome_signin_client.cc |   6 +-
+ chrome/browser/signin/chrome_signin_client.cc |   7 +-
  .../ui/webui/policy/policy_ui_handler.cc      | 105 ++++++++++++++-
  .../ui/webui/policy/policy_ui_handler.h       |   2 +
  .../core/browser/browser_policy_connector.cc  |   3 +
@@ -26,7 +26,7 @@ Subject: Add browser policy
  components/signin/features.gni                |   6 +-
  .../gaia_cookie_manager_service.cc            |   4 +
  google_apis/gaia/gaia_auth_fetcher.cc         |   1 +
- 23 files changed, 293 insertions(+), 33 deletions(-)
+ 23 files changed, 294 insertions(+), 33 deletions(-)
 
 diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 --- a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
@@ -159,15 +159,16 @@ diff --git a/chrome/browser/signin/chrome_signin_client.cc b/chrome/browser/sign
  }
  
  PrefService* ChromeSigninClient::GetPrefs() { return profile_->GetPrefs(); }
-@@ -239,6 +241,8 @@ void ChromeSigninClient::OnConnectionChanged(
- #endif
+@@ -264,6 +266,9 @@ bool ChromeSigninClient::AreNetworkCallsDelayed() {
+ }
  
- bool ChromeSigninClient::AreNetworkCallsDelayed() {
+ void ChromeSigninClient::DelayNetworkCall(base::OnceClosure callback) {
 +  // Make ChromeSigninClient compliant to SigninAllowed policy
 +  if (!AreSigninCookiesAllowed()) return;
- #if BUILDFLAG(IS_CHROMEOS_ASH)
-   // Do not make network requests in unit tests. ash::NetworkHandler should
-   // not be used and is not expected to have been initialized in unit tests.
++
+   if (!AreNetworkCallsDelayed()) {
+     std::move(callback).Run();
+     return;
 diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browser/ui/webui/policy/policy_ui_handler.cc
 --- a/chrome/browser/ui/webui/policy/policy_ui_handler.cc
 +++ b/chrome/browser/ui/webui/policy/policy_ui_handler.cc

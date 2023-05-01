@@ -26,7 +26,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/chrome_content_browser_client.h   |  2 +
  .../file_type_policies_component_installer.cc | 16 +---
  .../browser/component_updater/registration.cc | 12 ---
- .../chrome_download_manager_delegate.cc       | 48 ++++------
+ .../chrome_download_manager_delegate.cc       | 55 ++++-------
  .../chrome_download_manager_delegate.h        |  2 +-
  .../browser/download/download_item_model.cc   | 15 ++-
  chrome/browser/download/download_item_model.h |  4 +
@@ -66,6 +66,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../download_protection_service.cc            |  2 +
  .../download_protection_service.h             |  3 +-
  .../url_lookup_service_factory.cc             |  4 +
+ .../chrome_security_blocking_page_factory.cc  |  8 +-
  .../ssl/generated_https_first_mode_pref.cc    | 26 +-----
  .../ssl/generated_https_first_mode_pref.h     | 12 +--
  .../ssl/https_first_mode_settings_tracker.cc  | 16 ----
@@ -98,7 +99,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../file_system_access_permission_context.h   |  6 --
  weblayer/BUILD.gn                             |  4 -
  weblayer/test/BUILD.gn                        |  1 -
- 89 files changed, 213 insertions(+), 750 deletions(-)
+ 90 files changed, 214 insertions(+), 764 deletions(-)
 
 diff --git a/chrome/android/java/res/xml/google_services_preferences.xml b/chrome/android/java/res/xml/google_services_preferences.xml
 --- a/chrome/android/java/res/xml/google_services_preferences.xml
@@ -874,7 +875,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
    if (download_manager_) {
      download_manager_->AddObserver(this);
    }
-@@ -835,17 +836,6 @@ void ChromeDownloadManagerDelegate::ChooseSavePath(
+@@ -835,28 +836,10 @@ void ChromeDownloadManagerDelegate::ChooseSavePath(
  void ChromeDownloadManagerDelegate::SanitizeSavePackageResourceName(
      base::FilePath* filename,
      const GURL& source_url) {
@@ -892,7 +893,18 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
  }
  
  void ChromeDownloadManagerDelegate::SanitizeDownloadParameters(
-@@ -910,9 +900,6 @@ void ChromeDownloadManagerDelegate::OpenDownload(DownloadItem* download) {
+     download::DownloadUrlParameters* params) {
+-  if (profile_->GetPrefs()->GetBoolean(
+-          policy::policy_prefs::kForceGoogleSafeSearch)) {
+-    GURL safe_url;
+-    safe_search_api::ForceGoogleSafeSearch(params->url(), &safe_url);
+-    if (!safe_url.is_empty())
+-      params->set_url(std::move(safe_url));
+-  }
+ }
+ 
+ void ChromeDownloadManagerDelegate::OpenDownloadUsingPlatformHandler(
+@@ -910,9 +893,6 @@ void ChromeDownloadManagerDelegate::OpenDownload(DownloadItem* download) {
      chrome::ShowSettingsSubPage(browser, "certificates");
    else
      browser->OpenURL(params);
@@ -902,7 +914,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
  #endif  // BUILDFLAG(IS_ANDROID)
  }
  
-@@ -966,12 +953,6 @@ ChromeDownloadManagerDelegate::ApplicationClientIdForFileScanning() {
+@@ -966,12 +946,6 @@ ChromeDownloadManagerDelegate::ApplicationClientIdForFileScanning() {
  DownloadProtectionService*
  ChromeDownloadManagerDelegate::GetDownloadProtectionService() {
    DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -915,7 +927,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
    return nullptr;
  }
  #endif
-@@ -1518,8 +1499,11 @@ void ChromeDownloadManagerDelegate::OnDownloadTargetDetermined(
+@@ -1518,8 +1492,11 @@ void ChromeDownloadManagerDelegate::OnDownloadTargetDetermined(
      DownloadItemModel model(item);
      model.DetermineAndSetShouldPreferOpeningInBrowser(
          target_info->target_path, target_info->is_filetype_handled_safely);
@@ -927,7 +939,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
    if (ShouldBlockFile(item, target_info->danger_type)) {
      MaybeReportDangerousDownloadBlocked(
          download_prefs_->download_restriction(), "DANGEROUS_FILE_TYPE",
-@@ -1528,6 +1512,7 @@ void ChromeDownloadManagerDelegate::OnDownloadTargetDetermined(
+@@ -1528,6 +1505,7 @@ void ChromeDownloadManagerDelegate::OnDownloadTargetDetermined(
      // A dangerous type would take precedence over the blocking of the file.
      target_info->danger_type = download::DOWNLOAD_DANGER_TYPE_NOT_DANGEROUS;
    }
@@ -935,7 +947,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
  
    base::FilePath target_path = target_info->target_path;
  
-@@ -1602,6 +1587,7 @@ bool ChromeDownloadManagerDelegate::ShouldBlockFile(
+@@ -1602,6 +1580,7 @@ bool ChromeDownloadManagerDelegate::ShouldBlockFile(
      return false;
    }
  
@@ -943,7 +955,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
    DownloadPrefs::DownloadRestriction download_restriction =
        download_prefs_->download_restriction();
  
-@@ -1650,7 +1636,7 @@ bool ChromeDownloadManagerDelegate::ShouldBlockFile(
+@@ -1650,7 +1629,7 @@ bool ChromeDownloadManagerDelegate::ShouldBlockFile(
        LOG(ERROR) << "Invalid download restruction value: "
                   << static_cast<int>(download_restriction);
    }
@@ -952,7 +964,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
    return false;
  }
  
-@@ -1664,7 +1650,6 @@ void ChromeDownloadManagerDelegate::MaybeSendDangerousDownloadOpenedReport(
+@@ -1664,7 +1643,6 @@ void ChromeDownloadManagerDelegate::MaybeSendDangerousDownloadOpenedReport(
      service->MaybeSendDangerousDownloadOpenedReport(download,
                                                      show_download_in_folder);
    }
@@ -960,7 +972,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
    if (!download->GetAutoOpened()) {
      download::DownloadContent download_content =
          download::DownloadContentFromMimeType(download->GetMimeType(), false);
-@@ -1672,6 +1657,7 @@ void ChromeDownloadManagerDelegate::MaybeSendDangerousDownloadOpenedReport(
+@@ -1672,6 +1650,7 @@ void ChromeDownloadManagerDelegate::MaybeSendDangerousDownloadOpenedReport(
          download->GetDangerType(), download_content, base::Time::Now(),
          download->GetEndTime(), show_download_in_folder);
    }
@@ -2439,6 +2451,24 @@ diff --git a/chrome/browser/safe_browsing/url_lookup_service_factory.cc b/chrome
  }
  
  }  // namespace safe_browsing
+diff --git a/chrome/browser/ssl/chrome_security_blocking_page_factory.cc b/chrome/browser/ssl/chrome_security_blocking_page_factory.cc
+--- a/chrome/browser/ssl/chrome_security_blocking_page_factory.cc
++++ b/chrome/browser/ssl/chrome_security_blocking_page_factory.cc
+@@ -312,13 +312,7 @@ ChromeSecurityBlockingPageFactory::CreateHttpsOnlyModeBlockingPage(
+       std::make_unique<HttpsOnlyModeControllerClient>(web_contents,
+                                                       request_url);
+ 
+-  Profile* profile =
+-      Profile::FromBrowserContext(web_contents->GetBrowserContext());
+-  bool is_under_advanced_protection =
+-      profile &&
+-      safe_browsing::AdvancedProtectionStatusManagerFactory::GetForProfile(
+-          profile)
+-          ->IsUnderAdvancedProtection();
++  bool is_under_advanced_protection = false;
+   auto page =
+       std::make_unique<security_interstitials::HttpsOnlyModeBlockingPage>(
+           web_contents, request_url, std::move(client),
 diff --git a/chrome/browser/ssl/generated_https_first_mode_pref.cc b/chrome/browser/ssl/generated_https_first_mode_pref.cc
 --- a/chrome/browser/ssl/generated_https_first_mode_pref.cc
 +++ b/chrome/browser/ssl/generated_https_first_mode_pref.cc

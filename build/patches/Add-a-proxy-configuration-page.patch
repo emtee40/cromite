@@ -26,10 +26,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../prefs/chrome_command_line_pref_store.cc   |   2 +-
  chrome/browser/resources/proxy_config.css     |  61 +++
  chrome/browser/resources/proxy_config.html    |  77 ++++
- chrome/browser/resources/proxy_config.js      | 278 ++++++++++++
+ chrome/browser/resources/proxy_config.js      | 278 +++++++++++++
  chrome/browser/ui/BUILD.gn                    |   2 +
  .../webui/chrome_web_ui_controller_factory.cc |   3 +
- chrome/browser/ui/webui/proxy_config_ui.cc    | 397 ++++++++++++++++++
+ chrome/browser/ui/webui/proxy_config_ui.cc    | 393 ++++++++++++++++++
  chrome/browser/ui/webui/proxy_config_ui.h     |  31 ++
  chrome/common/webui_url_constants.cc          |   4 +
  chrome/common/webui_url_constants.h           |   2 +
@@ -39,7 +39,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../proxy_config/proxy_policy_handler.cc      |   2 +-
  net/proxy_resolution/proxy_config.cc          |  52 ++-
  net/proxy_resolution/proxy_config.h           |   3 +
- 24 files changed, 984 insertions(+), 15 deletions(-)
+ 24 files changed, 980 insertions(+), 15 deletions(-)
  create mode 100644 chrome/browser/resources/proxy_config.css
  create mode 100644 chrome/browser/resources/proxy_config.html
  create mode 100644 chrome/browser/resources/proxy_config.js
@@ -688,7 +688,7 @@ diff --git a/chrome/browser/ui/webui/proxy_config_ui.cc b/chrome/browser/ui/webu
 new file mode 100644
 --- /dev/null
 +++ b/chrome/browser/ui/webui/proxy_config_ui.cc
-@@ -0,0 +1,397 @@
+@@ -0,0 +1,393 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -744,16 +744,6 @@ new file mode 100644
 +using content::WebUIMessageHandler;
 +
 +namespace {
-+
-+content::WebUIDataSource* CreateProxyConfigHTMLSource() {
-+  content::WebUIDataSource* source =
-+      content::WebUIDataSource::Create(chrome::kChromeUIProxyConfigHost);
-+
-+  source->UseStringsJs();
-+  source->AddResourcePath("proxy_config.js", IDR_PROXY_CONFIG_JS);
-+  source->SetDefaultResource(IDR_PROXY_CONFIG_HTML);
-+  return source;
-+}
 +
 +// This class receives javascript messages from the renderer.
 +// Note that the WebUI infrastructure runs on the UI thread, therefore all of
@@ -1084,7 +1074,13 @@ new file mode 100644
 +  web_ui->AddMessageHandler(std::make_unique<ProxyConfigMessageHandler>(profile));
 +
 +  // Set up the chrome://proxy/ source.
-+  content::WebUIDataSource::Add(profile, CreateProxyConfigHTMLSource());
++  content::WebUIDataSource* source =
++      content::WebUIDataSource::CreateAndAdd(web_ui->GetWebContents()->GetBrowserContext(),
++          chrome::kChromeUIProxyConfigHost);
++
++  source->UseStringsJs();
++  source->AddResourcePath("proxy_config.js", IDR_PROXY_CONFIG_JS);
++  source->SetDefaultResource(IDR_PROXY_CONFIG_HTML);
 +}
 diff --git a/chrome/browser/ui/webui/proxy_config_ui.h b/chrome/browser/ui/webui/proxy_config_ui.h
 new file mode 100644

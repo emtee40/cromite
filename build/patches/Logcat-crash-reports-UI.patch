@@ -125,8 +125,8 @@ diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.cc b/chr
 +    std::u16string file_size_string;
 +    auto upload = std::make_unique<UploadList::UploadInfo>(
 +        id, info.creation_time, upload_state, file_size_string);
-+    upload.file_path = file_path;
-+    uploads->push_back(upload);
++    upload->file_path = file_path;
++    uploads->push_back(std::move(upload));
    }
  }
 diff --git a/chrome/browser/crash_upload_list/crash_upload_list_android.h b/chrome/browser/crash_upload_list/crash_upload_list_android.h
@@ -909,9 +909,9 @@ diff --git a/components/upload_list/upload_list.cc b/components/upload_list/uplo
  }
 +
 +std::string UploadList::GetFilePathByLocalId(const std::string& local_id) {
-+  for (auto info : uploads_) {
-+    if (info.local_id == local_id) {
-+      return info.file_path;
++  for (const std::unique_ptr<UploadList::UploadInfo>& info : uploads_) {
++    if (info->local_id == local_id) {
++      return info->file_path;
 +    }
 +  }
 +  return std::string();

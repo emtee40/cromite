@@ -21,10 +21,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../chromium/chrome/browser/tab/TabImpl.java  | 50 ++++++++++++
  .../browser/tab/TabViewAndroidDelegate.java   | 14 ++++
  chrome/browser/BUILD.gn                       |  7 ++
- chrome/browser/android/tab_android.cc         | 23 ++++++
+ chrome/browser/android/tab_android.cc         | 15 ++++
  chrome/browser/android/tab_android.h          |  2 +
- .../browser/extensions/extension_view_host.cc |  3 +-
  .../strings/android_chrome_strings.grd        |  6 ++
+ .../ui/autofill/chrome_autofill_client.cc     |  8 +-
  chrome/browser/ui/tab_helpers.cc              |  3 +
  .../browser/android_autofill_manager.cc       |  2 +-
  .../browser/android_autofill_manager.h        |  4 +-
@@ -37,7 +37,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../autofill/core/common/autofill_prefs.h     |  2 +
  .../embedder_support/view/ContentView.java    | 46 +++++++++++
  .../chromium/ui/base/ViewAndroidDelegate.java |  8 ++
- 22 files changed, 308 insertions(+), 9 deletions(-)
+ 22 files changed, 305 insertions(+), 9 deletions(-)
 
 diff --git a/android_webview/browser/aw_contents.cc b/android_webview/browser/aw_contents.cc
 --- a/android_webview/browser/aw_contents.cc
@@ -55,7 +55,7 @@ diff --git a/android_webview/browser/aw_contents.cc b/android_webview/browser/aw
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -332,6 +332,7 @@ if (current_toolchain == default_toolchain) {
+@@ -333,6 +333,7 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/ui/android/favicon:java",
        "//chrome/browser/ui/android/layouts:java",
        "//chrome/browser/ui/android/layouts/glue:java",
@@ -349,7 +349,7 @@ diff --git a/chrome/browser/android/tab_android.cc b/chrome/browser/android/tab_
  using base::android::AttachCurrentThread;
  using base::android::ConvertUTF8ToJavaString;
  using base::android::JavaParamRef;
-@@ -494,3 +501,19 @@ static void JNI_TabImpl_Init(JNIEnv* env, const JavaParamRef<jobject>& obj) {
+@@ -494,3 +501,11 @@ static void JNI_TabImpl_Init(JNIEnv* env, const JavaParamRef<jobject>& obj) {
    // This will automatically bind to the Java object and pass ownership there.
    new TabAndroid(env, obj);
  }
@@ -357,16 +357,8 @@ diff --git a/chrome/browser/android/tab_android.cc b/chrome/browser/android/tab_
 +void TabAndroid::InitializeAutofillIfNecessary(JNIEnv* env) {
 +  if (!autofill::ContentAutofillDriverFactory::FromWebContents(
 +          web_contents_.get())) {
-+     content::WebContents* web_contents = web_contents_.get();
++    content::WebContents* web_contents = web_contents_.get();
 +    autofill::ChromeAutofillClient::CreateForWebContents(web_contents);
-+    autofill::ContentAutofillDriverFactory::CreateForWebContentsAndDelegate(
-+        web_contents,
-+        autofill::ChromeAutofillClient::FromWebContents(web_contents),
-+        base::BindRepeating(
-+            &autofill::BrowserDriverInitHook,
-+            autofill::ChromeAutofillClient::FromWebContents(web_contents),
-+            g_browser_process->GetApplicationLocale(),
-+            /*enable_secondary_autofill_manager*/ true));
 +  }
 +}
 diff --git a/chrome/browser/android/tab_android.h b/chrome/browser/android/tab_android.h
@@ -381,19 +373,6 @@ diff --git a/chrome/browser/android/tab_android.h b/chrome/browser/android/tab_a
   private:
    JavaObjectWeakGlobalRef weak_java_tab_;
  
-diff --git a/chrome/browser/extensions/extension_view_host.cc b/chrome/browser/extensions/extension_view_host.cc
---- a/chrome/browser/extensions/extension_view_host.cc
-+++ b/chrome/browser/extensions/extension_view_host.cc
-@@ -52,7 +52,8 @@ ExtensionViewHost::ExtensionViewHost(const Extension* extension,
-   // Attach WebContents helpers. Extension tabs automatically get them attached
-   // in TabHelpers::AttachTabHelpers, but popups don't.
-   // TODO(kalman): How much of TabHelpers::AttachTabHelpers should be here?
--  autofill::ChromeAutofillClient::CreateForWebContents(host_contents());
-+  autofill::ChromeAutofillClient::CreateForWebContents(host_contents(,
-+          /*enable_secondary_autofill_manager*/ false));
- 
-   // The popup itself cannot be zoomed, but we must specify a zoom level to use.
-   // Otherwise, if a user zooms a page of the same extension, the popup would
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
@@ -410,6 +389,24 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
        <message name="IDS_PASSWORDS_AUTO_SIGNIN_TITLE" desc="Title for checkbox to enable automatically signing the user in to websites">
          Auto Sign-in
        </message>
+diff --git a/chrome/browser/ui/autofill/chrome_autofill_client.cc b/chrome/browser/ui/autofill/chrome_autofill_client.cc
+--- a/chrome/browser/ui/autofill/chrome_autofill_client.cc
++++ b/chrome/browser/ui/autofill/chrome_autofill_client.cc
+@@ -1179,7 +1179,13 @@ ChromeAutofillClient::ChromeAutofillClient(content::WebContents* web_contents)
+           web_contents,
+           base::BindRepeating(&BrowserDriverInitHook,
+                               this,
+-                              g_browser_process->GetApplicationLocale())),
++                              g_browser_process->GetApplicationLocale(),
++#if BUILDFLAG(IS_ANDROID)
++                              /*enable_secondary_autofill_manager*/ true
++#else
++                              /*enable_secondary_autofill_manager*/ false
++#endif
++                              )),
+       content::WebContentsObserver(web_contents),
+       log_manager_(
+           // TODO(crbug.com/928595): Replace the closure with a callback to the
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc

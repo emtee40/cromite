@@ -4,10 +4,10 @@ Subject: Bookmarks select all menu entry
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../java/res/menu/bookmark_toolbar_menu.xml       |  7 +++++++
- .../chrome/browser/bookmarks/BookmarkToolbar.java | 15 +++++++++++++++
- .../ui/android/strings/android_chrome_strings.grd |  3 +++
- 3 files changed, 25 insertions(+)
+ .../java/res/menu/bookmark_toolbar_menu.xml        |  7 +++++++
+ .../chrome/browser/bookmarks/BookmarkToolbar.java  | 14 ++++++++++++++
+ .../ui/android/strings/android_chrome_strings.grd  |  3 +++
+ 3 files changed, 24 insertions(+)
 
 diff --git a/chrome/android/java/res/menu/bookmark_toolbar_menu.xml b/chrome/android/java/res/menu/bookmark_toolbar_menu.xml
 --- a/chrome/android/java/res/menu/bookmark_toolbar_menu.xml
@@ -45,7 +45,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          getMenu().findItem(R.id.import_menu_id).setVisible(true);
          getMenu().findItem(R.id.export_menu_id).setVisible(true);
          getMenu().findItem(R.id.search_menu_id).setVisible(true);
-@@ -174,6 +176,7 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
+@@ -183,6 +185,7 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
      void showLoadingUi() {
          setTitle(null);
          setNavigationButton(NAVIGATION_BUTTON_NONE);
@@ -53,25 +53,24 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          getMenu().findItem(R.id.import_menu_id).setVisible(false);
          getMenu().findItem(R.id.export_menu_id).setVisible(false);
          getMenu().findItem(R.id.search_menu_id).setVisible(false);
-@@ -258,6 +261,17 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
+@@ -267,6 +270,16 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
              }
              mSelectionDelegate.clearSelection();
              return true;
 +        } else if (menuItem.getItemId() == R.id.select_all_menu_id) {
-+            BookmarkModel bookmarkModel = mDelegate.getModel();
-+            if (bookmarkModel.isBookmarkModelLoaded()) {
-+                List<BookmarkItem> items = bookmarkModel.getBookmarksForFolder(mCurrentFolder.getId());
++            if (mBookmarkModel.isBookmarkModelLoaded()) {
++                List<BookmarkItem> items = mBookmarkModel.getBookmarksForFolder(mCurrentFolder.getId());
 +                HashSet<BookmarkId> ids = new HashSet<>(items.size());
 +                for (BookmarkItem item : items) {
 +                    ids.add(item.getId());
 +                }
-+                selectionDelegate.setSelectedItems(ids);
++                mSelectionDelegate.setSelectedItems(ids);
 +            }
 +            return true;
          }
  
          assert false : "Unhandled menu click.";
-@@ -281,6 +295,7 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
+@@ -290,6 +303,7 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
          super.showNormalView();
  
          if (mCurrentFolder == null) {

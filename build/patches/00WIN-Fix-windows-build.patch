@@ -1,4 +1,4 @@
-From: Your Name <you@example.com>
+From: uazo <uazo@users.noreply.github.com>
 Date: Thu, 13 Oct 2022 10:34:52 +0000
 Subject: WIN Fix windows build
 
@@ -6,10 +6,12 @@ Subject: WIN Fix windows build
  .../browser_process_platform_part_win.cc      |  3 ++
  chrome/browser/devtools/devtools_window.cc    |  1 +
  chrome/browser/ui/profile_picker.cc           |  2 +-
- .../browser/ui/startup/first_run_service.cc   | 12 +++----
+ .../browser/ui/startup/first_run_service.cc   | 14 +++-----
+ chrome/browser/ui/webui/intro/intro_ui.cc     |  9 ------
  chrome/browser/updater/BUILD.gn               |  9 ------
  .../browser/updater/browser_updater_client.cc | 32 +------------------
- 6 files changed, 10 insertions(+), 49 deletions(-)
+ chrome/test/data/webui/intro/BUILD.gn         |  1 -
+ 8 files changed, 10 insertions(+), 61 deletions(-)
 
 diff --git a/chrome/browser/browser_process_platform_part_win.cc b/chrome/browser/browser_process_platform_part_win.cc
 --- a/chrome/browser/browser_process_platform_part_win.cc
@@ -72,15 +74,18 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
  #if !BUILDFLAG(IS_CHROMEOS_LACROS)
    // On Lacros we want to run the FRE beyond the strict first run as defined by
    // `IsChromeFirstRun()` for a few reasons:
-@@ -169,7 +171,6 @@ void SetFirstRunFinished(FinishedReason reason) {
-   PrefService* local_state = g_browser_process->local_state();
-   local_state->SetBoolean(prefs::kFirstRunFinished, true);
+@@ -166,10 +168,7 @@ enum class FinishedReason {
+ };
+ 
+ void SetFirstRunFinished(FinishedReason reason) {
+-  PrefService* local_state = g_browser_process->local_state();
+-  local_state->SetBoolean(prefs::kFirstRunFinished, true);
    base::UmaHistogramEnumeration("ProfilePicker.FirstRun.FinishReason", reason);
 -
  #if BUILDFLAG(IS_CHROMEOS_LACROS)
    absl::optional<ProfileMetrics::ProfileSignedInFlowOutcome> outcome;
    switch (reason) {
-@@ -196,9 +197,7 @@ void SetFirstRunFinished(FinishedReason reason) {
+@@ -196,9 +195,7 @@ void SetFirstRunFinished(FinishedReason reason) {
  // with it, or if for some other reason (e.g. policy or some other browser
  // state) we determine that we should not show it.
  bool IsFirstRunMarkedFinishedInPrefs() {
@@ -91,7 +96,7 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
  }
  }  // namespace
  
-@@ -206,8 +205,6 @@ bool IsFirstRunMarkedFinishedInPrefs() {
+@@ -206,8 +203,6 @@ bool IsFirstRunMarkedFinishedInPrefs() {
  
  // static
  void FirstRunService::RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
@@ -100,7 +105,7 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
  }
  
  FirstRunService::FirstRunService(Profile* profile) : profile_(profile) {}
-@@ -231,7 +228,6 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
+@@ -231,7 +226,6 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
      return;
    }
  
@@ -108,7 +113,7 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
    bool has_set_up_profile =
  #if BUILDFLAG(IS_CHROMEOS_LACROS)
        // Indicates that the profile was likely migrated from pre-Lacros Ash.
-@@ -241,7 +237,7 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
+@@ -241,7 +235,7 @@ void FirstRunService::TryMarkFirstRunAlreadyFinished(
        // the profile already has an account (e.g. the sentinel file was deleted
        // or `--force-first-run` was passed), this ensures we still skip it and
        // avoid having to handle too strange states later.
@@ -117,6 +122,32 @@ diff --git a/chrome/browser/ui/startup/first_run_service.cc b/chrome/browser/ui/
  #endif
    if (has_set_up_profile) {
      SetFirstRunFinished(FinishedReason::kProfileAlreadySetUp);
+diff --git a/chrome/browser/ui/webui/intro/intro_ui.cc b/chrome/browser/ui/webui/intro/intro_ui.cc
+--- a/chrome/browser/ui/webui/intro/intro_ui.cc
++++ b/chrome/browser/ui/webui/intro/intro_ui.cc
+@@ -34,14 +34,6 @@
+ 
+ IntroUI::IntroUI(content::WebUI* web_ui) : content::WebUIController(web_ui) {
+   DCHECK(base::FeatureList::IsEnabled(kForYouFre));
+-  auto* profile = Profile::FromWebUI(web_ui);
+-
+-  content::WebUIDataSource* source = content::WebUIDataSource::CreateAndAdd(
+-      profile, chrome::kChromeUIIntroHost);
+-
+-  webui::SetupWebUIDataSource(
+-      source, base::make_span(kIntroResources, kIntroResourcesSize),
+-      IDR_INTRO_INTRO_HTML);
+ 
+ #if BUILDFLAG(ENABLE_DICE_SUPPORT)
+   int title_id = 0;
+@@ -73,7 +65,6 @@ IntroUI::IntroUI(content::WebUI* web_ui) : content::WebUIController(web_ui) {
+   // page itself makes it available much earlier, and avoids having to fallback
+   // to the one obtained from `NavigationEntry::GetTitleForDisplay()` (which
+   // ends up being the URL) when we try to get it on startup for a11y purposes.
+-  web_ui->OverrideTitle(l10n_util::GetStringUTF16(title_id));
+ 
+   const bool is_device_managed =
+       policy::ManagementServiceFactory::GetForPlatform()->IsManaged();
 diff --git a/chrome/browser/updater/BUILD.gn b/chrome/browser/updater/BUILD.gn
 --- a/chrome/browser/updater/BUILD.gn
 +++ b/chrome/browser/updater/BUILD.gn
@@ -192,5 +223,16 @@ diff --git a/chrome/browser/updater/browser_updater_client.cc b/chrome/browser/u
  }
  
  scoped_refptr<BrowserUpdaterClient> BrowserUpdaterClient::Create(
+diff --git a/chrome/test/data/webui/intro/BUILD.gn b/chrome/test/data/webui/intro/BUILD.gn
+--- a/chrome/test/data/webui/intro/BUILD.gn
++++ b/chrome/test/data/webui/intro/BUILD.gn
+@@ -26,7 +26,6 @@ build_webui_tests("build") {
+                            "$root_gen_dir/chrome/browser/resources/intro/tsc/*",
+                            target_gen_dir) ]
+   ts_deps = [
+-    "//chrome/browser/resources/intro:build_ts",
+     "//ui/webui/resources/js:build_ts",
+   ]
+ }
 --
 2.25.1

@@ -85,9 +85,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/permissions/permission_prompt.h    |  3 +-
  components/permissions/permission_request.cc  | 34 +++++++-
  components/permissions/permission_request.h   | 18 ++++-
- .../permissions/permission_request_manager.cc | 37 ++++++---
+ .../permissions/permission_request_manager.cc | 45 +++++++----
  .../permissions/permission_request_manager.h  | 11 ++-
- 35 files changed, 479 insertions(+), 58 deletions(-)
+ 35 files changed, 483 insertions(+), 62 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -1321,7 +1321,7 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
    }
  
    NotifyRequestDecided(PermissionAction::DENIED);
-@@ -1110,31 +1121,31 @@ PermissionRequestManager::VisitDuplicateRequests(
+@@ -1110,32 +1121,32 @@ PermissionRequestManager::VisitDuplicateRequests(
  
  void PermissionRequestManager::PermissionGrantedIncludingDuplicates(
      PermissionRequest* request,
@@ -1334,12 +1334,14 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
 +  request->PermissionGranted(is_one_time, lifetime_option);
    VisitDuplicateRequests(
        base::BindRepeating(
-           [](bool is_one_time,
+-          [](bool is_one_time,
++          [](bool is_one_time, content_settings::LifetimeMode lifetime_option,
               const base::WeakPtr<PermissionRequest>& weak_request) {
 -            weak_request->PermissionGranted(is_one_time);
 +            weak_request->PermissionGranted(is_one_time, lifetime_option);
            },
-           is_one_time),
+-          is_one_time),
++          is_one_time, lifetime_option),
        request);
  }
  
@@ -1353,12 +1355,15 @@ diff --git a/components/permissions/permission_request_manager.cc b/components/p
 +  request->PermissionDenied(is_one_time, lifetime_option);
    VisitDuplicateRequests(
        base::BindRepeating(
-           [](const base::WeakPtr<PermissionRequest>& weak_request) {
+-          [](const base::WeakPtr<PermissionRequest>& weak_request) {
 -            weak_request->PermissionDenied();
+-          }),
++          [](bool is_one_time, content_settings::LifetimeMode lifetime_option, const base::WeakPtr<PermissionRequest>& weak_request) {
 +            weak_request->PermissionDenied(is_one_time, lifetime_option);
-           }),
++          }, is_one_time, lifetime_option),
        request);
  }
+ 
 @@ -1376,7 +1387,7 @@ void PermissionRequestManager::LogWarningToConsole(const char* message) {
  void PermissionRequestManager::DoAutoResponseForTesting() {
    switch (auto_response_for_test_) {

@@ -3,10 +3,10 @@ Date: Wed, 12 Oct 2022 09:52:02 +0000
 Subject: WIN ADDTO Disable safe browsing
 
 ---
- chrome/browser/BUILD.gn                       |  16 +-
+ chrome/browser/BUILD.gn                       |  20 +--
  .../chrome_browsing_data_remover_delegate.cc  |   2 -
  chrome/browser/chrome_browser_main_win.cc     |   6 -
- .../bubble/download_bubble_ui_controller.cc   |   2 +
+ .../bubble/download_bubble_ui_controller.cc   |   3 +-
  .../chrome_download_manager_delegate.cc       |  16 +-
  .../browser/download/download_item_model.cc   |  94 +---------
  .../analysis/content_analysis_delegate.cc     | 162 +-----------------
@@ -29,6 +29,7 @@ Subject: WIN ADDTO Disable safe browsing
  ...nfiguration_policy_handler_list_factory.cc |   7 -
  chrome/browser/prefs/browser_prefs.cc         |   2 +
  chrome/browser/printing/print_view_manager.cc |  15 --
+ ...hrome_browser_main_extra_parts_profiles.cc |   3 -
  chrome/browser/profiles/profiles_state.cc     |   2 -
  chrome/browser/resources/BUILD.gn             |   1 -
  chrome/browser/safe_browsing/BUILD.gn         |   8 +-
@@ -40,7 +41,7 @@ Subject: WIN ADDTO Disable safe browsing
  ...b_modal_dialog_manager_delegate_desktop.cc |   1 -
  .../ui/page_info/chrome_page_info_delegate.cc |   1 -
  .../chrome_web_contents_view_handle_drop.cc   | 159 -----------------
- .../ui/views/download/download_item_view.cc   |  23 +--
+ .../ui/views/download/download_item_view.cc   |  24 +--
  .../webui/downloads/downloads_dom_handler.cc  |  21 +--
  .../ui/webui/downloads/downloads_ui.cc        |   5 +-
  chrome/browser/ui/webui/intro/intro_ui.cc     |  29 +---
@@ -54,7 +55,7 @@ Subject: WIN ADDTO Disable safe browsing
  .../core/common/safe_browsing_prefs.cc        |   2 +-
  printing/buildflags/buildflags.gni            |   2 +-
  .../tracked_persistent_pref_store_factory.cc  |  10 +-
- 51 files changed, 72 insertions(+), 827 deletions(-)
+ 52 files changed, 72 insertions(+), 836 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
@@ -101,7 +102,18 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "enterprise/connectors/analysis/request_handler_base.cc",
        "enterprise/connectors/analysis/request_handler_base.h",
        "enterprise/connectors/common.cc",
-@@ -7909,7 +7896,6 @@ static_library("test_support") {
+@@ -6071,10 +6058,6 @@ static_library("browser") {
+       "enterprise/chrome_browser_main_extra_parts_enterprise.h",
+       "enterprise/connectors/analysis/content_analysis_sdk_manager.cc",
+       "enterprise/connectors/analysis/content_analysis_sdk_manager.h",
+-      "enterprise/connectors/analysis/local_binary_upload_service.cc",
+-      "enterprise/connectors/analysis/local_binary_upload_service.h",
+-      "enterprise/connectors/analysis/local_binary_upload_service_factory.cc",
+-      "enterprise/connectors/analysis/local_binary_upload_service_factory.h",
+       "enterprise/connectors/device_trust/attestation/desktop/crypto_utility.cc",
+       "enterprise/connectors/device_trust/attestation/desktop/crypto_utility.h",
+       "enterprise/connectors/device_trust/attestation/desktop/desktop_attestation_service.cc",
+@@ -7909,7 +7892,6 @@ static_library("test_support") {
      ":browser",
      "//chrome/browser/autofill:test_support",
      "//chrome/browser/profiles:profile",
@@ -140,7 +152,15 @@ diff --git a/chrome/browser/chrome_browser_main_win.cc b/chrome/browser/chrome_b
 diff --git a/chrome/browser/download/bubble/download_bubble_ui_controller.cc b/chrome/browser/download/bubble/download_bubble_ui_controller.cc
 --- a/chrome/browser/download/bubble/download_bubble_ui_controller.cc
 +++ b/chrome/browser/download/bubble/download_bubble_ui_controller.cc
-@@ -204,9 +204,11 @@ void DownloadBubbleUIController::ProcessDownloadButtonPress(
+@@ -28,7 +28,6 @@
+ #include "chrome/browser/feature_engagement/tracker_factory.h"
+ #include "chrome/browser/offline_items_collection/offline_content_aggregator_factory.h"
+ #include "chrome/browser/profiles/profile_key.h"
+-#include "chrome/browser/safe_browsing/download_protection/download_protection_service.h"
+ #include "chrome/browser/safe_browsing/safe_browsing_service.h"
+ #include "chrome/browser/ui/browser.h"
+ #include "chrome/browser/ui/browser_finder.h"
+@@ -204,9 +203,11 @@ void DownloadBubbleUIController::ProcessDownloadButtonPress(
        commands.ExecuteCommand(command);
        break;
      case DownloadCommands::REVIEW:
@@ -155,7 +175,7 @@ diff --git a/chrome/browser/download/bubble/download_bubble_ui_controller.cc b/c
 diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrome/browser/download/chrome_download_manager_delegate.cc
 --- a/chrome/browser/download/chrome_download_manager_delegate.cc
 +++ b/chrome/browser/download/chrome_download_manager_delegate.cc
-@@ -884,21 +884,11 @@ void ChromeDownloadManagerDelegate::OpenDownload(DownloadItem* download) {
+@@ -877,21 +877,11 @@ void ChromeDownloadManagerDelegate::OpenDownload(DownloadItem* download) {
        content::DownloadItemUtils::GetWebContents(download);
    Browser* browser =
        web_contents ? chrome::FindBrowserWithWebContents(web_contents) : nullptr;
@@ -177,7 +197,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
      browser->OpenURL(params);
  #endif  // BUILDFLAG(IS_ANDROID)
  }
-@@ -946,7 +936,7 @@ void ChromeDownloadManagerDelegate::ShowDownloadInShell(
+@@ -939,7 +929,7 @@ void ChromeDownloadManagerDelegate::ShowDownloadInShell(
  
  std::string
  ChromeDownloadManagerDelegate::ApplicationClientIdForFileScanning() {
@@ -186,7 +206,7 @@ diff --git a/chrome/browser/download/chrome_download_manager_delegate.cc b/chrom
  }
  
  #if BUILDFLAG(FULL_SAFE_BROWSING)
-@@ -1715,8 +1705,8 @@ void ChromeDownloadManagerDelegate::CheckSavePackageAllowed(
+@@ -1708,8 +1698,8 @@ void ChromeDownloadManagerDelegate::CheckSavePackageAllowed(
    DCHECK(download_item);
    DCHECK(download_item->IsSavePackageDownload());
  
@@ -1187,6 +1207,19 @@ diff --git a/chrome/browser/printing/print_view_manager.cc b/chrome/browser/prin
    std::move(callback).Run(/*should_proceed=*/true);
  }
  
+diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
+--- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
++++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
+@@ -631,9 +631,6 @@ void ChromeBrowserMainExtraPartsProfiles::
+   enterprise_connectors::DeviceTrustServiceFactory::GetInstance();
+   enterprise_connectors::DeviceTrustConnectorServiceFactory::GetInstance();
+ #endif
+-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+-  enterprise_connectors::LocalBinaryUploadServiceFactory::GetInstance();
+-#endif
+ #if BUILDFLAG(ENABLE_SESSION_SERVICE)
+   ExitTypeServiceFactory::GetInstance();
+ #endif
 diff --git a/chrome/browser/profiles/profiles_state.cc b/chrome/browser/profiles/profiles_state.cc
 --- a/chrome/browser/profiles/profiles_state.cc
 +++ b/chrome/browser/profiles/profiles_state.cc
@@ -1606,7 +1639,15 @@ diff --git a/chrome/browser/ui/tab_contents/chrome_web_contents_view_handle_drop
 diff --git a/chrome/browser/ui/views/download/download_item_view.cc b/chrome/browser/ui/views/download/download_item_view.cc
 --- a/chrome/browser/ui/views/download/download_item_view.cc
 +++ b/chrome/browser/ui/views/download/download_item_view.cc
-@@ -815,21 +815,7 @@ void DownloadItemView::UpdateLabels() {
+@@ -38,7 +38,6 @@
+ #include "chrome/browser/icon_manager.h"
+ #include "chrome/browser/safe_browsing/advanced_protection_status_manager.h"
+ #include "chrome/browser/safe_browsing/advanced_protection_status_manager_factory.h"
+-#include "chrome/browser/safe_browsing/download_protection/download_protection_service.h"
+ #include "chrome/browser/safe_browsing/safe_browsing_service.h"
+ #include "chrome/browser/ui/browser.h"
+ #include "chrome/browser/ui/color/chrome_color_id.h"
+@@ -815,21 +814,7 @@ void DownloadItemView::UpdateLabels() {
      warning_label_->SizeToFit(GetLabelWidth(*warning_label_));
    }
  
@@ -1629,7 +1670,7 @@ diff --git a/chrome/browser/ui/views/download/download_item_view.cc b/chrome/bro
  }
  
  void DownloadItemView::UpdateButtons() {
-@@ -1018,11 +1004,7 @@ ui::ImageModel DownloadItemView::GetIcon() const {
+@@ -1018,11 +1003,7 @@ ui::ImageModel DownloadItemView::GetIcon() const {
  
    switch (danger_type) {
      case download::DOWNLOAD_DANGER_TYPE_UNCOMMON_CONTENT:
@@ -1642,7 +1683,7 @@ diff --git a/chrome/browser/ui/views/download/download_item_view.cc b/chrome/bro
      case download::DOWNLOAD_DANGER_TYPE_DANGEROUS_URL:
      case download::DOWNLOAD_DANGER_TYPE_DANGEROUS_CONTENT:
      case download::DOWNLOAD_DANGER_TYPE_DANGEROUS_HOST:
-@@ -1273,7 +1255,6 @@ void DownloadItemView::ShowContextMenuImpl(const gfx::Rect& rect,
+@@ -1273,7 +1254,6 @@ void DownloadItemView::ShowContextMenuImpl(const gfx::Rect& rect,
  }
  
  void DownloadItemView::OpenDownloadDuringAsyncScanning() {
@@ -1907,7 +1948,7 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
      "//chrome/browser/sharing/proto",
      "//chrome/child",
      "//chrome/common:non_code_constants",
-@@ -6021,9 +6020,6 @@ test("unit_tests") {
+@@ -6018,9 +6017,6 @@ test("unit_tests") {
      "//chrome/browser/profile_resetter:profile_reset_report_proto",
      "//chrome/browser/profiling_host",
      "//chrome/browser/push_messaging:budget_proto",

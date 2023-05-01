@@ -19,7 +19,7 @@ ld.lld: error: undefined symbol: notifier::NotifierOptions::NotifierOptions()
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/android/BUILD.gn                       |  20 --
+ chrome/android/BUILD.gn                       |  18 --
  chrome/android/chrome_java_sources.gni        |  30 ---
  chrome/android/features/tab_ui/BUILD.gn       |   1 -
  .../browser/feed/FeedSurfaceCoordinator.java  |   9 +-
@@ -35,16 +35,21 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../chrome/browser/ChromeBackupWatcher.java   |  10 -
  .../chrome/browser/ChromeTabbedActivity.java  |   9 -
  .../chrome/browser/app/ChromeActivity.java    |  75 ------
- .../app/feed/FeedActionDelegateImpl.java      |   2 -
+ .../creator/CreatorActionDelegateImpl.java    |   3 -
+ .../app/feed/FeedActionDelegateImpl.java      |   3 -
  .../autofill/settings/AddressEditor.java      |  16 +-
- .../bookmarks/BookmarkPromoHeader.java        | 228 +-----------------
+ .../browser/bookmarks/BookmarkListEntry.java  |   7 +-
+ .../bookmarks/BookmarkManagerCoordinator.java |  20 --
+ .../bookmarks/BookmarkManagerMediator.java    |  56 +----
+ .../bookmarks/BookmarkManagerViewBinder.java  |  11 -
+ .../bookmarks/BookmarkPromoHeader.java        | 230 +-----------------
  .../ClearBrowsingDataFragment.java            |  76 ------
- .../ClearBrowsingDataFragmentBasic.java       |  28 +--
+ .../ClearBrowsingDataFragmentBasic.java       |  27 +-
  .../contacts_picker/ChromePickerAdapter.java  |  67 +----
  .../browser/customtabs/CustomTabActivity.java |   7 -
  .../firstrun/LightweightFirstRunActivity.java |   4 +-
  .../history/HistoryContentManager.java        |  25 +-
- .../identity_disc/IdentityDiscController.java | 126 +---------
+ .../identity_disc/IdentityDiscController.java | 120 +--------
  .../init/ChromeBrowserInitializer.java        |   2 -
  .../init/ProcessInitializationHandler.java    |   9 -
  .../chrome/browser/ntp/RecentTabsManager.java | 129 +---------
@@ -71,13 +76,14 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/feed/android/BUILD.gn          |   1 -
  .../chrome/browser/feed/FeedFeatures.java     |   2 -
  .../browser/feed/FeedServiceBridge.java       |   2 +-
+ .../SigninBottomSheetCoordinator.java         |  28 +--
  chrome/browser/feedback/android/BUILD.gn      |   1 -
  .../browser/feedback/FeedbackCollector.java   |   9 -
  .../browser/firstrun/MobileFreProgress.java   |   4 +-
  .../router/discovery/access_code/BUILD.gn     |   1 -
  .../browser/password_manager/android/BUILD.gn |   4 -
  ...sswordManagerErrorMessageHelperBridge.java |  26 --
- .../PasswordManagerHelper.java                | 142 +----------
+ .../PasswordManagerHelper.java                | 146 +----------
  ...StoreAndroidBackendReceiverBridgeImpl.java |  10 -
  ...swordSyncControllerDelegateBridgeImpl.java |   6 +-
  ...d_manager_settings_service_android_impl.cc |  59 +----
@@ -91,7 +97,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../SearchResumptionModuleMediator.java       |  37 +--
  .../SearchResumptionModuleUtils.java          |  12 -
  .../ManageAccountDevicesLinkView.java         |  28 +--
- .../SendTabToSelfCoordinator.java             | 153 ------------
+ .../SendTabToSelfCoordinator.java             | 152 ------------
  .../account_consistency_mode_manager.cc       |   7 +-
  .../signin/identity_manager_factory.cc        |   5 -
  .../identity_services_provider_android.cc     |  13 -
@@ -111,7 +117,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../strings/android_chrome_strings.grd        |  18 --
  .../core/browser/leak_detection_delegate.cc   |   2 +-
  .../core/browser/password_form_manager.cc     |  34 +--
- .../browser/password_manager_client_helper.cc |  47 +---
+ .../browser/password_manager_client_helper.cc |  45 +---
  .../core/browser/sync_credentials_filter.cc   |  49 +---
  components/signin/features.gni                |   4 +-
  .../primary_account_manager.cc                |  17 +-
@@ -121,7 +127,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ProfileOAuth2TokenServiceDelegate.java    |  52 ----
  .../net/HttpNegotiateAuthenticator.java       |  88 +------
  .../chromoting/base/OAuthTokenFetcher.java    |   2 -
- 102 files changed, 102 insertions(+), 2633 deletions(-)
+ 108 files changed, 110 insertions(+), 2745 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
@@ -134,24 +140,15 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/tab:java_resources",
        "//chrome/browser/ui/android/appmenu:java_resources",
        "//chrome/browser/ui/android/favicon:java_resources",
-@@ -337,8 +336,6 @@ if (current_toolchain == default_toolchain) {
-       "//chrome/browser/settings:java",
+@@ -338,7 +337,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/share:java",
        "//chrome/browser/share/android:java_resources",
--      "//chrome/browser/signin/services/android:java",
+       "//chrome/browser/signin/services/android:java",
 -      "//chrome/browser/sync/android:java",
        "//chrome/browser/tab:java",
        "//chrome/browser/tab_group:java",
        "//chrome/browser/tabmodel:factory_java",
-@@ -361,7 +358,6 @@ if (current_toolchain == default_toolchain) {
-       "//chrome/browser/ui/android/page_info:java",
-       "//chrome/browser/ui/android/quickactionsearchwidget:java",
-       "//chrome/browser/ui/android/searchactivityutils:java",
--      "//chrome/browser/ui/android/signin:java",
-       "//chrome/browser/ui/android/theme:java",
-       "//chrome/browser/ui/android/toolbar:java",
-       "//chrome/browser/ui/messages/android:java",
-@@ -488,7 +484,6 @@ if (current_toolchain == default_toolchain) {
+@@ -488,7 +486,6 @@ if (current_toolchain == default_toolchain) {
        "//components/strictmode/android:java",
        "//components/stylus_handwriting/android:java",
        "//components/subresource_filter/android:java",
@@ -159,7 +156,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//components/sync/protocol:protocol_java",
        "//components/sync_device_info:sync_device_info_java",
        "//components/thin_webview:factory_java",
-@@ -933,9 +928,6 @@ if (current_toolchain == default_toolchain) {
+@@ -933,9 +930,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/segmentation_platform:factory_java",
        "//chrome/browser/settings:junit_test_support",
        "//chrome/browser/share:java",
@@ -169,7 +166,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/tab:java",
        "//chrome/browser/tab:junit",
        "//chrome/browser/tab_group:java",
-@@ -969,8 +961,6 @@ if (current_toolchain == default_toolchain) {
+@@ -969,8 +963,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/ui/android/omnibox:junit",
        "//chrome/browser/ui/android/quickactionsearchwidget:java",
        "//chrome/browser/ui/android/searchactivityutils:java",
@@ -178,7 +175,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/ui/android/theme:java",
        "//chrome/browser/ui/android/toolbar:java",
        "//chrome/browser/ui/android/toolbar:junit",
-@@ -1062,7 +1052,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1062,7 +1054,6 @@ if (current_toolchain == default_toolchain) {
        "//components/signin/core/browser:signin_enums_java",
        "//components/signin/public/android:java",
        "//components/signin/public/android:signin_java_test_support",
@@ -186,7 +183,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//components/sync_device_info:sync_device_info_java",
        "//components/translate/content/android:junit",
        "//components/ukm/android:java",
-@@ -1499,10 +1488,8 @@ if (current_toolchain == default_toolchain) {
+@@ -1499,10 +1490,8 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/settings:test_support_java",
        "//chrome/browser/share:java",
        "//chrome/browser/share/android:java_resources",
@@ -197,7 +194,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/sync/test/android:test_support_java",
        "//chrome/browser/tab:critical_persisted_tab_data_flatbuffer_java",
        "//chrome/browser/tab:critical_persisted_tab_data_proto_java",
-@@ -1528,8 +1515,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1528,8 +1517,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/ui/android/quickactionsearchwidget:java",
        "//chrome/browser/ui/android/quickactionsearchwidget:javatests",
        "//chrome/browser/ui/android/searchactivityutils:java",
@@ -206,7 +203,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/ui/android/theme:java",
        "//chrome/browser/ui/android/toolbar:java",
        "//chrome/browser/ui/messages/android:java",
-@@ -1645,7 +1630,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1645,7 +1632,6 @@ if (current_toolchain == default_toolchain) {
        "//components/signin/public/android:java",
        "//components/signin/public/android:signin_java_test_support",
        "//components/site_engagement/content/android:java",
@@ -214,7 +211,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//components/sync/protocol:protocol_java",
        "//components/sync_device_info:sync_device_info_java",
        "//components/url_formatter/android:url_formatter_java",
-@@ -2337,7 +2321,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2337,7 +2323,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/download/android:java",
        "//chrome/browser/prefetch/android:java",
        "//chrome/browser/profiles/android:java",
@@ -222,7 +219,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/tab:java",
        "//components/offline_items_collection/core:core_java",
        "//components/sync/protocol:protocol_java",
-@@ -2760,13 +2743,11 @@ if (current_toolchain == default_toolchain) {
+@@ -2760,13 +2745,11 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/optimization_guide/android:unit_device_javatests",
        "//chrome/browser/partnercustomizations:unit_device_javatests",
        "//chrome/browser/password_edit_dialog/android:unit_device_javatests",
@@ -236,7 +233,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/ui/messages/android:unit_device_javatests",
        "//chrome/browser/video_tutorials/internal:unit_device_javatests",
        "//components/browser_ui/bottomsheet/android/internal:unit_device_javatests",
-@@ -3623,7 +3604,6 @@ generate_jni("chrome_jni_headers") {
+@@ -3623,7 +3606,6 @@ generate_jni("chrome_jni_headers") {
      "java/src/org/chromium/chrome/browser/sharing/shared_clipboard/SharedClipboardMessageHandler.java",
      "java/src/org/chromium/chrome/browser/sharing/sms_fetcher/SmsFetcherMessageHandler.java",
      "java/src/org/chromium/chrome/browser/signin/SigninBridge.java",
@@ -1019,10 +1016,38 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
              });
          }
  
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/creator/CreatorActionDelegateImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/app/creator/CreatorActionDelegateImpl.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/app/creator/CreatorActionDelegateImpl.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/app/creator/CreatorActionDelegateImpl.java
+@@ -15,7 +15,6 @@ import org.chromium.chrome.browser.creator.CreatorCoordinator;
+ import org.chromium.chrome.browser.feed.FeedActionDelegate;
+ import org.chromium.chrome.browser.feed.signinbottomsheet.SigninBottomSheetCoordinator;
+ import org.chromium.chrome.browser.profiles.Profile;
+-import org.chromium.chrome.browser.signin.SyncConsentActivityLauncherImpl;
+ import org.chromium.chrome.browser.tab.TabLaunchType;
+ import org.chromium.chrome.browser.tabmodel.document.TabDelegate;
+ import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
+@@ -74,8 +73,6 @@ public class CreatorActionDelegateImpl implements FeedActionDelegate {
+ 
+     @Override
+     public void showSyncConsentActivity(int signinAccessPoint) {
+-        SyncConsentActivityLauncherImpl.get().launchActivityIfAllowed(
+-                mActivityContext, signinAccessPoint);
+     }
+ 
+     @Override
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/feed/FeedActionDelegateImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/app/feed/FeedActionDelegateImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/feed/FeedActionDelegateImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/feed/FeedActionDelegateImpl.java
-@@ -137,8 +137,6 @@ public class FeedActionDelegateImpl implements FeedActionDelegate {
+@@ -23,7 +23,6 @@ import org.chromium.chrome.browser.ntp.NewTabPageUma;
+ import org.chromium.chrome.browser.offlinepages.OfflinePageBridge;
+ import org.chromium.chrome.browser.offlinepages.RequestCoordinatorBridge;
+ import org.chromium.chrome.browser.profiles.Profile;
+-import org.chromium.chrome.browser.signin.SyncConsentActivityLauncherImpl;
+ import org.chromium.chrome.browser.signin.services.SigninMetricsUtils;
+ import org.chromium.chrome.browser.suggestions.SuggestionsConfig;
+ import org.chromium.chrome.browser.tab.EmptyTabObserver;
+@@ -137,8 +136,6 @@ public class FeedActionDelegateImpl implements FeedActionDelegate {
      @Override
      public void showSyncConsentActivity(@SigninAccessPoint int signinAccessPoint) {
          if (ChromeFeatureList.isEnabled(ChromeFeatureList.FEED_SHOW_SIGN_IN_COMMAND)) {
@@ -1079,13 +1104,239 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/autofill/settin
          }
  
          mEditor = new EditorModel(editTitle, mCustomDoneButtonText, footerMessageText,
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java
+@@ -23,15 +23,12 @@ public final class BookmarkListEntry {
+      * Specifies the view types that the bookmark delegate screen can contain.
+      */
+     @Retention(RetentionPolicy.SOURCE)
+-    @IntDef({ViewType.INVALID, ViewType.PERSONALIZED_SIGNIN_PROMO, ViewType.PERSONALIZED_SYNC_PROMO,
+-            ViewType.SYNC_PROMO, ViewType.FOLDER, ViewType.BOOKMARK, ViewType.DIVIDER,
++    @IntDef({ViewType.INVALID,
++            ViewType.FOLDER, ViewType.BOOKMARK, ViewType.DIVIDER,
+             ViewType.SECTION_HEADER, ViewType.SHOPPING_POWER_BOOKMARK, ViewType.TAG_CHIP_LIST,
+             ViewType.SHOPPING_FILTER})
+     public @interface ViewType {
+         int INVALID = -1;
+-        int PERSONALIZED_SIGNIN_PROMO = 0;
+-        int PERSONALIZED_SYNC_PROMO = 1;
+-        int SYNC_PROMO = 2;
+         int FOLDER = 3;
+         int BOOKMARK = 4;
+         int DIVIDER = 5;
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
+@@ -256,11 +256,6 @@ public class BookmarkManagerCoordinator
+         }
+ 
+         switch (viewType) {
+-            case ViewType.PERSONALIZED_SIGNIN_PROMO:
+-            case ViewType.PERSONALIZED_SYNC_PROMO:
+-                return buildPersonalizedPromoView(parent);
+-            case ViewType.SYNC_PROMO:
+-                return buildLegacyPromoView(parent);
+             case ViewType.SECTION_HEADER:
+                 return buildSectionHeaderView(parent);
+             case ViewType.FOLDER:
+@@ -282,13 +277,6 @@ public class BookmarkManagerCoordinator
+     public void bindView(View view, @ViewType int viewType, PropertyModel model) {
+         ViewBinder<PropertyModel, View, PropertyKey> viewBinder = null;
+         switch (viewType) {
+-            case ViewType.PERSONALIZED_SIGNIN_PROMO:
+-            case ViewType.PERSONALIZED_SYNC_PROMO:
+-                viewBinder = BookmarkManagerViewBinder::bindPersonalizedPromoView;
+-                break;
+-            case ViewType.SYNC_PROMO:
+-                viewBinder = BookmarkManagerViewBinder::bindLegacyPromoView;
+-                break;
+             case ViewType.SECTION_HEADER:
+                 viewBinder = BookmarkManagerViewBinder::bindSectionHeaderView;
+                 break;
+@@ -313,14 +301,6 @@ public class BookmarkManagerCoordinator
+         PropertyModelChangeProcessor.create(model, view, viewBinder);
+     }
+ 
+-    private View buildPersonalizedPromoView(ViewGroup parent) {
+-        return mPromoHeaderManager.createPersonalizedSigninAndSyncPromoHolder(parent);
+-    }
+-
+-    private View buildLegacyPromoView(ViewGroup parent) {
+-        return mPromoHeaderManager.createSyncPromoHolder(parent);
+-    }
+-
+     private View buildSectionHeaderView(ViewGroup parent) {
+         return inflate(parent, org.chromium.chrome.R.layout.bookmark_section_header);
+     }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java
+@@ -26,8 +26,6 @@ import org.chromium.chrome.browser.feature_engagement.TrackerFactory;
+ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.chrome.browser.partnerbookmarks.PartnerBookmarksReader;
+ import org.chromium.chrome.browser.profiles.Profile;
+-import org.chromium.chrome.browser.sync.SyncService;
+-import org.chromium.chrome.browser.sync.SyncService.SyncStateChangedListener;
+ import org.chromium.chrome.browser.ui.native_page.BasicNativePage;
+ import org.chromium.chrome.browser.ui.signin.SyncPromoController.SyncPromoState;
+ import org.chromium.components.bookmarks.BookmarkId;
+@@ -236,7 +234,6 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+             mBookmarkModel.removeObserver(mBookmarkModelObserver2);
+             getSelectionDelegate().removeObserver(mSelectionObserver);
+             mPromoHeaderManager.destroy();
+-            mSyncService.removeSyncStateChangedListener(mSyncStateChangedListener);
+         }
+ 
+         @Override
+@@ -285,20 +282,6 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+         }
+     };
+ 
+-    private final SyncStateChangedListener mSyncStateChangedListener =
+-            new SyncStateChangedListener() {
+-                @Override
+-                public void syncStateChanged() {
+-                    // If the bookmark model isn't loaded, we will set the top level folders on
+-                    // load (see onBookmarkModelLoaded method below).
+-                    if (!mBookmarkModel.isBookmarkModelLoaded()) {
+-                        return;
+-                    }
+-                    mTopLevelFolders.clear();
+-                    populateTopLevelFoldersList();
+-                }
+-            };
+-
+     private final ObserverList<BookmarkUiObserver> mUiObservers = new ObserverList<>();
+     private final BookmarkDragStateDelegate mDragStateDelegate = new BookmarkDragStateDelegate();
+     private final Context mContext;
+@@ -320,7 +303,6 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+     private final ObservableSupplierImpl<Boolean> mBackPressStateSupplier;
+     private final List<BookmarkId> mTopLevelFolders = new ArrayList<>();
+     private final Profile mProfile;
+-    private final SyncService mSyncService;
+     private final BookmarkPromoHeader mPromoHeaderManager;
+     private final BookmarkUndoController mBookmarkUndoController;
+ 
+@@ -360,8 +342,6 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+         mIsIncognito = isIncognito;
+         mBackPressStateSupplier = backPressStateSupplier;
+         mProfile = profile;
+-        mSyncService = SyncService.get();
+-        mSyncService.addSyncStateChangedListener(mSyncStateChangedListener);
+         // Notify the view of changes to the elements list as the promo might be showing.
+         Runnable promoHeaderChangeAction = () -> updateHeader(true);
+         mPromoHeaderManager = new BookmarkPromoHeader(mContext, mProfile, promoHeaderChangeAction);
+@@ -494,10 +474,7 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+     public PropertyModel buildModel(ViewHolder holder, int position) {
+         PropertyModel model = new PropertyModel(BookmarkManagerProperties.ALL_KEYS);
+         final @ViewType int viewType = holder.getItemViewType();
+-        if (viewType == ViewType.PERSONALIZED_SIGNIN_PROMO
+-                || viewType == ViewType.PERSONALIZED_SYNC_PROMO) {
+-            model.set(BookmarkManagerProperties.BOOKMARK_PROMO_HEADER, mPromoHeaderManager);
+-        } else if (viewType == ViewType.SECTION_HEADER) {
++        if (viewType == ViewType.SECTION_HEADER) {
+             model.set(BookmarkManagerProperties.BOOKMARK_LIST_ENTRY, getItemByPosition(position));
+         } else if (BookmarkListEntry.isBookmarkEntry(viewType)) {
+             BookmarkId id = getIdByPosition(position);
+@@ -519,11 +496,6 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+     @Override
+     public void recycleView(View view, @ViewType int viewType) {
+         switch (viewType) {
+-            case ViewType.PERSONALIZED_SIGNIN_PROMO:
+-                // fall through
+-            case ViewType.PERSONALIZED_SYNC_PROMO:
+-                mPromoHeaderManager.detachPersonalizePromoView();
+-                break;
+             default:
+                 // Other view holders don't have special recycling code.
+         }
+@@ -573,7 +545,6 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+ 
+     @Override
+     public void simulateSignInForTesting() {
+-        mSyncStateChangedListener.syncStateChanged();
+         mBookmarkUiObserver.onFolderStateSet(mCurrentFolder);
+     }
+ 
+@@ -857,9 +828,6 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+         getElements().clear();
+ 
+         // Restore the header, if it exists, then update it.
+-        if (hasPromoHeader()) {
+-            getElements().add(BookmarkListEntry.createSyncPromoHeader(mPromoHeaderType));
+-        }
+ 
+         updateHeader(false);
+         if (BookmarkId.SHOPPING_FOLDER.equals(mCurrentFolder)) {
+@@ -917,28 +885,12 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+         } else if (currentUiState == BookmarkUiMode.SEARCHING) {
+             mPromoHeaderType = ViewType.INVALID;
+         } else {
+-            switch (mPromoHeaderManager.getPromoState()) {
+-                case SyncPromoState.NO_PROMO:
+-                    mPromoHeaderType = ViewType.INVALID;
+-                    break;
+-                case SyncPromoState.PROMO_FOR_SIGNED_OUT_STATE:
+-                    mPromoHeaderType = ViewType.PERSONALIZED_SIGNIN_PROMO;
+-                    break;
+-                case SyncPromoState.PROMO_FOR_SIGNED_IN_STATE:
+-                    mPromoHeaderType = ViewType.PERSONALIZED_SYNC_PROMO;
+-                    break;
+-                case SyncPromoState.PROMO_FOR_SYNC_TURNED_OFF_STATE:
+-                    mPromoHeaderType = ViewType.SYNC_PROMO;
+-                    break;
+-                default:
+-                    assert false : "Unexpected value for promo state!";
+-            }
++            mPromoHeaderType = ViewType.INVALID;
+         }
+ 
+         boolean willShowPromo = hasPromoHeader();
+         if (!wasShowingPromo && willShowPromo) {
+             // A null element at the 0th index represents a promo header.
+-            getElements().add(0, BookmarkListEntry.createSyncPromoHeader(mPromoHeaderType));
+             if (shouldNotify) mBookmarkItemsAdapter.notifyItemInserted(0);
+         } else if (wasShowingPromo && willShowPromo) {
+             if (shouldNotify) mBookmarkItemsAdapter.notifyItemChanged(0);
+@@ -1028,8 +980,4 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+     BookmarkUndoController getUndoControllerForTesting() {
+         return mBookmarkUndoController;
+     }
+-
+-    SyncStateChangedListener getSyncStateChangedListenerForTesting() {
+-        return mSyncStateChangedListener;
+-    }
+ }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerViewBinder.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerViewBinder.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerViewBinder.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerViewBinder.java
+@@ -20,17 +20,6 @@ import org.chromium.ui.modelutil.PropertyModel;
+ 
+ /** Responsible for binding views to their properties. */
+ class BookmarkManagerViewBinder {
+-    static void bindPersonalizedPromoView(PropertyModel model, View view, PropertyKey key) {
+-        if (key == BookmarkManagerProperties.BOOKMARK_PROMO_HEADER) {
+-            PersonalizedSigninPromoView promoView =
+-                    view.findViewById(org.chromium.chrome.R.id.signin_promo_view_container);
+-            model.get(BookmarkManagerProperties.BOOKMARK_PROMO_HEADER)
+-                    .setUpSyncPromoView(promoView);
+-        }
+-    }
+-
+-    static void bindLegacyPromoView(PropertyModel model, View view, PropertyKey key) {}
+-
+     static void bindSectionHeaderView(PropertyModel model, View view, PropertyKey key) {
+         if (key == BookmarkManagerProperties.BOOKMARK_LIST_ENTRY) {
+             BookmarkListEntry bookmarkListEntry =
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkPromoHeader.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkPromoHeader.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkPromoHeader.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkPromoHeader.java
-@@ -5,245 +5,19 @@
+@@ -4,246 +4,26 @@
+ 
  package org.chromium.chrome.browser.bookmarks;
  
- import android.content.Context;
+-import android.content.Context;
 -import android.view.LayoutInflater;
 -import android.view.View;
 -import android.view.ViewGroup;
@@ -1096,7 +1347,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 -import org.chromium.chrome.R;
 -import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
 -import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
--import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.browser.profiles.Profile;
 -import org.chromium.chrome.browser.signin.LegacySyncPromoView;
 -import org.chromium.chrome.browser.signin.SyncConsentActivityLauncherImpl;
 -import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
@@ -1112,6 +1363,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 -import org.chromium.components.signin.AccountsChangeObserver;
 -import org.chromium.components.signin.identitymanager.ConsentLevel;
 -import org.chromium.components.signin.metrics.SigninAccessPoint;
++
++import android.content.Context;
  
  /**
   * Class that manages all the logic and UI behind the signin promo header in the bookmark
@@ -1141,7 +1394,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
       * Initializes the class. Note that this will start listening to signin related events and
       * update itself if needed.
       */
-     BookmarkPromoHeader(Context context, Profile profile, Runnable promoHeaderChangeAction) {
+-    BookmarkPromoHeader(Context context, Profile profile, Runnable promoHeaderChangeAction) {
 -        mContext = context;
 -        mProfile = profile;
 -        mPromoHeaderChangeAction = promoHeaderChangeAction;
@@ -1166,10 +1419,11 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 -        }
 -        updatePromoState();
 -    }
--
--    /**
--     * Clean ups the class. Must be called once done using this class.
--     */
++    BookmarkPromoHeader(Context context, Profile profile, Runnable promoHeaderChangeAction) {}
+ 
+     /**
+      * Clean ups the class. Must be called once done using this class.
+      */
 -    void destroy() {
 -        if (mSyncService != null) mSyncService.removeSyncStateChangedListener(this);
 -
@@ -1327,7 +1581,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 -    @VisibleForTesting
 -    public static void forcePromoStateForTesting(@Nullable @SyncPromoState Integer promoState) {
 -        sPromoStateForTests = promoState;
-     }
+-    }
++    void destroy() {}
  }
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java b/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java
@@ -1487,7 +1742,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
  import org.chromium.components.sync.ModelType;
  import org.chromium.ui.text.NoUnderlineClickableSpan;
  import org.chromium.ui.text.SpanApplier;
-@@ -89,28 +85,11 @@ public class ClearBrowsingDataFragmentBasic extends ClearBrowsingDataFragment {
+@@ -89,28 +85,12 @@ public class ClearBrowsingDataFragmentBasic extends ClearBrowsingDataFragment {
              new TabDelegate(false /* incognito */)
                      .launchUrl(UrlConstants.MY_ACTIVITY_URL_IN_CBD, TabLaunchType.FROM_CHROME_UI);
          });
@@ -1510,13 +1765,13 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
      @Override
      public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
          super.onCreatePreferences(savedInstanceState, rootKey);
--        Profile profile = getProfile();
+         Profile profile = getProfile();
 -        IdentityManager identityManager =
 -                IdentityServicesProvider.get().getIdentityManager(profile);
          ClickableSpansTextMessagePreference googleDataTextPref =
                  (ClickableSpansTextMessagePreference) findPreference(
                          ClearBrowsingDataFragment.PREF_GOOGLE_DATA_TEXT);
-@@ -121,8 +100,7 @@ public class ClearBrowsingDataFragmentBasic extends ClearBrowsingDataFragment {
+@@ -121,8 +101,7 @@ public class ClearBrowsingDataFragmentBasic extends ClearBrowsingDataFragment {
          boolean isDefaultSearchEngineGoogle = templateUrlService.isDefaultSearchEngineGoogle();
  
          // Google-related links to delete search history and other browsing activity.
@@ -1526,7 +1781,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
              // One of two cases:
              // 1. The default search engine is disabled.
              // 2. The user is not signed into Chrome.
-@@ -225,9 +203,7 @@ public class ClearBrowsingDataFragmentBasic extends ClearBrowsingDataFragment {
+@@ -225,9 +204,7 @@ public class ClearBrowsingDataFragmentBasic extends ClearBrowsingDataFragment {
      }
  
      private boolean isHistorySyncEnabled() {
@@ -1785,7 +2040,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
  import org.chromium.chrome.browser.signin.services.SigninManager;
  import org.chromium.chrome.browser.tab.Tab;
  import org.chromium.chrome.browser.tasks.ReturnToChromeUtil;
-@@ -44,34 +41,21 @@ import org.chromium.components.feature_engagement.EventConstants;
+@@ -44,29 +41,19 @@ import org.chromium.components.feature_engagement.EventConstants;
  import org.chromium.components.feature_engagement.FeatureConstants;
  import org.chromium.components.feature_engagement.Tracker;
  import org.chromium.components.signin.base.CoreAccountInfo;
@@ -1813,17 +2068,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
 -    // ProfileDataCache facilitates retrieving profile picture.
 -    private ProfileDataCache mProfileDataCache;
 -
--    // Whether the identity disc is visible.
--    private boolean mIsIdentityDiscShown;
--
--    private ButtonDataImpl mButtonData;
--    private ObserverList<ButtonDataObserver> mObservers = new ObserverList<>();
-+    // Identity disc visibility state.
-+    @IdentityDiscState
-     private boolean mNativeIsInitialized;
+     // Whether the identity disc is visible.
+     private boolean mIsIdentityDiscShown;
  
-     /**
-@@ -193,22 +177,14 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
+@@ -193,22 +180,13 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
       * IdentityDiscController for profile data updates.
       */
      private void ensureProfileDataCache(boolean isIdentityDiscShown) {
@@ -1843,12 +2091,11 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
 -            return AppCompatResources.getDrawable(mContext, R.drawable.account_circle);
 -        }
 -        return mProfileDataCache.getProfileDataOrDefault(email).getImage();
-+        assert mState != IdentityDiscState.NONE;
 +        return null;
      }
  
      /**
-@@ -216,11 +192,6 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
+@@ -216,11 +194,6 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
       * when sign-in state changes.
       */
      private void resetIdentityDiscCache() {
@@ -1860,7 +2107,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
      }
  
      private void notifyObservers(boolean hint) {
-@@ -229,47 +200,6 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
+@@ -229,47 +202,6 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
          }
      }
  
@@ -1908,7 +2155,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
      /**
       * Call to tear down dependencies.
       */
-@@ -280,16 +210,6 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
+@@ -280,16 +212,6 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
              mActivityLifecycleDispatcher = null;
          }
  
@@ -1925,7 +2172,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
          if (mNativeIsInitialized) {
              mProfileSupplier.removeObserver(mProfileSupplierObserver);
          }
-@@ -312,9 +232,7 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
+@@ -312,9 +234,7 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
       * @return account info for the current profile. Returns null for OTR profile.
       */
      private CoreAccountInfo getSignedInAccountInfo() {
@@ -1936,7 +2183,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
      }
  
      /**
-@@ -322,17 +240,6 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
+@@ -322,17 +242,6 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
       * mIdentityManager is updated with the profile, as set to null if profile is off-the-record.
       */
      private void setProfile(Profile profile) {
@@ -1954,7 +2201,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
      }
  
      private String getContentDescription(@Nullable String email) {
-@@ -344,16 +251,8 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
+@@ -344,16 +253,8 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
              return mContext.getString(R.string.accessibility_toolbar_btn_signed_out_identity_disc);
          }
  
@@ -1972,7 +2219,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
      }
  
      @VisibleForTesting
-@@ -363,15 +262,8 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
+@@ -363,20 +264,13 @@ public class IdentityDiscController implements NativeInitObserver, ProfileDataCa
          }
          recordIdentityDiscUsed();
  
@@ -1990,6 +2237,12 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
      }
  
      @VisibleForTesting
+     boolean isProfileDataCacheEmpty() {
+-        return mProfileDataCache == null;
++        return true;
+     }
+ 
+     private static boolean shouldUseSignedOutAvatar(@Nullable String email) {
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeBrowserInitializer.java b/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeBrowserInitializer.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeBrowserInitializer.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/init/ChromeBrowserInitializer.java
@@ -3097,6 +3350,65 @@ diff --git a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/fe
      }
  
      /** Observes whether or not the Feed stream contains unread content */
+diff --git a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/signinbottomsheet/SigninBottomSheetCoordinator.java b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/signinbottomsheet/SigninBottomSheetCoordinator.java
+--- a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/signinbottomsheet/SigninBottomSheetCoordinator.java
++++ b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/signinbottomsheet/SigninBottomSheetCoordinator.java
+@@ -13,7 +13,6 @@ import org.chromium.base.Callback;
+ import org.chromium.base.metrics.RecordHistogram;
+ import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
+-import org.chromium.chrome.browser.signin.services.SigninManager;
+ import org.chromium.chrome.browser.ui.signin.R;
+ import org.chromium.chrome.browser.ui.signin.account_picker.AccountPickerBottomSheetCoordinator;
+ import org.chromium.chrome.browser.ui.signin.account_picker.AccountPickerBottomSheetCoordinator.EntryPoint;
+@@ -31,7 +30,6 @@ public class SigninBottomSheetCoordinator implements AccountPickerDelegate {
+     private final Profile mProfile;
+     private final WindowAndroid mWindowAndroid;
+     private final BottomSheetController mController;
+-    private final SigninManager mSigninManager;
+     private boolean mSetTestToast;
+     private AccountPickerBottomSheetCoordinator mAccountPickerBottomSheetCoordinator;
+ 
+@@ -40,7 +38,6 @@ public class SigninBottomSheetCoordinator implements AccountPickerDelegate {
+         mWindowAndroid = windowAndroid;
+         mController = controller;
+         mProfile = profile;
+-        mSigninManager = IdentityServicesProvider.get().getSigninManager(mProfile);
+         mSetTestToast = false;
+     }
+ 
+@@ -52,30 +49,7 @@ public class SigninBottomSheetCoordinator implements AccountPickerDelegate {
+             String accountEmail, Callback<GoogleServiceAuthError> onSignInErrorCallback) {
+         Account account = AccountUtils.createAccountFromName(accountEmail);
+         AccountInfoServiceProvider.get().getAccountInfoByEmail(accountEmail).then(accountInfo -> {
+-            if (mSigninManager.isSigninAllowed()) {
+-                mSigninManager.signin(account, new SigninManager.SignInCallback() {
+-                    @Override
+-                    public void onSignInComplete() {
+-                        RecordHistogram.recordBooleanHistogram(
+-                                "ContentSuggestions.Feed.SignInFromFeedAction.SignInSuccessful",
+-                                true);
+-                        mController.hideContent(mController.getCurrentSheetContent(), true);
+-                    }
+-
+-                    @Override
+-                    public void onSignInAborted() {
+-                        RecordHistogram.recordBooleanHistogram(
+-                                "ContentSuggestions.Feed.SignInFromFeedAction.SignInSuccessful",
+-                                false);
+-                        // onSignInErrorCallback is called by the WebSigninBridge which is not
+-                        // implemented in this signin flow as we do not need to wait for cookies to
+-                        // propagate before proceeding with the Feed refresh. Instead of calling
+-                        // AccountPickerBottomSheetMediator.onSigninFailed() from the signin bridge
+-                        // we directly perform the creation of the "try again" bottom sheet view:
+-                        mAccountPickerBottomSheetCoordinator.setTryAgainBottomSheetView();
+-                    }
+-                });
+-            } else {
++            {
+                 makeSigninNotAllowedToast();
+                 mController.hideContent(mController.getCurrentSheetContent(), true);
+             }
 diff --git a/chrome/browser/feedback/android/BUILD.gn b/chrome/browser/feedback/android/BUILD.gn
 --- a/chrome/browser/feedback/android/BUILD.gn
 +++ b/chrome/browser/feedback/android/BUILD.gn
@@ -3281,7 +3593,18 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
          if (managePasskeys && canUseAccountSettings()) {
              // Passkey management has been selected but UPM is not available, possibly because
              // password sync is not turned on. Attempt to use an AccountSettings intent to show
-@@ -204,13 +189,7 @@ public class PasswordManagerHelper {
+@@ -177,9 +162,7 @@ public class PasswordManagerHelper {
+                 return;
+             }
+ 
+-            String accountName = (syncService != null)
+-                    ? CoreAccountInfo.getEmailFrom(syncService.getAccountInfo())
+-                    : "";
++            String accountName = "";
+             credentialManagerLauncher.getAccountSettingsIntent(accountName, context::startActivity);
+             return;
+         }
+@@ -204,13 +187,7 @@ public class PasswordManagerHelper {
       * @return True if Unified Password Manager can be used, false otherwise.
       */
      public static boolean canUseUpm() {
@@ -3296,7 +3619,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
      }
  
      /**
-@@ -240,19 +219,7 @@ public class PasswordManagerHelper {
+@@ -240,19 +217,7 @@ public class PasswordManagerHelper {
       *         loading dialog.
       */
      public static void showPasswordCheckup(Context context, @PasswordCheckReferrer int referrer,
@@ -3316,7 +3639,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
      }
  
      /**
-@@ -332,51 +299,6 @@ public class PasswordManagerHelper {
+@@ -332,51 +297,6 @@ public class PasswordManagerHelper {
                  });
      }
  
@@ -3368,7 +3691,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
      public static boolean usesUnifiedPasswordManagerUI() {
          if (!ChromeFeatureList.isEnabled(UNIFIED_PASSWORD_MANAGER_ANDROID)) return false;
          @UpmExperimentVariation
-@@ -417,52 +339,12 @@ public class PasswordManagerHelper {
+@@ -417,52 +337,12 @@ public class PasswordManagerHelper {
      }
  
      public static void launchGmsUpdate(Context context) {
@@ -3422,7 +3745,7 @@ diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrom
      }
  
      @VisibleForTesting
-@@ -517,24 +399,6 @@ public class PasswordManagerHelper {
+@@ -517,24 +397,6 @@ public class PasswordManagerHelper {
          // API call level.
          RecordHistogram.recordEnumeratedHistogram(kGetIntentErrorHistogram,
                  CredentialManagerError.API_ERROR, CredentialManagerError.COUNT);
@@ -3923,7 +4246,7 @@ diff --git a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/s
 diff --git a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/send_tab_to_self/SendTabToSelfCoordinator.java b/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/send_tab_to_self/SendTabToSelfCoordinator.java
 --- a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/send_tab_to_self/SendTabToSelfCoordinator.java
 +++ b/chrome/browser/share/android/java/src/org/chromium/chrome/browser/share/send_tab_to_self/SendTabToSelfCoordinator.java
-@@ -12,18 +12,9 @@ import androidx.annotation.StringRes;
+@@ -12,18 +12,10 @@ import androidx.annotation.StringRes;
  import org.chromium.base.Callback;
  import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.profiles.Profile;
@@ -3933,7 +4256,7 @@ diff --git a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/s
  import org.chromium.chrome.browser.ui.signin.R;
 -import org.chromium.chrome.browser.ui.signin.account_picker.AccountPickerBottomSheetCoordinator;
 -import org.chromium.chrome.browser.ui.signin.account_picker.AccountPickerBottomSheetCoordinator.EntryPoint;
--import org.chromium.chrome.browser.ui.signin.account_picker.AccountPickerBottomSheetStrings;
+ import org.chromium.chrome.browser.ui.signin.account_picker.AccountPickerBottomSheetStrings;
 -import org.chromium.chrome.browser.ui.signin.account_picker.AccountPickerDelegate;
  import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
  import org.chromium.components.browser_ui.bottomsheet.EmptyBottomSheetObserver;
@@ -3942,7 +4265,7 @@ diff --git a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/s
  import org.chromium.ui.base.WindowAndroid;
  
  import java.util.List;
-@@ -33,108 +24,6 @@ import java.util.Optional;
+@@ -33,108 +25,6 @@ import java.util.Optional;
   * Coordinator for displaying the send tab to self feature.
   */
  public class SendTabToSelfCoordinator {
@@ -4051,7 +4374,7 @@ diff --git a/chrome/browser/share/android/java/src/org/chromium/chrome/browser/s
      private final Context mContext;
      private final WindowAndroid mWindowAndroid;
      private final String mUrl;
-@@ -153,51 +42,9 @@ public class SendTabToSelfCoordinator {
+@@ -153,51 +43,9 @@ public class SendTabToSelfCoordinator {
      }
  
      public void show() {
@@ -4882,7 +5205,7 @@ diff --git a/components/password_manager/core/browser/password_form_manager.cc b
 diff --git a/components/password_manager/core/browser/password_manager_client_helper.cc b/components/password_manager/core/browser/password_manager_client_helper.cc
 --- a/components/password_manager/core/browser/password_manager_client_helper.cc
 +++ b/components/password_manager/core/browser/password_manager_client_helper.cc
-@@ -14,31 +14,8 @@
+@@ -14,31 +14,10 @@
  #include "components/password_manager/core/browser/password_sync_util.h"
  #include "components/password_manager/core/common/password_manager_pref_names.h"
  #include "components/prefs/pref_service.h"
@@ -4890,8 +5213,8 @@ diff --git a/components/password_manager/core/browser/password_manager_client_he
 -#include "components/signin/public/identity_manager/identity_manager.h"
  #include "google_apis/gaia/gaia_auth_util.h"
  
--namespace password_manager {
--
+ namespace password_manager {
+ 
 -namespace {
 -
 -#if !BUILDFLAG(IS_IOS) && !BUILDFLAG(IS_ANDROID)
@@ -4914,7 +5237,7 @@ diff --git a/components/password_manager/core/browser/password_manager_client_he
  PasswordManagerClientHelper::PasswordManagerClientHelper(
      PasswordManagerClient* delegate)
      : delegate_(delegate) {
-@@ -108,29 +85,7 @@ bool PasswordManagerClientHelper::ShouldPromptToEnableAutoSignIn() const {
+@@ -108,29 +87,7 @@ bool PasswordManagerClientHelper::ShouldPromptToEnableAutoSignIn() const {
  bool PasswordManagerClientHelper::ShouldPromptToMovePasswordToAccount(
      const PasswordFormManagerForUI& submitted_manager) const {
  #if !BUILDFLAG(IS_IOS) && !BUILDFLAG(IS_ANDROID)

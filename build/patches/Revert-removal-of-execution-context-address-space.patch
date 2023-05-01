@@ -39,7 +39,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../core/workers/main_thread_worklet_test.cc  |  1 +
  .../workers/shared_worker_global_scope.cc     |  7 ++++
  .../core/workers/shared_worker_global_scope.h |  1 +
- .../threaded_worklet_messaging_proxy.cc       |  1 +
+ .../threaded_worklet_messaging_proxy.cc       |  2 ++
  .../core/workers/threaded_worklet_test.cc     |  1 +
  .../workers/worker_classic_script_loader.cc   |  5 ++-
  .../workers/worker_classic_script_loader.h    |  6 ++++
@@ -53,7 +53,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../audio_worklet_global_scope_test.cc        |  1 +
  .../webaudio/audio_worklet_thread_test.cc     |  1 +
  .../worklet/worklet_thread_test_common.cc     |  2 +-
- 36 files changed, 188 insertions(+), 25 deletions(-)
+ 36 files changed, 189 insertions(+), 25 deletions(-)
 
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 --- a/content/public/common/content_features.cc
@@ -500,9 +500,9 @@ diff --git a/third_party/blink/renderer/core/workers/installed_scripts_manager.c
 +  // place so that this is shareable out of worker code.
 +  response_address_space_ = network::mojom::IPAddressSpace::kPublic;
 +  if (network_utils::IsReservedIPAddress(script_url_.Host()))
-+    response_address_space_ = network::mojom::IPAddressSpace::kPrivate;
-+  if (SecurityOrigin::Create(script_url_)->IsLocalhost())
 +    response_address_space_ = network::mojom::IPAddressSpace::kLocal;
++  if (SecurityOrigin::Create(script_url_)->IsLocalhost())
++    response_address_space_ = network::mojom::IPAddressSpace::kLoopback;
  }
  
  ContentSecurityPolicyResponseHeaders
@@ -598,7 +598,15 @@ diff --git a/third_party/blink/renderer/core/workers/shared_worker_global_scope.
 diff --git a/third_party/blink/renderer/core/workers/threaded_worklet_messaging_proxy.cc b/third_party/blink/renderer/core/workers/threaded_worklet_messaging_proxy.cc
 --- a/third_party/blink/renderer/core/workers/threaded_worklet_messaging_proxy.cc
 +++ b/third_party/blink/renderer/core/workers/threaded_worklet_messaging_proxy.cc
-@@ -117,6 +117,7 @@ void ThreadedWorkletMessagingProxy::Initialize(
+@@ -82,6 +82,7 @@ void ThreadedWorkletMessagingProxy::Initialize(
+         /*starter_https_state=*/HttpsState::kNone,
+         /*worker_clients=*/nullptr,
+         /*content_settings_client=*/nullptr,
++        /*response_address_space*/network::mojom::IPAddressSpace::kUnknown,
+         /*inherited_trial_features=*/nullptr,
+         /*parent_devtools_token=*/base::UnguessableToken::Create(),
+         /*worker_settings=*/nullptr,
+@@ -117,6 +118,7 @@ void ThreadedWorkletMessagingProxy::Initialize(
            window->GetReferrerPolicy(), window->GetSecurityOrigin(),
            window->IsSecureContext(), window->GetHttpsState(), worker_clients,
            frame_client->CreateWorkerContentSettingsClient(),

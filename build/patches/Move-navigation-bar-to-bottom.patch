@@ -28,7 +28,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../ChromeAccessibilitySettingsDelegate.java  | 52 ++++++++++++
  .../chrome/browser/app/ChromeActivity.java    | 13 +++
  .../browser/app/flags/ChromeCachedFlags.java  |  1 +
- .../compositor/CompositorViewHolder.java      |  6 ++
+ .../compositor/CompositorViewHolder.java      |  9 +++
  .../layouts/LayoutManagerChrome.java          | 18 ++++-
  .../layouts/LayoutManagerChromeTablet.java    |  4 +-
  .../layouts/ToolbarSwipeLayout.java           | 15 +++-
@@ -60,15 +60,17 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../flags/android/chrome_feature_list.cc      |  2 +
  .../browser/flags/CachedFeatureFlags.java     | 18 +++++
  .../browser/flags/ChromeFeatureList.java      |  4 +
+ chrome/browser/prefs/browser_prefs.cc         |  2 +-
  .../chrome/browser/ui/appmenu/AppMenu.java    | 31 +++++++
  .../ui/appmenu/AppMenuHandlerImpl.java        | 11 +++
- .../omnibox/LocationBarCoordinator.java       |  9 ++-
+ .../omnibox/LocationBarCoordinator.java       |  6 +-
+ ...mniboxSuggestionsDropdownEmbedderImpl.java | 14 +++-
  .../browser/omnibox/UrlBarCoordinator.java    | 11 ++-
  .../suggestions/AutocompleteCoordinator.java  | 16 +++-
  .../suggestions/AutocompleteMediator.java     |  7 +-
  .../DropdownItemViewInfoListManager.java      | 15 +++-
- .../OmniboxSuggestionsDropdown.java           | 22 ++++-
- .../OmniboxSuggestionsDropdownEmbedder.java   |  4 +
+ .../OmniboxSuggestionsDropdown.java           | 28 ++++++-
+ .../OmniboxSuggestionsDropdownEmbedder.java   |  9 +++
  .../strings/android_chrome_strings.grd        |  6 ++
  chrome/browser/ui/android/toolbar/BUILD.gn    |  1 +
  .../toolbar/LocationBarFocusScrimHandler.java |  7 ++
@@ -86,7 +88,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../accessibility/AccessibilitySettings.java  | 16 ++++
  .../AccessibilitySettingsDelegate.java        |  6 ++
  .../render_widget_host_view_android.cc        |  3 +
- 74 files changed, 866 insertions(+), 59 deletions(-)
+ 76 files changed, 888 insertions(+), 64 deletions(-)
 
 diff --git a/cc/base/features.cc b/cc/base/features.cc
 --- a/cc/base/features.cc
@@ -769,6 +771,16 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/Comp
                          forwarder.setCurrentTouchEventOffsets(0, top);
                      }
                  });
+@@ -881,6 +887,9 @@ public class CompositorViewHolder extends FrameLayout
+         int keyboardInset = mApplicationBottomInsetSupplier != null
+                 ? mApplicationBottomInsetSupplier.get().webContentsHeightInset
+                 : 0;
++        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
++            keyboardInset = 0;
++        }
+ 
+         int viewportInsets = controlsInsets + keyboardInset;
+ 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/layouts/LayoutManagerChrome.java
@@ -1836,6 +1848,18 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final CachedFlag sOmahaMinSdkVersionAndroid =
              new CachedFlag(OMAHA_MIN_SDK_VERSION_ANDROID, false);
      public static final CachedFlag sOmniboxMatchToolbarAndStatusBarColor =
+diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -1753,7 +1753,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+ 
+ #if BUILDFLAG(IS_ANDROID)
+   registry->RegisterBooleanPref(prefs::kVirtualKeyboardResizesLayoutByDefault,
+-                                false);
++                                true);
+ #endif
+ 
+   registry->RegisterTimePref(prefs::kDIPSTimerLastUpdate, base::Time());
 diff --git a/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java b/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java
 --- a/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java
 +++ b/chrome/browser/ui/android/appmenu/internal/java/src/org/chromium/chrome/browser/ui/appmenu/AppMenu.java
@@ -1960,7 +1984,7 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
              ObservableSupplier<Profile> profileObservableSupplier,
              PrivacyPreferencesManager privacyPreferencesManager,
              LocationBarDataProvider locationBarDataProvider, ActionMode.Callback actionModeCallback,
-@@ -175,6 +176,7 @@ public class LocationBarCoordinator
+@@ -175,11 +176,12 @@ public class LocationBarCoordinator
          mActivityLifecycleDispatcher = activityLifecycleDispatcher;
          mActivityLifecycleDispatcher.register(this);
          mAutocompleteAnchorView = autocompleteAnchorView;
@@ -1968,18 +1992,53 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
          Context context = mLocationBarLayout.getContext();
          OneshotSupplierImpl<TemplateUrlService> templateUrlServiceSupplier =
                  new OneshotSupplierImpl<>();
-@@ -371,6 +373,11 @@ public class LocationBarCoordinator
-         mLocationBarMediator.revertChanges();
+         mOmniboxDropdownEmbedderImpl = new OmniboxSuggestionsDropdownEmbedderImpl(
+-                mWindowAndroid, mWindowDelegate, autocompleteAnchorView, mLocationBarLayout);
++                mWindowAndroid, mWindowDelegate, autocompleteAnchorView, mLocationBarLayout, mContainerView);
+ 
+         mUrlBar = mLocationBarLayout.findViewById(R.id.url_bar);
+         // TODO(crbug.com/1151513): Inject LocaleManager instance to LocationBarCoordinator instead
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/OmniboxSuggestionsDropdownEmbedderImpl.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/OmniboxSuggestionsDropdownEmbedderImpl.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/OmniboxSuggestionsDropdownEmbedderImpl.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/OmniboxSuggestionsDropdownEmbedderImpl.java
+@@ -37,6 +37,7 @@ class OmniboxSuggestionsDropdownEmbedderImpl implements OmniboxSuggestionsDropdo
+     private final @NonNull WindowAndroid mWindowAndroid;
+     private final @NonNull WindowDelegate mWindowDelegate;
+     private final @NonNull View mAnchorView;
++    private final @NonNull View mContainerView;
+     private final @NonNull View mHorizontalAlignmentView;
+     private final @NonNull Context mContext;
+     // Reusable int array to pass to positioning methods that operate on a two element int array.
+@@ -61,10 +62,11 @@ class OmniboxSuggestionsDropdownEmbedderImpl implements OmniboxSuggestionsDropdo
+      */
+     OmniboxSuggestionsDropdownEmbedderImpl(@NonNull WindowAndroid windowAndroid,
+             @NonNull WindowDelegate windowDelegate, @NonNull View anchorView,
+-            @NonNull View horizontalAlignmentView) {
++            @NonNull View horizontalAlignmentView, @NonNull View containerView) {
+         mWindowAndroid = windowAndroid;
+         mWindowDelegate = windowDelegate;
+         mAnchorView = anchorView;
++        mContainerView = containerView;
+         mHorizontalAlignmentView = horizontalAlignmentView;
+         mContext = mAnchorView.getContext();
+         mContext.registerComponentCallbacks(this);
+@@ -84,6 +86,16 @@ class OmniboxSuggestionsDropdownEmbedderImpl implements OmniboxSuggestionsDropdo
+         mOmniboxAlignmentSupplier.removeObserver(obs);
      }
  
++    @Override
++    public View getAnchorView() {
++        return mAnchorView;
++    }
++
 +    @Override
 +    public View getAnchorContainerView() {
 +        return mContainerView;
 +    }
 +
+     @Nullable
      @Override
-     public View getContainerView() {
-         return mLocationBarLayout;
+     public OmniboxAlignment getCurrentAlignment() {
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/UrlBarCoordinator.java
@@ -2183,22 +2242,43 @@ diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/brow
          ViewCompat.setPaddingRelative(this, 0, 0, 0, paddingBottom);
  
          mStandardBgColor = shouldShowModernizeVisualUpdate
-@@ -491,6 +507,8 @@ public class OmniboxSuggestionsDropdown extends RecyclerView {
-     }
- 
-     private int calculateAvailableViewportHeight() {
-+        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled())
-+            return 0;
-         mEmbedder.getWindowDelegate().getWindowVisibleDisplayFrame(mTempRect);
-         return mTempRect.height();
-     }
+@@ -425,11 +441,15 @@ public class OmniboxSuggestionsDropdown extends RecyclerView {
+         try (TraceEvent tracing = TraceEvent.scoped("OmniboxSuggestionsList.Measure");
+                 TimingMetric metric = SuggestionsMetrics.recordSuggestionListMeasureTime()) {
+             OmniboxAlignment omniboxAlignment = mEmbedder.getCurrentAlignment();
+-            maybeUpdateLayoutParams(omniboxAlignment.top);
++            int top = omniboxAlignment.top;
++            if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
++                top = 0;
++            }
++            maybeUpdateLayoutParams(top);
+             boolean useAlignmentSpecifiedHeight = OmniboxFeatures.omniboxConsumesImeInsets();
+             int availableViewportHeight = useAlignmentSpecifiedHeight
+                     ? omniboxAlignment.height
+-                    : calculateAvailableViewportHeight() - omniboxAlignment.top;
++                    : calculateAvailableViewportHeight() - top;
+             int desiredWidth = omniboxAlignment.width;
+             adjustHorizontalPosition();
+             // Suppress the initial requests to shrink the viewport of the omnibox suggestion
 diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdownEmbedder.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdownEmbedder.java
 --- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdownEmbedder.java
 +++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/OmniboxSuggestionsDropdownEmbedder.java
-@@ -94,6 +94,10 @@ public interface OmniboxSuggestionsDropdownEmbedder {
+@@ -4,6 +4,8 @@
+ 
+ package org.chromium.chrome.browser.omnibox.suggestions;
+ 
++import android.view.View;
++
+ import androidx.annotation.NonNull;
+ import androidx.annotation.Nullable;
+ 
+@@ -94,6 +96,13 @@ public interface OmniboxSuggestionsDropdownEmbedder {
      @NonNull
      OmniboxAlignment getCurrentAlignment();
  
++    @NonNull
++    View getAnchorView();
++
 +    /** Return the container view the suggestion list should be drawn in. */
 +    @NonNull
 +    View getAnchorContainerView();

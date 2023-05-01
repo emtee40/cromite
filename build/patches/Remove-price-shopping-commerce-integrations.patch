@@ -25,10 +25,15 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../AppMenuPropertiesDelegateImpl.java        |  11 +-
  .../browser/bookmarks/BookmarkBridge.java     |  11 -
  .../bookmarks/BookmarkItemsAdapter.java       |   1 +
- .../browser/bookmarks/BookmarkListEntry.java  |  34 +-
+ .../browser/bookmarks/BookmarkListEntry.java  |  30 +-
+ .../bookmarks/BookmarkManagerCoordinator.java |  23 --
+ .../bookmarks/BookmarkManagerMediator.java    |  13 +-
+ .../bookmarks/BookmarkManagerViewBinder.java  |  11 -
  .../BookmarkSaveFlowCoordinator.java          |   6 +-
  .../bookmarks/BookmarkSaveFlowMediator.java   |  77 +----
- .../browser/bookmarks/BookmarkUtils.java      |   6 +-
+ .../browser/bookmarks/BookmarkToolbar.java    |   4 +-
+ .../browser/bookmarks/BookmarkUiState.java    |  13 -
+ .../browser/bookmarks/BookmarkUtils.java      |   5 +-
  .../browser/customtabs/CustomTabActivity.java |   2 +-
  .../init/ProcessInitializationHandler.java    |   5 -
  .../ChromePageInfoControllerDelegate.java     |   8 -
@@ -56,7 +61,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/ui/android/omnibox/BUILD.gn    |   1 -
  .../components/bookmarks/BookmarkId.java      |   3 -
  .../commerce/core/commerce_feature_list.cc    |  65 ++--
- 52 files changed, 78 insertions(+), 1174 deletions(-)
+ 57 files changed, 80 insertions(+), 1231 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
@@ -82,7 +87,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/consent_auditor/android:java",
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/creator/android:java",
-@@ -642,16 +635,6 @@ if (current_toolchain == default_toolchain) {
+@@ -644,16 +637,6 @@ if (current_toolchain == default_toolchain) {
      sources += share_java_sources
      deps += share_java_deps
  
@@ -99,7 +104,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
      if (enable_printing) {
        deps += [ "//printing:printing_java" ]
      }
-@@ -701,7 +684,6 @@ if (current_toolchain == default_toolchain) {
+@@ -703,7 +686,6 @@ if (current_toolchain == default_toolchain) {
        ":chrome_java",
        "//chrome/android/features/keyboard_accessory:internal_java",
        "//chrome/browser/android/httpclient:java",
@@ -107,7 +112,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/content_creation/notes/internal/android:java",
        "//chrome/browser/download/internal/android:java",
        "//chrome/browser/page_annotations/android:java",
-@@ -855,11 +837,6 @@ if (current_toolchain == default_toolchain) {
+@@ -857,11 +839,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/bluetooth/android:junit",
        "//chrome/browser/browser_controls/android:java",
        "//chrome/browser/browser_controls/android:junit",
@@ -119,7 +124,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/creator/android:java",
        "//chrome/browser/creator/android:junit",
-@@ -1268,8 +1245,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1270,8 +1247,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/android/browserservices/intents:java",
        "//chrome/browser/android/browserservices/verification:java",
        "//chrome/browser/android/crypto:java",
@@ -128,7 +133,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/download/android:download_java_tests",
        "//chrome/browser/download/android:file_provider_java",
-@@ -1404,12 +1379,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1406,12 +1381,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/back_press/android:java",
        "//chrome/browser/banners/android:java",
        "//chrome/browser/browser_controls/android:java",
@@ -141,7 +146,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/content_creation/notes/internal/android:java",
        "//chrome/browser/contextmenu:java",
        "//chrome/browser/dependency_injection:java",
-@@ -3635,8 +3604,6 @@ group("jni_headers") {
+@@ -3637,8 +3606,6 @@ group("jni_headers") {
      "//chrome/browser/android/browserservices/metrics:jni_headers",
      "//chrome/browser/android/browserservices/verification:jni_headers",
      "//chrome/browser/battery/android:jni_headers",
@@ -1200,17 +1205,17 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/App
                  ShoppingServiceFactory.getForProfile(Profile.getLastUsedRegularProfile());
          ShoppingService.ProductInfo info = null;
          if (service != null && currentTab != null) {
-@@ -1143,7 +1142,9 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
-             stopPriceTrackingMenuItem.setVisible(isSubscribed);
+@@ -1144,7 +1143,9 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
          } else {
              startPriceTrackingMenuItem.setVisible(true);
--            stopPriceTrackingMenuItem.setVisible(false);
-+            stopPriceTrackingMenuItem.setVisible(false); */
+             stopPriceTrackingMenuItem.setVisible(false);
+-        }
++        } */
 +        startPriceTrackingMenuItem.setVisible(false);
 +        stopPriceTrackingMenuItem.setVisible(false);
-         }
      }
  
+     /**
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
@@ -1267,21 +1272,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkListEntry.java
-@@ -23,22 +23,17 @@ public final class BookmarkListEntry {
-      * Specifies the view types that the bookmark delegate screen can contain.
-      */
+@@ -25,17 +25,14 @@ public final class BookmarkListEntry {
      @Retention(RetentionPolicy.SOURCE)
--    @IntDef({ViewType.INVALID, ViewType.PERSONALIZED_SIGNIN_PROMO, ViewType.PERSONALIZED_SYNC_PROMO,
-+    @IntDef({ViewType.INVALID,
-             ViewType.SYNC_PROMO, ViewType.FOLDER, ViewType.BOOKMARK, ViewType.DIVIDER,
+     @IntDef({ViewType.INVALID,
+             ViewType.FOLDER, ViewType.BOOKMARK, ViewType.DIVIDER,
 -            ViewType.SECTION_HEADER, ViewType.SHOPPING_POWER_BOOKMARK, ViewType.TAG_CHIP_LIST,
 -            ViewType.SHOPPING_FILTER})
 +            ViewType.SECTION_HEADER, ViewType.TAG_CHIP_LIST})
      public @interface ViewType {
          int INVALID = -1;
--        int PERSONALIZED_SIGNIN_PROMO = 0;
--        int PERSONALIZED_SYNC_PROMO = 1;
-         int SYNC_PROMO = 2;
          int FOLDER = 3;
          int BOOKMARK = 4;
          int DIVIDER = 5;
@@ -1292,7 +1291,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      }
  
      /**
-@@ -75,23 +70,9 @@ public final class BookmarkListEntry {
+@@ -72,23 +69,9 @@ public final class BookmarkListEntry {
              @Nonnull BookmarkItem bookmarkItem, @Nullable PowerBookmarkMeta meta) {
          @ViewType
          int viewType = bookmarkItem.isFolder() ? ViewType.FOLDER : ViewType.BOOKMARK;
@@ -1316,7 +1315,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * Creates a divider to separate sections in the bookmark list.
       */
-@@ -100,22 +81,13 @@ public final class BookmarkListEntry {
+@@ -97,22 +80,13 @@ public final class BookmarkListEntry {
                  ViewType.DIVIDER, /*bookmarkItem=*/null, /*sectionHeaderData=*/null);
      }
  
@@ -1340,6 +1339,133 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      }
  
      /**
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
+@@ -250,11 +250,6 @@ public class BookmarkManagerCoordinator
+     public View createView(@NonNull ViewGroup parent, @ViewType int viewType) {
+         // The shopping-specific bookmark row is only shown with the visual refresh. When
+         // there's a mismatch, the ViewType is downgraded to ViewType.BOOKMARK.
+-        if (viewType == ViewType.SHOPPING_POWER_BOOKMARK
+-                && !BookmarkFeatures.isBookmarksVisualRefreshEnabled()) {
+-            viewType = ViewType.BOOKMARK;
+-        }
+-
+         switch (viewType) {
+             case ViewType.SECTION_HEADER:
+                 return buildSectionHeaderView(parent);
+@@ -262,12 +257,8 @@ public class BookmarkManagerCoordinator
+                 return buildBookmarkFolderView(parent);
+             case ViewType.BOOKMARK:
+                 return buildBookmarkItemView(parent);
+-            case ViewType.SHOPPING_POWER_BOOKMARK:
+-                return buildShoppingItemView(parent);
+             case ViewType.DIVIDER:
+                 return buildDividerView(parent);
+-            case ViewType.SHOPPING_FILTER:
+-                return buildShoppingFilterView(parent);
+             default:
+                 assert false;
+                 return null;
+@@ -286,15 +277,9 @@ public class BookmarkManagerCoordinator
+             case ViewType.BOOKMARK:
+                 viewBinder = BookmarkManagerViewBinder::bindBookmarkItemView;
+                 break;
+-            case ViewType.SHOPPING_POWER_BOOKMARK:
+-                viewBinder = BookmarkManagerViewBinder::bindShoppingItemView;
+-                break;
+             case ViewType.DIVIDER:
+                 viewBinder = BookmarkManagerViewBinder::bindDividerView;
+                 break;
+-            case ViewType.SHOPPING_FILTER:
+-                viewBinder = BookmarkManagerViewBinder::bindShoppingFilterView;
+-                break;
+             default:
+                 assert false;
+         }
+@@ -313,14 +298,6 @@ public class BookmarkManagerCoordinator
+         return inflateBookmarkRow(parent, org.chromium.chrome.R.layout.bookmark_item_row);
+     }
+ 
+-    private View buildShoppingItemView(ViewGroup parent) {
+-        PowerBookmarkShoppingItemRow row = (PowerBookmarkShoppingItemRow) inflateBookmarkRow(
+-                parent, org.chromium.chrome.R.layout.power_bookmark_shopping_item_row);
+-        // TODO(https://crbug.com/1416611): Move init to view binding.
+-        row.init(mImageFetcher, mBookmarkModel, mSnackbarManager, mProfile);
+-        return row;
+-    }
+-
+     private View buildDividerView(ViewGroup parent) {
+         return inflate(parent, org.chromium.chrome.R.layout.horizontal_divider);
+     }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java
+@@ -250,10 +250,7 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+                 setBookmarks(mBookmarkModel.getChildIDs(folder));
+             }
+ 
+-            if (BookmarkId.SHOPPING_FOLDER.equals(folder)) {
+-                getSelectableListLayout().setEmptyViewText(
+-                        R.string.tracked_products_empty_list_title);
+-            } else if (folder.getType() == BookmarkType.READING_LIST) {
++            if (folder.getType() == BookmarkType.READING_LIST) {
+                 TrackerFactory.getTrackerForProfile(mProfile).notifyEvent(
+                         EventConstants.READ_LATER_BOOKMARK_FOLDER_OPENED);
+                 getSelectableListLayout().setEmptyViewText(R.string.reading_list_empty_list_title);
+@@ -481,14 +478,12 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+             model.set(BookmarkManagerProperties.BOOKMARK_ID, id);
+             model.set(BookmarkManagerProperties.LOCATION, getLocationFromPosition(position));
+             model.set(BookmarkManagerProperties.IS_FROM_FILTER_VIEW,
+-                    BookmarkId.SHOPPING_FOLDER.equals(mCurrentFolder));
++                    false);
+             model.set(BookmarkManagerProperties.ITEM_TOUCH_HELPER,
+                     mBookmarkItemsAdapter.getItemTouchHelper());
+             model.set(BookmarkManagerProperties.VIEW_HOLDER, holder);
+             model.set(BookmarkManagerProperties.IS_HIGHLIGHTED, id.equals(mHighlightedBookmark));
+             model.set(BookmarkManagerProperties.CLEAR_HIGHLIGHT, this::clearHighlight);
+-        } else if (viewType == ViewType.SHOPPING_FILTER) {
+-            model.set(BookmarkManagerProperties.OPEN_FOLDER, this::openFolder);
+         }
+         return model;
+     }
+@@ -830,9 +825,6 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+         // Restore the header, if it exists, then update it.
+ 
+         updateHeader(false);
+-        if (BookmarkId.SHOPPING_FOLDER.equals(mCurrentFolder)) {
+-            filterForPriceTrackingCategory(bookmarks);
+-        }
+ 
+         for (BookmarkId bookmarkId : bookmarks) {
+             BookmarkItem item = mBookmarkModel.getBookmarkById(bookmarkId);
+@@ -849,7 +841,6 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+         if (ChromeFeatureList.isEnabled(ChromeFeatureList.SHOPPING_LIST)
+                 && topLevelFoldersShowing()) {
+             getElements().add(BookmarkListEntry.createDivider());
+-            getElements().add(BookmarkListEntry.createShoppingFilter());
+         }
+ 
+         mBookmarkItemsAdapter.notifyDataSetChanged();
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerViewBinder.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerViewBinder.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerViewBinder.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerViewBinder.java
+@@ -82,15 +82,4 @@ class BookmarkManagerViewBinder {
+     }
+ 
+     static void bindDividerView(PropertyModel model, View view, PropertyKey key) {}
+-
+-    static void bindShoppingFilterView(PropertyModel model, View view, PropertyKey key) {
+-        if (key == BookmarkManagerProperties.OPEN_FOLDER) {
+-            LinearLayout layout = (LinearLayout) view;
+-            layout.setClickable(true);
+-            layout.setOnClickListener((v) -> {
+-                model.get(BookmarkManagerProperties.OPEN_FOLDER)
+-                        .onResult(BookmarkId.SHOPPING_FOLDER);
+-            });
+-        }
+-    }
+ }
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkSaveFlowCoordinator.java
@@ -1523,6 +1649,50 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 -        setPriceTrackingToggleVisualsOnly(!subscriptions.contains(mSubscription));
 -    }
  }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbar.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbar.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbar.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbar.java
+@@ -148,9 +148,7 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
+             return;
+         }
+ 
+-        if (folder.getId().equals(BookmarkId.SHOPPING_FOLDER)) {
+-            setTitle(R.string.price_tracking_bookmarks_filter_title);
+-        } else if (mBookmarkModel.getTopLevelFolderParentIDs().contains(
++        if (mBookmarkModel.getTopLevelFolderParentIDs().contains(
+                            mCurrentFolder.getParentId())
+                 && TextUtils.isEmpty(mCurrentFolder.getTitle())) {
+             setTitle(R.string.bookmarks);
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUiState.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUiState.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUiState.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUiState.java
+@@ -45,26 +45,13 @@ public class BookmarkUiState {
+         return new BookmarkUiState(BookmarkUiMode.SEARCHING, "", null);
+     }
+ 
+-    static BookmarkUiState createShoppingFilterState() {
+-        return new BookmarkUiState(
+-                BookmarkUiMode.FOLDER, SHOPPING_FILTER_URL, BookmarkId.SHOPPING_FOLDER);
+-    }
+-
+     static BookmarkUiState createFolderState(BookmarkId folder, BookmarkModel bookmarkModel) {
+-        if (BookmarkId.SHOPPING_FOLDER.equals(folder)) {
+-            return createShoppingFilterState();
+-        } else {
+             return createStateFromUrl(createFolderUrl(folder), bookmarkModel);
+-        }
+     }
+ 
+     /** @see #createStateFromUrl(Uri, BookmarkModel). */
+     static BookmarkUiState createStateFromUrl(String url, BookmarkModel bookmarkModel) {
+-        if (SHOPPING_FILTER_URL.equals(url)) {
+-            return createShoppingFilterState();
+-        } else {
+             return createStateFromUrl(Uri.parse(url), bookmarkModel);
+-        }
+     }
+ 
+     /**
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
@@ -1534,11 +1704,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  import org.chromium.chrome.browser.document.ChromeLauncherActivity;
  import org.chromium.chrome.browser.feature_engagement.TrackerFactory;
  import org.chromium.chrome.browser.incognito.IncognitoUtils;
-@@ -126,11 +125,8 @@ public class BookmarkUtils {
-             return;
+@@ -127,10 +126,8 @@ public class BookmarkUtils {
          }
  
--        Profile profile = Profile.getLastUsedRegularProfile();
+         Profile profile = Profile.getLastUsedRegularProfile();
 -        ShoppingService shoppingService = ShoppingServiceFactory.getForProfile(profile);
 -
          BookmarkSaveFlowCoordinator bookmarkSaveFlowCoordinator =

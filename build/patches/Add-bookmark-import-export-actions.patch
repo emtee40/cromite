@@ -16,9 +16,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../app/bookmarks/BookmarkActivity.java       |  31 ++
  .../browser/bookmarks/BookmarkBridge.java     | 278 +++++++++++++++++
  .../browser/bookmarks/BookmarkDelegate.java   |  10 +
+ .../bookmarks/BookmarkManagerCoordinator.java |   9 +
  .../bookmarks/BookmarkManagerMediator.java    |  23 ++
  .../browser/bookmarks/BookmarkPage.java       |   8 +-
- .../browser/bookmarks/BookmarkToolbar.java    |  12 +
+ .../browser/bookmarks/BookmarkToolbar.java    |  23 ++
+ .../bookmarks/BookmarkToolbarMediator.java    |   6 +-
+ .../bookmarks/BookmarkToolbarProperties.java  |   7 +-
+ .../bookmarks/BookmarkToolbarViewBinder.java  |   6 +
  .../native_page/NativePageFactory.java        |  11 +-
  chrome/browser/BUILD.gn                       |  11 +-
  chrome/browser/about_flags.cc                 |   6 +
@@ -45,7 +49,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  ui/shell_dialogs/select_file_dialog.h         |   2 +
  .../select_file_dialog_android.cc             |   6 +
  ui/shell_dialogs/select_file_dialog_android.h |   2 +
- 35 files changed, 849 insertions(+), 29 deletions(-)
+ 39 files changed, 886 insertions(+), 31 deletions(-)
 
 diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
 --- a/chrome/android/java/AndroidManifest.xml
@@ -144,7 +148,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/bookmarks/B
 +        IntentRequestTracker intentRequestTracker = IntentRequestTracker.createFromActivity(this);
 +        mWindowAndroid = new ActivityWindowAndroid(this, listenToActivityState, intentRequestTracker);
 +        mWindowAndroid.getIntentRequestTracker().restoreInstanceState(savedInstanceState);
-+        mBookmarkManager.setWindow(mWindowAndroid,
++        mBookmarkManagerCoordinator.setWindow(mWindowAndroid,
 +                            new ModalDialogManager(
 +                                new AppModalPresenter(this), ModalDialogManager.ModalDialogType.APP));
      }
@@ -519,10 +523,36 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * Dismisses the search UI.
       */
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerCoordinator.java
+@@ -40,6 +40,8 @@ import org.chromium.components.favicon.LargeIconBridge;
+ import org.chromium.components.image_fetcher.ImageFetcher;
+ import org.chromium.components.image_fetcher.ImageFetcherConfig;
+ import org.chromium.components.image_fetcher.ImageFetcherFactory;
++import org.chromium.ui.base.ActivityWindowAndroid;
++import org.chromium.ui.modaldialog.ModalDialogManager;
+ import org.chromium.ui.modelutil.PropertyKey;
+ import org.chromium.ui.modelutil.PropertyModel;
+ import org.chromium.ui.modelutil.PropertyModelChangeProcessor;
+@@ -144,6 +146,13 @@ public class BookmarkManagerCoordinator
+ 
+     // Public API implementation.
+ 
++    /**
++     * Sets the Android window that is used by further intents created by the bookmark activity.
++     */
++    public void setWindow(ActivityWindowAndroid window, ModalDialogManager modalDialogManager) {
++        mMediator.setWindow(window, modalDialogManager);
++    }
++
+     /**
+      * Destroys and cleans up itself. This must be called after done using this class.
+      */
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkManagerMediator.java
-@@ -37,6 +37,8 @@ import org.chromium.components.browser_ui.widget.dragreorder.DragStateDelegate;
+@@ -35,6 +35,8 @@ import org.chromium.components.browser_ui.widget.dragreorder.DragStateDelegate;
  import org.chromium.components.browser_ui.widget.selectable_list.SelectableListLayout;
  import org.chromium.components.browser_ui.widget.selectable_list.SelectionDelegate;
  import org.chromium.components.browser_ui.widget.selectable_list.SelectionDelegate.SelectionObserver;
@@ -531,7 +561,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  import org.chromium.components.favicon.LargeIconBridge;
  import org.chromium.components.feature_engagement.EventConstants;
  import org.chromium.ui.modelutil.PropertyModel;
-@@ -56,6 +58,9 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+@@ -54,6 +56,9 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
  
      private static boolean sPreventLoadingForTesting;
  
@@ -541,7 +571,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * Keeps track of whether drag is enabled / active for bookmark lists.
       */
-@@ -446,6 +451,14 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+@@ -423,6 +428,14 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
          mNativePage = nativePage;
      }
  
@@ -556,7 +586,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * See BookmarkManager(Coordinator)#updateForUrl
       */
-@@ -662,6 +675,16 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
+@@ -628,6 +641,16 @@ class BookmarkManagerMediator implements BookmarkDelegate, TestingDelegate,
          }
      }
  
@@ -598,7 +628,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
                  new BookmarkManagerCoordinator(host.getContext(), componentName, false, isIncognito,
                          snackbarManager, Profile.getLastUsedRegularProfile());
          mBookmarkManagerCoordinator.setBasicNativePage(this);
-+        mManager.setWindow(activity.getWindowAndroid(),
++        mBookmarkManagerCoordinator.setWindow(activity.getWindowAndroid(),
 +                           new ModalDialogManager(
 +                                new AppModalPresenter(activity), ModalDialogManager.ModalDialogType.APP));
          mTitle = host.getContext().getResources().getString(R.string.bookmarks);
@@ -616,7 +646,21 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          getMenu().findItem(R.id.search_menu_id).setVisible(true);
          getMenu().findItem(R.id.edit_menu_id).setVisible(mCurrentFolder.isEditable());
  
-@@ -172,6 +174,8 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
+@@ -167,9 +169,22 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
+         mOpenFolderCallback = openFolderCallback;
+     }
+ 
++    private Runnable mImportBookmarkRunnable;
++    private Runnable mExportBookmarkRunnable;
++
++    void setImportBookmarkRunnable(Runnable runnable) {
++        mImportBookmarkRunnable = runnable;
++    }
++
++    void setExportBookmarkRunnable(Runnable runnable) {
++        mExportBookmarkRunnable = runnable;
++    }
++
      void showLoadingUi() {
          setTitle(null);
          setNavigationButton(NAVIGATION_BUTTON_NONE);
@@ -625,20 +669,20 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          getMenu().findItem(R.id.search_menu_id).setVisible(false);
          getMenu().findItem(R.id.edit_menu_id).setVisible(false);
      }
-@@ -192,6 +196,12 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
+@@ -190,6 +205,12 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
          } else if (menuItem.getItemId() == R.id.search_menu_id) {
              mOpenSearchUiRunnable.run();
              return true;
 +        } else if (menuItem.getItemId() == R.id.import_menu_id) {
-+            mDelegate.importBookmarks();
++            mImportBookmarkRunnable.run();
 +            return true;
 +        } else if (menuItem.getItemId() == R.id.export_menu_id) {
-+            mDelegate.exportBookmarks();
++            mExportBookmarkRunnable.run();
 +            return true;
          }
  
          if (menuItem.getItemId() == R.id.selection_mode_edit_menu_id) {
-@@ -271,6 +281,8 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
+@@ -269,6 +290,8 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
          super.showNormalView();
  
          if (mCurrentFolder == null) {
@@ -647,6 +691,61 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
              getMenu().findItem(R.id.search_menu_id).setVisible(false);
              getMenu().findItem(R.id.edit_menu_id).setVisible(false);
          } else {
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarMediator.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarMediator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarMediator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarMediator.java
+@@ -43,6 +43,10 @@ class BookmarkToolbarMediator implements BookmarkUiObserver,
+                     mBookmarkDelegate::openSearchUi);
+             mModel.set(
+                     BookmarkToolbarProperties.OPEN_FOLDER_CALLBACK, mBookmarkDelegate::openFolder);
++            mModel.set(
++                    BookmarkToolbarProperties.IMPORT_BOOKMARK_RUNNABLE, mBookmarkDelegate::importBookmarks);
++            mModel.set(
++                    BookmarkToolbarProperties.EXPORT_BOOKMARK_RUNNABLE, mBookmarkDelegate::exportBookmarks);
+             mBookmarkDelegate.addUiObserver(this);
+             mBookmarkDelegate.notifyStateChange(this);
+         });
+@@ -90,4 +94,4 @@ class BookmarkToolbarMediator implements BookmarkUiObserver,
+     public void onSelectionStateChange(List<BookmarkItem> selectedItems) {
+         mModel.set(BookmarkToolbarProperties.SOFT_KEYBOARD_VISIBLE, false);
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarProperties.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarProperties.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarProperties.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarProperties.java
+@@ -38,8 +38,13 @@ class BookmarkToolbarProperties {
+             new WritableObjectPropertyKey<>();
+     static final WritableObjectPropertyKey<Callback<BookmarkId>> OPEN_FOLDER_CALLBACK =
+             new WritableObjectPropertyKey<>();
++    static final WritableObjectPropertyKey<Runnable> IMPORT_BOOKMARK_RUNNABLE =
++            new WritableObjectPropertyKey<>();
++    static final WritableObjectPropertyKey<Runnable> EXPORT_BOOKMARK_RUNNABLE =
++            new WritableObjectPropertyKey<>();
+ 
+     static final PropertyKey[] ALL_KEYS = {BOOKMARK_MODEL, BOOKMARK_OPENER, SELECTION_DELEGATE,
+             BOOKMARK_UI_MODE, SOFT_KEYBOARD_VISIBLE, IS_DIALOG_UI, DRAG_ENABLED, CURRENT_FOLDER,
+-            OPEN_SEARCH_UI_RUNNABLE, OPEN_FOLDER_CALLBACK};
++            OPEN_SEARCH_UI_RUNNABLE, OPEN_FOLDER_CALLBACK,
++            IMPORT_BOOKMARK_RUNNABLE, EXPORT_BOOKMARK_RUNNABLE};
+ }
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarViewBinder.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarViewBinder.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarViewBinder.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbarViewBinder.java
+@@ -36,6 +36,12 @@ class BookmarkToolbarViewBinder {
+         } else if (key == BookmarkToolbarProperties.OPEN_SEARCH_UI_RUNNABLE) {
+             bookmarkToolbar.setOpenSearchUiRunnable(
+                     model.get(BookmarkToolbarProperties.OPEN_SEARCH_UI_RUNNABLE));
++        } else if (key == BookmarkToolbarProperties.IMPORT_BOOKMARK_RUNNABLE) {
++            bookmarkToolbar.setImportBookmarkRunnable(
++                    model.get(BookmarkToolbarProperties.IMPORT_BOOKMARK_RUNNABLE));
++        } else if (key == BookmarkToolbarProperties.EXPORT_BOOKMARK_RUNNABLE) {
++            bookmarkToolbar.setExportBookmarkRunnable(
++                    model.get(BookmarkToolbarProperties.EXPORT_BOOKMARK_RUNNABLE));
+         } else if (key == BookmarkToolbarProperties.OPEN_FOLDER_CALLBACK) {
+             bookmarkToolbar.setOpenFolderCallback(
+                     model.get(BookmarkToolbarProperties.OPEN_FOLDER_CALLBACK));
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/native_page/NativePageFactory.java b/chrome/android/java/src/org/chromium/chrome/browser/native_page/NativePageFactory.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/native_page/NativePageFactory.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/native_page/NativePageFactory.java
