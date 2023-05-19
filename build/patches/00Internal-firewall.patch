@@ -27,14 +27,14 @@ in services/firewall/tools/rules.xml
  services/firewall/tools/codegen.py            |  82 ++++
  services/firewall/tools/decode_template.py    |  85 ++++
  services/firewall/tools/gen_builders.py       |  65 +++
- services/firewall/tools/rules.xml             |  70 +++
+ services/firewall/tools/rules.xml             |  78 +++
  services/firewall/tools/rules_model.py        |  35 ++
  .../network/public/cpp/simple_url_loader.cc   |  18 +
  .../network/public/cpp/simple_url_loader.h    |   3 +
  .../loader/fetch/url_loader/url_loader.cc     | 145 +++++-
  .../scripts/auditor/auditor.py                |   1 +
  .../scripts/auditor/util.py                   |   1 +
- 27 files changed, 1416 insertions(+), 16 deletions(-)
+ 27 files changed, 1424 insertions(+), 16 deletions(-)
  create mode 100644 services/firewall/public/BUILD.gn
  create mode 100644 services/firewall/public/firewall_features.cc
  create mode 100644 services/firewall/public/firewall_features.h
@@ -1398,7 +1398,7 @@ diff --git a/services/firewall/tools/rules.xml b/services/firewall/tools/rules.x
 new file mode 100644
 --- /dev/null
 +++ b/services/firewall/tools/rules.xml
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,78 @@
 +<?xml version="1.0"?>
 +<!--
 +    This file is part of Bromite.
@@ -1418,12 +1418,12 @@ new file mode 100644
 +-->
 +
 +<rules>
-+<!-- Allow autoupdates -->
++ <!-- Allow autoupdates -->
 + <item id="bromite_inline_update_controller" allowed="1"/>
 + <item id="adblock_subscription_download" allowed="1"/>
 + <item id="filters_update" allowed="1"/>
 +
-+<!-- started by the user -->
++ <!-- started by the user -->
 + <item id="download_via_context_menu" allowed="1"/>
 + <item id="offline_pages_download_file" allowed="1"/>
 +
@@ -1432,7 +1432,7 @@ new file mode 100644
 + <item id="certificate_verifier_url_loader" allowed="0"/>
 + <item id="certificate_verifier_url_request" allowed="0"/>
 +
-+<!-- Allow all blink stuffs -->
++ <!-- Allow all blink stuffs -->
 + <item id="worker_script_load" allowed="1"/>
 + <item id="service_worker_script_load" allowed="1"/>
 + <item id="service_worker_update_checker" allowed="1"/>
@@ -1441,31 +1441,39 @@ new file mode 100644
 + <item id="blink_resource_loader" allowed="1"/>
 + <item id="blink_resource_loader_workers" allowed="1"/>
 + <item id="blink_resource_loader_manifest" allowed="1"/>
++ <item id="renderer_initiated_download" allowed="1"/>
 +
 + <item id="background_fetch_context" allowed="1"/>
 +
-+<!-- But disallow this -->
++ <!-- Allow Service Worker Navigation Preload API -->
++ <item id="service_worker_navigation_preload" allowed="1"/>
++
++ <!-- But disallow this -->
 + <item id="blink_resource_loader_xslt" allowed="0"/>
 + <item id="blink_resource_loader_report" allowed="0"/>
 + <item id="blink_resource_loader_worklet" allowed="0"/>
 + <item id="blink_resource_loader_webbundle" allowed="0"/>
 +
-+<!-- Allow websocket and webrtc, under user control -->
++ <!-- Allow websocket and webrtc, under user control -->
 + <item id="websocket_stream" allowed="1"/>
 + <item id="websocket_basic_stream" allowed="1"/>
 + <item id="webrtc_peer_connection" allowed="1"/>
 +
-+<!-- No network connection, but local usb and bluetooh -->
++ <!-- No network connection, but local usb and bluetooh -->
 + <item id="android_web_socket" allowed="1"/>
 + <item id="bluetooth_socket" allowed="1"/>
 +
-+<!-- Under user control -->
++ <!-- Under user control -->
 + <item id="omnibox_suggest" allowed="1"/>
 + <item id="dns_transaction" allowed="1"/>
 + <item id="dns_over_https" allowed="1"/>
 + <item id="webstore_installer" allowed="1"/>
 +
-+<!-- Needed -->
++ <!-- For proxy -->
++ <item id="proxy_config_settings" allowed="1"/>
++ <item id="proxy_config_system" allowed="1"/>
++
++ <!-- Needed -->
 + <item id="open_search" allowed="1"/>
 + <item id="favicon_loader" allowed="1"/>
 +</rules>
