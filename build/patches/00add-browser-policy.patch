@@ -3,6 +3,7 @@ Date: Tue, 22 Nov 2022 16:49:58 +0000
 Subject: Add browser policy
 
 ---
+ base/win/win_util.cc                          |  63 +--------
  .../privacy_preferences_manager_impl.cc       |   5 +
  .../metrics/chrome_feature_list_creator.cc    |  12 ++
  .../policy/chrome_browser_policy_connector.cc |   2 -
@@ -25,8 +26,91 @@ Subject: Add browser policy
  components/policy_strings.grdp                |   4 +-
  .../gaia_cookie_manager_service.cc            |   4 +
  google_apis/gaia/gaia_auth_fetcher.cc         |   1 +
- 22 files changed, 278 insertions(+), 29 deletions(-)
+ 23 files changed, 281 insertions(+), 89 deletions(-)
 
+diff --git a/base/win/win_util.cc b/base/win/win_util.cc
+--- a/base/win/win_util.cc
++++ b/base/win/win_util.cc
+@@ -126,76 +126,19 @@ bool EnablePerMonitorV2() {
+ }
+ 
+ bool* GetDomainEnrollmentStateStorage() {
+-  static bool state = IsOS(OS_DOMAINMEMBER);
++  static bool state = false;
+   return &state;
+ }
+ 
+ bool* GetRegisteredWithManagementStateStorage() {
+-  static bool state = []() {
+-    // Mitigate the issues caused by loading DLLs on a background thread
+-    // (http://crbug/973868).
+-    SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
+-
+-    ScopedNativeLibrary library(
+-        FilePath(FILE_PATH_LITERAL("MDMRegistration.dll")));
+-    if (!library.is_valid())
+-      return false;
+-
+-    using IsDeviceRegisteredWithManagementFunction =
+-        decltype(&::IsDeviceRegisteredWithManagement);
+-    IsDeviceRegisteredWithManagementFunction
+-        is_device_registered_with_management_function =
+-            reinterpret_cast<IsDeviceRegisteredWithManagementFunction>(
+-                library.GetFunctionPointer("IsDeviceRegisteredWithManagement"));
+-    if (!is_device_registered_with_management_function)
+-      return false;
+-
+-    BOOL is_managed = FALSE;
+-    HRESULT hr =
+-        is_device_registered_with_management_function(&is_managed, 0, nullptr);
+-    return SUCCEEDED(hr) && is_managed;
+-  }();
++  static bool state = false;
+ 
+   return &state;
+ }
+ 
+ // TODO (crbug/1300219): return a DSREG_JOIN_TYPE* instead of bool*.
+ bool* GetAzureADJoinStateStorage() {
+-  static bool state = []() {
+-    base::ElapsedTimer timer;
+-
+-    // Mitigate the issues caused by loading DLLs on a background thread
+-    // (http://crbug/973868).
+-    SCOPED_MAY_LOAD_LIBRARY_AT_BACKGROUND_PRIORITY();
+-
+-    ScopedNativeLibrary netapi32(
+-        base::LoadSystemLibrary(FILE_PATH_LITERAL("netapi32.dll")));
+-    if (!netapi32.is_valid())
+-      return false;
+-
+-    const auto net_get_aad_join_information_function =
+-        reinterpret_cast<decltype(&::NetGetAadJoinInformation)>(
+-            netapi32.GetFunctionPointer("NetGetAadJoinInformation"));
+-    if (!net_get_aad_join_information_function)
+-      return false;
+-
+-    const auto net_free_aad_join_information_function =
+-        reinterpret_cast<decltype(&::NetFreeAadJoinInformation)>(
+-            netapi32.GetFunctionPointer("NetFreeAadJoinInformation"));
+-    DPCHECK(net_free_aad_join_information_function);
+-
+-    DSREG_JOIN_INFO* join_info = nullptr;
+-    HRESULT hr = net_get_aad_join_information_function(/*pcszTenantId=*/nullptr,
+-                                                       &join_info);
+-    const bool is_aad_joined = SUCCEEDED(hr) && join_info;
+-    if (join_info) {
+-      net_free_aad_join_information_function(join_info);
+-    }
+-
+-    base::UmaHistogramTimes("EnterpriseCheck.AzureADJoinStatusCheckTime",
+-                            timer.Elapsed());
+-    return is_aad_joined;
+-  }();
++  static bool state = false;
+   return &state;
+ }
+ 
 diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 --- a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 +++ b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
