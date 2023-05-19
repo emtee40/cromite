@@ -33,13 +33,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/ui/webui/proxy_config_ui.h     |  31 ++
  chrome/common/webui_url_constants.cc          |   4 +
  chrome/common/webui_url_constants.h           |   2 +
- .../pref_proxy_config_tracker_impl.cc         |   1 +
+ .../pref_proxy_config_tracker_impl.cc         |   5 +-
  .../proxy_config/proxy_config_dictionary.cc   |  30 +-
  .../proxy_config/proxy_config_dictionary.h    |   7 +-
  .../proxy_config/proxy_policy_handler.cc      |   2 +-
  net/proxy_resolution/proxy_config.cc          |  52 ++-
  net/proxy_resolution/proxy_config.h           |   3 +
- 24 files changed, 980 insertions(+), 15 deletions(-)
+ 24 files changed, 982 insertions(+), 17 deletions(-)
  create mode 100644 chrome/browser/resources/proxy_config.css
  create mode 100644 chrome/browser/resources/proxy_config.html
  create mode 100644 chrome/browser/resources/proxy_config.js
@@ -1161,6 +1161,23 @@ diff --git a/chrome/common/webui_url_constants.h b/chrome/common/webui_url_const
 diff --git a/components/proxy_config/pref_proxy_config_tracker_impl.cc b/components/proxy_config/pref_proxy_config_tracker_impl.cc
 --- a/components/proxy_config/pref_proxy_config_tracker_impl.cc
 +++ b/components/proxy_config/pref_proxy_config_tracker_impl.cc
+@@ -244,14 +244,14 @@ PrefProxyConfigTrackerImpl::GetEffectiveProxyConfig(
+ // static
+ void PrefProxyConfigTrackerImpl::RegisterPrefs(PrefRegistrySimple* registry) {
+   registry->RegisterDictionaryPref(proxy_config::prefs::kProxy,
+-                                   ProxyConfigDictionary::CreateSystem());
++                                   ProxyConfigDictionary::CreateDirect());
+ }
+ 
+ // static
+ void PrefProxyConfigTrackerImpl::RegisterProfilePrefs(
+     PrefRegistrySimple* registry) {
+   registry->RegisterDictionaryPref(proxy_config::prefs::kProxy,
+-                                   ProxyConfigDictionary::CreateSystem());
++                                   ProxyConfigDictionary::CreateDirect());
+   registry->RegisterBooleanPref(proxy_config::prefs::kUseSharedProxies, false);
+ }
+ 
 @@ -384,6 +384,7 @@ bool PrefProxyConfigTrackerImpl::PrefConfigToNetConfig(
        if (proxy_dict.GetBypassList(&proxy_bypass)) {
          proxy_config.proxy_rules().bypass_rules.ParseFromString(proxy_bypass);
