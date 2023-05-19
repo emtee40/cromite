@@ -12,6 +12,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer_host/render_frame_host_impl.cc      |  6 ------
  .../web_package/signed_exchange_reporter.cc      |  2 ++
  ...content_switch_dependent_feature_overrides.cc |  1 +
+ net/base/features.cc                             |  2 +-
  net/reporting/reporting_service.cc               |  6 ++++++
  services/network/network_context.h               |  4 ++--
  services/network/public/cpp/features.cc          |  6 +++---
@@ -22,7 +23,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/core/frame/reporting_context.cc     |  9 +++++++++
  .../renderer/core/frame/reporting_context.h      |  7 +++++--
  .../renderer/core/frame/reporting_observer.cc    |  3 +--
- 18 files changed, 55 insertions(+), 30 deletions(-)
+ 19 files changed, 56 insertions(+), 31 deletions(-)
 
 diff --git a/chrome/browser/net/chrome_report_sender.cc b/chrome/browser/net/chrome_report_sender.cc
 --- a/chrome/browser/net/chrome_report_sender.cc
@@ -241,6 +242,18 @@ diff --git a/content/public/common/content_switch_dependent_feature_overrides.cc
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/cpp/network_switches.h"
  #include "third_party/blink/public/common/features.h"
+diff --git a/net/base/features.cc b/net/base/features.cc
+--- a/net/base/features.cc
++++ b/net/base/features.cc
+@@ -222,7 +222,7 @@ extern const base::FeatureParam<base::TimeDelta> kTimeoutTcpConnectAttemptMax(
+ #if BUILDFLAG(ENABLE_REPORTING)
+ BASE_FEATURE(kDocumentReporting,
+              "DocumentReporting",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ #endif  // BUILDFLAG(ENABLE_REPORTING)
+ 
+ #if BUILDFLAG(IS_POSIX) || BUILDFLAG(IS_FUCHSIA)
 diff --git a/net/reporting/reporting_service.cc b/net/reporting/reporting_service.cc
 --- a/net/reporting/reporting_service.cc
 +++ b/net/reporting/reporting_service.cc
@@ -286,7 +299,7 @@ diff --git a/services/network/public/cpp/features.cc b/services/network/public/c
 +             base::FEATURE_DISABLED_BY_DEFAULT); // in bromite
  
 -BASE_FEATURE(kReporting, "Reporting", base::FEATURE_ENABLED_BY_DEFAULT);
-+BASE_FEATURE(kReporting, "Reporting", base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kReporting, "Reporting", base::FEATURE_DISABLED_BY_DEFAULT); // disabled by default
  
  // Based on the field trial parameters, this feature will override the value of
  // the maximum number of delayable requests allowed in flight. The number of
