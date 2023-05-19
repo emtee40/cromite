@@ -8,7 +8,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../chrome_hints_manager.cc                   |  1 +
  .../optimization_guide_keyed_service.cc       |  1 -
  .../predictors/loading_predictor_config.cc    |  4 +-
- chrome/common/chrome_features.cc              |  8 ++--
+ chrome/common/chrome_features.cc              | 18 ++++-----
  .../browser/autocomplete_controller.cc        |  2 +
  .../optimization_guide/core/hints_fetcher.cc  |  1 +
  .../optimization_guide/core/hints_manager.cc  |  5 +++
@@ -19,7 +19,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/permissions/features.cc            |  8 ++--
  third_party/blink/common/features.cc          |  8 +---
  .../platform/runtime_enabled_features.json5   |  2 +-
- 14 files changed, 45 insertions(+), 43 deletions(-)
+ 14 files changed, 50 insertions(+), 48 deletions(-)
 
 diff --git a/chrome/browser/optimization_guide/chrome_hints_manager.cc b/chrome/browser/optimization_guide/chrome_hints_manager.cc
 --- a/chrome/browser/optimization_guide/chrome_hints_manager.cc
@@ -82,6 +82,31 @@ diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
  
  const base::FeatureParam<double>
      kPermissionGeolocationPredictionsHoldbackChance(
+@@ -924,7 +924,7 @@ BASE_FEATURE(kPluginVm, "PluginVm", base::FEATURE_DISABLED_BY_DEFAULT);
+ // Allows Chrome to do preconnect when prerender fails.
+ BASE_FEATURE(kPrerenderFallbackToPreconnect,
+              "PrerenderFallbackToPreconnect",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kPrivacyGuideAndroid,
+              "PrivacyGuideAndroid",
+@@ -1489,11 +1489,11 @@ bool IsParentAccessCodeForOnlineLoginEnabled() {
+ 
+ // Enables omnibox trigger prerendering.
+ BASE_FEATURE(kOmniboxTriggerForPrerender2,
+-             "OmniboxTriggerForPrerender2",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "OmniboxTriggerForPrerender2",         // always disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
+ 
+-BASE_FEATURE(kSupportSearchSuggestionForPrerender2,
+-             "SupportSearchSuggestionForPrerender2",
++BASE_FEATURE(kSupportSearchSuggestionForPrerender2,     // always disabled
++             "SupportSearchSuggestionForPrerender2",    // in bromite
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ const base::FeatureParam<SearchSuggestionPrerenderImplementationType>::Option
+     search_suggestion_implementation_types[] = {
 diff --git a/components/omnibox/browser/autocomplete_controller.cc b/components/omnibox/browser/autocomplete_controller.cc
 --- a/components/omnibox/browser/autocomplete_controller.cc
 +++ b/components/omnibox/browser/autocomplete_controller.cc
