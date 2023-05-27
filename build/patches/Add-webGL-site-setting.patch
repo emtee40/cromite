@@ -211,7 +211,7 @@ new file mode 100644
 diff --git a/components/components_strings.grd b/components/components_strings.grd
 --- a/components/components_strings.grd
 +++ b/components/components_strings.grd
-@@ -338,6 +338,7 @@
+@@ -336,6 +336,7 @@
        <part file="version_ui_strings.grdp" />
        <part file="webapps_strings.grdp" />
  
@@ -257,7 +257,7 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
 diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
 --- a/components/content_settings/core/common/content_settings.cc
 +++ b/components/content_settings/core/common/content_settings.cc
-@@ -217,7 +217,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
+@@ -218,7 +218,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
           content_type == ContentSettingsType::AUTOPLAY ||
           content_type == ContentSettingsType::MIXEDSCRIPT ||
           content_type == ContentSettingsType::AUTO_DARK_WEB_CONTENT ||
@@ -267,7 +267,7 @@ diff --git a/components/content_settings/core/common/content_settings.cc b/compo
  }
  
  void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-@@ -229,6 +230,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
+@@ -230,6 +231,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
    FilterRulesForType(auto_dark_content_rules, outermost_main_frame_url);
    FilterRulesForType(timezone_override_rules, outermost_main_frame_url);
    FilterRulesForType(autoplay_rules, outermost_main_frame_url);
@@ -407,9 +407,9 @@ diff --git a/third_party/blink/renderer/core/execution_context/execution_context
 +  return false;
 +}
 +
- ExecutionContext::ExecutionContext(v8::Isolate* isolate, Agent* agent)
-     : isolate_(isolate),
-       security_context_(this),
+ ExecutionContext::ExecutionContext(v8::Isolate* isolate,
+                                    Agent* agent,
+                                    bool is_window)
 diff --git a/third_party/blink/renderer/core/execution_context/execution_context.h b/third_party/blink/renderer/core/execution_context/execution_context.h
 --- a/third_party/blink/renderer/core/execution_context/execution_context.h
 +++ b/third_party/blink/renderer/core/execution_context/execution_context.h
@@ -435,7 +435,7 @@ diff --git a/third_party/blink/renderer/core/execution_context/execution_context
 diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc b/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc
 --- a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc
 +++ b/third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc
-@@ -247,6 +247,13 @@ void WebGLRenderingContextBase::InitializeWebGLContextLimits(
+@@ -248,6 +248,13 @@ void WebGLRenderingContextBase::InitializeWebGLContextLimits(
    }
  }
  
@@ -449,7 +449,7 @@ diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_ba
  unsigned WebGLRenderingContextBase::CurrentMaxGLContexts() {
    base::AutoLock locker(WebGLContextLimitLock());
    DCHECK(webgl_context_limits_initialized_);
-@@ -493,25 +500,6 @@ static String ExtractWebGLContextCreationError(
+@@ -494,25 +501,6 @@ static String ExtractWebGLContextCreationError(
      const Platform::GraphicsInfo& info) {
    StringBuilder builder;
    builder.Append("Could not create a WebGL context");
@@ -475,7 +475,7 @@ diff --git a/third_party/blink/renderer/modules/webgl/webgl_rendering_context_ba
    FormatWebGLStatusString("ErrorMessage", info.error_message.Utf8().c_str(),
                            builder);
    builder.Append('.');
-@@ -580,6 +568,12 @@ WebGLRenderingContextBase::CreateWebGraphicsContext3DProvider(
+@@ -581,6 +569,12 @@ WebGLRenderingContextBase::CreateWebGraphicsContext3DProvider(
      const CanvasContextCreationAttributesCore& attributes,
      Platform::ContextType context_type,
      Platform::GraphicsInfo* graphics_info) {

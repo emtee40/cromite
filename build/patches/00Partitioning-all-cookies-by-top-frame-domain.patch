@@ -8,7 +8,7 @@ Disabling the flag via the ui restores the normal mode, where
 samesite=none first-party cookies are sent in third-party contexts.
 ---
  net/base/features.cc                                 |  8 ++++----
- net/cookies/canonical_cookie.cc                      | 11 +----------
+ net/cookies/canonical_cookie.cc                      | 12 +-----------
  net/cookies/cookie_deletion_info.cc                  |  3 ++-
  net/cookies/parsed_cookie.h                          |  7 ++++++-
  net/extras/sqlite/sqlite_persistent_cookie_store.cc  | 10 ++++++++++
@@ -17,23 +17,23 @@ samesite=none first-party cookies are sent in third-party contexts.
  .../renderer/modules/cookie_store/cookie_init.idl    |  2 +-
  .../renderer/modules/cookie_store/cookie_store.cc    | 12 ++++++++++++
  .../cookie_store/cookie_store_delete_options.idl     |  2 +-
- 10 files changed, 50 insertions(+), 20 deletions(-)
+ 10 files changed, 50 insertions(+), 21 deletions(-)
 
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -252,8 +252,8 @@ BASE_FEATURE(kSamePartyAttributeEnabled,
+@@ -243,8 +243,8 @@ BASE_FEATURE(kSamePartyAttributeEnabled,
               base::FEATURE_DISABLED_BY_DEFAULT);
  
  BASE_FEATURE(kPartitionedCookies,
 -             "PartitionedCookies",
--             base::FEATURE_DISABLED_BY_DEFAULT);
+-             base::FEATURE_ENABLED_BY_DEFAULT);
 +             "PartitionedCookies",                  // guard this
 +             base::FEATURE_ENABLED_BY_DEFAULT);     // guard this
  
  BASE_FEATURE(kNoncedPartitionedCookies,
               "NoncedPartitionedCookies",
-@@ -268,8 +268,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
+@@ -259,8 +259,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kCookieDomainRejectNonASCII,
@@ -47,7 +47,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
 diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
 --- a/net/cookies/canonical_cookie.cc
 +++ b/net/cookies/canonical_cookie.cc
-@@ -1469,8 +1469,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
+@@ -1446,8 +1446,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
    if (IsPartitioned()) {
      if (CookiePartitionKey::HasNonce(partition_key_))
        return true;
@@ -56,7 +56,7 @@ diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
    }
  
    return true;
-@@ -1713,14 +1711,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
+@@ -1690,15 +1688,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
                                                 bool secure,
                                                 bool is_partitioned,
                                                 bool partition_has_nonce) {
@@ -64,7 +64,8 @@ diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
 -    return true;
 -  if (partition_has_nonce)
 -    return true;
--  bool result = url.SchemeIsCryptographic() && secure;
+-  CookieAccessScheme scheme = cookie_util::ProvisionalAccessScheme(url);
+-  bool result = (scheme != CookieAccessScheme::kNonCryptographic) && secure;
 -  DLOG_IF(WARNING, !result)
 -      << "CanonicalCookie has invalid Partitioned attribute";
 -  return result;
@@ -112,7 +113,7 @@ diff --git a/net/cookies/parsed_cookie.h b/net/cookies/parsed_cookie.h
 diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
 --- a/net/extras/sqlite/sqlite_persistent_cookie_store.cc
 +++ b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
-@@ -862,6 +862,16 @@ bool SQLitePersistentCookieStore::Backend::DoInitializeDatabase() {
+@@ -864,6 +864,16 @@ bool SQLitePersistentCookieStore::Backend::DoInitializeDatabase() {
    if (!restore_old_session_cookies_)
      DeleteSessionCookiesOnStartup();
  
@@ -164,7 +165,7 @@ diff --git a/services/network/cookie_settings.cc b/services/network/cookie_setti
 diff --git a/services/network/restricted_cookie_manager.cc b/services/network/restricted_cookie_manager.cc
 --- a/services/network/restricted_cookie_manager.cc
 +++ b/services/network/restricted_cookie_manager.cc
-@@ -770,6 +770,9 @@ void RestrictedCookieManager::SetCookieFromString(
+@@ -773,6 +773,9 @@ void RestrictedCookieManager::SetCookieFromString(
    std::move(callback).Run(site_for_cookies_ok, top_frame_origin_ok);
    callback = base::DoNothing();
  
@@ -187,7 +188,7 @@ diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_init.idl b/t
 diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc b/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
 --- a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
 +++ b/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
-@@ -316,6 +316,10 @@ ScriptPromise CookieStore::set(ScriptState* script_state,
+@@ -317,6 +317,10 @@ ScriptPromise CookieStore::set(ScriptState* script_state,
    CookieInit* set_options = CookieInit::Create();
    set_options->setName(name);
    set_options->setValue(value);
@@ -198,7 +199,7 @@ diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc b/t
    return set(script_state, set_options, exception_state);
  }
  
-@@ -338,6 +342,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
+@@ -339,6 +343,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
    set_options->setName(name);
    set_options->setValue("deleted");
    set_options->setExpires(0);
@@ -209,7 +210,7 @@ diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc b/t
    return DoWrite(script_state, set_options, exception_state);
  }
  
-@@ -352,6 +360,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
+@@ -353,6 +361,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
    set_options->setPath(options->path());
    set_options->setSameSite("strict");
    set_options->setPartitioned(options->partitioned());

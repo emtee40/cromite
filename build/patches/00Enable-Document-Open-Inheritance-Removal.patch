@@ -3,15 +3,15 @@ Date: Tue, 28 Mar 2023 15:43:18 +0000
 Subject: Enable Document Open Inheritance Removal
 
 ---
- .../blink/renderer/core/dom/document.cc       | 46 -------------------
+ .../blink/renderer/core/dom/document.cc       | 51 -------------------
  .../platform/runtime_enabled_features.json5   |  3 +-
- 2 files changed, 1 insertion(+), 48 deletions(-)
+ 2 files changed, 1 insertion(+), 53 deletions(-)
 
 diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
 --- a/third_party/blink/renderer/core/dom/document.cc
 +++ b/third_party/blink/renderer/core/dom/document.cc
-@@ -3341,52 +3341,6 @@ void Document::open(LocalDOMWindow* entered_window,
-           dom_window_->GetSecurityContext().GetSandboxFlags()) {
+@@ -3361,57 +3361,6 @@ void Document::open(LocalDOMWindow* entered_window,
+         // https://chromestatus.com/metrics/feature/timeline/popularity/4375
          CountUse(WebFeature::kDocumentOpenMutateSandbox);
        }
 -
@@ -45,6 +45,11 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 -
 -        dom_window_->GetSecurityContext().SetSecurityOrigin(
 -            entered_window->GetMutableSecurityOrigin());
+-
+-        // The SecurityOrigin is now shared in between two different window. It
+-        // means mutating one can have side effect on the other.
+-        entered_window->GetMutableSecurityOrigin()
+-            ->set_aliased_by_document_open();
 -      }
 -
 -      // Question: Should we remove the inheritance of the CookieURL via
@@ -66,7 +71,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -1321,8 +1321,7 @@
+@@ -1382,8 +1382,7 @@
      },
      {
        name: "DocumentOpenSandboxInheritanceRemoval",

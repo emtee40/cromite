@@ -10,14 +10,14 @@ without asking the native code
  .../ConnectivityDetector.java                 | 54 -------------------
  .../chrome/browser/omaha/OmahaBase.java       |  3 +-
  .../util/HttpURLConnectionFactoryImpl.java    |  7 +--
- .../firstrun/VariationsSeedFetcher.java       | 27 +---------
+ .../firstrun/VariationsSeedFetcher.java       | 26 +--------
  .../chromium/net/ChromiumNetworkAdapter.java  | 12 -----
- 7 files changed, 4 insertions(+), 174 deletions(-)
+ 7 files changed, 4 insertions(+), 173 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/download/OMADownloadHandler.java b/chrome/android/java/src/org/chromium/chrome/browser/download/OMADownloadHandler.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/download/OMADownloadHandler.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/download/OMADownloadHandler.java
-@@ -969,44 +969,6 @@ public class OMADownloadHandler extends BroadcastReceiver {
+@@ -970,44 +970,6 @@ public class OMADownloadHandler extends BroadcastReceiver {
          protected Boolean doInBackground() {
              HttpURLConnection urlConnection = null;
              boolean success = false;
@@ -176,7 +176,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/net/connectivit
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/OmahaBase.java b/chrome/android/java/src/org/chromium/chrome/browser/omaha/OmahaBase.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/omaha/OmahaBase.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/omaha/OmahaBase.java
-@@ -471,8 +471,7 @@ public class OmahaBase {
+@@ -461,8 +461,7 @@ public class OmahaBase {
                          + "}");
          try {
              URL url = new URL(getRequestGenerator().getServerUrl());
@@ -205,15 +205,14 @@ diff --git a/components/minidump_uploader/android/java/src/org/chromium/componen
 diff --git a/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedFetcher.java b/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedFetcher.java
 --- a/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedFetcher.java
 +++ b/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedFetcher.java
-@@ -181,15 +181,6 @@ public class VariationsSeedFetcher {
+@@ -184,14 +184,6 @@ public class VariationsSeedFetcher {
          sInstance = fetcher;
      }
  
 -    @VisibleForTesting
--    protected HttpURLConnection getServerConnection(
--            @VariationsPlatform int platform, String restrictMode, String milestone, String channel)
+-    protected HttpURLConnection getServerConnection(SeedFetchParameters params)
 -            throws MalformedURLException, IOException {
--        String urlString = getConnectionString(platform, restrictMode, milestone, channel);
+-        String urlString = getConnectionString(params);
 -        URL url = new URL(urlString);
 -        return (HttpURLConnection) ChromiumNetworkAdapter.openConnection(url, TRAFFIC_ANNOTATION);
 -    }
@@ -221,16 +220,16 @@ diff --git a/components/variations/android/java/src/org/chromium/components/vari
      @VisibleForTesting
      protected List<String> getAvailableInstanceManipulations() {
          List<String> compressions = new ArrayList<String>();
-@@ -391,24 +382,8 @@ public class VariationsSeedFetcher {
+@@ -486,24 +478,8 @@ public class VariationsSeedFetcher {
          HttpURLConnection connection = null;
          try {
              long startTimeMillis = SystemClock.elapsedRealtime();
--            connection = getServerConnection(platform, restrictMode, milestone, channel);
+-            connection = getServerConnection(params);
 -            connection.setReadTimeout(READ_TIMEOUT);
 -            connection.setConnectTimeout(REQUEST_TIMEOUT);
 -            connection.setDoInput(true);
--            if (curSeedInfo != null) {
--                VariationsSeed currentVariationsSeed = curSeedInfo.getParsedVariationsSeed();
+-            if (currInfo != null) {
+-                VariationsSeed currentVariationsSeed = currInfo.getParsedVariationsSeed();
 -                if (currentVariationsSeed != null) {
 -                    String serialNumber = currentVariationsSeed.getSerialNumber();
 -                    if (!serialNumber.isEmpty()) {

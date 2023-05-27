@@ -39,7 +39,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -4943,6 +4943,12 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -5058,6 +5058,12 @@ const FeatureEntry kFeatureEntries[] = {
      {"enable-tls13-early-data", flag_descriptions::kEnableTLS13EarlyDataName,
       flag_descriptions::kEnableTLS13EarlyDataDescription, kOsAll,
       FEATURE_VALUE_TYPE(net::features::kEnableTLS13EarlyData)},
@@ -55,7 +55,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -1017,6 +1017,14 @@ const char kAccessibilityAcceleratorNotificationsTimeoutDescription[] =
+@@ -1056,6 +1056,14 @@ const char kAccessibilityAcceleratorNotificationsTimeoutDescription[] =
      "shortcut (docked magnifier, screen magnifier and high contrast) to time "
      "out instead of remaining pinned.";
  
@@ -73,7 +73,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -580,6 +580,12 @@ extern const char kEnablePreinstalledWebAppDuplicationFixerDescription[];
+@@ -602,6 +602,12 @@ extern const char kEnablePreinstalledWebAppDuplicationFixerDescription[];
  extern const char kEnableTLS13EarlyDataName[];
  extern const char kEnableTLS13EarlyDataDescription[];
  
@@ -123,7 +123,7 @@ diff --git a/net/base/features.h b/net/base/features.h
 diff --git a/net/http/http_network_session.cc b/net/http/http_network_session.cc
 --- a/net/http/http_network_session.cc
 +++ b/net/http/http_network_session.cc
-@@ -211,6 +211,7 @@ HttpNetworkSession::HttpNetworkSession(const HttpNetworkSessionParams& params,
+@@ -213,6 +213,7 @@ HttpNetworkSession::HttpNetworkSession(const HttpNetworkSessionParams& params,
  
    next_protos_.push_back(kProtoHTTP11);
  
@@ -134,7 +134,7 @@ diff --git a/net/http/http_network_session.cc b/net/http/http_network_session.cc
 diff --git a/net/quic/quic_stream_factory.cc b/net/quic/quic_stream_factory.cc
 --- a/net/quic/quic_stream_factory.cc
 +++ b/net/quic/quic_stream_factory.cc
-@@ -72,6 +72,7 @@
+@@ -73,6 +73,7 @@
  #include "net/third_party/quiche/src/quiche/quic/core/quic_utils.h"
  #include "net/third_party/quiche/src/quiche/quic/platform/api/quic_flags.h"
  #include "third_party/boringssl/src/include/openssl/aead.h"
@@ -142,7 +142,7 @@ diff --git a/net/quic/quic_stream_factory.cc b/net/quic/quic_stream_factory.cc
  #include "url/gurl.h"
  #include "url/scheme_host_port.h"
  #include "url/url_constants.h"
-@@ -220,6 +221,38 @@ std::set<std::string> HostsFromOrigins(std::set<HostPortPair> origins) {
+@@ -221,6 +222,38 @@ std::set<std::string> HostsFromOrigins(std::set<HostPortPair> origins) {
  
  }  // namespace
  
@@ -181,7 +181,7 @@ diff --git a/net/quic/quic_stream_factory.cc b/net/quic/quic_stream_factory.cc
  // Refcounted class that owns quic::QuicCryptoClientConfig and tracks how many
  // consumers are using it currently. When the last reference is freed, the
  // QuicCryptoClientConfigHandle informs the owning QuicStreamFactory, moves it
-@@ -2614,7 +2647,7 @@ QuicStreamFactory::CreateCryptoConfigHandle(
+@@ -2625,7 +2658,7 @@ QuicStreamFactory::CreateCryptoConfigHandle(
                sct_auditing_delegate_,
                HostsFromOrigins(params_.origins_to_force_quic_on),
                actual_network_anonymization_key),
@@ -193,7 +193,7 @@ diff --git a/net/quic/quic_stream_factory.cc b/net/quic/quic_stream_factory.cc
 diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket_impl.cc
 --- a/net/socket/ssl_client_socket_impl.cc
 +++ b/net/socket/ssl_client_socket_impl.cc
-@@ -392,7 +392,33 @@ SSLClientSocketImpl::SSLClientSocketImpl(
+@@ -380,7 +380,33 @@ SSLClientSocketImpl::SSLClientSocketImpl(
    CHECK(context_);
  }
  
@@ -227,7 +227,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    Disconnect();
  }
  
-@@ -793,6 +819,8 @@ int SSLClientSocketImpl::Init() {
+@@ -779,6 +805,8 @@ int SSLClientSocketImpl::Init() {
      }
      if (session)
        SSL_set_session(ssl_.get(), session.get());
@@ -236,7 +236,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    }
  
    transport_adapter_ = std::make_unique<SocketBIOAdapter>(
-@@ -1084,6 +1112,35 @@ int SSLClientSocketImpl::DoHandshakeComplete(int result) {
+@@ -1070,6 +1098,35 @@ int SSLClientSocketImpl::DoHandshakeComplete(int result) {
                      : SSLHandshakeDetails::kTLS13Full;
      }
    }
@@ -272,7 +272,7 @@ diff --git a/net/socket/ssl_client_socket_impl.cc b/net/socket/ssl_client_socket
    UMA_HISTOGRAM_ENUMERATION("Net.SSLHandshakeDetails", details);
  
    // Measure TLS connections that implement the renegotiation_info extension.
-@@ -1765,6 +1822,8 @@ bool SSLClientSocketImpl::IsRenegotiationAllowed() const {
+@@ -1750,6 +1807,8 @@ bool SSLClientSocketImpl::IsRenegotiationAllowed() const {
  }
  
  bool SSLClientSocketImpl::IsCachingEnabled() const {

@@ -7,9 +7,9 @@ Search suggestions, autofill assistant and contextual search
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../java/res/xml/privacy_preferences.xml      | 13 ++++++++
- .../privacy/settings/PrivacySettings.java     | 33 ++++++++++++++++++-
+ .../privacy/settings/PrivacySettings.java     | 33 +++++++++++++++++++
  .../strings/android_chrome_strings.grd        |  4 +++
- 3 files changed, 49 insertions(+), 1 deletion(-)
+ 3 files changed, 50 insertions(+)
 
 diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/android/java/res/xml/privacy_preferences.xml
 --- a/chrome/android/java/res/xml/privacy_preferences.xml
@@ -37,7 +37,7 @@ diff --git a/chrome/android/java/res/xml/privacy_preferences.xml b/chrome/androi
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java
-@@ -52,6 +52,13 @@ import org.chromium.components.user_prefs.UserPrefs;
+@@ -57,6 +57,13 @@ import org.chromium.components.user_prefs.UserPrefs;
  import org.chromium.ui.text.NoUnderlineClickableSpan;
  import org.chromium.ui.text.SpanApplier;
  
@@ -51,7 +51,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
  /**
   * Fragment to keep track of the all the privacy related preferences.
   */
-@@ -71,6 +78,17 @@ public class PrivacySettings extends PreferenceFragmentCompat
+@@ -77,6 +84,17 @@ public class PrivacySettings extends PreferenceFragmentCompat
      private static final String PREF_INCOGNITO_LOCK = "incognito_lock";
      private static final String PREF_THIRD_PARTY_COOKIES = "third_party_cookies";
  
@@ -68,8 +68,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
 +    private ManagedPreferenceDelegate mManagedPreferenceDelegate;
      private IncognitoLockSettings mIncognitoLockSettings;
      private HelpAndFeedbackLauncher mHelpAndFeedbackLauncher;
- 
-@@ -128,6 +146,16 @@ public class PrivacySettings extends PreferenceFragmentCompat
+     private Profile mProfile;
+@@ -139,6 +157,16 @@ public class PrivacySettings extends PreferenceFragmentCompat
  
          setHasOptionsMenu(true);
  
@@ -86,25 +86,25 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
          canMakePaymentPref.setOnPreferenceChangeListener(this);
-@@ -211,6 +239,9 @@ public class PrivacySettings extends PreferenceFragmentCompat
+@@ -219,6 +247,9 @@ public class PrivacySettings extends PreferenceFragmentCompat
+             UserPrefs.get(mProfile).setBoolean(Pref.CAN_MAKE_PAYMENT_ENABLED, (boolean) newValue);
          } else if (PREF_HTTPS_FIRST_MODE.equals(key)) {
-             UserPrefs.get(Profile.getLastUsedRegularProfile())
-                     .setBoolean(Pref.HTTPS_ONLY_MODE_ENABLED, (boolean) newValue);
+             UserPrefs.get(mProfile).setBoolean(Pref.HTTPS_ONLY_MODE_ENABLED, (boolean) newValue);
 +        } else if (PREF_SEARCH_SUGGESTIONS.equals(key)) {
 +            UserPrefs.get(Profile.getLastUsedRegularProfile())
 +                    .setBoolean(Pref.SEARCH_SUGGEST_ENABLED, (boolean) newValue);
          }
          return true;
      }
-@@ -225,7 +256,7 @@ public class PrivacySettings extends PreferenceFragmentCompat
+@@ -233,6 +264,8 @@ public class PrivacySettings extends PreferenceFragmentCompat
       * Updates the preferences.
       */
      public void updatePreferences() {
--        PrefService prefService = UserPrefs.get(Profile.getLastUsedRegularProfile());
-+        mSearchSuggestions.setChecked(prefService.getBoolean(Pref.SEARCH_SUGGEST_ENABLED));
- 
++        mSearchSuggestions.setChecked(UserPrefs.get(mProfile).getBoolean(Pref.SEARCH_SUGGEST_ENABLED));
++
          ChromeSwitchPreference canMakePaymentPref =
                  (ChromeSwitchPreference) findPreference(PREF_CAN_MAKE_PAYMENT);
+         if (canMakePaymentPref != null) {
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd

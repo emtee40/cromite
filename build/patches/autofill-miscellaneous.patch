@@ -23,7 +23,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1068,11 +1068,11 @@ void RegisterProfilePrefsForMigration(
+@@ -1022,11 +1022,11 @@ void RegisterProfilePrefsForMigration(
                                     PrefRegistry::LOSSY_PREF);
  
    // Deprecated 11/2022.
@@ -41,7 +41,7 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
 diff --git a/chrome/browser/ui/autofill/chrome_autofill_client.cc b/chrome/browser/ui/autofill/chrome_autofill_client.cc
 --- a/chrome/browser/ui/autofill/chrome_autofill_client.cc
 +++ b/chrome/browser/ui/autofill/chrome_autofill_client.cc
-@@ -178,12 +178,7 @@ ChromeAutofillClient::GetURLLoaderFactory() {
+@@ -180,12 +180,7 @@ ChromeAutofillClient::GetURLLoaderFactory() {
  }
  
  AutofillDownloadManager* ChromeAutofillClient::GetDownloadManager() {
@@ -58,7 +58,7 @@ diff --git a/chrome/browser/ui/autofill/chrome_autofill_client.cc b/chrome/brows
 diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/components/autofill/core/browser/autofill_download_manager.cc
 --- a/components/autofill/core/browser/autofill_download_manager.cc
 +++ b/components/autofill/core/browser/autofill_download_manager.cc
-@@ -473,35 +473,6 @@ bool GetUploadPayloadForApi(const AutofillUploadContents& upload,
+@@ -472,35 +472,6 @@ bool GetUploadPayloadForApi(const AutofillUploadContents& upload,
    return upload_request.SerializeToString(payload);
  }
  
@@ -94,7 +94,7 @@ diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/com
  // Gets HTTP body payload for API POST request.
  bool GetAPIBodyPayload(const std::string& payload,
                         AutofillDownloadManager::RequestType type,
-@@ -540,18 +511,7 @@ bool IsRawMetadataUploadingEnabled(version_info::Channel channel) {
+@@ -539,18 +510,7 @@ bool IsRawMetadataUploadingEnabled(version_info::Channel channel) {
  }
  
  std::string GetAPIKeyForUrl(version_info::Channel channel) {
@@ -114,7 +114,7 @@ diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/com
  }
  
  }  // namespace
-@@ -767,6 +727,7 @@ std::tuple<GURL, std::string> AutofillDownloadManager::GetRequestURLAndMethod(
+@@ -766,6 +726,7 @@ std::tuple<GURL, std::string> AutofillDownloadManager::GetRequestURLAndMethod(
    // ID of the resource to add to the API request URL. Nothing will be added if
    // |resource_id| is empty.
    std::string resource_id;
@@ -122,7 +122,7 @@ diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/com
    std::string method = "POST";
  
    if (request_data.request_type == AutofillDownloadManager::REQUEST_QUERY) {
-@@ -787,11 +748,15 @@ std::tuple<GURL, std::string> AutofillDownloadManager::GetRequestURLAndMethod(
+@@ -786,11 +747,15 @@ std::tuple<GURL, std::string> AutofillDownloadManager::GetRequestURLAndMethod(
  
    // Add the query parameter to set the response format to a serialized proto.
    url = net::AppendQueryParameter(url, "alt", "proto");
@@ -154,7 +154,7 @@ diff --git a/components/autofill/core/browser/autofill_download_manager.h b/comp
 diff --git a/components/autofill/core/browser/browser_autofill_manager.h b/components/autofill/core/browser/browser_autofill_manager.h
 --- a/components/autofill/core/browser/browser_autofill_manager.h
 +++ b/components/autofill/core/browser/browser_autofill_manager.h
-@@ -778,9 +778,9 @@ class BrowserAutofillManager : public AutofillManager,
+@@ -775,9 +775,9 @@ class BrowserAutofillManager : public AutofillManager,
        credit_card_form_event_logger_;
  
    // Have we logged whether Autofill is enabled for this page load?
@@ -169,7 +169,7 @@ diff --git a/components/autofill/core/browser/browser_autofill_manager.h b/compo
 diff --git a/components/autofill/core/common/autofill_features.cc b/components/autofill/core/common/autofill_features.cc
 --- a/components/autofill/core/common/autofill_features.cc
 +++ b/components/autofill/core/common/autofill_features.cc
-@@ -729,8 +729,8 @@ BASE_FEATURE(kAutofillLogToTerminal,
+@@ -709,8 +709,8 @@ BASE_FEATURE(kAutofillLogToTerminal,
  // "upload" resources.
  // i.e., https://other.autofill.server:port/tbproxy/af/
  BASE_FEATURE(kAutofillServerCommunication,
@@ -183,7 +183,7 @@ diff --git a/components/autofill/core/common/autofill_features.cc b/components/a
 diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/autofill/core/common/autofill_prefs.cc
 --- a/components/autofill/core/common/autofill_prefs.cc
 +++ b/components/autofill/core/common/autofill_prefs.cc
-@@ -109,7 +109,7 @@ const char kAutocompleteLastVersionRetentionPolicy[] =
+@@ -123,7 +123,7 @@ const char kAutofillPaymentMethodsMandatoryReauthPromoShownCounter[] =
  void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
    // Synced prefs. Used for cross-device choices, e.g., credit card Autofill.
    registry->RegisterBooleanPref(
@@ -192,7 +192,7 @@ diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/auto
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterIntegerPref(
        prefs::kAutofillLastVersionDeduped, 0,
-@@ -121,10 +121,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -135,10 +135,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
        prefs::kAutofillLastVersionDisusedAddressesDeleted, 0,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterBooleanPref(
@@ -205,7 +205,7 @@ diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/auto
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
  
    // Non-synced prefs. Used for per-device choices, e.g., signin promo.
-@@ -148,7 +148,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -168,7 +168,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
  
    // Deprecated prefs registered for migration.
    registry->RegisterBooleanPref(

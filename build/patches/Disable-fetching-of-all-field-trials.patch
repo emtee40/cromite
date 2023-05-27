@@ -11,20 +11,20 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../services/VariationsSeedServer.java        |  2 --
  .../metrics/chrome_browser_sampling_trials.cc |  4 +++
  .../net/system_network_context_manager.cc     |  1 -
- components/ukm/ukm_recorder_impl.cc           |  3 +++
+ components/ukm/ukm_recorder_impl.cc           |  3 ++
  .../firstrun/VariationsSeedBridge.java        |  2 +-
- .../firstrun/VariationsSeedFetcher.java       | 26 ++++---------------
+ .../firstrun/VariationsSeedFetcher.java       | 32 +++----------------
  components/variations/net/BUILD.gn            |  2 --
  .../variations/net/omnibox_http_headers.cc    |  4 +--
- .../variations/net/variations_http_headers.cc |  3 +++
- .../service/variations_field_trial_creator.cc |  3 ++-
- .../variations/service/variations_service.cc  | 15 +++--------
+ .../variations/net/variations_http_headers.cc |  3 ++
+ .../service/variations_field_trial_creator.cc |  3 +-
+ .../variations/service/variations_service.cc  | 15 ++-------
  .../browser/loader/url_loader_throttles.cc    |  2 --
  .../origin_trials/origin_trials_utils.cc      |  2 +-
  content/public/common/content_features.cc     |  4 +--
- .../variations_render_thread_observer.cc      |  9 -------
- .../renderer/core/loader/document_loader.cc   |  7 -----
- 17 files changed, 26 insertions(+), 65 deletions(-)
+ .../variations_render_thread_observer.cc      |  9 ------
+ .../renderer/core/loader/document_loader.cc   |  7 ----
+ 17 files changed, 26 insertions(+), 71 deletions(-)
 
 diff --git a/android_webview/nonembedded/BUILD.gn b/android_webview/nonembedded/BUILD.gn
 --- a/android_webview/nonembedded/BUILD.gn
@@ -37,9 +37,9 @@ diff --git a/android_webview/nonembedded/BUILD.gn b/android_webview/nonembedded/
      "java/src/org/chromium/android_webview/services/ComponentUpdaterResetSafeModeAction.java",
      "java/src/org/chromium/android_webview/services/ComponentUpdaterSafeModeUtils.java",
      "java/src/org/chromium/android_webview/services/ComponentsProviderPathUtil.java",
-@@ -118,7 +117,6 @@ android_library("services_java") {
-     "java/src/org/chromium/android_webview/services/SafeModeContentProvider.java",
+@@ -120,7 +119,6 @@ android_library("services_java") {
      "java/src/org/chromium/android_webview/services/SafeModeService.java",
+     "java/src/org/chromium/android_webview/services/SafeModeVariationsSeedContentProvider.java",
      "java/src/org/chromium/android_webview/services/StartupFeatureMetadataHolder.java",
 -    "java/src/org/chromium/android_webview/services/VariationsSeedHolder.java",
      "java/src/org/chromium/android_webview/services/VariationsSeedServer.java",
@@ -81,7 +81,7 @@ diff --git a/chrome/browser/metrics/chrome_browser_sampling_trials.cc b/chrome/b
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -722,7 +722,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
+@@ -733,7 +733,6 @@ void SystemNetworkContextManager::AddSSLConfigToNetworkContextParams(
  
  void SystemNetworkContextManager::ConfigureDefaultNetworkContextParams(
      network::mojom::NetworkContextParams* network_context_params) {
@@ -92,7 +92,7 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
 diff --git a/components/ukm/ukm_recorder_impl.cc b/components/ukm/ukm_recorder_impl.cc
 --- a/components/ukm/ukm_recorder_impl.cc
 +++ b/components/ukm/ukm_recorder_impl.cc
-@@ -222,6 +222,9 @@ bool HasUnknownMetrics(const builders::DecodeMap& decode_map,
+@@ -167,6 +167,9 @@ bool HasUnknownMetrics(const builders::DecodeMap& decode_map,
  
  UkmRecorderImpl::UkmRecorderImpl()
      : sampling_seed_(static_cast<uint32_t>(base::RandUint64())) {
@@ -117,7 +117,7 @@ diff --git a/components/variations/android/java/src/org/chromium/components/vari
 diff --git a/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedFetcher.java b/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedFetcher.java
 --- a/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedFetcher.java
 +++ b/components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedFetcher.java
-@@ -335,29 +335,13 @@ public class VariationsSeedFetcher {
+@@ -431,35 +431,13 @@ public class VariationsSeedFetcher {
       */
      public void fetchSeed(String restrictMode, String milestone, String channel) {
          assert !ThreadUtils.runningOnUiThread();
@@ -136,8 +136,14 @@ diff --git a/components/variations/android/java/src/org/chromium/components/vari
 +         synchronized (sLock) {
 +            VariationsSeedBridge.clearFirstRunPrefs();
  
--            SeedFetchInfo fetchInfo = downloadContent(
--                    VariationsPlatform.ANDROID, restrictMode, milestone, channel, null);
+-            SeedFetchParameters params =
+-                    SeedFetchParameters.Builder.newBuilder()
+-                            .setPlatform(VariationsSeedFetcher.VariationsPlatform.ANDROID)
+-                            .setRestrictMode(null)
+-                            .setMilestone(milestone)
+-                            .setChannel(channel)
+-                            .build();
+-            SeedFetchInfo fetchInfo = downloadContent(params, null);
 -            if (fetchInfo.seedInfo != null) {
 -                SeedInfo info = fetchInfo.seedInfo;
 -                VariationsSeedBridge.setVariationsFirstRunSeed(info.seedData, info.signature,
@@ -151,15 +157,15 @@ diff --git a/components/variations/android/java/src/org/chromium/components/vari
      }
  
      private void recordFetchResultOrCode(int resultOrCode) {
-@@ -401,7 +385,7 @@ public class VariationsSeedFetcher {
+@@ -503,7 +481,7 @@ public class VariationsSeedFetcher {
       * @param curSeedInfo optional currently saved seed info to set the `If-None-Match` header.
       * @return the object holds the request result and seed data with its related header fields.
       */
--    public SeedFetchInfo downloadContent(@VariationsPlatform int platform, String restrictMode,
-+    private SeedFetchInfo downloadContent(@VariationsPlatform int platform, String restrictMode,
-             String milestone, String channel, @Nullable SeedInfo curSeedInfo) {
+-    public SeedFetchInfo downloadContent(SeedFetchParameters params, SeedInfo currInfo) {
++    private SeedFetchInfo downloadContent(SeedFetchParameters params, SeedInfo currInfo) {
          SeedFetchInfo fetchInfo = new SeedFetchInfo();
          HttpURLConnection connection = null;
+         try {
 diff --git a/components/variations/net/BUILD.gn b/components/variations/net/BUILD.gn
 --- a/components/variations/net/BUILD.gn
 +++ b/components/variations/net/BUILD.gn
@@ -215,7 +221,7 @@ diff --git a/components/variations/service/variations_field_trial_creator.cc b/c
 diff --git a/components/variations/service/variations_service.cc b/components/variations/service/variations_service.cc
 --- a/components/variations/service/variations_service.cc
 +++ b/components/variations/service/variations_service.cc
-@@ -219,17 +219,8 @@ bool GetInstanceManipulations(const net::HttpResponseHeaders* headers,
+@@ -220,17 +220,8 @@ bool GetInstanceManipulations(const net::HttpResponseHeaders* headers,
  // Variations seed fetching is only enabled in official Chrome builds, if a URL
  // is specified on the command line, and for testing.
  bool IsFetchingEnabled() {
@@ -235,7 +241,7 @@ diff --git a/components/variations/service/variations_service.cc b/components/va
  }
  
  // Returns the already downloaded first run seed, and clear the seed from the
-@@ -590,7 +581,7 @@ bool VariationsService::DoFetchFromURL(const GURL& url, bool is_http_retry) {
+@@ -591,7 +582,7 @@ bool VariationsService::DoFetchFromURL(const GURL& url, bool is_http_retry) {
    // debugger or if the machine was suspended) and OnURLFetchComplete() hasn't
    // had a chance to run yet from the previous request. In this case, don't
    // start a new request and just let the previous one finish.
@@ -271,7 +277,7 @@ diff --git a/content/browser/origin_trials/origin_trials_utils.cc b/content/brow
 diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
 --- a/content/public/common/content_features.cc
 +++ b/content/public/common/content_features.cc
-@@ -823,8 +823,8 @@ BASE_FEATURE(kPepperCrossOriginRedirectRestriction,
+@@ -826,8 +826,8 @@ BASE_FEATURE(kPepperCrossOriginRedirectRestriction,
  // things before receiving the response, for instance it can affect the next
  // navigation's network request.
  BASE_FEATURE(kPersistentOriginTrials,
