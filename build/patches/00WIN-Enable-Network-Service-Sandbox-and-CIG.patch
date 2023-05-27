@@ -10,7 +10,7 @@ Subject: WIN Enable Network Service Sandbox and CIG
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -748,7 +748,7 @@ BASE_FEATURE(kRendererCodeIntegrity,
+@@ -764,7 +764,7 @@ BASE_FEATURE(kRendererCodeIntegrity,
  // https://blogs.windows.com/blog/tag/code-integrity-guard/.
  BASE_FEATURE(kNetworkServiceCodeIntegrity,
               "NetworkServiceCodeIntegrity",
@@ -24,7 +24,7 @@ diff --git a/sandbox/policy/features.cc b/sandbox/policy/features.cc
 +++ b/sandbox/policy/features.cc
 @@ -14,8 +14,12 @@ namespace sandbox::policy::features {
  // Enables network service sandbox.
- // (Only causes an effect when feature kNetworkService is enabled.)
+ // (Only causes an effect when feature kNetworkServiceInProcess is disabled.)
  BASE_FEATURE(kNetworkServiceSandbox,
 -             "NetworkServiceSandbox",
 +             "NetworkServiceSandbox", // enabled only in windows
@@ -33,8 +33,8 @@ diff --git a/sandbox/policy/features.cc b/sandbox/policy/features.cc
 +#else
               base::FEATURE_DISABLED_BY_DEFAULT);
 +#endif
- #endif  // !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_FUCHSIA)
  
- #if BUILDFLAG(IS_WIN)
+ #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+ // Enables a fine-grained seccomp-BPF syscall filter for the network service.
 --
 2.25.1

@@ -1,0 +1,3299 @@
+From: vanilla-chromium-builder <project_26591639_bot@noreply.gitlab.com>
+Date: Fri, 26 May 2023 09:20:36 +0000
+Subject: Eyeo Chromium SDK Android Settings UI Patch
+
+Based on Chromium 114.0.5735.53
+
+Pre-requisites: Eyeo Chromium SDK Base Patch
+---
+ .../android/java/res/xml/main_preferences.xml |  18 +-
+ components/adblock/android/BUILD.gn           |  53 ++++
+ components/adblock/android/README.md          |  13 +
+ .../adblock/android/adblock_strings.grd       | 238 ++++++++++++++++++
+ .../fragment_adblock_custom_item_add.png      | Bin 0 -> 490 bytes
+ .../fragment_adblock_custom_item_remove.png   | Bin 0 -> 296 bytes
+ .../fragment_adblock_custom_item_add.png      | Bin 0 -> 321 bytes
+ .../fragment_adblock_custom_item_remove.png   | Bin 0 -> 169 bytes
+ .../fragment_adblock_custom_item_add.png      | Bin 0 -> 1522 bytes
+ .../fragment_adblock_custom_item_remove.png   | Bin 0 -> 696 bytes
+ .../fragment_adblock_custom_item_add.png      | Bin 0 -> 747 bytes
+ .../fragment_adblock_custom_item_remove.png   | Bin 0 -> 194 bytes
+ .../fragment_adblock_custom_item_add.png      | Bin 0 -> 1485 bytes
+ .../fragment_adblock_custom_item_remove.png   | Bin 0 -> 284 bytes
+ .../fragment_adblock_custom_item_add.png      | Bin 0 -> 3393 bytes
+ .../fragment_adblock_custom_item_remove.png   | Bin 0 -> 600 bytes
+ .../fragment_adblock_custom_item_add.png      | Bin 0 -> 638 bytes
+ .../fragment_adblock_custom_item_remove.png   | Bin 0 -> 240 bytes
+ .../fragment_adblock_custom_item_add.png      | Bin 0 -> 933 bytes
+ .../fragment_adblock_custom_item_remove.png   | Bin 0 -> 456 bytes
+ .../java/res/layout/adblock_custom_item.xml   |  50 ++++
+ .../layout/adblock_custom_item_settings.xml   |  65 +++++
+ .../layout/adblock_filter_lists_list_item.xml |  36 +++
+ .../java/res/xml/adblock_more_options.xml     |  34 +++
+ .../java/res/xml/adblock_preferences.xml      |  56 +++++
+ .../AdblockAllowedDomainsFragment.java        |  77 ++++++
+ .../AdblockCustomFilterListsFragment.java     | 118 +++++++++
+ .../AdblockCustomFiltersFragment.java         |  76 ++++++
+ .../settings/AdblockCustomItemFragment.java   | 166 ++++++++++++
+ .../settings/AdblockFilterListsAdapter.java   | 115 +++++++++
+ .../settings/AdblockFilterListsFragment.java  |  54 ++++
+ .../settings/AdblockMoreOptionsFragment.java  |  34 +++
+ .../settings/AdblockSettingsFragment.java     | 137 ++++++++++
+ .../translations/adblock_strings_af.xtb       |   4 +
+ .../translations/adblock_strings_am.xtb       |  13 +
+ .../translations/adblock_strings_ar.xtb       |  13 +
+ .../translations/adblock_strings_as.xtb       |   4 +
+ .../translations/adblock_strings_az.xtb       |   4 +
+ .../translations/adblock_strings_be.xtb       |   4 +
+ .../translations/adblock_strings_bg.xtb       |  16 ++
+ .../translations/adblock_strings_bn.xtb       |  13 +
+ .../translations/adblock_strings_bs.xtb       |  13 +
+ .../translations/adblock_strings_ca.xtb       |  13 +
+ .../translations/adblock_strings_cs.xtb       |  13 +
+ .../translations/adblock_strings_da.xtb       |  13 +
+ .../translations/adblock_strings_de.xtb       |  13 +
+ .../translations/adblock_strings_el.xtb       |  13 +
+ .../translations/adblock_strings_en-GB.xtb    |  13 +
+ .../translations/adblock_strings_es-419.xtb   |  13 +
+ .../translations/adblock_strings_es.xtb       |  13 +
+ .../translations/adblock_strings_et.xtb       |  13 +
+ .../translations/adblock_strings_eu.xtb       |   4 +
+ .../translations/adblock_strings_fa.xtb       |  13 +
+ .../translations/adblock_strings_fi.xtb       |  13 +
+ .../translations/adblock_strings_fil.xtb      |  13 +
+ .../translations/adblock_strings_fr-CA.xtb    |  13 +
+ .../translations/adblock_strings_fr.xtb       |  13 +
+ .../translations/adblock_strings_gl.xtb       |   4 +
+ .../translations/adblock_strings_gu.xtb       |   4 +
+ .../translations/adblock_strings_hi.xtb       |  13 +
+ .../translations/adblock_strings_hr.xtb       |  13 +
+ .../translations/adblock_strings_hu.xtb       |  13 +
+ .../translations/adblock_strings_hy.xtb       |   4 +
+ .../translations/adblock_strings_id.xtb       |  13 +
+ .../translations/adblock_strings_is.xtb       |   4 +
+ .../translations/adblock_strings_it.xtb       |  13 +
+ .../translations/adblock_strings_iw.xtb       |  13 +
+ .../translations/adblock_strings_ja.xtb       |  13 +
+ .../translations/adblock_strings_ka.xtb       |   4 +
+ .../translations/adblock_strings_kk.xtb       |  13 +
+ .../translations/adblock_strings_km.xtb       |  13 +
+ .../translations/adblock_strings_kn.xtb       |   4 +
+ .../translations/adblock_strings_ko.xtb       |  13 +
+ .../translations/adblock_strings_ky.xtb       |   4 +
+ .../translations/adblock_strings_lo.xtb       |   4 +
+ .../translations/adblock_strings_lt.xtb       |  13 +
+ .../translations/adblock_strings_lv.xtb       |  13 +
+ .../translations/adblock_strings_mk.xtb       |  13 +
+ .../translations/adblock_strings_ml.xtb       |   4 +
+ .../translations/adblock_strings_mn.xtb       |   4 +
+ .../translations/adblock_strings_mr.xtb       |   4 +
+ .../translations/adblock_strings_ms.xtb       |  13 +
+ .../translations/adblock_strings_my.xtb       |  13 +
+ .../translations/adblock_strings_ne.xtb       |   4 +
+ .../translations/adblock_strings_nl.xtb       |  13 +
+ .../translations/adblock_strings_no.xtb       |   4 +
+ .../translations/adblock_strings_or.xtb       |   4 +
+ .../translations/adblock_strings_pa.xtb       |   4 +
+ .../translations/adblock_strings_pl.xtb       |  13 +
+ .../translations/adblock_strings_pt-BR.xtb    |  13 +
+ .../translations/adblock_strings_pt-PT.xtb    |  13 +
+ .../translations/adblock_strings_ro.xtb       |  13 +
+ .../translations/adblock_strings_ru.xtb       |  13 +
+ .../translations/adblock_strings_si.xtb       |   4 +
+ .../translations/adblock_strings_sk.xtb       |  13 +
+ .../translations/adblock_strings_sl.xtb       |  13 +
+ .../translations/adblock_strings_sq.xtb       |   4 +
+ .../translations/adblock_strings_sr-Latn.xtb  |   4 +
+ .../translations/adblock_strings_sr.xtb       |  13 +
+ .../translations/adblock_strings_sv.xtb       |  13 +
+ .../translations/adblock_strings_sw.xtb       |  13 +
+ .../translations/adblock_strings_ta.xtb       |   4 +
+ .../translations/adblock_strings_te.xtb       |   4 +
+ .../translations/adblock_strings_th.xtb       |  13 +
+ .../translations/adblock_strings_tr.xtb       |  13 +
+ .../translations/adblock_strings_uk.xtb       |  13 +
+ .../translations/adblock_strings_ur.xtb       |  13 +
+ .../translations/adblock_strings_uz.xtb       |   4 +
+ .../translations/adblock_strings_vi.xtb       |  13 +
+ .../translations/adblock_strings_zh-CN.xtb    |  13 +
+ .../translations/adblock_strings_zh-HK.xtb    |   4 +
+ .../translations/adblock_strings_zh-TW.xtb    |  13 +
+ .../translations/adblock_strings_zu.xtb       |   4 +
+ 113 files changed, 2126 insertions(+), 5 deletions(-)
+ create mode 100644 components/adblock/android/README.md
+ create mode 100644 components/adblock/android/adblock_strings.grd
+ create mode 100644 components/adblock/android/java/res/drawable-hdpi/fragment_adblock_custom_item_add.png
+ create mode 100644 components/adblock/android/java/res/drawable-hdpi/fragment_adblock_custom_item_remove.png
+ create mode 100644 components/adblock/android/java/res/drawable-mdpi/fragment_adblock_custom_item_add.png
+ create mode 100644 components/adblock/android/java/res/drawable-mdpi/fragment_adblock_custom_item_remove.png
+ create mode 100644 components/adblock/android/java/res/drawable-night-hdpi/fragment_adblock_custom_item_add.png
+ create mode 100644 components/adblock/android/java/res/drawable-night-hdpi/fragment_adblock_custom_item_remove.png
+ create mode 100644 components/adblock/android/java/res/drawable-night-mdpi/fragment_adblock_custom_item_add.png
+ create mode 100644 components/adblock/android/java/res/drawable-night-mdpi/fragment_adblock_custom_item_remove.png
+ create mode 100644 components/adblock/android/java/res/drawable-night-xhdpi/fragment_adblock_custom_item_add.png
+ create mode 100644 components/adblock/android/java/res/drawable-night-xhdpi/fragment_adblock_custom_item_remove.png
+ create mode 100644 components/adblock/android/java/res/drawable-night-xxhdpi/fragment_adblock_custom_item_add.png
+ create mode 100644 components/adblock/android/java/res/drawable-night-xxhdpi/fragment_adblock_custom_item_remove.png
+ create mode 100644 components/adblock/android/java/res/drawable-xhdpi/fragment_adblock_custom_item_add.png
+ create mode 100644 components/adblock/android/java/res/drawable-xhdpi/fragment_adblock_custom_item_remove.png
+ create mode 100644 components/adblock/android/java/res/drawable-xxhdpi/fragment_adblock_custom_item_add.png
+ create mode 100644 components/adblock/android/java/res/drawable-xxhdpi/fragment_adblock_custom_item_remove.png
+ create mode 100644 components/adblock/android/java/res/layout/adblock_custom_item.xml
+ create mode 100644 components/adblock/android/java/res/layout/adblock_custom_item_settings.xml
+ create mode 100644 components/adblock/android/java/res/layout/adblock_filter_lists_list_item.xml
+ create mode 100644 components/adblock/android/java/res/xml/adblock_more_options.xml
+ create mode 100644 components/adblock/android/java/res/xml/adblock_preferences.xml
+ create mode 100644 components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockAllowedDomainsFragment.java
+ create mode 100644 components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomFilterListsFragment.java
+ create mode 100644 components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomFiltersFragment.java
+ create mode 100644 components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomItemFragment.java
+ create mode 100644 components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockFilterListsAdapter.java
+ create mode 100644 components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockFilterListsFragment.java
+ create mode 100644 components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockMoreOptionsFragment.java
+ create mode 100644 components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockSettingsFragment.java
+ create mode 100644 components/adblock/android/translations/adblock_strings_af.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_am.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ar.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_as.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_az.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_be.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_bg.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_bn.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_bs.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ca.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_cs.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_da.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_de.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_el.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_en-GB.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_es-419.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_es.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_et.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_eu.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_fa.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_fi.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_fil.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_fr-CA.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_fr.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_gl.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_gu.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_hi.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_hr.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_hu.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_hy.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_id.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_is.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_it.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_iw.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ja.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ka.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_kk.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_km.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_kn.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ko.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ky.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_lo.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_lt.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_lv.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_mk.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ml.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_mn.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_mr.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ms.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_my.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ne.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_nl.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_no.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_or.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_pa.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_pl.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_pt-BR.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_pt-PT.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ro.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ru.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_si.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_sk.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_sl.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_sq.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_sr-Latn.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_sr.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_sv.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_sw.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ta.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_te.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_th.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_tr.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_uk.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_ur.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_uz.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_vi.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_zh-CN.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_zh-HK.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_zh-TW.xtb
+ create mode 100644 components/adblock/android/translations/adblock_strings_zu.xtb
+
+diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
+--- a/chrome/android/java/res/xml/main_preferences.xml
++++ b/chrome/android/java/res/xml/main_preferences.xml
+@@ -3,6 +3,9 @@
+ Copyright 2015 The Chromium Authors
+ Use of this source code is governed by a BSD-style license that can be
+ found in the LICENSE file.
++
++This source code is a part of eyeo Chromium SDK.
++Use of this source code is governed by the GPLv3 that can be found in the components/adblock/LICENSE file.
+ -->
+ 
+ <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+@@ -101,10 +104,15 @@ found in the LICENSE file.
+         android:key="accessibility"
+         android:order="17"
+         android:title="@string/prefs_accessibility"/>
++    <Preference
++        android:fragment="org.chromium.components.adblock.settings.AdblockSettingsFragment"
++        android:key="adblock"
++        android:order="18"
++        android:title="@string/adblock_settings_title" />
+     <Preference
+         android:fragment="org.chromium.components.browser_ui.site_settings.SiteSettings"
+         android:key="content_settings"
+-        android:order="18"
++        android:order="19"
+         android:title="@string/prefs_site_settings"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.settings.UserAgentPreferences"
+@@ -119,22 +127,22 @@ found in the LICENSE file.
+     <Preference
+         android:fragment="org.chromium.chrome.browser.language.settings.LanguageSettings"
+         android:key="languages"
+-        android:order="19"
++        android:order="20"
+         android:title="@string/language_settings"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.download.settings.DownloadSettings"
+         android:key="downloads"
+-        android:order="21"
++        android:order="22"
+         android:title="@string/menu_downloads"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.tracing.settings.DeveloperSettings"
+         android:key="developer"
+-        android:order="22"
++        android:order="23"
+         android:title="Developer options"/>
+     <Preference
+         android:fragment="org.chromium.chrome.browser.about_settings.AboutChromeSettings"
+         android:key="about_chrome"
+-        android:order="23"
++        android:order="24"
+         android:title="@string/prefs_about_chrome"/>
+ 
+ </PreferenceScreen>
+diff --git a/components/adblock/android/BUILD.gn b/components/adblock/android/BUILD.gn
+--- a/components/adblock/android/BUILD.gn
++++ b/components/adblock/android/BUILD.gn
+@@ -24,6 +24,18 @@ android_library("adblock_java") {
+     "java/src/org/chromium/components/adblock/ResourceClassificationNotifier.java",
+   ]
+ 
++  ### Android UI patch start
++  sources += [
++    "java/src/org/chromium/components/adblock/settings/AdblockAllowedDomainsFragment.java",
++    "java/src/org/chromium/components/adblock/settings/AdblockCustomFilterListsFragment.java",
++    "java/src/org/chromium/components/adblock/settings/AdblockCustomFiltersFragment.java",
++    "java/src/org/chromium/components/adblock/settings/AdblockCustomItemFragment.java",
++    "java/src/org/chromium/components/adblock/settings/AdblockFilterListsAdapter.java",
++    "java/src/org/chromium/components/adblock/settings/AdblockFilterListsFragment.java",
++    "java/src/org/chromium/components/adblock/settings/AdblockMoreOptionsFragment.java",
++    "java/src/org/chromium/components/adblock/settings/AdblockSettingsFragment.java",
++  ]
++### Android UI patch end
+ 
+   deps = [
+     ":java_resources",
+@@ -57,6 +69,33 @@ android_resources("java_resources") {
+   sources = [
+     "java/res/values/adblock_settings_locales_titles.xml",
+   ]
++### Android UI patch start
++  sources += [
++    "java/res/drawable-hdpi/fragment_adblock_custom_item_add.png",
++    "java/res/drawable-hdpi/fragment_adblock_custom_item_remove.png",
++    "java/res/drawable-mdpi/fragment_adblock_custom_item_add.png",
++    "java/res/drawable-mdpi/fragment_adblock_custom_item_remove.png",
++    "java/res/drawable-night-hdpi/fragment_adblock_custom_item_add.png",
++    "java/res/drawable-night-hdpi/fragment_adblock_custom_item_remove.png",
++    "java/res/drawable-night-mdpi/fragment_adblock_custom_item_add.png",
++    "java/res/drawable-night-mdpi/fragment_adblock_custom_item_remove.png",
++    "java/res/drawable-night-xhdpi/fragment_adblock_custom_item_add.png",
++    "java/res/drawable-night-xhdpi/fragment_adblock_custom_item_remove.png",
++    "java/res/drawable-night-xxhdpi/fragment_adblock_custom_item_add.png",
++    "java/res/drawable-night-xxhdpi/fragment_adblock_custom_item_remove.png",
++    "java/res/drawable-xhdpi/fragment_adblock_custom_item_add.png",
++    "java/res/drawable-xhdpi/fragment_adblock_custom_item_remove.png",
++    "java/res/drawable-xxhdpi/fragment_adblock_custom_item_add.png",
++    "java/res/drawable-xxhdpi/fragment_adblock_custom_item_remove.png",
++    "java/res/layout/adblock_custom_item.xml",
++    "java/res/layout/adblock_custom_item_settings.xml",
++    "java/res/layout/adblock_filter_lists_list_item.xml",
++    "java/res/xml/adblock_more_options.xml",
++    "java/res/xml/adblock_preferences.xml",
++  ]
++
++  deps = [ ":adblock_strings_grd" ]
++### Android UI patch end
+ }
+ 
+ android_library("adblock_java_tests") {
+@@ -85,6 +124,11 @@ android_library("adblock_java_tests") {
+     "javatests/src/org/chromium/components/adblock/TestVerificationUtils.java",
+   ]
+ 
++  ### Android UI patch start
++  sources += [
++        "javatests/src/org/chromium/components/adblock/AdblockFilterFragmentTest.java",
++  ]
++  ### Android UI patch end
+ 
+   deps = [
+     ":adblock_java",
+@@ -110,3 +154,12 @@ android_library("adblock_java_tests") {
+     "//third_party/junit:junit",
+   ]
+ }
++### Android UI patch start
++java_strings_grd("adblock_strings_grd") {
++  grd_file = "adblock_strings.grd"
++  outputs = [ "values/adblock_strings.xml" ] +
++            process_file_template(
++                android_bundle_locales_as_resources,
++                [ "values-{{source_name_part}}/adblock_strings.xml" ])
++}
++### Android UI patch end
+diff --git a/components/adblock/android/README.md b/components/adblock/android/README.md
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/README.md
+@@ -0,0 +1,13 @@
++# Translations HOWTO
++
++After introducing changes in [grdp file](adblock_strings.grd) it is recommended
++to run `grit` tool to make sure that translation IDs in [xtb files](translations)
++are matching definitions from [grdp file](adblock_strings.grd).
++
++Command:
++
++    ./tools/grit/grit.py -i components/adblock/android/adblock_strings.grd xmb grit_xmb_output.xml
++
++will produce output `grit_xmb_output.xml` containing mappings between textual
++IDs in [grdp file](adblock_strings.grd) (`message name` value) and numerical IDs
++in [xtb files](translations) (`translation id` value).
+diff --git a/components/adblock/android/adblock_strings.grd b/components/adblock/android/adblock_strings.grd
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/adblock_strings.grd
+@@ -0,0 +1,238 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!--
++  This file is part of eyeo Chromium SDK,
++  Copyright (C) 2006-present eyeo GmbH
++
++  eyeo Chromium SDK is free software: you can redistribute it and/or modify
++  it under the terms of the GNU General Public License version 3 as
++  published by the Free Software Foundation.
++
++  eyeo Chromium SDK is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
++
++  You should have received a copy of the GNU General Public License
++  along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++-->
++<grit current_release="1" latest_public_release="0" output_all_resource_defines="false">
++  <outputs>
++    <output filename="values-af/adblock_strings.xml" lang="af" type="android" />
++    <output filename="values-am/adblock_strings.xml" lang="am" type="android" />
++    <output filename="values-ar/adblock_strings.xml" lang="ar" type="android" />
++    <output filename="values-ar-rXB/adblock_strings.xml" lang="ar-XB" type="android" />
++    <output filename="values-as/adblock_strings.xml" lang="as" type="android" />
++    <output filename="values-az/adblock_strings.xml" lang="az" type="android" />
++    <output filename="values-be/adblock_strings.xml" lang="be" type="android" />
++    <output filename="values-bg/adblock_strings.xml" lang="bg" type="android" />
++    <output filename="values-bn/adblock_strings.xml" lang="bn" type="android" />
++    <output filename="values-bs/adblock_strings.xml" lang="bs" type="android" />
++    <output filename="values-ca/adblock_strings.xml" lang="ca" type="android" />
++    <output filename="values-cs/adblock_strings.xml" lang="cs" type="android" />
++    <output filename="values-da/adblock_strings.xml" lang="da" type="android" />
++    <output filename="values-de/adblock_strings.xml" lang="de" type="android" />
++    <output filename="values-el/adblock_strings.xml" lang="el" type="android" />
++    <output filename="values/adblock_strings.xml" lang="en" type="android" />
++    <output filename="values-en-rGB/adblock_strings.xml" lang="en-GB" type="android" />
++    <output filename="values-en-rXA/adblock_strings.xml" lang="en-XA" type="android" />
++    <output filename="values-es/adblock_strings.xml" lang="es" type="android" />
++    <output filename="values-es-rUS/adblock_strings.xml" lang="es-419" type="android" />
++    <output filename="values-et/adblock_strings.xml" lang="et" type="android" />
++    <output filename="values-eu/adblock_strings.xml" lang="eu" type="android" />
++    <output filename="values-fa/adblock_strings.xml" lang="fa" type="android" />
++    <output filename="values-fi/adblock_strings.xml" lang="fi" type="android" />
++    <output filename="values-tl/adblock_strings.xml" lang="fil" type="android" />
++    <output filename="values-fr/adblock_strings.xml" lang="fr" type="android" />
++    <output filename="values-fr-rCA/adblock_strings.xml" lang="fr-CA" type="android" />
++    <output filename="values-gl/adblock_strings.xml" lang="gl" type="android" />
++    <output filename="values-gu/adblock_strings.xml" lang="gu" type="android" />
++    <output filename="values-hi/adblock_strings.xml" lang="hi" type="android" />
++    <output filename="values-hr/adblock_strings.xml" lang="hr" type="android" />
++    <output filename="values-hu/adblock_strings.xml" lang="hu" type="android" />
++    <output filename="values-hy/adblock_strings.xml" lang="hy" type="android" />
++    <output filename="values-in/adblock_strings.xml" lang="id" type="android" />
++    <output filename="values-is/adblock_strings.xml" lang="is" type="android" />
++    <output filename="values-it/adblock_strings.xml" lang="it" type="android" />
++    <output filename="values-iw/adblock_strings.xml" lang="iw" type="android" />
++    <output filename="values-ja/adblock_strings.xml" lang="ja" type="android" />
++    <output filename="values-ka/adblock_strings.xml" lang="ka" type="android" />
++    <output filename="values-kk/adblock_strings.xml" lang="kk" type="android" />
++    <output filename="values-km/adblock_strings.xml" lang="km" type="android" />
++    <output filename="values-kn/adblock_strings.xml" lang="kn" type="android" />
++    <output filename="values-ko/adblock_strings.xml" lang="ko" type="android" />
++    <output filename="values-ky/adblock_strings.xml" lang="ky" type="android" />
++    <output filename="values-lo/adblock_strings.xml" lang="lo" type="android" />
++    <output filename="values-lt/adblock_strings.xml" lang="lt" type="android" />
++    <output filename="values-lv/adblock_strings.xml" lang="lv" type="android" />
++    <output filename="values-mk/adblock_strings.xml" lang="mk" type="android" />
++    <output filename="values-ml/adblock_strings.xml" lang="ml" type="android" />
++    <output filename="values-mn/adblock_strings.xml" lang="mn" type="android" />
++    <output filename="values-mr/adblock_strings.xml" lang="mr" type="android" />
++    <output filename="values-ms/adblock_strings.xml" lang="ms" type="android" />
++    <output filename="values-my/adblock_strings.xml" lang="my" type="android" />
++    <output filename="values-ne/adblock_strings.xml" lang="ne" type="android" />
++    <output filename="values-nl/adblock_strings.xml" lang="nl" type="android" />
++    <output filename="values-nb/adblock_strings.xml" lang="no" type="android" />
++    <output filename="values-or/adblock_strings.xml" lang="or" type="android" />
++    <output filename="values-pa/adblock_strings.xml" lang="pa" type="android" />
++    <output filename="values-pl/adblock_strings.xml" lang="pl" type="android" />
++    <output filename="values-pt-rBR/adblock_strings.xml" lang="pt-BR" type="android" />
++    <output filename="values-pt-rPT/adblock_strings.xml" lang="pt-PT" type="android" />
++    <output filename="values-ro/adblock_strings.xml" lang="ro" type="android" />
++    <output filename="values-ru/adblock_strings.xml" lang="ru" type="android" />
++    <output filename="values-si/adblock_strings.xml" lang="si" type="android" />
++    <output filename="values-sk/adblock_strings.xml" lang="sk" type="android" />
++    <output filename="values-sl/adblock_strings.xml" lang="sl" type="android" />
++    <output filename="values-sq/adblock_strings.xml" lang="sq" type="android" />
++    <output filename="values-sr/adblock_strings.xml" lang="sr" type="android" />
++    <output filename="values-b+sr+Latn/adblock_strings.xml" lang="sr-Latn" type="android" />
++    <output filename="values-sv/adblock_strings.xml" lang="sv" type="android" />
++    <output filename="values-sw/adblock_strings.xml" lang="sw" type="android" />
++    <output filename="values-ta/adblock_strings.xml" lang="ta" type="android" />
++    <output filename="values-te/adblock_strings.xml" lang="te" type="android" />
++    <output filename="values-th/adblock_strings.xml" lang="th" type="android" />
++    <output filename="values-tr/adblock_strings.xml" lang="tr" type="android" />
++    <output filename="values-uk/adblock_strings.xml" lang="uk" type="android" />
++    <output filename="values-ur/adblock_strings.xml" lang="ur" type="android" />
++    <output filename="values-uz/adblock_strings.xml" lang="uz" type="android" />
++    <output filename="values-vi/adblock_strings.xml" lang="vi" type="android" />
++    <output filename="values-zh-rCN/adblock_strings.xml" lang="zh-CN" type="android" />
++    <output filename="values-zh-rHK/adblock_strings.xml" lang="zh-HK" type="android" />
++    <output filename="values-zh-rTW/adblock_strings.xml" lang="zh-TW" type="android" />
++    <output filename="values-zu/adblock_strings.xml" lang="zu" type="android" />
++  </outputs>
++  <translations>
++    <file lang="af" path="translations/adblock_strings_af.xtb" />
++    <file lang="am" path="translations/adblock_strings_am.xtb" />
++    <file lang="ar" path="translations/adblock_strings_ar.xtb" />
++    <file lang="as" path="translations/adblock_strings_as.xtb" />
++    <file lang="az" path="translations/adblock_strings_az.xtb" />
++    <file lang="be" path="translations/adblock_strings_be.xtb" />
++    <file lang="bg" path="translations/adblock_strings_bg.xtb" />
++    <file lang="bn" path="translations/adblock_strings_bn.xtb" />
++    <file lang="bs" path="translations/adblock_strings_bs.xtb" />
++    <file lang="ca" path="translations/adblock_strings_ca.xtb" />
++    <file lang="cs" path="translations/adblock_strings_cs.xtb" />
++    <file lang="da" path="translations/adblock_strings_da.xtb" />
++    <file lang="de" path="translations/adblock_strings_de.xtb" />
++    <file lang="el" path="translations/adblock_strings_el.xtb" />
++    <file lang="en-GB" path="translations/adblock_strings_en-GB.xtb" />
++    <file lang="es" path="translations/adblock_strings_es.xtb" />
++    <file lang="es-419" path="translations/adblock_strings_es-419.xtb" />
++    <file lang="et" path="translations/adblock_strings_et.xtb" />
++    <file lang="eu" path="translations/adblock_strings_eu.xtb" />
++    <file lang="fa" path="translations/adblock_strings_fa.xtb" />
++    <file lang="fi" path="translations/adblock_strings_fi.xtb" />
++    <file lang="fil" path="translations/adblock_strings_fil.xtb" />
++    <file lang="fr" path="translations/adblock_strings_fr.xtb" />
++    <file lang="fr-CA" path="translations/adblock_strings_fr-CA.xtb" />
++    <file lang="gl" path="translations/adblock_strings_gl.xtb" />
++    <file lang="gu" path="translations/adblock_strings_gu.xtb" />
++    <file lang="hi" path="translations/adblock_strings_hi.xtb" />
++    <file lang="hr" path="translations/adblock_strings_hr.xtb" />
++    <file lang="hu" path="translations/adblock_strings_hu.xtb" />
++    <file lang="hy" path="translations/adblock_strings_hy.xtb" />
++    <file lang="id" path="translations/adblock_strings_id.xtb" />
++    <file lang="is" path="translations/adblock_strings_is.xtb" />
++    <file lang="it" path="translations/adblock_strings_it.xtb" />
++    <file lang="iw" path="translations/adblock_strings_iw.xtb" />
++    <file lang="ja" path="translations/adblock_strings_ja.xtb" />
++    <file lang="ka" path="translations/adblock_strings_ka.xtb" />
++    <file lang="kk" path="translations/adblock_strings_kk.xtb" />
++    <file lang="km" path="translations/adblock_strings_km.xtb" />
++    <file lang="kn" path="translations/adblock_strings_kn.xtb" />
++    <file lang="ko" path="translations/adblock_strings_ko.xtb" />
++    <file lang="ky" path="translations/adblock_strings_ky.xtb" />
++    <file lang="lo" path="translations/adblock_strings_lo.xtb" />
++    <file lang="lt" path="translations/adblock_strings_lt.xtb" />
++    <file lang="lv" path="translations/adblock_strings_lv.xtb" />
++    <file lang="mk" path="translations/adblock_strings_mk.xtb" />
++    <file lang="ml" path="translations/adblock_strings_ml.xtb" />
++    <file lang="mn" path="translations/adblock_strings_mn.xtb" />
++    <file lang="mr" path="translations/adblock_strings_mr.xtb" />
++    <file lang="ms" path="translations/adblock_strings_ms.xtb" />
++    <file lang="my" path="translations/adblock_strings_my.xtb" />
++    <file lang="ne" path="translations/adblock_strings_ne.xtb" />
++    <file lang="nl" path="translations/adblock_strings_nl.xtb" />
++    <file lang="no" path="translations/adblock_strings_no.xtb" />
++    <file lang="or" path="translations/adblock_strings_or.xtb" />
++    <file lang="pa" path="translations/adblock_strings_pa.xtb" />
++    <file lang="pl" path="translations/adblock_strings_pl.xtb" />
++    <file lang="pt-BR" path="translations/adblock_strings_pt-BR.xtb" />
++    <file lang="pt-PT" path="translations/adblock_strings_pt-PT.xtb" />
++    <file lang="ro" path="translations/adblock_strings_ro.xtb" />
++    <file lang="ru" path="translations/adblock_strings_ru.xtb" />
++    <file lang="si" path="translations/adblock_strings_si.xtb" />
++    <file lang="sk" path="translations/adblock_strings_sk.xtb" />
++    <file lang="sl" path="translations/adblock_strings_sl.xtb" />
++    <file lang="sq" path="translations/adblock_strings_sq.xtb" />
++    <file lang="sr" path="translations/adblock_strings_sr.xtb" />
++    <file lang="sr-Latn" path="translations/adblock_strings_sr-Latn.xtb" />
++    <file lang="sv" path="translations/adblock_strings_sv.xtb" />
++    <file lang="sw" path="translations/adblock_strings_sw.xtb" />
++    <file lang="ta" path="translations/adblock_strings_ta.xtb" />
++    <file lang="te" path="translations/adblock_strings_te.xtb" />
++    <file lang="th" path="translations/adblock_strings_th.xtb" />
++    <file lang="tr" path="translations/adblock_strings_tr.xtb" />
++    <file lang="uk" path="translations/adblock_strings_uk.xtb" />
++    <file lang="ur" path="translations/adblock_strings_ur.xtb" />
++    <file lang="uz" path="translations/adblock_strings_uz.xtb" />
++    <file lang="vi" path="translations/adblock_strings_vi.xtb" />
++    <file lang="zh-CN" path="translations/adblock_strings_zh-CN.xtb" />
++    <file lang="zh-HK" path="translations/adblock_strings_zh-HK.xtb" />
++    <file lang="zh-TW" path="translations/adblock_strings_zh-TW.xtb" />
++    <file lang="zu" path="translations/adblock_strings_zu.xtb" />
++  </translations>
++  <release seq="1">
++    <messages fallback_to_english="true">
++      <message name="IDS_ADBLOCK_SETTINGS_TITLE" desc="Title of Adblock settings menu item [CHAR-LIMIT=12]">
++        Ad blocking
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_SETTINGS_ENABLED_SUMMARY" desc="Summary of SwitchPreference to enable/disable Adblock">
++        Allow ad blocking on websites in this app
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_SETTINGS_FILTER_LISTS_TITLE" desc="Title of MultiSelectListPreference to choose filter lists">
++        Filter lists
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_SETTINGS_FILTER_LISTS_SUMMARY" desc="Summary of MultiSelectListPreference to choose filter lists">
++        Add the languages in which you regularly browse websites in
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_SETTINGS_AA_ENABLED_TITLE" desc="Title of SwitchPreference to enable/disable Acceptable Ads">
++        Acceptable Ads
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_SETTINGS_AA_ENABLED_SUMMARY" desc="Summary of SwitchPreference to enable/disable Acceptable Ads">
++        Acceptable ads are non-annoying ads that comply with a strict ad standard. They help generate revenue for content creators and do not interfere with the content you are viewing. This feature is turned on by default, but you can turn it off at any time.
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_SETTINGS_ALLOWED_DOMAINS_TITLE" desc="Title of Preference to configure allowed domains">
++        Allowlist
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_SETTINGS_ALLOWED_DOMAINS_SUMMARY" desc="Summary of Preference to configure allowed domains">
++        Support your favorite websites by adding them to this list. You might see ads on them.
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_SETTINGS_ADD_DOMAIN" desc="Hint of EditText for typing domain in allowed domains fragment">
++        Enter URL
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_SETTINGS_MORE_OPTIONS_TITLE" desc="Title of the Preference and fragment additional options are shown at">
++        More blocking options
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_MORE_OPTIONS_CUSTOM_FILTER_LISTS_TITLE" desc="Title of the Preference and fragment for adding custom filter lists">
++        Custom ad filtering settings
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_MORE_OPTIONS_CUSTOM_FILTER_LISTS_SUMMARY" desc="Title of the Preference for adding custom filter lists">
++        Add custom filter lists
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_MORE_OPTIONS_ADD_CUSTOM_FILTER_LIST" desc="Hint shown in a EditView for adding custom filter list URL">
++        https://example.org/myFilterList.txt
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_MORE_OPTIONS_CUSTOM_FILTERS_TITLE" desc="Title of the Preference and fragment for adding custom filters">
++        Custom Filters
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_MORE_OPTIONS_CUSTOM_FILTERS_SUMMARY" desc="Title of the Preference for adding custom filters">
++        Add custom filters
++      </message>
++      <message name="IDS_FRAGMENT_ADBLOCK_MORE_OPTIONS_CUSTOM_FILTERS_HINT" desc="Hint shown in a EditView for adding custom filter">
++        Enter filter
++      </message>
++    </messages>
++  </release>
++</grit>
+diff --git a/components/adblock/android/java/res/drawable-hdpi/fragment_adblock_custom_item_add.png b/components/adblock/android/java/res/drawable-hdpi/fragment_adblock_custom_item_add.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..0b8634e72bb0fb6325642aeb6221fd7eb18d0c07
+GIT binary patch
+literal 490
+zcmV<G0Tup<P)<h;3K|Lk000e1NJLTq001Na001Ni1ONa4O9@aD00058Nkl<Zcmd^<
+z!Aj#$6o$VhHZHU+vn_oXH-)0;!bPNrZz57$DCmF&E6fWFj>^1)o6^Ua8bxe6FQA)D
+zIGoL4Zqgg*&hKC4KfgcMdoJZG60ygaDH)%IGN#<HOOslB<CMST4lNkb!IL2wd4=AI
+zSxU$ca@8Ns=+h-C)TPfkGjzt7u)5~A24@@)V1a-ksU{w(s`NDcWP>s`xzp4wB@8w2
+zon>5UGInn&)6-bC7!}$wUW0qRcE<)!^=>w>jKm*dY4IZd30NY1HwWNV1c&;rni%$U
+z;emHi$g@m#FpR}K1MecZkV%4JDrUb{(Lg2>44If+vndfzGI>J2%m#ZhnPd1AGcu=e
+z$eeCnzCKo4wEBN-WtV*;=6S86OPO3_*cEeD>p`Y6*~SpD5PRrdbR>Spn)?q@Hoc14
+zyo!I!e{^`4(Vf@N$fIQ6XyG6x7hTbyiUx@$_bFklfqPn%(dJQ838jQQXy}DQLdX1w
+zS55pPfU2rna@8{z4Ct|5sK<ayQglW_z*1tp_A<S(k0%{YSU5{Ej%iVgCOafdnDbF+
+g&V*~WS>x;R50!~d6Wj0ry#N3J07*qoM6N<$f-V%=4*&oF
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-hdpi/fragment_adblock_custom_item_remove.png b/components/adblock/android/java/res/drawable-hdpi/fragment_adblock_custom_item_remove.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..a079dac12cb0d0a0b7857383436d51689fbc17a1
+GIT binary patch
+literal 296
+zcmeAS@N?(olHy`uVBq!ia0vp^Dj>|k1|%Oc%$NbBSc;uILpXq-h9ji|$iMID;usRq
+z`gXb@*C7KDhxuzoL_R9SITw5uxVLEW?BfN+MW5C5;+$lzEcFO(*RnAA=_%#-(Edm8
+zr_b@H^q({@`jRX#)0{Evz?DsP?As2Qe)^-}c7QLV<p%TPD@VN-yyAGQn4+^YJN)26
+zg(=LgXM8hmFVr?KS52LGbYI(*E0TwLl?)tmqrdz;?RBXmH_j=nrd8`v^~=dj6+6uS
+z#PF}2(8A@p0*N?spUadpE7WdwO{<@+%RQOGJxiS<8N{DNo)Jq=co(dZGG!j4_bo%K
+i7U=?ov*BSP6V*$->@7EW{i_FhmBG{1&t;ucLK6Tz9d&g8
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-mdpi/fragment_adblock_custom_item_add.png b/components/adblock/android/java/res/drawable-mdpi/fragment_adblock_custom_item_add.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..894f030436137ed7aae902e849852b787da3b451
+GIT binary patch
+literal 321
+zcmV-H0lxl;P)<h;3K|Lk000e1NJLTq000;O000;W1ONa4N`Cco00039Nkl<Zcmci8
+zL2BDj7)9Yv8b~Wih!;^zw_vcTvGF7WnIwy8A<#V}BugnG3$PJ(w@}xf{Dn7pAY@Gn
+zId60?|AEW%>C`sfbuKPCZ`NufeDhoM-qFG!rJq9hrE#NDxwX}%?pdi%I{)JyWD1Q_
+zQu<@k`4>Y>lQJh$r|tJLA!N3~L6wV5+U}}QXoXcS-i2mF;6ZrJu@i1ag*#!N<3*@I
+z3_PfX^M44Pa639_BJ6T}6Skwmlkk$`T4)s`-})geb5T1A%~j!1=u|Qm!pYPSU;Pzk
+zdORnkQOHnuOy@uJQ6?p{9^9$bCZ5vv@Lg$;xr6Av&ddmvl~;RbXFD&JDxb_h>a~=2
+T?wMC100000NkvXXu0mjfEbohj
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-mdpi/fragment_adblock_custom_item_remove.png b/components/adblock/android/java/res/drawable-mdpi/fragment_adblock_custom_item_remove.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..fc43e14039f48b058f68b1f1f854f8016f0197ac
+GIT binary patch
+literal 169
+zcmeAS@N?(olHy`uVBq!ia0vp^5+KaM1|%Pp+x`GjEX7WqAsj$Z!;#Vf<R^H#IEHw1
+zzMX2#bwELY_4u8`+L2FxO%t1R=b*{TKaJi@ihCM!!zwoKaTDNw(8w_*>(O7cqrBga
+zR`^WbF4?^A@Cv1f^($w8t#TFeP&jy>^|_PZrW5547W~b4b<$x22MdF^Pq&CqutJR+
+P&@Ki~S3j3^P6<r_chfxL
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-night-hdpi/fragment_adblock_custom_item_add.png b/components/adblock/android/java/res/drawable-night-hdpi/fragment_adblock_custom_item_add.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..46933a909a1f5567bab5d2b8a21febf0e2fb99dd
+GIT binary patch
+literal 1522
+zcmV<O1r7R%P)<h;3K|Lk000e1NJLTq001Na001Ni1^@s6;Q*MJ00004b3#c}2nYxW
+zd<bNS000H4Nkl<ZScUDEe@qi+7{{Nx>y@@wC`{P2Xf&FcnP8x-CNphPHdt9t_+!g9
+z-9)m4m^hg+(;#47FqWWm;EzPd@UIaRaetV&*g<B<AZaX-Ut(LSbc2;`$mSo4lW^DT
+z-Mc^JU9Qzq3f&(|{QmXcz0dR9=Xsuc?|l#8h5lzE5_O;`O0{Xzrrg59!gmY?!|PdD
+zS^9PB)~!Map<pmL{ouiasiC2vf$r|^F2CP@M-)ZwzW@idTAj9I$BxS3;bH&m>@1Js
+z=*g2O+|baFfBW|BpQ==<w4}nAOr}z|+wF-5@jQv5DBZky^Ul_-TiIoUP!y%yy?ggz
+zp63Pm1AIQ;#HmxKzO`DdAL#XZgGQrS#W0LMJ3BkyYPEiN`t<2mpU?NJ9E{^Qp`xOq
+znxZIr$uK8QoVXAQg~Ax*-o1Ojm6et4V;JV8c>WB-tSB!p-yaABeiubiLI@$A=Y@ub
+zhHsVxwP(+sBNzrDgxcELuBWG`uS_&fMn;Cdy}kVh948bCg)1s5Y7z=!u~^=fx5?pf
+zG%FMeRiZFhG)=1;8X7L(N^u+~n9b(WMLBCUn)Lqu{!!ef*4EbV7lJXFOeXuhEEbC;
+zmYqVOP+huo$%&!dZnsCRR_o#dm6w-)jw^Hb?%kkHr+Z}~d%N9kmsQfSkZndrhTiY@
+zPvT^E?%cUA+J=;0&@`<*bm-7$005FCp<~C69iN$*`7>@7i`2u152qXs$4LMHk|c?m
+znwtG2Nk&vZ0w^aZ$FO0;hBW{HUa$9;YuBz_P8JN-)vH%8dOV&90D$%D*RR>Ud2@bD
+zAgk57O{G%N002&>vwLoCZYJ44b8~Z#Iy*bN0RS`_jk2hyDB^<|0hF7YYs6!x(|JAF
+zFj!q(T~1LHB>(`U(P#wOo~n==u3o)58;?gvM+5RXlgVT%C@3h14lciEHk-|MyWJjb
+z<8rxNy}iA?_}c6B{w#{3L{Su(nVG34Ns^Q#NqmNUdV2a1UNI>tDG?i@d^IJi=+#Hl
+zbSB4fA%qYb8yowJqNslh6VWn~B<05u^bB#5gb<Pl;_0I(ii%)}Xjvc-n9j<|N&^7U
+zXf!K%p8p%qxm+$+eSLj>ba1oTY{qSKxm>QEo}Qj)o9KJ<TMz*N5DW&V5kk*T{>qgr
+zKjAWO*|McLey)jq7-dOp3x~rZLI`zqbo>aimpY<cUaxluk6D&o{`n<_ii?X`V!mf1
+zBO}8gdp#n6y1KfYJkN&#07^<q-c~A=+GN9|q@<*>EL%j9B*Af<aO1{}PWgNU(8$Qh
+zz~toQeE@*`{QTE!Hrsp22C~^~@8{*^y$S#j3<mGtzJ0qtCQv98dfe31)B^By#nsi-
+z9noks8Oef4O-;=_di3aFyqX&u8@~>R!?SUnJRZ+D-jUCqJ$sQP$(ScRi^XDb%&V}l
+zurQV#Ns@~5=g(ip$B*IR;W4dNyJAt9uq?X^uL6V+I(YD413?gq_@1$0s;a6^Vi-{r
+zrQ+h^j}i(}U0wZ^AP6E3aOTXJHilsmZl6}GU2*Q*xpoXA2!eRvz=7kC=szJ%)9RL%
+zmha?Hw{G1UWm)!PrBcbn^H(aBOi4*e*}%YnUk=mU+}uIa^wN&QG)=2(Yipb2?Gr^&
+za=YE0+S=O2yu7?O8HQO)5JU<=5GsaY)*1|kx9oO%Q(s@77lUBGs;a6lmkfhN5Cl<L
+zTKb94=bMP$GzCErd7c+Ij^jCw<9VJJ1VIqxAP6Dk^?JuymfZzQ_;rsdolf_1Wo2dE
+z#KgoD&-3AExM=Y_A08hc|6}joy<eoIrDZL;0EvPrl}eq_XnezFvz6rJ<m6{(XX`g^
+z+_+MbBoqh)rl+Q+?t46*!OqUk>w|-XeW6h3aU$`TRYHOwNP-{;e1wp-N?K0b7g|XF
+Y0A+ga)=C5v>i_@%07*qoM6N<$f{a(?RsaA1
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-night-hdpi/fragment_adblock_custom_item_remove.png b/components/adblock/android/java/res/drawable-night-hdpi/fragment_adblock_custom_item_remove.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..a5151c8bfedc208a8a6eb3cf0e78ec02663f1e59
+GIT binary patch
+literal 696
+zcmeAS@N?(olHy`uVBq!ia0vp^Dj>|k1|%Oc%$UKzz^IZL5>XQ2>tmIipR1RclAn~S
+zSCLx)lxJYDv9BmdOwLX%QAkQn&&;z`dcS+Wl0s&Rtx~wDuYqrYb81GWM^#a3aFt(3
+za#eP+Wr~u$9hXgo70`g()RIJnirk#MVyg;UC9t_xKsHENUr7P1q$Jx`$+aRiw;)qN
+zTOq<XK*2e`C{@8!&rHui$&O3GrYI%ND#*nRY6_5NtCUevQedU8UtV6WS8lAAUzDzI
+zXlZGwZ(yWvWTXpJp<7&;SCUwvn^&w1G6G_TOKNd)QD#9&W`3Rm$jro~{L&IzB_(~3
+zCHhcXfbQ0ZI~>S?dp$J|=-(os$7(_@KLG{`OR<w@2nP_<aHMnq!_VH+#W5tJ_3d=S
+ztX2mBhrhcwP5R)ubS=9_ZnCV0_y>+>V$ruM8MUQ%hiJCkar|v!+0dbIP-)o>*Ydhm
+z4nI!bkNwInbmRItp3iABla6oVY0G_cO~kTqbN}NX_e$@sp8x2u!5(qfK!aoVw!O?u
+zxc$v_S}H#~YvnxqTia?YuRWU*bgDn0r%;h)MN5mo0SRlp=bn>PE;Xh)_86+QOfWsH
+z&{Ed-xMuZHiR8??v(ol=maG(X@-V#!ObIOlNmDPVPYJ5x+i2n&%)k)YH%;LAob`8?
+zt`~4RVd6Vk=lS`!69j`2TS6ohMcq7FVa)%*91MKX(!GyQlz!UM@@iMz&1K1vp`o_t
+zKi7QH-`ioplfQeNbjbD_nm`BgHa&1#KK+~K+u#36MO@40J%2l$=koWz5!0RqUpAQ?
+de>362L*~@(U)TR{tzZNtI8RqUmvv4FO#sl$3|0UD
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-night-mdpi/fragment_adblock_custom_item_add.png b/components/adblock/android/java/res/drawable-night-mdpi/fragment_adblock_custom_item_add.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..e0093e19a3462e8c77222c9ed7910da1ce7fcba0
+GIT binary patch
+literal 747
+zcmV<H0u=p;P)<h;3K|Lk000e1NJLTq000;O000;W1^@s6;CDUv00004b3#c}2nYxW
+zd<bNS0007_Nkl<ZNQu={Jxe1|6us|FW?j3r5gB5kVX=xrnpCUBm{A6@nYe|rMKHn|
+zL~J%}lXR)X$~w#bhNMYpClW|BOa|S>6@#GZ(g>3!;+wOL<BF3Hvz@1UynDFk+<V`<
+zM6VsJZ;&ycrfDDJ@whQNI~(%*{R#lw+}t#4wOX}MC=?G44oU#-hgMcqHD;RTIR@bP
+z`1t3-!h$|bZl1|xc7+fQ08}cK)6LDzuTxV~L0OjH$+A2a2n6P~wzj_2YPDYgAcSzz
+z>2z*TM~H|ho6YV4fNk5IWHPzK7?XN&8DqXwDwS@x+jju)AkrI}rmYAe9NV@#;c!@e
+zY02~R^Lo48z7s+?J=?`Oe`8tJ1pp)xiS2G2x9{CzsZ=WM&V(`M^AMuZ=qdn|%jG%|
+z@nHoRV?K8#i;Ih~N8|3nFbso;D4)-NCnBe7nSB7@KA+G3AR>y#<A#S&tyX^nfTAcf
+zeUkL7fQTp%2+RS%(b19R3AS1-8vr=xqt6o#g3Fg>c?<xquC7|{-D8UwW9}R7>F@=>
+zvt0iKE-x>eL`37`<C9NCpJLFx-|wF!BD%i5Zh8bP%Q_(<T3%k({?~pa5{VEI)$8>W
+zPtY)o&j4_EcvzzzUw*(dl`56WDF7@jEv<M6k|d3sot-rRU~O&f%di5;WO4@pOw&B?
+z`q7ApbX{KsfZN;KKcP_QLswE4gu`Lgw(X7(!ckQ<)|Z^i<@Q~Xhf4ZwNS;U}wr$()
+z06->_*&XPHF($bp?o8I#*S9AoCf;+--*V1J6-AlZ*x1-9m&<i`U1zh|J?gPyx<c3W
+zRd*)+U|H6MrfJ@xx`z9SNRl)XjYdDkVlg8a42GtsrxgHbG#X9QG^@p8u~;gV3XbF4
+dz1aDy!(XZq=1F^0L=pf1002ovPDHLkV1h+yT0H;&
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-night-mdpi/fragment_adblock_custom_item_remove.png b/components/adblock/android/java/res/drawable-night-mdpi/fragment_adblock_custom_item_remove.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..9dcdd6c67040a18770a709aed17ea90a11f839e2
+GIT binary patch
+literal 194
+zcmeAS@N?(olHy`uVBq!ia0vp^5+KaM1|%Pp+x`GjEX7WqAsj$Z!;#Vf<X3vSIEHw1
+zzMX2w)nLHmD*S%J#^o=s96h->U8_W6ZSxD+M^A#dZ*eJ2GH3e~|HGSM%5s5;iO&>R
+z&&YI~h<TfwtD$tMm`7>er?z<u`~%l=EZDm&%9cStWC@e#iU-%5=6o(QKT>UPK6`F)
+quvez8ysu|Z;l^uyXPKTRuyZf)Ke07?`zxR$7(8A5T-G@yGywpUdPiIU
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-night-xhdpi/fragment_adblock_custom_item_add.png b/components/adblock/android/java/res/drawable-night-xhdpi/fragment_adblock_custom_item_add.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..19cb495c8205b58fead7819dcbe99befa7177e49
+GIT binary patch
+literal 1485
+zcmV;;1v2`HP)<h;3K|Lk000e1NJLTq001xm001xu1^@s6R|5Hm00004b3#c}2nYxW
+zd<bNS000GqNkl<ZXo2lnPfQb87@wIwhPJ8Q(#ATJAkh$L55!`O+sLtoT{UUdMC39o
+z#O;BEVA5>k!5R`T9^4)X2M(K<cu^x{6T9J{SvMq28eJ_tP)ljuB7y$h+CqveMQ6GP
+z19^Qj$V@x*BEQ==`M%%x``YilH{Tl!JHP?HZQxQ7DV54ryWMW@>gwv&YPE)zmKH;M
+zdppIlZ29fmx2a?@nabz$iMhGC*E2IS-p$R;lvKH^21$~-k&%&GUavP$76FD~*y-u%
+z7Y>Kx1^_@)ci{v<D2IlIZmzDbu89%Ohj=`m>+kP(;yB(|7x5O0#TE*M6156P5eNj9
+z%x3f1{nU=rH0@>>hUF7bDwRIpzkmO)fq{YRMx*fujYiW20MIuyG#t@twI@s_(~sA#
+zUHj$1g9pA(pFT0Waa_7|>AK{~34&01Jf4SqNn^2Cwy&>m6adg9l#e9I!!%91R#sLD
+ze4JxrW53}zPD-U8A0Hooj3y}-i>2Y=;oCBq>`=AD0052C>AYJil|J(oA&L6I!ND<<
+zd~tCxZ8RFsNRj}<Ftgcwc6oU@kLIbloqBqDE~7o~^ZDl0YV}cxwC_N#*LS>n^(uz0
+ziK-X2OeQ-NjYcytVI&essnzOMiM8)Quh(~=|3n}VSgLA^9UdOO4HK=euWxpCc3OnS
+zqwOFx&TKZHMb|`sf4@_dc!feiWipu}OfobybW;pRwFO`phB=+iyKrng9?yw7v0X0L
+z9he{-4krnMP}Zve0DuPFVjT|04Z#Gnv$GL6*k-di#0aRh01U%0nx<WF{Pgtn3qgSz
+zjm8KE77B%r1VO0kT>wdvhv5^OVHj2}mp7w+1p460l`D4Ge)Q<kpDfF6h!s#PwzjtZ
+zotm2RZ`%Yx;1@1ju%UjO0!${;DcFAc^y!oRk+?UWKYw14`{c=!r%)eG0Te~G!1l|R
+zFGJEx69&KEUy)m@)wZBM0DW-m*s+Q}D-;U6latuK-pe1yan5v@$z&>W8w>`{8sK1k
+zeSH&Ne7l{3=pwBZd^s8#8jip|Z{EB~qduG#A_xNgB}DHaQlVTfv#<>S;Oa#mEG#Tk
+zR7sNL5$UA~gG!~MU^^O(a@v_wKs+8#!gf<rlYx&M-vhP!V;F`}6jhNskw_#_A5H=3
+zbh^T+ySv-SM_vz{K7G0(cRruryMSmk8ieih=g-?wpL)S+wN~VwpPvuz=DP!(PS*vm
+z{9G>g0mpHL*yKWXnXdr=(1gBLE0s!NvxwjC{|652?d=_?cL9BUeWP%^*Xs=k4tBfU
+z9yoYzZtk7fsi>9$WHQ;ISS*%><3~nDZV4t(sZ_1+-@pG4CJ;Ln)lvXD4X&=Pu8}0E
+z6T`uoin7`4Mq69kiTy6XXf&QF7K<e~R_rv0Vc3_c2pzD4!QeZ&T&@>QCJ<`1`sm`~
+zVj9jF3WXA4r@<XqtyUWSC7(Te_V<1ip;oI~eLmkjoQq)?)?%@6W&lwb9Uc7@Eg~2U
+zz7x|<d!e(l(-Mh9QfMBUrrlET%kJH~H-nOAv)PSWuf?~o>Crdfa=Bdgcsvg=sXo8}
+z0KVfZqFny6#rF304v0DI2!c@AY&J(Y98U6aj*pK&uDb8P0vTUBZ6lY<eVCY-`2F0u
+zb3aiO^?hSwV=Ip1B#z^aa=E;%xw+YL@#4jwCnqQWC=?1G`8XJcVFw2X$1n*$eQ{v5
+zT4}zE*jf>dMl(G<J(u@QIE?LUarCgO2ANEzSnD-?)ljKat!}s5gT6Zn!R+j8#N~3`
+zQ79DD-kElXWWA=->AJ37y=w31=;)>>%5ePnaf8WZqF9zKhr{92($Z2YolYkf78YJl
+nO-(&nTU(1rmHPk(_?GcMY)SM2zXw?800000NkvXXu0mjfRfWEU
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-night-xhdpi/fragment_adblock_custom_item_remove.png b/components/adblock/android/java/res/drawable-night-xhdpi/fragment_adblock_custom_item_remove.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..b7839e73435139dd8fce57b8c5066587920091d8
+GIT binary patch
+literal 284
+zcmeAS@N?(olHy`uVBq!ia0vp^1|ZDA1|-9oezpTCmSQK*5Dp-y;YjHK@-KV3IEG|2
+zzP)M7cSu3vSm6h*mfo`#RdRioHkUkL>f!61d~b2KyQf5#;jRZQos;!9{&1_UE4H8a
+zKVTXcBf|&bHCtoVHeD;bQ$7DmPrQ{=kp3CV=c;iYs!LUJqqoXkl45#rf1>}wMPD;r
+zY-_vL|7R08z{_|CJF(VEVQERWp$muNu|k`x_kv{~?6tpk&)Jmc@WQK`<$DZo3mn?{
+zt^JtxWfRw>S9Vo8bQYX@`@C}BK5Ls}6)%6+E#G>tCdG!~z@m2>y2L-%*O&?cy~p6`
+L>gTe~DWM4fCeL&C
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-night-xxhdpi/fragment_adblock_custom_item_add.png b/components/adblock/android/java/res/drawable-night-xxhdpi/fragment_adblock_custom_item_add.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..0dd360b2e319aeacaf79cded607aeaef135babb9
+GIT binary patch
+literal 3393
+zcmV-H4ZiY;P)<h;3K|Lk000e1NJLTq002k;002k`1^@s6RqeA!00004b3#c}2nYxW
+zd<bNS000d5Nkl<Zc%1E=dr(tX9>?#wHwl3xJQ9*z5_vQvL39mO5k-q2xYl-O?95I_
+zcgE^Y*FmRtb(j{dt?jf`myvD7Rjb?G?X<gfwxhNP>QbF{L>GxdEe0*G2t*+vFM=Tt
+z5|YckcmJr)Xt*~#@}SQ0nc<(4<otf;d(Ziu*Y5&Bv&=HfEVIn=v;v}O42Izt9*>tS
+zl}b~Rl9CiW9uE}?h0@g2RB1*=2AY|fDFOh1uC6YVUaz+r42A)#)oO6N-4?su-fb`#
+zjBdBvMi7KQT0TcZAcV)`WvEoDXN!xA^OZ{FlH%gx927<4VHlpYeWTIn`0l&!T68+y
+zt@`@<=GNBMA4f(;^biE$5%fK>aJk&M`}gnvM}2+$k6NwPgyT3th6s-1gjTCHUA}zz
+zhYvpZ;P3JA@!2!o&M5%^V5X<1=aiL|9qaAwwO|;Ahbjske!qY0{{8#bZQHi}IV~+M
+z2LQmF>GlT$7KudjN=r-kHa0fijg%-<;5bfPyLRpFwr$(?^7(uP1VQjji!lzRQdx50
+z!iDR@!^56%45jHXJUr|<efsp(?Ck7fC`|D+<Vx6Vc6?r5-pgmsoH-;E3KN0_UV<P<
+zyWQ@wSS&-`-QBvnx;jm7Z?E2DG7UH!4zt(m9VAJT<Zw7C2?+@z6h$RUr80f(+O;`y
+zx%?T4L?TQ`NQj-t#^B(fbN%}DWlc>@-}wE0cc^WgHas2=Eh{Ul8W<RO5bVj~I8Lb5
+z>h8+Q%Fj1!*sxt9kt_uOuqJB<01zXQNS1EgxN&D?W##8;wYqzv-efYF?4_lp2Y5Ul
+z8c7XkK@cRls;cUg&1Q24bJSw7INyBp&0|?vS<9JBW@3nD0h7s0%*x8jfA78bJ~Nxm
+z&S199X0zj?k3KrZVzC5aY4l`?kB^reJ$m%((a}+iuE+HE_gfDiKKzYPD9nLjm=SIt
+z5CmZ+Cnx6|J9ezvXfzJd#XSte@I!|VeH|AU7afseV`CG_%gc`p4GoRZJ-Pb&`a1;$
+z1?v$6iHo#92!h0}UcLJF4Gj%H(TOxPH00j8b?cvEVq!w=!4p$dR8(p-8truA)YjH&
+zva_@EAqYYu?#x2~08FJ)xwNjX?lzrYeSLj{t5&W00{|dmO8{i<+_`JaW;3NYE|<$&
+zQBiSHAP~qR<-kM;g+kfk!-uP#PNyf(KODyii^bxcH*a1E6p1aCR4UE6bm`Jfx^Dd8
+zhadhkCMHG{cEeMI%jHTB95`^&@Ar>U`FZKmr5_(ICc_5+Am;VgU*G3)xkjmso;`cE
+zh0o_d6IP=kz~}QbE?l_KO69A=;qYwPvSm+Lw<VdGnTuOmTKWQwVHk#g|NZx^Sy@?m
+zq110OnM^JUI2;aVx^*fPiX}}=P1?X7kK;IT<;s-~xm><96rUdly#4mupHV%HzP>)o
+z^5x5a3xybvT`rf4s{T*}0st^dN=i2M_V$_r>&0=L*tKidUl9Zey%+KM{DpmeeKx8F
+z?Ay2RBn-o`q1uRqKoA5$3<iVy@y8$ko9aZtU@+JP0>Ofi90vd}Kl$X7uc!>@_4)^V
+zK0hlY0}qLmKoA5$2?+`F^?E(!1Fop3I0=Qa^G{ArRy8y<+zG50!!UgN_U)D7S|LYL
+zAP9n>ojZ3PrmA0~(R6V*oS>6SQ1$Zi@}AAe$e0sY-q6s{dGX@KGXz15h3b4XIDh{9
+zm(9)1_X5lLe15V@rCJ>9x3mHw2*O#mY+1fkDt%&kJ~lQ+G&VL~?eFjJn!d}?#b7Y>
+z)YsQvB?y9iyj&uYBt8H9^Z76g$I$(jRv<o~FI=!-!IHqU7n{xIx^d&iO&rHZLU%nn
+zjE#-CZr{HBgUx1p;%tb)V8EG~nTwN>lE#gaN6-o+kx0^uii+k1mRqe>TXS=BOK2`f
+zAGKQDs?+I=f#rpTg(|sRo=*2WT7kr3aZX}l;<zcirKP3QZnt+%-_@C6U|`^OPfw3F
+zaF|J@(nPUXoCVQnK`W3zAdpa%S65eGhn~W_D3T<--+ue;Eeyk+@EwL>z~ypL0089%
+zmR2CCR7xq3Ua!}O=IYGR+uLg(2!aSK7YGC?bjKjH>lm3#Mk&zH(9pm{j+jg)6PL^7
+zPV~J;(5-jOX0v&+bwCgVp(u)ujEvAu9%i%IL?w_^DwV)63{!kWFOXa=r#$TTcs!Pg
+z9OXV_qVG+no>1#}9EZbUAxV-9EKf~M717<4&<?Q$3l^kMm17uYn!bxOi^t=!kR&;-
+zn<x|t6o%oc1!)F@LHF7Ce)yC?xAKpPiDA&hXnKJ<Iyxwa5`)1IPs_Vs0C90~C{-}l
+zYPDt@$0;8?tw23JJyxo6Hk&=;$EwqX$Kwg9rgObsKNz?^dIW8d?&;~FoUQnLzI39=
+z1x3**-DaB2W;0blMo|=XyWNw%Iu162J*-bc)q@NMgOO@>gP<S+_4oHvu6O3lnUmJh
+z(GilPlf~_JyTer%1VNBYCQC&SWSl@&tJOdiydfya5VPCultXOInl+22@8XQYC@CqK
+zPc`|t-R?oE=^uiE2xPHX+D1l3#^nMQ7Z)$&a=DqI`5JwMLgD=R^XJbGj6pV=ZREj&
+z2i*|O>`W`rz`(#=wOV~Quv{b(i54wdv?OGYqs)pGD;CS;^0dGO;gu^_?r62zUb^4W
+z3N$n{G^EjJZUvT$M56fTo_lT)0D$(8>6ZqAAaN>{YN1#xjt~4yr_<dIwtb=%2*WUk
+zMx(iIwOU<|mou46BsVvAC5oa?%`g**L}@EltSAcXJtmXMaryG)8`D1gOG!z|RjbwQ
+zfrs5*uNT|2Y13W+Kv)tKB7JDTdGqG?scvRkTU+lYBqU7#W(J1gxKpQ2)luEY-??)~
+z&*5+=_iIxnk^(WAOi4#ahn}kbFTVJqF61j{nN0R;tJOL#lMBaj;<eXas|v>*cccV@
+zVK}C|y!<FtB7@y-_oSz%7l!IP1VIp7Sy}ltRRgqItzM;4t%gEOCy9_ia9&>Cx{i*H
+zaXAGfNs<Q+9QcaCU`#qsGAJsQsz|5P4FwwU`Fvw1PoBJ-l9CcqI!Po1LQyocwzl><
+zRqWAdH2R#JoYkTD`~(aJgZs`q?;NAbNyIP=ud1p#9~&E+Jl*;^G)%WXHk+Mv{P^*U
+zRN{C%9)Edxd1cts1Lbmg{<Uk@+UOFf%F4>B5Cj>w&WJWF7EAEP8*d!(`FxZKrj3n_
+z?I|fKIbk;p0AQ|Mx$;$y$K#_iJUBS$C@n4B&tkFoVK+WW*lc#vjvYIytXAtVm5)B3
+zZ>+Gea5EIC{7C=+{K_k@>>nN;rpy8K`FvPaRn<AMSS*90`z{(R5{WX7969nIpU;O;
+z^>Uld=GwS%<NGiShbJ)8!R2xV6%`f#ayp%q>3AeblBZ9fzNS*CN~V%cKV4uLX65GQ
+z{-(ORx{>b9B8S7_-Lq%U2@Z!NjI=)x1VIprqS@8e)&Hf7M?Rl#Orz0smzI_uWHOo4
+z4&D=iAV~7oty>Sax3}M;OWGt!l00+fOoKomh;9yLe0==e+S=Mix7$q_lW-g-Mn^}n
+zTeoiM)~#E&Lnsu=!qKAu05L+LP_|*ihTSbKExmNv{v=6~PN#FUrlv-nl$4|lN1LaN
+zKp@CGc<|tt6TPqD^?I>$=g!@H>#esA78De`%;WJC(9~iS;PH5h;^N}p?cTlnU`<WU
+z4?drdw#Sg<&)N0wzWeUql9Q7|+Ej-eND~tiQ(k)Mr9Xc9>8HEcY<AFX2Zmwz{rmTA
+z27|$%R;zE-)z#fJ8jS;XyWQyZdaYw)V^#=)ASRQEve|55Qc_Y%YHDigi!Z*Io1dS*
+zFfA=DEj2Zj&tkEH&O&~_AK$WN%b(7jJ9pgWa#5a)Mim%_8HI&~TQnL?&@TTt7>3~<
+zkH_bByS*-#%j0x9-A<>|_3+Q_a=AQix7+LSczhU!;gfkuZ*+7NYierhTD5A`s}Y~A
+zrV0RnA(zXS@7c5GFIuhEG8vJ=NoQxLdGFr6N7B;LasdEgf4eAbAPB<C%gbAP;>3xI
+z!^6YgNDJd|IJ}1r9Xh*Y$&wcs3<hte+dpZTOlF)yp?Kl^`SVxX+uQHkY&Lhe-etAf
+zZ0@$UwtF=-HCL2M<qHf3gB_`MM0~Xi!!TPc7OM&h3Kr+(<>jkXszu9|EtB(jyeXY&
+zkBp4?8yXtAIy*aWH#axmxO(+!v(0AfAP8bKQoch_l>apai^bwgB$Cw3%*-qlMSsQT
+z^HGUJk|LAIBnpK>oRyU&0sug5ZEfaz_wEhqbUNd}z<}|=g9jFi#qv{kcXyZBY&Q7)
+zetWchj;cV9+XVo?008(Q06`G=(V;qy<0SDjBtZ}aNs<Kl^UWva<=!l_%reU?|EK&9
+XU+F<76e(lM00000NkvXXu0mjfwLypY
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-night-xxhdpi/fragment_adblock_custom_item_remove.png b/components/adblock/android/java/res/drawable-night-xxhdpi/fragment_adblock_custom_item_remove.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..9d3e90d692fe1d5a47f5eb873527396ffef5cc85
+GIT binary patch
+literal 600
+zcmeAS@N?(olHy`uVBq!ia0vp^9w5xY1|&n@ZgvM!EX7WqAsj$Z!;#X#z`(@s>Eakt
+zG3V`V`_;DsWR86lRu0OZ_JjR#NapKSr&hkD-tpZ(f^LN?^6@zxuyD&*x+UV}g9~e$
+zoqu!fskYRxRQH@7x1;sa^Luj^H-4&l_QU$5c~YNqi-HmmXhpBTUM<)5aQS>z*T643
+z@4w$K<YbW=-(9-zeSB-;j+4A=!&a|%6xgHjyK2p++W%QbGmk{QzG4zE@A=Q9jW<kY
+zpG}``QNDQntA_;^74x3oeR#oZZ(RL@U3o`S_DW~YN<04eqe{z(cSSV<ER9ow#3ENm
+zJ#jYQbKfUT<RMVa=RNJyBTk=^{X5@K;D7@IGozdTMz_TmH<T(p5Bb9BmU8Y^{jBO7
+zDg8q!#TBzJx_#WX$*lMJvE>qAwLB~a5KWXY8n!wtzwCK?R%+J%`|;_K({9g5)xA)*
+z`)^|Qw3T=BzQ<<Iy#*2}+S!wP)@b3@b7r&8TCd%z^*iR@g}m+Zzz|dQ6v}<Pbf?lJ
+zm5Y~OeyLr3wJN5pe}7@y;fJq(*8B_9OnrLx(C=Ai)8yHj51!uS{HOc!+p_sRZi~0S
+z{#vEK)aRV6tJlmUg@1Bw<o3TTvGQLVKjCeo6URe~zUb9gv#w@+Rl3cwG-TD3pvrmC
+hKNHnJF{W6@n0jKu$E#1ic>|LQgQu&X%Q~loCIDa_3)=ty
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-xhdpi/fragment_adblock_custom_item_add.png b/components/adblock/android/java/res/drawable-xhdpi/fragment_adblock_custom_item_add.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..eae58064da9ce199afa7dc1a3695aec4cb7845f0
+GIT binary patch
+literal 638
+zcmV-^0)hRBP)<h;3K|Lk000e1NJLTq001xm001xu1ONa4{R=S+0006-Nkl<ZcmeH|
+z!AcuZ6ox<JBx3AF5+>BvzClrhNPG~XS-6peyg*B09za{S775sH6&r9<guX>FxT@Ns
+z*o`qQRH=!Zsf)t_nYql&9a0ed&d&4C`R|<E-{C><NQwoT>~Tns+q>#<$Q~<{NRgNq
+ztn(AkQ0Kg58f#p(xWx;p0WI=au*5ICh}EM^EYf_uH{cK3R49@oLxwy>s_bxePt(F7
+zB3ZuRX?<gvaf7bH5vpXLY_!wsc>eMlCq!N62DQK;ln*LD;w4d-;RIb2AuOr%D=twf
+zaG=k<0y8eZ_4F=rDCk>UlEcWB?ml=qo>UOC^rgFLOs&T14a7EphDPrhfvoGrbgT^0
+z97}(V08;utXBn&vpep?{M)0wqsU5dAnBZCz^Y~~=Ya6T$U{@3keC$c9lE|PYiZ(tD
+zrBzI1P!dH4A3bU1K=C3LiYtHV;zKe(CXvCIX5qgZ=!){gS<&!+WWA=<VO`S|Y3(F3
+z_#}$D`Q@(2S{pp!+Pvr#=bB|p16|N5BLwhHzh-GGgACuLze*s}nuWTRK~uVYrZCVF
+z$qh5H4d(Qdxq*?q#_faxad^rPdGdlu%uv=-9#DuezN61A5<*L*C(IIsIX%6{dqQ#8
+zSNRPM(wKn^P5P?;%qS7aq84}@Q)R*stD0O)8P7Noadc6VZg#0r!e#8PTuRhvYieaV
+zj1r47mv|BDf<-LIvB@BGc%Ka>vF15zoEe9ovdR>RNik1@HXXVQ7|^9dn>s~CcmO=|
+Y5BeWc8kq*G&j0`b07*qoM6N<$g8C96kN^Mx
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-xhdpi/fragment_adblock_custom_item_remove.png b/components/adblock/android/java/res/drawable-xhdpi/fragment_adblock_custom_item_remove.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..adf9549d41c6b88f43e3064320e0b56b39b1cbc5
+GIT binary patch
+literal 240
+zcmeAS@N?(olHy`uVBq!ia0vp^1|ZDA1|-9oezpTCmSQK*5Dp-y;YjHK@|SzMIEG|2
+zzP)M7*AyV)^6=nV39swN_pMoz;wTn&ETLI6O7MQ|&i>A-eJy?SEm=)G7(QsTc@{r3
+zoME=EtH;0h1=I6$lKeaxx3*>PU1ZAi;k{D)Lf6;p12ZmP-_OjlL-2uHgEV6v8Y9~G
+zfO758+p1NLz6T--eODGAuHG-Ba#!U4!jCU^c-_hu+~6`t#h3H&`$>J1eyu&m>@ZLL
+Yl!d#zrh&s}ppzLqUHx3vIVCg!03UH%RsaA1
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-xxhdpi/fragment_adblock_custom_item_add.png b/components/adblock/android/java/res/drawable-xxhdpi/fragment_adblock_custom_item_add.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..f75ae29328533b3747859b3c8d0e8b4e2026b865
+GIT binary patch
+literal 933
+zcmV;W16urvP)<h;3K|Lk000e1NJLTq002k;002k`1ONa4|Kxkj000AQNkl<ZcmeI$
+zUuzR-6vy#zs3xnEX{96^@wW5@i2qPa6?Zkz8)19ltI!ffTKW<Mx6l?W$kv8kv8y*q
+zWDyjqmMvwGeFIBtue2J{;GIc|XKxQPJJb2|Jl$O6^ShjL=#S1!=b`lU^mHwUGSgI9
+zXNv}H+BDc=ohs8@;V}EC#7$OdBOz(=mI~iv-9?_Wi$qL^8lzZqi9eA9S>*!89piT-
+zMILe#gRb!fNtq_&7?EQk;74rphzZIJF-VpygA7q-f@MAhY|N1*rG8crUmDDDiZG{{
+zX9w}+C3#XP@;Bni2P!y3;c$zOzWsL;NvPjfr_CK4;>dHCj<1qS0y*E!`iJ8rae@s5
+zomXUu?H+>8GhC7y;5mZMEHPa}(78_^X&hh?LFXr8IK~%G9Roa-nv{ra*>kh{Frkkc
+zqVg*dUGhB2F5yHa+<@ot9wid}32k#6j1_{D=(EBbBDjdC+ySG7U<OecVNd!6{eWY<
+zkjpmu`P@SZ{VT12@j`GLeS|9#>L&UV>R2h1M}Ky25NZ{DSinXh&sX3zAsqD4{gkyr
+zXVu164iTt~K7L`XP=>nNxlEvGHTKA2A$Y8IrU+D3V-r>jRn*P{0<EjDveiOkYG;i=
+zTWV|wFG&%vVRdbjKn*oEXthv5U8@sFzw}wFg>vdztLqAN-7V|7hq~)t`)>QgxESrz
+zv23-_6SXr*pet(Z)4qLNe<aXh^oxJ`|37}fTQxdwt<ZwnSc(3y?N~a(x-`|sbwZWs
+zsNq{y3Qel{HU;)jQ{x}W8!yz)XEpznJ&htNca0aCMO4la!Kzy5aKdPzGweotptTE#
+z$_4|*3LW9Sn*GLkB6^6Z)ab*61N?!gED_mJnuy9Tq?cg{QE5;lhH=DGDeb@Xs)!C(
+ziD@3up~e779r4^OVTRbUyhL=^;3P?$;XR_m3l5Ti%R5Ae4l}sK(a$Wqhz@_@kWkTA
+zN!aE#d7^Nc;xpo_Qy>MGSBNh=+~X`6f@C<y0!_r17dWJpWe)kz)Ok#WF@`CSBS(Q@
+z#;EXwdceld9K?umnn=ntxQam~eoIm28%q>1Zj?8P>Z~w=H6uKu6S+#8r<}*SA~$$V
+zE40d2R=7@qeRPP+O!0s<HmTF1MV(F7SY(nP_>L~s)6?@WgoZc?2zi9|00000NkvXX
+Hu0mjf8@;m}
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/drawable-xxhdpi/fragment_adblock_custom_item_remove.png b/components/adblock/android/java/res/drawable-xxhdpi/fragment_adblock_custom_item_remove.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..b3c47feadce9cb6829b6956c86399128fdaa992b
+GIT binary patch
+literal 456
+zcmeAS@N?(olHy`uVBq!ia0vp^9w5xY1|&n@ZgvM!EX7WqAsj$Z!;#X#z`$7V>Eakt
+zG3V`VTQ6ou2KSHRqJn1`->`@}ZrC6o&A;4zQ-FZ$!As{3Ir%Tx%OPan?JKDB=lI;4
+zy+?l^+~B)uX06KZ$w>~AR6KvNmo;!d*!gq^)3-*)`@-)JixqIzi1tY*Y=6G9JdfLg
+z%}#^=i>q+e?*7i{b)oW&4@K6`W}bHJxRhPv^^b*8s}Fe3=8wwwyo}R%8F$ESnGJWY
+zv%eH)<KhvK(9o#uS{pLc^?Q`<!6ike|1bOO&UoYf`sl+Yms%e!iPV*{ej2P}5RkCo
+zfJ0*=6EiDB6IlWQ#uuuO7Ei5ObW=2BP1=I?uIE~%{+qw9ia6_VT=abCBVh~1dug^4
+z=U;2co;5$J*S9$Lm~{cyn(~^pYk3-&AIzz;=KgPWu3_&w{VhirZZPyUSSPrA4|F@A
+zTfmW1R_GWzgI(-pzT`*8;`1wulBcP73e_+#FJ5kYt1w9s7&Q!@u6{1-oD!M<nscwX
+
+literal 0
+HcmV?d00001
+
+diff --git a/components/adblock/android/java/res/layout/adblock_custom_item.xml b/components/adblock/android/java/res/layout/adblock_custom_item.xml
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/res/layout/adblock_custom_item.xml
+@@ -0,0 +1,50 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++  This file is part of eyeo Chromium SDK,
++  Copyright (C) 2006-present eyeo GmbH
++  eyeo Chromium SDK is free software: you can redistribute it and/or modify
++  it under the terms of the GNU General Public License version 3 as
++  published by the Free Software Foundation.
++  eyeo Chromium SDK is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
++  You should have received a copy of the GNU General Public License
++  along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++-->
++
++<LinearLayout
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:gravity="center_vertical"
++    android:orientation="horizontal"
++    android:paddingTop="8dp"
++    android:paddingBottom="8dp"
++    tools:ignore="UseCompoundDrawables">
++
++    <!-- Domain/URL -->
++    <TextView
++        android:id="@+id/fragment_adblock_custom_item_title"
++        android:layout_width="0dp"
++        android:layout_weight="1"
++        android:layout_height="wrap_content"
++        android:paddingStart="0dp"
++        android:textAppearance="?android:attr/textAppearanceMedium"
++        tools:text="http://www.google.com"/>
++
++    <!-- Remove button
++         UseCompoundDrawables added to parent element to suppress warning
++         because implementation will listen for clicks on this view,
++         not whole element.
++    -->
++    <ImageView
++        android:contentDescription="@null"
++        android:id="@+id/fragment_adblock_custom_item_remove"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:src="@drawable/fragment_adblock_custom_item_remove"
++        android:paddingStart="16dp" />
++
++</LinearLayout>
+diff --git a/components/adblock/android/java/res/layout/adblock_custom_item_settings.xml b/components/adblock/android/java/res/layout/adblock_custom_item_settings.xml
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/res/layout/adblock_custom_item_settings.xml
+@@ -0,0 +1,65 @@
++<!--
++  This file is part of eyeo Chromium SDK,
++  Copyright (C) 2006-present eyeo GmbH
++  eyeo Chromium SDK is free software: you can redistribute it and/or modify
++  it under the terms of the GNU General Public License version 3 as
++  published by the Free Software Foundation.
++  eyeo Chromium SDK is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
++  You should have received a copy of the GNU General Public License
++  along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++-->
++<LinearLayout
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:orientation="vertical"
++    android:padding="32dp">
++
++    <LinearLayout
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:orientation="horizontal">
++
++        <!-- Add domain/URL input -->
++        <EditText
++            android:importantForAutofill="no"
++            android:id="@+id/fragment_adblock_custom_item_add_label"
++            android:layout_width="0dp"
++            android:layout_weight="1"
++            android:layout_height="wrap_content"
++            android:lines="1"
++            android:inputType="textUri"
++            android:hint="@strings/fragment_adblock_settings_add_domain"
++            android:textAppearance="?android:attr/textAppearanceMedium" />
++
++        <!-- Add button -->
++        <ImageView
++            android:contentDescription="@null"
++            android:id="@+id/fragment_adblock_custom_item_add_button"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:layout_gravity="center_vertical"
++            android:src="@drawable/fragment_adblock_custom_item_add"
++            android:paddingStart="8dp" />
++
++    </LinearLayout>
++
++    <TextView
++        android:id="@+id/fragment_adblock_custom_item_text"
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:paddingTop="32dp"
++        android:paddingBottom="32dp"
++        android:textAppearance="?android:attr/textAppearanceMedium"/>
++
++    <!-- ListView -->
++    <ListView
++        android:id="@+id/fragment_adblock_custom_item_listview"
++        android:layout_width="match_parent"
++        android:layout_height="match_parent"/>
++
++</LinearLayout>
+diff --git a/components/adblock/android/java/res/layout/adblock_filter_lists_list_item.xml b/components/adblock/android/java/res/layout/adblock_filter_lists_list_item.xml
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/res/layout/adblock_filter_lists_list_item.xml
+@@ -0,0 +1,36 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++  This file is part of eyeo Chromium SDK,
++  Copyright (C) 2006-present eyeo GmbH
++  eyeo Chromium SDK is free software: you can redistribute it and/or modify
++  it under the terms of the GNU General Public License version 3 as
++  published by the Free Software Foundation.
++  eyeo Chromium SDK is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
++  You should have received a copy of the GNU General Public License
++  along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++-->
++
++<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="wrap_content"
++    android:background="?android:attr/selectableItemBackground"
++    android:gravity="center_vertical"
++    android:orientation="horizontal"
++    android:focusable="true"
++    android:padding="6dp">
++
++    <CheckBox
++        android:id="@+id/checkbox"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:layout_marginEnd="21dp"
++        android:clickable="false" />
++        <TextView
++            android:id="@+id/name"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:textAppearance="@style/TextAppearance.TextLarge.Primary" />
++</LinearLayout>
+diff --git a/components/adblock/android/java/res/xml/adblock_more_options.xml b/components/adblock/android/java/res/xml/adblock_more_options.xml
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/res/xml/adblock_more_options.xml
+@@ -0,0 +1,34 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++  This file is part of eyeo Chromium SDK,
++  Copyright (C) 2006-present eyeo GmbH
++  eyeo Chromium SDK is free software: you can redistribute it and/or modify
++  it under the terms of the GNU General Public License version 3 as
++  published by the Free Software Foundation.
++  eyeo Chromium SDK is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
++  You should have received a copy of the GNU General Public License
++  along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++-->
++
++<androidx.preference.PreferenceScreen
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto">
++
++    <androidx.preference.Preference
++        android:fragment="org.chromium.components.adblock.settings.AdblockCustomFilterListsFragment"
++        android:key="fragment_adblock_more_options_custom_filter_lists_key"
++        android:title="@string/fragment_adblock_more_options_custom_filter_lists_title"
++        app:iconSpaceReserved="false"
++        android:summary="@string/fragment_adblock_more_options_custom_filter_lists_summary" />
++
++    <androidx.preference.Preference
++        android:fragment="org.chromium.components.adblock.settings.AdblockCustomFiltersFragment"
++        android:key="fragment_adblock_more_options_custom_filter_key"
++        android:title="@string/fragment_adblock_more_options_custom_filters_title"
++        app:iconSpaceReserved="false"
++        android:summary="@string/fragment_adblock_more_options_custom_filters_summary" />
++
++</androidx.preference.PreferenceScreen>
+diff --git a/components/adblock/android/java/res/xml/adblock_preferences.xml b/components/adblock/android/java/res/xml/adblock_preferences.xml
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/res/xml/adblock_preferences.xml
+@@ -0,0 +1,56 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++  This file is part of eyeo Chromium SDK,
++  Copyright (C) 2006-present eyeo GmbH
++  eyeo Chromium SDK is free software: you can redistribute it and/or modify
++  it under the terms of the GNU General Public License version 3 as
++  published by the Free Software Foundation.
++  eyeo Chromium SDK is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
++  You should have received a copy of the GNU General Public License
++  along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++-->
++
++<androidx.preference.PreferenceScreen
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto">
++
++    <!-- Adblock: enabled/disabled -->
++    <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
++        android:key="fragment_adblock_settings_enabled_key"
++        android:title="@string/adblock_settings_title"
++        app:iconSpaceReserved="false"
++        android:summary="@string/fragment_adblock_settings_enabled_summary" />
++
++    <!-- Filter lists -->
++    <androidx.preference.Preference
++        android:fragment="org.chromium.components.adblock.settings.AdblockFilterListsFragment"
++        android:key="fragment_adblock_settings_filter_lists_key"
++        android:title="@string/fragment_adblock_settings_filter_lists_title"
++        app:iconSpaceReserved="false"
++        android:summary="@string/fragment_adblock_settings_filter_lists_summary" />
++
++    <!-- Acceptable Ads: enabled/disabled -->
++    <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
++        android:key="fragment_adblock_settings_aa_enabled_key"
++        android:title="@string/fragment_adblock_settings_aa_enabled_title"
++        app:iconSpaceReserved="false"
++        android:summary="@string/fragment_adblock_settings_aa_enabled_summary" />
++
++    <!-- Allowed domains -->
++    <androidx.preference.Preference
++        android:fragment="org.chromium.components.adblock.settings.AdblockAllowedDomainsFragment"
++        android:key="fragment_adblock_settings_allowed_domains_key"
++        android:title="@string/fragment_adblock_settings_allowed_domains_title"
++        app:iconSpaceReserved="false"
++        android:summary="@string/fragment_adblock_settings_allowed_domains_summary" />
++
++    <androidx.preference.Preference
++        android:fragment="org.chromium.components.adblock.settings.AdblockMoreOptionsFragment"
++        android:key="fragment_adblock_settings_more_options_key"
++        android:title="@string/fragment_adblock_settings_more_options_title"
++        app:iconSpaceReserved="false"/>
++
++</androidx.preference.PreferenceScreen>
+diff --git a/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockAllowedDomainsFragment.java b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockAllowedDomainsFragment.java
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockAllowedDomainsFragment.java
+@@ -0,0 +1,77 @@
++/*
++ * This file is part of eyeo Chromium SDK,
++ * Copyright (C) 2006-present eyeo GmbH
++ *
++ * eyeo Chromium SDK is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 3 as
++ * published by the Free Software Foundation.
++ *
++ * eyeo Chromium SDK is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package org.chromium.components.adblock.settings;
++
++import android.app.Activity;
++import android.os.Bundle;
++import android.view.View;
++
++import org.chromium.components.adblock.AdblockController;
++import org.chromium.components.adblock.R;
++
++import java.util.List;
++
++public class AdblockAllowedDomainsFragment extends AdblockCustomItemFragment {
++    public AdblockAllowedDomainsFragment() {}
++
++    @Override
++    public void onActivityCreated(Bundle savedInstanceState) {
++        super.onActivityCreated(savedInstanceState);
++        getActivity().setTitle(R.string.fragment_adblock_settings_allowed_domains_title);
++    }
++
++    @Override
++    protected List<String> getItems() {
++        return AdblockController.getInstance().getAllowedDomains();
++    }
++
++    @Override
++    protected String getCustomItemTextViewText() {
++        return getString(R.string.fragment_adblock_settings_allowed_domains_title);
++    }
++
++    @Override
++    protected String getCustomItemEditTextHint() {
++        return getString(R.string.fragment_adblock_settings_add_domain);
++    }
++
++    @Override
++    protected String getCustomItemTextViewContentDescription() {
++        return new String("Add allowed domain text field");
++    }
++
++    @Override
++    protected String getCustomItemAddButtonContentDescription() {
++        return new String("Allowed domain add button");
++    }
++
++    @Override
++    protected String getCustomItemRemoveButtonContentDescription() {
++        return new String("Allowed domain remove button");
++    }
++
++    @Override
++    protected void addItemImpl(String domain) {
++        AdblockController.getInstance().addAllowedDomain(domain);
++    }
++
++    @Override
++    protected void removeItemImpl(String domain) {
++        AdblockController.getInstance().removeAllowedDomain(domain);
++    }
++}
+diff --git a/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomFilterListsFragment.java b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomFilterListsFragment.java
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomFilterListsFragment.java
+@@ -0,0 +1,118 @@
++/*
++ * This file is part of eyeo Chromium SDK,
++ * Copyright (C) 2006-present eyeo GmbH
++ *
++ * eyeo Chromium SDK is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 3 as
++ * published by the Free Software Foundation.
++ *
++ * eyeo Chromium SDK is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package org.chromium.components.adblock.settings;
++
++import android.app.Activity;
++import android.os.Bundle;
++import android.util.Log;
++import android.view.Gravity;
++import android.webkit.URLUtil;
++import android.widget.Toast;
++
++import org.chromium.components.adblock.AdblockController;
++import org.chromium.components.adblock.R;
++
++import java.net.MalformedURLException;
++import java.net.URL;
++import java.util.ArrayList;
++import java.util.List;
++
++public class AdblockCustomFilterListsFragment extends AdblockCustomItemFragment {
++    private static final String TAG = AdblockCustomFilterListsFragment.class.getSimpleName();
++    public AdblockCustomFilterListsFragment() {}
++
++    @Override
++    public void onActivityCreated(Bundle savedInstanceState) {
++        super.onActivityCreated(savedInstanceState);
++        getActivity().setTitle(R.string.fragment_adblock_more_options_custom_filter_lists_title);
++    }
++
++    @Override
++    protected List<String> getItems() {
++        final List<AdblockController.Subscription> installed =
++                AdblockController.getInstance().getInstalledSubscriptions();
++        final List<AdblockController.Subscription> recommended =
++                AdblockController.getInstance().getRecommendedSubscriptions(getActivity());
++        final List<String> customStrings = new ArrayList<String>();
++        for (final AdblockController.Subscription subscription : installed) {
++            if (recommended.contains(subscription)) {
++              continue;
++            }
++            // FIXME(kzlomek): Remove this after DPD-1613
++            if (subscription.url().toString().equals(
++                        "https://easylist-downloads.adblockplus.org/exceptionrules.txt")) {
++                continue;
++            }
++            customStrings.add(subscription.url().toString());
++        }
++
++        return customStrings;
++    }
++
++    @Override
++    protected String getCustomItemTextViewText() {
++        return getString(R.string.fragment_adblock_settings_filter_lists_title);
++    }
++
++    @Override
++    protected String getCustomItemEditTextHint() {
++        return getString(R.string.fragment_adblock_more_options_add_custom_filter_list);
++    }
++
++    @Override
++    protected String getCustomItemTextViewContentDescription() {
++        return new String("Add custom filter list text field");
++    }
++
++    @Override
++    protected String getCustomItemAddButtonContentDescription() {
++        return new String("Add custom filter list add button");
++    }
++
++    @Override
++    protected String getCustomItemRemoveButtonContentDescription() {
++        return new String("Add custom filter list remove button");
++    }
++
++    @Override
++    protected void addItemImpl(String url) {
++        if (!URLUtil.isHttpsUrl(url)) {
++            Toast toast =
++                    Toast.makeText(getActivity(), "Url must be https format", Toast.LENGTH_SHORT);
++            toast.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL, 0, 0);
++            toast.show();
++            Log.e(TAG, "Invalid url: " + url);
++            return;
++        }
++        try {
++            AdblockController.getInstance().installSubscription(new URL(URLUtil.guessUrl(url)));
++        } catch (MalformedURLException ex) {
++            Toast.makeText(getActivity(), "Error parsing url", Toast.LENGTH_SHORT).show();
++            Log.e(TAG, "Error parsing url: " + url);
++        }
++    }
++
++    @Override
++    protected void removeItemImpl(String url) {
++        try {
++            AdblockController.getInstance().uninstallSubscription(new URL(URLUtil.guessUrl(url)));
++        } catch (MalformedURLException ex) {
++            Log.e(TAG, "Error parsing url: " + url);
++        }
++    }
++}
+diff --git a/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomFiltersFragment.java b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomFiltersFragment.java
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomFiltersFragment.java
+@@ -0,0 +1,76 @@
++/*
++ * This file is part of eyeo Chromium SDK,
++ * Copyright (C) 2006-present eyeo GmbH
++ *
++ * eyeo Chromium SDK is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 3 as
++ * published by the Free Software Foundation.
++ *
++ * eyeo Chromium SDK is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package org.chromium.components.adblock.settings;
++
++import android.app.Activity;
++import android.os.Bundle;
++
++import org.chromium.components.adblock.AdblockController;
++import org.chromium.components.adblock.R;
++
++import java.util.List;
++
++public class AdblockCustomFiltersFragment extends AdblockCustomItemFragment {
++    public AdblockCustomFiltersFragment() {}
++
++    @Override
++    public void onActivityCreated(Bundle savedInstanceState) {
++        super.onActivityCreated(savedInstanceState);
++        getActivity().setTitle(getString(R.string.fragment_adblock_more_options_custom_filters_title));
++    }
++
++    @Override
++    protected List<String> getItems() {
++        return AdblockController.getInstance().getCustomFilters();
++    }
++
++    @Override
++    protected String getCustomItemTextViewText() {
++        return getString(R.string.fragment_adblock_more_options_custom_filters_title);
++    }
++
++    @Override
++    protected String getCustomItemEditTextHint() {
++        return getString(R.string.fragment_adblock_more_options_custom_filters_hint);
++    }
++
++    @Override
++    protected String getCustomItemTextViewContentDescription() {
++        return "Add custom filter text field";
++    }
++
++    @Override
++    protected String getCustomItemAddButtonContentDescription() {
++        return "Custom filter add button";
++    }
++
++    @Override
++    protected String getCustomItemRemoveButtonContentDescription() {
++        return "Custom filter remove button";
++    }
++
++    @Override
++    protected void addItemImpl(String value) {
++        AdblockController.getInstance().addCustomFilter(value);
++    }
++
++    @Override
++    protected void removeItemImpl(String value) {
++        AdblockController.getInstance().removeCustomFilter(value);
++    }
++}
+diff --git a/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomItemFragment.java b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomItemFragment.java
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockCustomItemFragment.java
+@@ -0,0 +1,166 @@
++/*
++ * This file is part of eyeo Chromium SDK,
++ * Copyright (C) 2006-present eyeo GmbH
++ *
++ * eyeo Chromium SDK is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 3 as
++ * published by the Free Software Foundation.
++ *
++ * eyeo Chromium SDK is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package org.chromium.components.adblock.settings;
++
++import android.os.Bundle;
++import android.view.LayoutInflater;
++import android.view.View;
++import android.view.ViewGroup;
++import android.widget.BaseAdapter;
++import android.widget.EditText;
++import android.widget.ImageView;
++import android.widget.ListView;
++import android.widget.TextView;
++
++import androidx.preference.PreferenceFragmentCompat;
++
++import org.chromium.components.adblock.R;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public abstract class AdblockCustomItemFragment extends PreferenceFragmentCompat {
++    private EditText mItem;
++    private ImageView mAddButton;
++    private ListView mListView;
++    private Adapter mAdapter;
++
++    public AdblockCustomItemFragment() {}
++
++    @Override
++    public View onCreateView(
++            LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
++        View rootView = inflater.inflate(R.layout.adblock_custom_item_settings, container, false);
++        TextView textView = rootView.findViewById(R.id.fragment_adblock_custom_item_text);
++        textView.setText(getCustomItemTextViewText());
++        textView.setContentDescription(getCustomItemTextViewContentDescription());
++
++        bindControls(rootView);
++
++        return rootView;
++    }
++
++    @Override
++    public void onCreatePreferences(Bundle bundle, String key) {}
++
++    @Override
++    public void onResume() {
++        super.onResume();
++        initControls();
++    }
++
++    private void bindControls(View rootView) {
++        mItem = rootView.findViewById(R.id.fragment_adblock_custom_item_add_label);
++        mItem.setHint(getCustomItemEditTextHint());
++        mAddButton = rootView.findViewById(R.id.fragment_adblock_custom_item_add_button);
++        mAddButton.setContentDescription(getCustomItemAddButtonContentDescription());
++        mListView = rootView.findViewById(R.id.fragment_adblock_custom_item_listview);
++    }
++
++    protected abstract void addItemImpl(String item);
++    protected abstract void removeItemImpl(String item);
++    protected abstract List<String> getItems();
++    protected abstract String getCustomItemTextViewText();
++    protected abstract String getCustomItemTextViewContentDescription();
++    protected abstract String getCustomItemAddButtonContentDescription();
++    protected abstract String getCustomItemRemoveButtonContentDescription();
++    protected abstract String getCustomItemEditTextHint();
++
++    // Holder for listview items
++    private class Holder {
++        TextView mItem;
++        ImageView mRemoveButton;
++
++        Holder(View rootView) {
++            mItem = rootView.findViewById(R.id.fragment_adblock_custom_item_title);
++            mRemoveButton = rootView.findViewById(R.id.fragment_adblock_custom_item_remove);
++            mRemoveButton.setContentDescription(
++                    AdblockCustomItemFragment.this.getCustomItemRemoveButtonContentDescription());
++        }
++    }
++
++    private View.OnClickListener removeItemClickListener = new View.OnClickListener() {
++        @Override
++        public void onClick(View v) {
++            String item = (String) v.getTag();
++            removeItemImpl(item);
++            mAdapter.notifyDataSetChanged();
++        }
++    };
++
++    private class Adapter extends BaseAdapter {
++        @Override
++        public int getCount() {
++            return AdblockCustomItemFragment.this.getItems().size();
++        }
++
++        @Override
++        public Object getItem(int position) {
++            return AdblockCustomItemFragment.this.getItems().get(position);
++        }
++
++        @Override
++        public long getItemId(int position) {
++            return getItem(position).hashCode();
++        }
++
++        @Override
++        public View getView(int position, View convertView, ViewGroup parent) {
++            if (convertView == null) {
++                LayoutInflater inflater = LayoutInflater.from(getActivity());
++                convertView = inflater.inflate(R.layout.adblock_custom_item, parent, false);
++                convertView.setTag(new Holder(convertView));
++            }
++
++            String item = (String) getItem(position);
++            Holder holder = (Holder) convertView.getTag();
++            holder.mItem.setText(item.toString());
++            holder.mRemoveButton.setOnClickListener(removeItemClickListener);
++            holder.mRemoveButton.setTag(item.toString());
++
++            return convertView;
++        }
++    }
++
++    private void initControls() {
++        mAddButton.setOnClickListener(new View.OnClickListener() {
++            @Override
++            public void onClick(View v) {
++                String preparedItem = prepareItem(mItem.getText().toString());
++
++                if (preparedItem != null && preparedItem.length() > 0) {
++                    addItem(preparedItem);
++                }
++            }
++        });
++
++        mAdapter = new Adapter();
++        mListView.setAdapter(mAdapter);
++    }
++
++    private String prepareItem(String item) {
++        return item.trim();
++    }
++
++    public void addItem(String newItem) {
++        addItemImpl(newItem);
++        mAdapter.notifyDataSetChanged();
++        mItem.getText().clear();
++        mItem.clearFocus();
++    }
++}
+diff --git a/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockFilterListsAdapter.java b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockFilterListsAdapter.java
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockFilterListsAdapter.java
+@@ -0,0 +1,115 @@
++/*
++ * This file is part of eyeo Chromium SDK,
++ * Copyright (C) 2006-present eyeo GmbH
++ *
++ * eyeo Chromium SDK is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 3 as
++ * published by the Free Software Foundation.
++ *
++ * eyeo Chromium SDK is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package org.chromium.components.adblock.settings;
++
++import android.content.Context;
++import android.view.LayoutInflater;
++import android.view.View;
++import android.view.View.OnClickListener;
++import android.view.ViewGroup;
++import android.widget.BaseAdapter;
++import android.widget.CheckBox;
++import android.widget.TextView;
++
++import org.chromium.components.adblock.AdblockController;
++import org.chromium.components.adblock.R;
++import org.chromium.components.browser_ui.settings.ChromeBaseCheckBoxPreference;
++
++import java.net.URL;
++import java.util.ArrayList;
++import java.util.List;
++
++public class AdblockFilterListsAdapter extends BaseAdapter implements OnClickListener {
++    private final LayoutInflater mLayoutInflater;
++    private final Context mContext;
++    private final AdblockController mController;
++
++    public AdblockFilterListsAdapter(Context context, AdblockController controller) {
++        this.mContext = context;
++        mLayoutInflater =
++                (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
++        this.mController = controller;
++    }
++
++    public void start() {
++        notifyDataSetChanged();
++    }
++
++    // BaseAdapter:
++
++    @Override
++    public int getCount() {
++        return mController.getRecommendedSubscriptions(mContext).size();
++    }
++
++    @Override
++    public Object getItem(int pos) {
++        return mController.getRecommendedSubscriptions(mContext).get(pos);
++    }
++
++    @Override
++    public long getItemId(int position) {
++        return position;
++    }
++
++    @Override
++    public View getView(int position, View convertView, ViewGroup parent) {
++        View view = convertView;
++        if (convertView == null) {
++            view = mLayoutInflater.inflate(R.layout.adblock_filter_lists_list_item, null);
++        }
++
++        AdblockController.Subscription item = (AdblockController.Subscription) getItem(position);
++        view.setOnClickListener(this);
++        view.setTag(item.url());
++
++        CheckBox checkBox = view.findViewById(R.id.checkbox);
++        final List<AdblockController.Subscription> subscriptions =
++                mController.getInstalledSubscriptions();
++        boolean subscribed = false;
++        for (final AdblockController.Subscription subscription : subscriptions) {
++            if (subscription.url().equals(item.url())) {
++                subscribed = true;
++                break;
++            }
++        }
++        checkBox.setChecked(subscribed);
++        checkBox.setContentDescription(item.title() + "filer list item checkbox");
++
++        TextView description = view.findViewById(R.id.name);
++        description.setText(item.title());
++        description.setContentDescription(item.title() + "filer list item title text");
++        return view;
++    }
++
++    @Override
++    public void onClick(View view) {
++        URL url = (URL) view.getTag();
++        TextView description = view.findViewById(R.id.name);
++        String title = description.getText().toString();
++
++        CheckBox checkBox = view.findViewById(R.id.checkbox);
++        if (checkBox.isChecked()) {
++            mController.uninstallSubscription(url);
++        } else {
++            mController.installSubscription(url);
++        }
++
++        notifyDataSetChanged();
++    }
++}
+diff --git a/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockFilterListsFragment.java b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockFilterListsFragment.java
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockFilterListsFragment.java
+@@ -0,0 +1,54 @@
++/*
++ * This file is part of eyeo Chromium SDK,
++ * Copyright (C) 2006-present eyeo GmbH
++ *
++ * eyeo Chromium SDK is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 3 as
++ * published by the Free Software Foundation.
++ *
++ * eyeo Chromium SDK is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++package org.chromium.components.adblock.settings;
++
++import android.os.Bundle;
++import android.view.View;
++import android.widget.ListView;
++
++import androidx.fragment.app.ListFragment;
++
++import org.chromium.components.adblock.AdblockController;
++import org.chromium.components.adblock.R;
++
++public class AdblockFilterListsFragment extends ListFragment {
++    private AdblockFilterListsAdapter mFilterListsAdapter;
++
++    @Override
++    public void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        getActivity().setTitle(R.string.fragment_adblock_settings_filter_lists_title);
++        mFilterListsAdapter =
++                new AdblockFilterListsAdapter(getActivity(), AdblockController.getInstance());
++        setListAdapter(mFilterListsAdapter);
++    }
++
++    @Override
++    public void onViewCreated(View view, Bundle savedInstanceState) {
++        super.onViewCreated(view, savedInstanceState);
++        ListView listView = getListView();
++        listView.setDivider(null);
++        listView.setItemsCanFocus(true);
++    }
++
++    @Override
++    public void onStart() {
++        super.onStart();
++        mFilterListsAdapter.start();
++    }
++}
+diff --git a/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockMoreOptionsFragment.java b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockMoreOptionsFragment.java
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockMoreOptionsFragment.java
+@@ -0,0 +1,34 @@
++// This file is part of eyeo Chromium SDK,
++// Copyright (C) 2006-present eyeo GmbH
++// eyeo Chromium SDK is free software: you can redistribute it and/or modify
++// it under the terms of the GNU General Public License version 3 as
++// published by the Free Software Foundation.
++// eyeo Chromium SDK is distributed in the hope that it will be useful,
++// but WITHOUT ANY WARRANTY; without even the implied warranty of
++// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++// GNU General Public License for more details.
++// You should have received a copy of the GNU General Public License
++// along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++
++package org.chromium.components.adblock.settings;
++
++import android.os.Bundle;
++
++import androidx.preference.PreferenceFragmentCompat;
++
++import org.chromium.components.adblock.R;
++
++public class AdblockMoreOptionsFragment extends PreferenceFragmentCompat {
++    public AdblockMoreOptionsFragment() {}
++
++    @Override
++    public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
++        addPreferencesFromResource(R.xml.adblock_more_options);
++    }
++
++    @Override
++    public void onActivityCreated(Bundle savedInstanceState) {
++        super.onActivityCreated(savedInstanceState);
++        getActivity().setTitle(R.string.fragment_adblock_more_options_custom_filter_lists_title);
++    }
++}
+diff --git a/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockSettingsFragment.java b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockSettingsFragment.java
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/java/src/org/chromium/components/adblock/settings/AdblockSettingsFragment.java
+@@ -0,0 +1,137 @@
++// This file is part of eyeo Chromium SDK,
++// Copyright (C) 2006-present eyeo GmbH
++// eyeo Chromium SDK is free software: you can redistribute it and/or modify
++// it under the terms of the GNU General Public License version 3 as
++// published by the Free Software Foundation.
++// eyeo Chromium SDK is distributed in the hope that it will be useful,
++// but WITHOUT ANY WARRANTY; without even the implied warranty of
++// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++// GNU General Public License for more details.
++// You should have received a copy of the GNU General Public License
++// along with eyeo Chromium SDK.  If not, see <http://www.gnu.org/licenses/>.
++
++package org.chromium.components.adblock.settings;
++
++import android.os.Bundle;
++import android.util.Log;
++import android.view.MotionEvent;
++import android.view.View;
++
++import androidx.preference.Preference;
++import androidx.preference.PreferenceFragmentCompat;
++
++import org.chromium.build.BuildConfig;
++import org.chromium.components.adblock.AdblockController;
++import org.chromium.components.adblock.R;
++import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
++
++import java.lang.System;
++
++public class AdblockSettingsFragment
++        extends PreferenceFragmentCompat implements Preference.OnPreferenceChangeListener {
++    private ChromeSwitchPreference mAdblockEnabled;
++    private ChromeSwitchPreference mAcceptableAdsEnabled;
++    private Preference mFilterLists;
++    private Preference mAllowedDomains;
++    private Preference mMoreOptions;
++
++    private static final String SETTINGS_ENABLED_KEY = "fragment_adblock_settings_enabled_key";
++    private static final String SETTINGS_FILTER_LISTS_KEY =
++            "fragment_adblock_settings_filter_lists_key";
++    private static final String SETTINGS_AA_ENABLED_KEY =
++            "fragment_adblock_settings_aa_enabled_key";
++    private static final String SETTINGS_ALLOWED_DOMAINS_KEY =
++            "fragment_adblock_settings_allowed_domains_key";
++    private static final String SETTINGS_MORE_OPTIONS_KEY =
++            "fragment_adblock_settings_more_options_key";
++
++    private int mOnOffClickCount;
++    private static final int ON_OFF_TOGGLE_COUNT_TO_ENABLE_MORE_OPTIONS = 10;
++    private static final int ON_OFF_TOGGLE_COUNT_TIME_WINDOW_MS = 3000;
++    private long mOnOffTogleTimestamp;
++
++    private void bindPreferences() {
++        mAdblockEnabled = (ChromeSwitchPreference) findPreference(SETTINGS_ENABLED_KEY);
++        mFilterLists = findPreference(SETTINGS_FILTER_LISTS_KEY);
++        mAcceptableAdsEnabled = (ChromeSwitchPreference) findPreference(SETTINGS_AA_ENABLED_KEY);
++        mAllowedDomains = findPreference(SETTINGS_ALLOWED_DOMAINS_KEY);
++        mMoreOptions = findPreference(SETTINGS_MORE_OPTIONS_KEY);
++    }
++
++    private void applyAdblockEnabled(boolean enabledValue) {
++        mFilterLists.setEnabled(enabledValue);
++        mAcceptableAdsEnabled.setEnabled(enabledValue);
++        mAllowedDomains.setEnabled(enabledValue);
++        mMoreOptions.setEnabled(enabledValue);
++        mMoreOptions.setVisible(AdblockController.getInstance().areMoreOptionsEnabled());
++    }
++
++    private void synchronizePreferences() {
++        boolean enabled = AdblockController.getInstance().isEnabled();
++        mAdblockEnabled.setChecked(enabled);
++        mAdblockEnabled.setOnPreferenceChangeListener(this);
++        applyAdblockEnabled(enabled);
++
++        mAcceptableAdsEnabled.setChecked(AdblockController.getInstance().isAcceptableAdsEnabled());
++        mAcceptableAdsEnabled.setOnPreferenceChangeListener(this);
++    }
++
++    private void maybeEnableMoreOptions() {
++        long now = System.currentTimeMillis();
++        /* Chromium does not have info about build type in its BuildConfig.
++           We'd have patch it and add - which sounds like an overkill for this
++           where ENABLE_ASSERTS is pretty close and equivalent unless DCHECKs are
++           always on.
++           enable_java_asserts = is_java_debug || dcheck_always_on */
++        if (BuildConfig.ENABLE_ASSERTS
++                || mOnOffTogleTimestamp + ON_OFF_TOGGLE_COUNT_TIME_WINDOW_MS >= now) {
++            ++mOnOffClickCount;
++        } else {
++            mOnOffClickCount = 1;
++        }
++
++        mOnOffTogleTimestamp = now;
++        if (mOnOffClickCount >= ON_OFF_TOGGLE_COUNT_TO_ENABLE_MORE_OPTIONS) {
++            AdblockController.getInstance().setMoreOptionsEnabled(true);
++        }
++    }
++
++    public AdblockSettingsFragment() {
++        mOnOffClickCount = 0;
++        mOnOffTogleTimestamp = 0;
++    }
++
++    @Override
++    public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
++        addPreferencesFromResource(R.xml.adblock_preferences);
++        bindPreferences();
++        synchronizePreferences();
++    }
++
++    @Override
++    public void onActivityCreated(Bundle savedInstanceState) {
++        super.onActivityCreated(savedInstanceState);
++        getActivity().setTitle(R.string.adblock_settings_title);
++    }
++
++    @Override
++    public boolean onPreferenceChange(Preference preference, Object newValue) {
++        if (preference.getKey().equals(SETTINGS_ENABLED_KEY)) {
++            AdblockController.getInstance().setEnabled((Boolean) newValue);
++
++            maybeEnableMoreOptions();
++
++            applyAdblockEnabled((Boolean) newValue);
++        } else {
++            assert preference.getKey().equals(SETTINGS_AA_ENABLED_KEY);
++            AdblockController.getInstance().setAcceptableAdsEnabled((Boolean) newValue);
++        }
++        return true;
++    }
++
++    @Override
++    public void onResume() {
++        super.onResume();
++        synchronizePreferences();
++    }
++}
+diff --git a/components/adblock/android/translations/adblock_strings_af.xtb b/components/adblock/android/translations/adblock_strings_af.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_af.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="af">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_am.xtb b/components/adblock/android/translations/adblock_strings_am.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_am.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="am">
++<translation id="8714145577049629910">Ad blocking (አድ ብሎክ ፕላስ) የንግድ ማስታወቂያማገድ</translation>
++<translation id="3493556515901914593">ብዚሁ ድር ጣቢያ የንግድ ማስታወቂያ እንዲዘጋ ወይም እንዲታገድ አድርጉ።</translation>
++<translation id="4516904298421534459">የሚፈለገው ዝርዝ</translation>
++<translation id="4713094065435138404">የሚፈልጉትን ቋንቋ መጨመር ወይም ደግሞ ማንሳት(ማስወጣት)</translation>
++<translation id="1575042640644572091">የንግድ ማስታወቂያ መቀበል</translation>
++<translation id="2763228171090923752">እኛ የድር ጣቢያ በቀላሉ መጠቀም የሚችሉ የንግድ ማስታወቂያ እንዲጠቀሙ እና የሰው ሂወት ጣልቃ የማይገባ እንዲሆን ነው መታባባት እና መባራታት ነው የምንፈልግው። ለዚህ ነው እኛ በጣም ትብቅ የሆነ መምሪያ ተጠቅመን ተቀባይነት ያላቸው የንግድ ማስታወቂያ ብቻ ከማሳየት የምናስፈቅደው፡ ይህ ደግሞ በ default setting (ደፎልት ሰቲንግ) ይገኛል። የንግድ ማስታወቂያ የሌለው ድር ጣቢያ መከታተል ከፈለጋችሁ ደግሞ ይህ በ disable setting (ዲስኤብል ሰቲንግ) የሚለው ቦታ በሜሄድ መዝጋት ይቻላል።</translation>
++<translation id="7857292107035345544">Allowlisted domains (ዋይትሊስተድ ዶመይንስ)</translation>
++<translation id="3575711988891311088">ኣርስዎ የሚፈልጉት የንግድ ማስታወቂያ የሚያሳዩት የድር ጣቢያራስዎ መጨመር ይችላሉ።</translation>
++<translation id="7059127752542505809">Domain (ዱመይን) መጨመር ይችላሉ።</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ar.xtb b/components/adblock/android/translations/adblock_strings_ar.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ar.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ar">
++<translation id="8714145577049629910">حجب الإعلانات</translation>
++<translation id="3493556515901914593">السماح بحجب الإعلانات على المواقع الإلكترونية في هذا التطبيق</translation>
++<translation id="4516904298421534459">قوائم عوامل التصفية</translation>
++<translation id="4713094065435138404">إضافة اللغات التي تستعرض بها المواقع بشكل منتظم</translation>
++<translation id="1575042640644572091">الإعلانات المقبولة</translation>
++<translation id="2763228171090923752">الإعلانات المقبولة هي إعلانات غير مزعجة تتوافق مع معيار صارم للإعلانات. وتساعد هذه الإعلانات في توفير عائد مادي لمنشئي المحتوى في حين لا تتداخل مع المحتوى الذي تستعرضه.</translation>
++<translation id="7857292107035345544">القائمة المسموح بها</translation>
++<translation id="3575711988891311088">ادعم المواقع الإلكترونية المفضلة لديك بإضافتها إلى هذه القائمة. وفي حالة إضافتها، قد تشاهد إعلانات عليها</translation>
++<translation id="7059127752542505809">أدخل عنوان الموقع (URL)</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_as.xtb b/components/adblock/android/translations/adblock_strings_as.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_as.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="as">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_az.xtb b/components/adblock/android/translations/adblock_strings_az.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_az.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="az">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_be.xtb b/components/adblock/android/translations/adblock_strings_be.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_be.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="be">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_bg.xtb b/components/adblock/android/translations/adblock_strings_bg.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_bg.xtb
+@@ -0,0 +1,16 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="bg">
++<translation id="8714145577049629910">Блокиране на реклами</translation>
++<translation id="3493556515901914593">Разрешете блокиране на реклами на уебсайтове в това приложение</translation>
++<translation id="4516904298421534459">Списъци с филтри</translation>
++<translation id="4713094065435138404">Добави или премахни списъци с филтри за конкретни езици</translation>
++<translation id="1575042640644572091">Допустими реклами</translation>
++<translation id="2763228171090923752">Бихме искали да насърчим уебсайтовете да използват ясни, ненатрапчиви реклами. Затова създадохме стриктни правила за идентифициране на допустими реклами, които се показват в настройките по подразбиране. Ако искаш да преглеждаш, без да виждаш реклами, можеш да деактивираш тази настройка по всяко време.</translation>
++<translation id="7857292107035345544">Домейни, добавени в белия списък</translation>
++<translation id="3575711988891311088">Добави уебсайтове, на които искаш да виждаш реклами, към този списък</translation>
++<translation id="7059127752542505809">Добави домейн</translation>
++<translation id="1028699632127661925">Изпраща се до <ph name="DEVICE_NAME" />...</translation>
++<translation id="103269572468856066">Изчиств. и на данните от тези сайтове и прил.?</translation>
++<translation id="1036348656032585052">Изключване</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_bn.xtb b/components/adblock/android/translations/adblock_strings_bn.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_bn.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="bn">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">ওয়েবসাইটগুলোতে বিজ্ঞাপন ব্লক করার জন্য এই অ্যাপকে অনুমতি দিন</translation>
++<translation id="4516904298421534459">ফিল্টার তালিকা</translation>
++<translation id="4713094065435138404">ভাষা যুক্ত করুন বা সরান- নির্দিষ্ট ফিল্টার তালিকা</translation>
++<translation id="1575042640644572091">গ্রহণযোগ্য বিজ্ঞাপনগুলি</translation>
++<translation id="2763228171090923752">আমরা সহজবোধ্য, অ-ছদ্মবেশী বিজ্ঞাপনগুলি ব্যবহার করতে ওয়েবসাইটগুলিকে উত্সাহিত করতে চাই। সেই কারণে আমরা গ্রহণযোগ্য বিজ্ঞাপনগুলি চিহ্নিত করতে কঠোর নির্দেশাবলী স্থাপন করেছি, যা ডিফল্ট সেটিংসে দেখানো হয়েছে। যদি আপনি বিজ্ঞাপন মুক্ত ভাবে ব্রাউজ করতে চান, তবে আপনি এই সেটিংটি যেকোনো সময়ে অক্ষম করতে পারেন।</translation>
++<translation id="7857292107035345544">পরিচ্ছন্ন তলিকাভুক্ত ডোমেইনগুলি</translation>
++<translation id="3575711988891311088">এই তালিকায় সেই ওয়েবসাইটগুলি যোগ করুন যাতে বিজ্ঞাপন দেখতে চান</translation>
++<translation id="7059127752542505809">ডোমেন যোগ করুন</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_bs.xtb b/components/adblock/android/translations/adblock_strings_bs.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_bs.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="bs">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Dozvolite blokiranje oglasa na web lokacijama u ovoj aplikaciji</translation>
++<translation id="4516904298421534459">Filtriraj liste</translation>
++<translation id="4713094065435138404">Dodaj ili ukloni liste filtera specifičnih za jezik</translation>
++<translation id="1575042640644572091">Prihvatljive reklame</translation>
++<translation id="2763228171090923752">Željeli bismo podstaknuti webstranice da koriste jasno, nenametljivo reklamiranje. Zato smo utvrdili stroge smjernice kako bismo identificirali prihvatljive reklame, koje se mogu vidjeti pod podrazumijevanim postavkama. Ako želite pretraživati bez oglasa, ovu postavku možete onemogućiti bilo kad.</translation>
++<translation id="7857292107035345544">Lista dopuštenih domena</translation>
++<translation id="3575711988891311088">Na ovaj popis dodajte webstranice sa kojih želite vidjeti oglase</translation>
++<translation id="7059127752542505809">ডDodaj domen</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ca.xtb b/components/adblock/android/translations/adblock_strings_ca.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ca.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ca">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Permet el bloqueig d\'anuncis en llocs web en aquesta aplicació</translation>
++<translation id="4516904298421534459">Llistes de filtres</translation>
++<translation id="4713094065435138404">Afegiu o suprimiu llistes de filtres específics per idioma</translation>
++<translation id="1575042640644572091">Anuncis acceptables</translation>
++<translation id="2763228171090923752">Instem als llocs web a que facin servir publicitat directa i no intrusiva. Per això hem establert directius estrictes per identificar els anuncis acceptables, que podeu trobar a la configuració predeterminada. Si voleu navegar sense anuncis, podeu desactivar aquesta configuració en qualsevol moment.</translation>
++<translation id="7857292107035345544">Llista blanca de dominis</translation>
++<translation id="3575711988891311088">Afegiu a aquesta llista tots els llocs web en què voleu veure anuncis</translation>
++<translation id="7059127752542505809">Afegeix un domini</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_cs.xtb b/components/adblock/android/translations/adblock_strings_cs.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_cs.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="cs">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Povolit v této aplikaci blokování reklam na webových stránkách</translation>
++<translation id="4516904298421534459">Přehledy filtrů</translation>
++<translation id="4713094065435138404">Přidávání nebo odebírání seznamů filtrů pro konkrétní jazyk</translation>
++<translation id="1575042640644572091">Nerušivé reklamy</translation>
++<translation id="2763228171090923752">Rádi bychom podpořili webové stránky, aby používaly přímočaré, nerušivé reklamy. Z tohoto důvodu jsme vytvořili přísné směrnice pro identifikaci „přijatelných reklam“, které se zobrazují ve výchozím nastavení. Pokud chcete surfovat bez reklam, můžete toto nastavení kdykoliv zakázat.</translation>
++<translation id="7857292107035345544">Seznam povolených domén</translation>
++<translation id="3575711988891311088">Na tento seznam lze přidávat webové stránky, na kterých chcete vidět reklamy</translation>
++<translation id="7059127752542505809">Přidat doménu</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_da.xtb b/components/adblock/android/translations/adblock_strings_da.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_da.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="da">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Tillad blokering af reklamer på hjemmesider i denne app</translation>
++<translation id="4516904298421534459">Filterlister</translation>
++<translation id="4713094065435138404">Tilføj eller fjern sprogspecifikke filterlister</translation>
++<translation id="1575042640644572091">Acceptable Ads</translation>
++<translation id="2763228171090923752">Vi vil gerne opfordre hjemmesider til at bruge ukomplicerede reklamer og reklamer, der ikke er påtrængende. Det er grunden til, at vi har lavet strenge retningslinjer, der skal identificere Acceptable Ads. Disse kan ses under standardindstillinger. Hvis du ønsker at browse internettet uden reklamer, kan du til enhver tid slå denne indstilling fra.</translation>
++<translation id="7857292107035345544">Domæner på positivlisten</translation>
++<translation id="3575711988891311088">Tilføj hjemmesider, du ønsker at se reklamer på, til denne liste</translation>
++<translation id="7059127752542505809">Tilføj domæne</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_de.xtb b/components/adblock/android/translations/adblock_strings_de.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_de.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="de">
++<translation id="8714145577049629910">Adblocking</translation>
++<translation id="3493556515901914593">Werbeblockierung auf Websites in dieser App zulassen</translation>
++<translation id="4516904298421534459">Filterlisten</translation>
++<translation id="4713094065435138404">Füge die Sprachen hinzu, in denen du regelmäßig Webseiten besuchst.</translation>
++<translation id="1575042640644572091">Acceptable Ads</translation>
++<translation id="2763228171090923752">Acceptable Ads sind unaufdringliche Werbeanzeigen gemäß strikter Normen. Sie helfen Urhebern dabei, Einnahmen zu generieren und stören nicht beim Anschauen der Inhalte. Standardmäßig sind Acceptable Ads aktiviert, aber du kannst sie jederzeit in den Einstellungen deaktivieren.</translation>
++<translation id="7857292107035345544">Allowlist</translation>
++<translation id="3575711988891311088">Unterstütze deine liebsten Webseiten und füge sie zu dieser Liste hinzu, um bei deren Besuch Werbung zuzulassen.</translation>
++<translation id="7059127752542505809">URL hinzufügen</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_el.xtb b/components/adblock/android/translations/adblock_strings_el.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_el.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="el">
++<translation id="8714145577049629910">Φραγή διαφημίσεων</translation>
++<translation id="3493556515901914593">Να επιτρέπεται ο αποκλεισμός διαφημίσεων στους ιστοτόπους σε αυτή την εφαρμογή</translation>
++<translation id="4516904298421534459">Λίστες φίλτρων</translation>
++<translation id="4713094065435138404">Προσθέστε τις γλώσσες στις οποίες κάνετε συχνότερα περιήγηση</translation>
++<translation id="1575042640644572091">Αποδεκτές Διαφημίσεις</translation>
++<translation id="2763228171090923752">Αποδεκτές διαφημίσεις είναι οι διαφημίσεις που δεν είναι ενοχλητικές και τηρούν αυστηρά πρότυπα. Βοηθούν τους δημιουργούς περιεχομένου να έχουν έσοδα και να μην παρεμβαίνουν στο περιεχόμενο που βλέπετε. Αυτή η λειτουργία είναι προεπιλογμένη, αλλά μπορείτε να την απενεργοποιήσετε ανά πάσα στιγμή.</translation>
++<translation id="7857292107035345544">Αποδοχή λίστας</translation>
++<translation id="3575711988891311088">Υποστηρίξτε τους αγαπημένους σας ιστοτόπους και προσθέστε τους σε αυτή τη λίστα. Μπορεί να δείτε διαφημίσεις στους ιστοτόπους αυτούς.</translation>
++<translation id="7059127752542505809">Εισάγετε διεύθυνση URL</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_en-GB.xtb b/components/adblock/android/translations/adblock_strings_en-GB.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_en-GB.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="en-GB">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Allow ad blocking on websites in this app</translation>
++<translation id="4516904298421534459">Filter lists</translation>
++<translation id="4713094065435138404">Add the languages in which you regularly browse websites in</translation>
++<translation id="1575042640644572091">Acceptable Ads</translation>
++<translation id="2763228171090923752">Acceptable ads are non-annoying ads that comply with a strict ad standard. They help generate revenue for content creators and do not interfere with the content you are viewing. This feature is turned on by default, but you can turn it off at any time.</translation>
++<translation id="7857292107035345544">Allowlist</translation>
++<translation id="3575711988891311088">Support your favorite websites by adding them to this list. You might see ads on them.</translation>
++<translation id="7059127752542505809">Enter URL</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_es-419.xtb b/components/adblock/android/translations/adblock_strings_es-419.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_es-419.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="es-419">
++<translation id="8714145577049629910">Bloqueo de anuncios</translation>
++<translation id="3493556515901914593">Permitir que esta aplicación bloquee anuncios en sitios web</translation>
++<translation id="4516904298421534459">Listas de filtros</translation>
++<translation id="4713094065435138404">Añadir los idiomas en los que normalmente visitas los sitios web</translation>
++<translation id="1575042640644572091">Anuncios Aceptables</translation>
++<translation id="2763228171090923752">Los anuncios aceptables son anuncios que no molestan y que cumplen con un estándar de anuncios estricto. Ayudan a que los creadores de contenido generen ingresos y no interfieren con el contenido que estás viendo.</translation>
++<translation id="7857292107035345544">Lista de elementos permitidos</translation>
++<translation id="3575711988891311088">Ayuda a tus sitios favoritos añadiéndolos a esta lista. Al hacerlo, puede que veas anuncios en ellos.</translation>
++<translation id="7059127752542505809">Introducir URL</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_es.xtb b/components/adblock/android/translations/adblock_strings_es.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_es.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="es">
++<translation id="8714145577049629910">Bloqueo de anuncios</translation>
++<translation id="3493556515901914593">Permitir que esta aplicación bloquee anuncios en sitios web</translation>
++<translation id="4516904298421534459">Listas de filtros</translation>
++<translation id="4713094065435138404">Añadir los idiomas en los que normalmente visitas los sitios web</translation>
++<translation id="1575042640644572091">Anuncios Aceptables</translation>
++<translation id="2763228171090923752">Los anuncios aceptables son anuncios que no molestan y que cumplen con un estándar de anuncios estricto. Ayudan a que los creadores de contenido generen ingresos y no interfieren con el contenido que estás viendo.</translation>
++<translation id="7857292107035345544">Lista de elementos permitidos</translation>
++<translation id="3575711988891311088">Ayuda a tus sitios favoritos añadiéndolos a esta lista. Al hacerlo, puede que veas anuncios en ellos.</translation>
++<translation id="7059127752542505809">Introducir URL</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_et.xtb b/components/adblock/android/translations/adblock_strings_et.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_et.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="et">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Luba selles rakenduses veebisaitidel reklaamide blokeerimine</translation>
++<translation id="4516904298421534459">Filtriloendid</translation>
++<translation id="4713094065435138404">Keelepõhiste filtriloendite lisamine või eemaldamine</translation>
++<translation id="1575042640644572091">Lubatavad reklaamid</translation>
++<translation id="2763228171090923752">Soovime, et veebisaidid kasutaksid otsekoheseid, mitte pealetükkivaid reklaame. Seepärast oleme kehtestanud ranged suunised lubatavate reklaamide tuvastamiseks. Need on näha vaikesätete all. Kui soovite sirvida täiesti reklaamivabalt, võite selle sätte igal ajal välja lülitada.</translation>
++<translation id="7857292107035345544">Lubatud domeenide loend</translation>
++<translation id="3575711988891311088">Lisage sellesse loendisse veebisaidid, kus soovite reklaame näha</translation>
++<translation id="7059127752542505809">Lisa domeenid</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_eu.xtb b/components/adblock/android/translations/adblock_strings_eu.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_eu.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="eu">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_fa.xtb b/components/adblock/android/translations/adblock_strings_fa.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_fa.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="fa">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">فعالسازی بلوکه کردن نمایش تبلیغات دروب سایت ها دراین نرم افزار</translation>
++<translation id="4516904298421534459">لیست</translation>
++<translation id="4713094065435138404">افزودن یا حذف لیست</translation>
++<translation id="1575042640644572091">تبلیغات قابل قبول</translation>
++<translation id="2763228171090923752">ما در نظر داریم وب</translation>
++<translation id="7857292107035345544">دامنه</translation>
++<translation id="3575711988891311088">وب</translation>
++<translation id="7059127752542505809">افزودن دامنه</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_fi.xtb b/components/adblock/android/translations/adblock_strings_fi.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_fi.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="fi">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Salli mainosten esto verkkosivustoilla tässä sovelluksessa</translation>
++<translation id="4516904298421534459">Suodatinluettelot</translation>
++<translation id="4713094065435138404">Lisää tai poista kielikohtaiset suodatinluettelot</translation>
++<translation id="1575042640644572091">Hyväksyttävät mainokset</translation>
++<translation id="2763228171090923752">Haluamme kannustaa verkkosivustoja käyttämään yksinkertaista, tunkeilematonta mainontaa. Siksi olemme luoneet tiukat ohjeet hyväksyttävien mainosten tunnistamiseksi, jotka näytetään oletusasetuksissa. Jos haluat selata ilman mainoksia, voit ottaa tämän asetuksen pois käytöstä milloin tahansa.</translation>
++<translation id="7857292107035345544">Sallittujen toimialueiden luettelo</translation>
++<translation id="3575711988891311088">Lisää tähän luetteloon verkkosivustot, joilla haluat nähdä mainoksia</translation>
++<translation id="7059127752542505809">Lisää toimialue</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_fil.xtb b/components/adblock/android/translations/adblock_strings_fil.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_fil.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="fil">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Salli mainosten esto verkkosivustoilla tässä sovelluksessa</translation>
++<translation id="4516904298421534459">I-filter ang listahan</translation>
++<translation id="4713094065435138404">Idagdag o alisin ang mga listahan ng filter para sa tiyak na wika</translation>
++<translation id="1575042640644572091">Mga Katanggap-tanggap na Ad</translation>
++<translation id="2763228171090923752">Nais naming hikayatin ang mga website na gumamit ng tapat at di mapanghimasok na pag-aadvertize. Kaya nagtaguyod kami ng mahigpit na panuntunan upang kilalanin ang mga Katanggap-tanggap na Ad na ipinapakita sa ilalim ng default settings. Kung nais mong mag-browse nang walang ad, maaari mong i-disable ang setting na ito anumang oras.</translation>
++<translation id="7857292107035345544">Mga allowlisted na domain</translation>
++<translation id="3575711988891311088">Magdagdag ng mga website na gusto mong makitaan ng mga ad sa listahang ito</translation>
++<translation id="7059127752542505809">Magdagdag ng domain</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_fr-CA.xtb b/components/adblock/android/translations/adblock_strings_fr-CA.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_fr-CA.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="fr-CA">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Autorisez le blocage de publicités sur les sites Internet dans cette application</translation>
++<translation id="4516904298421534459">Listes de filtres</translation>
++<translation id="4713094065435138404">Ajoutez les langues des sites Internet sur lesquels vous naviguez régulièrement</translation>
++<translation id="1575042640644572091">Publicité Acceptable</translation>
++<translation id="2763228171090923752">Les publicités acceptables sont des publicités non agaçantes, qui sont soumises à des normes strictes. Elles contribuent à générer des revenus pour les créateurs de contenu et ne constituent pas une entrave au contenu que vous affichez.</translation>
++<translation id="7857292107035345544">Liste des sites acceptables</translation>
++<translation id="3575711988891311088">Soutenez vos sites Internet préférés en les ajoutant à cette liste. Vous y verrez peut-être des publicités.</translation>
++<translation id="7059127752542505809">Entrez l'URL</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_fr.xtb b/components/adblock/android/translations/adblock_strings_fr.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_fr.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="fr">
++<translation id="8714145577049629910">Blocage des publicités</translation>
++<translation id="3493556515901914593">Autorisez le blocage de publicités sur les sites Internet dans cette application</translation>
++<translation id="4516904298421534459">Listes de filtres</translation>
++<translation id="4713094065435138404">Ajoutez les langues des sites Internet sur lesquels vous naviguez régulièrement</translation>
++<translation id="1575042640644572091">Publicité Acceptable</translation>
++<translation id="2763228171090923752">Les publicités acceptables sont des publicités non agaçantes, qui sont soumises à des normes strictes. Elles contribuent à générer des revenus pour les créateurs de contenu et ne constituent pas une entrave au contenu que vous affichez.</translation>
++<translation id="7857292107035345544">Liste des sites acceptables</translation>
++<translation id="3575711988891311088">Soutenez vos sites Internet préférés en les ajoutant à cette liste. Vous y verrez peut-être des publicités.</translation>
++<translation id="7059127752542505809">Entrez l'URL</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_gl.xtb b/components/adblock/android/translations/adblock_strings_gl.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_gl.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="gl">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_gu.xtb b/components/adblock/android/translations/adblock_strings_gu.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_gu.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="gu">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_hi.xtb b/components/adblock/android/translations/adblock_strings_hi.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_hi.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="hi">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">इस ऐप में वेबसाइट्स पर विज्ञापन ब्लॉक करने की अनुमति दें</translation>
++<translation id="4516904298421534459">फ़िल्टर सूचियां</translation>
++<translation id="4713094065435138404">भाषा विशिष्ठ फ़िल्टर सूचियों को जोड़ें या हटाएं</translation>
++<translation id="1575042640644572091">स्वीकार्य विज्ञापन</translation>
++<translation id="2763228171090923752">हम वेबसाइटों को सीधी, नॉनइंट्रूसिव विज्ञापन का उपयोग करने के लिए प्रोत्साहित करना चाहेंगे। इसलिए हम ने स्वीकार्य विज्ञापनों के लिए कठोर निर्देश तैयार किये है, जो डिफ़ॉल्ट सेटिंग के अंतर्गत दिखाए जायेंगे। यदि आप विज्ञापन-मुक्त ब्राउज़ करना चाहते हैं, तो आप इस सेटिंग को किसी भी समय अक्षम कर सकते हैं।</translation>
++<translation id="7857292107035345544">श्वेतसूची वाले डोमेन</translation>
++<translation id="3575711988891311088">उन वेबसाइट्स को जोड़ें, जिन्हें आप इस सूची में विज्ञापन देखना चाहते हैं</translation>
++<translation id="7059127752542505809">डोमेन जोड़ें</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_hr.xtb b/components/adblock/android/translations/adblock_strings_hr.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_hr.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="hr">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Dopustite blokiranje oglasa na mrežnim mjestima u ovoj aplikaciji</translation>
++<translation id="4516904298421534459">Filtriraj popise</translation>
++<translation id="4713094065435138404">Dodaj ili ukloni popise filtara za određeni jezik</translation>
++<translation id="1575042640644572091">Prihvatljive reklame</translation>
++<translation id="2763228171090923752">Željeli bismo potaknuti web-mjesta na korištenje izravnog, nenametljivog reklamiranja. Zato smo utvrdili stroge smjernice za identificiranje Prihvatljivih reklama, koje se vide pod zadanim postavkama. Ako želite pregledati bez reklama, ovu postavku možete onemogućiti kad god želite.</translation>
++<translation id="7857292107035345544">Popis dopuštenih domena</translation>
++<translation id="3575711988891311088">Na ovaj popis dodajte web-mjesta s kojih želite vidjeti reklame</translation>
++<translation id="7059127752542505809">Dodaj domen</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_hu.xtb b/components/adblock/android/translations/adblock_strings_hu.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_hu.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="hu">
++<translation id="8714145577049629910">Reklámok blokkolása</translation>
++<translation id="3493556515901914593">Reklámblokkolás engedélyezése webhelyeken ezen alkalmazásban</translation>
++<translation id="4516904298421534459">Filter listák</translation>
++<translation id="4713094065435138404">Adja hozzá azokat a nyelveket, amelyekben általában a weboldalak böngészését végzi.</translation>
++<translation id="1575042640644572091">Elfogadható hirdetések</translation>
++<translation id="2763228171090923752">Az elfogadható hirdetések olyan nem bosszantó hirdetések, amelyek szigorú hirdetési szabályoknak felelnek meg. Segítenek a tartalomkészítők bevételeinek generálásában, és nem zavarják a tartalmak megtekintését. Alapértelmezésként be van kapcsolva ezen funkció, de ez bármikor kikapcsolható.</translation>
++<translation id="7857292107035345544">Engedélyezőlista</translation>
++<translation id="3575711988891311088">Támogassa kedvenc weboldalait e listához történő hozzáadással. Előfordulhat, hogy hirdetéseket is láthat rajtuk.</translation>
++<translation id="7059127752542505809">URL-cím megadása</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_hy.xtb b/components/adblock/android/translations/adblock_strings_hy.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_hy.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="hy">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_id.xtb b/components/adblock/android/translations/adblock_strings_id.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_id.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="id">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Izinkan pemblokiran iklan pada situs web dalam aplikasi ini</translation>
++<translation id="4516904298421534459">Daftar filter</translation>
++<translation id="4713094065435138404">Tambah atau hapus daftar filter dalam bahasa tertentu</translation>
++<translation id="1575042640644572091">Iklan yang Bisa Diterima</translation>
++<translation id="2763228171090923752">Kami ingin mendorong agar semua situs web menggunakan metode periklanan yang bersifat sederhana dan nonintrusif. Itulah sebabnya mengapa kami menetapkan pedoman yang ketat dalam mengidentifikasi Iklan yang Bisa Diterima, yang ditunjukkan dalam pengaturan default kami. Jika Anda ingin menjelajah internet tanpa melihat iklan apa pun, Anda bisa menonaktifkan pengaturan ini kapan saja.</translation>
++<translation id="7857292107035345544">Domain yang masuk dalam daftar putih</translation>
++<translation id="3575711988891311088">Tambah situs web yang ingin Anda lihat iklan di dalamnya ke daftar ini</translation>
++<translation id="7059127752542505809">Tambah domain</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_is.xtb b/components/adblock/android/translations/adblock_strings_is.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_is.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="is">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_it.xtb b/components/adblock/android/translations/adblock_strings_it.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_it.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="it">
++<translation id="8714145577049629910">Blocco degli annunci</translation>
++<translation id="3493556515901914593">Abilita il blocco pubblicità sui siti Web</translation>
++<translation id="4516904298421534459">Elenchi di filtri</translation>
++<translation id="4713094065435138404">Aggiungi le lingue dei siti web che visiti regolarmente</translation>
++<translation id="1575042640644572091">Pubblicità Accettabili</translation>
++<translation id="2763228171090923752">Le pubblicità accettabili sono annunci non fastidiosi che rispettano un rigoroso standard pubblicitario. Aiutano a generare entrate per i creatori di contenuti e non interferiscono con i contenuti che si stanno visualizzando.</translation>
++<translation id="7857292107035345544">Elenco consentiti</translation>
++<translation id="3575711988891311088">Sostieni i tuoi siti web preferiti aggiungendoli a questo elenco. È possibile che su questi siti web appaiano delle pubblicità.</translation>
++<translation id="7059127752542505809">Inserisci URL</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_iw.xtb b/components/adblock/android/translations/adblock_strings_iw.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_iw.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="iw">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">אפשר חסימת התראות באתרים באפליקציה זאת</translation>
++<translation id="4516904298421534459">רשימות סינון</translation>
++<translation id="4713094065435138404">הוסף או הסר רשימות סינון ספציפיות לשפה</translation>
++<translation id="1575042640644572091">פרסומות מקובלות</translation>
++<translation id="2763228171090923752">אנחנו רוצים לעודד אתרים בפרסום ישיר ושאינו מפריע. לכן ביססנו קווים מנחים נוקשים לזיהוי פרסומות מקובלות, שמוצגות בהגדרות ברירת מחדל. אם תרצו לגלוש ללא פרסומות כלל, תוכלו לבטל הגדרה זו בכל עת.</translation>
++<translation id="7857292107035345544">דומיינים ברשימה הלבנה</translation>
++<translation id="3575711988891311088">לרשימה הזו הוסף אתרים שבהם תרצה לראות פרסומות</translation>
++<translation id="7059127752542505809">הוסף דומיין</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ja.xtb b/components/adblock/android/translations/adblock_strings_ja.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ja.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ja">
++<translation id="8714145577049629910">広告ブロック</translation>
++<translation id="3493556515901914593">このアプリで、ウェブサイトの広告ブロックを許可する</translation>
++<translation id="4516904298421534459">フィルターリスト</translation>
++<translation id="4713094065435138404">通常ウェブサイトをご覧になる際の言語を追加してください</translation>
++<translation id="1575042640644572091">控えめな広告</translation>
++<translation id="2763228171090923752">控えめな広告とは、厳格な広告基準を遵守する邪魔にならない広告のことです。これらの広告はコンテンツ作成者の収入源となるとともに、ご覧になっているコンテンツに干渉しないようになっています。この機能はデフォルトで ON になっていますが、いつでも OFF にすることができます。</translation>
++<translation id="7857292107035345544">許可リスト</translation>
++<translation id="3575711988891311088">このリストにお気に入りのウェブサイトを追加して支援しましょう。広告が表示される場合があります。</translation>
++<translation id="7059127752542505809">URL を入力してください</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ka.xtb b/components/adblock/android/translations/adblock_strings_ka.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ka.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ka">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_kk.xtb b/components/adblock/android/translations/adblock_strings_kk.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_kk.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="kk">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Осы қолданбадағы веб-сайттарға жарнамаларға тыйым салуға рұқсат ету</translation>
++<translation id="4516904298421534459">Сүзгі тізімдері</translation>
++<translation id="4713094065435138404">Тілге тән сүзгі тізімдерін қосу немесе жою</translation>
++<translation id="1575042640644572091">Қабылданатын жарнамалар</translation>
++<translation id="2763228171090923752">Веб-сайттарда тікелей емес, жалықтырмайтын жарнама пайдалануды қалаймыз. Сол себепті, әдепкі параметрлер астында көрсетілген қабылданатын жарнамаларды анықтау бойынша қатаң нұсқаулықтарды орнату керек. Егер тегін жарнаманы шолуды қаласаңыз, осы параметрді кез келген уақытта өшіре аласыз.</translation>
++<translation id="7857292107035345544">Ақ тізімге енген домендер</translation>
++<translation id="3575711988891311088">Осы тізімге жарнамалар көруді қалайтын веб-сайттарды қосу</translation>
++<translation id="7059127752542505809">Домен қосу</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_km.xtb b/components/adblock/android/translations/adblock_strings_km.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_km.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="km">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">អនុញ្ញាតការទប់ស្កាត់ការផ្សាយពាណិជ្ជកម្មនៅលើគេហទំព័រក្នុងកម្មវិធីនេះ</translation>
++<translation id="4516904298421534459">បញ្ជីតម្រង</translation>
++<translation id="4713094065435138404">បន្ថែម ឬដកបញ្ជីតម្រង</translation>
++<translation id="1575042640644572091">ការផ្សាយពាណិជ្ជកម្ម</translation>
++<translation id="2763228171090923752">យើងចង់</translation>
++<translation id="7857292107035345544">ដូមែន</translation>
++<translation id="3575711988891311088">បន្ថែម</translation>
++<translation id="7059127752542505809">បន្ថែមដូមែន</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_kn.xtb b/components/adblock/android/translations/adblock_strings_kn.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_kn.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="kn">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ko.xtb b/components/adblock/android/translations/adblock_strings_ko.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ko.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ko">
++<translation id="8714145577049629910">광고 차단</translation>
++<translation id="3493556515901914593">이 앱에서 웹사이트 광고 차단을 허용합니다</translation>
++<translation id="4516904298421534459">필터 목록</translation>
++<translation id="4713094065435138404">웹사이트 탐색 시 자주 사용하는 언어를 추가합니다</translation>
++<translation id="1575042640644572091">허용되는 광고</translation>
++<translation id="2763228171090923752">허용되는 광고란 엄격한 광고 기준을 준수하는 성가시지 않은 광고입니다.  콘텐츠 크리에이터의 수익 창출에 도움이 되며 표시 중인 콘텐츠를 방해하지 않습니다. 이 기능은 기본 설정에서 켜짐 상태이지만 언제든지 끌 수 있습니다.</translation>
++<translation id="7857292107035345544">허용 목록</translation>
++<translation id="3575711988891311088">이 목록에 즐겨 찾는 웹 사이트를 추가하여 지원할 수 있습니다.  광고가 표시될 수 있습니다.</translation>
++<translation id="7059127752542505809">URL 입력</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ky.xtb b/components/adblock/android/translations/adblock_strings_ky.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ky.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ky">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_lo.xtb b/components/adblock/android/translations/adblock_strings_lo.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_lo.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="lo">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_lt.xtb b/components/adblock/android/translations/adblock_strings_lt.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_lt.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="lt">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Leisti šioje programėlėje blokuoti svetainių reklamas</translation>
++<translation id="4516904298421534459">Filtrų sąrašas</translation>
++<translation id="4713094065435138404">Pridėti arba pašalinti konkrečių kalbų filtrų sąrašus</translation>
++<translation id="1575042640644572091">Priimtini skelbimai</translation>
++<translation id="2763228171090923752">Norėtume svetaines paskatinti naudoti aiškias, neintervencines reklamas. Tam sudarėme griežtas Priimtinų skelbimų, kurie rodomi esant numatytiesiems nustatymams, identifikavimo gaires. Jei naršydami norite nematyti skelbimų, šį nustatymą galite bet kada išjungti.</translation>
++<translation id="7857292107035345544">Į baltąjį sąrašą įtraukti domenai</translation>
++<translation id="3575711988891311088">Į šį sąrašą pridėkite svetaines, kurių skelbimus norite matyti</translation>
++<translation id="7059127752542505809">Pridėti domeną</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_lv.xtb b/components/adblock/android/translations/adblock_strings_lv.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_lv.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="lv">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Atļaut reklāmu bloķēšanu tīmekļa vietnēs šajā programmā</translation>
++<translation id="4516904298421534459">Filtru saraksti</translation>
++<translation id="4713094065435138404">Pievienojiet vai noņemiet valodai raksturīgos filtru sarakstus</translation>
++<translation id="1575042640644572091">Pieņemamās reklāmas</translation>
++<translation id="2763228171090923752">Mēs vēlamies mudināt tīmekļa vietnes izmantot vienkāršas, neuzmācīgas reklāmas. Tādēļ mēs esam izveidota stingras vadlīnijas, lai atpazītu pieņemamās reklāmas, kas tiek parādītas, kad ir aktīvi noklusējuma iestatījumi. Ja vēlaties pārlūkot bez reklāmām, varat atslēgt šo iestatījumu jebkurā laikā.</translation>
++<translation id="7857292107035345544">Baltajā sarakstā iekļautie domēni</translation>
++<translation id="3575711988891311088">Pievienojiet šim sarakstam tīmekļa vietnes, kurās vēlaties redzēt reklāmas</translation>
++<translation id="7059127752542505809">Pievienot domēnu</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_mk.xtb b/components/adblock/android/translations/adblock_strings_mk.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_mk.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="mk">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Дозволи блокирање реклами на веб-локации во оваа апликација</translation>
++<translation id="4516904298421534459">Листи на филтри</translation>
++<translation id="4713094065435138404">Додај или отстрани листи на филтри специфични за јазикот</translation>
++<translation id="1575042640644572091">Прифатливи реклами</translation>
++<translation id="2763228171090923752">Би сакале да ги охрабриме веб сајтовите да се служат со едноставно, ненаметливо рекламирање. Затоа воспоставивме строги упатства за идентификација на Прифатливите реклами, што се наоѓаат под стандардните поставки. Ако сакаш да прелистуваш без реклами, во секое време може да ја оневозможиш оваа поставка.</translation>
++<translation id="7857292107035345544">Домени на бела листа</translation>
++<translation id="3575711988891311088">На оваа листа додај веб сајтови на коишто сакаш да видиш реклами</translation>
++<translation id="7059127752542505809">Додај домен</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ml.xtb b/components/adblock/android/translations/adblock_strings_ml.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ml.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ml">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_mn.xtb b/components/adblock/android/translations/adblock_strings_mn.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_mn.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="mn">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_mr.xtb b/components/adblock/android/translations/adblock_strings_mr.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_mr.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="mr">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ms.xtb b/components/adblock/android/translations/adblock_strings_ms.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ms.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ms">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Benarkan penyekat iklan pada tapak web dalam apl ini</translation>
++<translation id="4516904298421534459">Senarai penapis</translation>
++<translation id="4713094065435138404">Tambah atau buang senarai penapis bahasa tertentu</translation>
++<translation id="1575042640644572091">Iklan yang boleh diterima</translation>
++<translation id="2763228171090923752">Kami ingin menggalakkan lama web untuk menggunakan pengiklanan yang jujur dan tidak mengganggu. Itulah sebabnya kami menubuhkan garis panduan ketat untuk mengenal pasti Iklan Boleh Diterima, yang dipaparkan di bawah tetapan lalai. Jika anda ingin melayari bebas iklan, anda boleh menyahdaya tetapan ini pada bila-bila masa.</translation>
++<translation id="7857292107035345544">Domain disenarai putih</translation>
++<translation id="3575711988891311088">Tambah laman web yang anda ingin lihat iklan pada senarai ini</translation>
++<translation id="7059127752542505809">Tambaha domain</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_my.xtb b/components/adblock/android/translations/adblock_strings_my.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_my.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="my">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">ဤအက္(ပ္)တြင္ ဝဘ္ဆိုုဒ္မ်ား ၾကည့္ရႈခ်ိန္၌ ေၾကာ္ျငာမ်ားထြက္ေပၚလာျခင္းကိုု ပိတ္ဆိုု႔ရန္အတြက္ ခြင့္ျပဳသည္</translation>
++<translation id="4516904298421534459">စစ္ထုတ္ထားသည့္စာရင္းမ်ား</translation>
++<translation id="4713094065435138404">ဘာသာရပ္ဆိုင္ရာစစ္ထုတ္စာရင္းမ်ားကိုထည့္ပါ သို႔မဟုတ္ ဖယ္ထုတ္ပါ</translation>
++<translation id="1575042640644572091">လက္ခံႏုိင္ေသာေၾကာ္ျငာမ်ား</translation>
++<translation id="2763228171090923752">ေျဖာင့္မွန္ေသာ၊ အစြန္းထြက္ျခင္းမရွိေသာ ေၾကာ္ျငာကိုအသံုးျပဳရန္ ကၽြႏု္ပ္တို႔ ဝဘ္ဆိုက္ကို တိုက္တြန္းလိုပါသည္။ ပံုေသဆက္တင္မ်ားေအာက္တြင္ ေဖာ္ျပထားသည့္ လက္ခံႏုိင္သည့္ ေၾကာ္ျငာမ်ားကို ေဖာ္ျပရန္ တင္းက်ပ္သည့္လမ္းညႊန္ခ်က္မ်ားကို ထို႔အတြက္ေၾကာင့္ ကၽြႏု္ပ္တုိ႔ ခ်မွတ္ထားသည္။ ေၾကာ္ျငာမပါျခင္းကိုရွာေဖြလိုသည့္အခါ သင္သည္ ထုိဆက္တင္ကို မည္သည့္အခ်ိန္တြင္မဆို ပိတ္ထားႏုိင္သည္။</translation>
++<translation id="7857292107035345544">အတည္ျပဳထားသည့္ ဒိုမိန္းမ်ား</translation>
++<translation id="3575711988891311088">ဤစာရင္းတြင္ ေၾကာ္ျငာမ်ားကိုျမင္ခ်င္သည့္ ဝဘ္ဆိုက္မ်ားကိုထည့္သြင္းပါ</translation>
++<translation id="7059127752542505809">ডဒိုမိန္းကိုထည့္ပါ</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ne.xtb b/components/adblock/android/translations/adblock_strings_ne.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ne.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ne">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_nl.xtb b/components/adblock/android/translations/adblock_strings_nl.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_nl.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="nl">
++<translation id="8714145577049629910">Advertentieblokkering</translation>
++<translation id="3493556515901914593">In deze app advertentieblokkering op websites toestaan</translation>
++<translation id="4516904298421534459">Filterlijsten</translation>
++<translation id="4713094065435138404">Voeg de talen toe waarin u regelmatig websites bezoekt</translation>
++<translation id="1575042640644572091">Acceptabele advertenties</translation>
++<translation id="2763228171090923752">Acceptabele advertenties zijn niet-irritante advertenties die voldoen aan een strenge advertentie standaard. Ze dragen bij tot het genereren van inkomsten voor contentmakers en komen niet in de weg van de inhoud die u bekijkt. Deze optie staat standaard aan, maar u kan het elk moment uitschakelen.</translation>
++<translation id="7857292107035345544">Toelatingslijst</translation>
++<translation id="3575711988891311088">Ondersteun uw favoriete websites door ze aan deze lijst toe te voegen. Er kunnen advertenties op worden weergegeven.</translation>
++<translation id="7059127752542505809">Voer URL in</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_no.xtb b/components/adblock/android/translations/adblock_strings_no.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_no.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="no">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_or.xtb b/components/adblock/android/translations/adblock_strings_or.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_or.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="or">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_pa.xtb b/components/adblock/android/translations/adblock_strings_pa.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_pa.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="pa">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_pl.xtb b/components/adblock/android/translations/adblock_strings_pl.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_pl.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="pl">
++<translation id="8714145577049629910">Blokowanie reklam</translation>
++<translation id="3493556515901914593">Zezwalaj na blokowanie reklam na witrynach w tej aplikacji</translation>
++<translation id="4516904298421534459">Listy filtrów</translation>
++<translation id="4713094065435138404">Dodaj języki, w których najczęściej przeglądasz strony internetowe</translation>
++<translation id="1575042640644572091">Akceptowalne reklamy</translation>
++<translation id="2763228171090923752">Akceptowalne reklamy to reklamy nieirytujące, które podlegają rygorystycznym normom tworzenia reklam. Pomagają one generować dochód dla twórców, a Tobie nie przeszkadzają w oglądaniu treści stron.</translation>
++<translation id="7857292107035345544">Lista dozwolonych</translation>
++<translation id="3575711988891311088">Wspieraj swoje ulubione witryny, dodając je do tej listy. Reklamy będą na nich wyświetlane.</translation>
++<translation id="7059127752542505809">Wprowadź URL</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_pt-BR.xtb b/components/adblock/android/translations/adblock_strings_pt-BR.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_pt-BR.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="pt-BR">
++<translation id="8714145577049629910">Bloqueio de anúncios</translation>
++<translation id="3493556515901914593">Permitir o bloqueio de anúncios em páginas web neste app</translation>
++<translation id="4516904298421534459">Listas de filtros</translation>
++<translation id="4713094065435138404">Adicione os idiomas nos quais normalmente você navega nos sites</translation>
++<translation id="1575042640644572091">Anúncios Aceitáveis</translation>
++<translation id="2763228171090923752">Anúncios aceitáveis são anúncios não irritantes que atendem a um rígido padrão. Eles ajudam a gerar receita para criadores de conteúdo e não interferem no conteúdo que você exibe.</translation>
++<translation id="7857292107035345544">Lista de permissões</translation>
++<translation id="3575711988891311088">Para apoiar os seus sites favoritos, adicione-os a essa lista. Você poderá ver anúncios neles.</translation>
++<translation id="7059127752542505809">Inserir URL</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_pt-PT.xtb b/components/adblock/android/translations/adblock_strings_pt-PT.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_pt-PT.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="pt-PT">
++<translation id="8714145577049629910">Bloqueio de anúncios</translation>
++<translation id="3493556515901914593">Permitir o  bloqueio de anúncios em páginas web neste app</translation>
++<translation id="4516904298421534459">Listas de filtros</translation>
++<translation id="4713094065435138404">Adicionar ou remover listas de filtros específicas de idiomas</translation>
++<translation id="1575042640644572091">Anúncios Aceitáveis</translation>
++<translation id="2763228171090923752">Gostaríamos de incentivar os sites Web a utilizar anúncios simples e não intrusivos. Foi por esse motivo que estabelecemos diretrizes rigorosas para identificar Anúncios Aceitáveis, que são mostrados nas definições padrão. Se pretender uma navegação sem anúncios, é possível desativar esta definição a qualquer momento.</translation>
++<translation id="7857292107035345544">Domínios na lista branca</translation>
++<translation id="3575711988891311088">Adicione os sites Web dos quais pretende ver anúncios a esta lista</translation>
++<translation id="7059127752542505809">Adicionar domínio</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ro.xtb b/components/adblock/android/translations/adblock_strings_ro.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ro.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ro">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Permite blocarea reclamelor pe site-urile web în această aplicație</translation>
++<translation id="4516904298421534459">Listă filtre</translation>
++<translation id="4713094065435138404">Adăugați sau eliminați liste de filtre specifice limbilor</translation>
++<translation id="1575042640644572091">Reclame acceptabile</translation>
++<translation id="2763228171090923752">Am dori să încurajăm website-urile să folosească reclame directe, neintruzive. De aceea am definit reguli stricte pentru identificarea reclamelor acceptabile, care sunt prezentate la setările implicite standard. Dacă doriți să navigați pe Internet fără reclame, puteți dezactiva această setare în orice moment.</translation>
++<translation id="7857292107035345544">Domenii din lista de aprobare</translation>
++<translation id="3575711988891311088">Adăugați website-uri pe care doriți vedeți reclame la această listă</translation>
++<translation id="7059127752542505809">Adăugare domeniu</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ru.xtb b/components/adblock/android/translations/adblock_strings_ru.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ru.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ru">
++<translation id="8714145577049629910">Блокировка рекламы</translation>
++<translation id="3493556515901914593">Разрешить блокировку рекламы на сайтах в этом приложении</translation>
++<translation id="4516904298421534459">Списки фильтров</translation>
++<translation id="4713094065435138404">Добавить языки, на которых вы регулярно просматриваете сайты</translation>
++<translation id="1575042640644572091">Допустимая реклама</translation>
++<translation id="2763228171090923752">Допустимая реклама не является назойливой и соответствует строгим требованиям, предъявляемым ко внешнему виду сайтов. Она помогает создателям контента получать доход и не мешает чтению. Эта функция включена по умолчанию, но вы можете отключить её в любой момент.</translation>
++<translation id="7857292107035345544">Разрешенный список</translation>
++<translation id="3575711988891311088">Поддержите ваши любимые сайты, добавив их в этот список. На этих сайтах вы можете увидеть рекламу.</translation>
++<translation id="7059127752542505809">Ввести URL-адрес</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_si.xtb b/components/adblock/android/translations/adblock_strings_si.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_si.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="si">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_sk.xtb b/components/adblock/android/translations/adblock_strings_sk.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_sk.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="sk">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Povoliť blokovanie reklám na webových stránkach v tejto aplikácii</translation>
++<translation id="4516904298421534459">Zoznamy filtrov</translation>
++<translation id="4713094065435138404">Pridať alebo odstrániť zoznamy filtrov pre konkrétne jazyky</translation>
++<translation id="1575042640644572091">Prijateľné reklamy</translation>
++<translation id="2763228171090923752">Radi by sme podporili webové lokality, aby používali priamu a nerušivú reklamu. Preto sme vypracovali prísne pokyny na identifikáciu prijateľných reklám, ktoré sa zobrazujú v predvolených nastaveniach. Ak chcete prehliadať stránky bez reklám, môžete toto nastavenie kedykoľvek zakázať.</translation>
++<translation id="7857292107035345544">Domény s povolenými adresami</translation>
++<translation id="3575711988891311088">Pridajte webové lokality, ktoré chcete vidieť na tomto zozname</translation>
++<translation id="7059127752542505809">Pridať doménu</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_sl.xtb b/components/adblock/android/translations/adblock_strings_sl.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_sl.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="sl">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Dovoli blokiranje oglasov na spletnih straneh v tej aplikaciji</translation>
++<translation id="4516904298421534459">Seznami filtrov</translation>
++<translation id="4713094065435138404">Dodaj ali odstranit sezname filtrov za jezik</translation>
++<translation id="1575042640644572091">Acceptable Ads</translation>
++<translation id="2763228171090923752">Želimo spodbujati, da bi spletne strani uporabljale enostavno, nevsiljivo oglaševanje. Zato smo vzpostavili stroge smernice za prepoznavanje sprejemljivih oglasov (Acceptable Ads), ki so prikazane pod privzetimi nastavitvami. Če želite brskati brez oglasov, lahko to nastavitev kadar koli onemogočite.</translation>
++<translation id="7857292107035345544">Dovoljene domene</translation>
++<translation id="3575711988891311088">Dodajte spletne strani, na katerih želite videti oglase, na ta seznam</translation>
++<translation id="7059127752542505809">Dodaj domeno</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_sq.xtb b/components/adblock/android/translations/adblock_strings_sq.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_sq.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="sq">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_sr-Latn.xtb b/components/adblock/android/translations/adblock_strings_sr-Latn.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_sr-Latn.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="sr-Latn">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_sr.xtb b/components/adblock/android/translations/adblock_strings_sr.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_sr.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="sr">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Dozvolite blokiranje oglasa na veb lokacijama u ovoj aplikaciji</translation>
++<translation id="4516904298421534459">Liste filtera</translation>
++<translation id="4713094065435138404">Dodaj ili ukloni liste filtera za određeni jezik</translation>
++<translation id="1575042640644572091">Prihvatljive reklame</translation>
++<translation id="2763228171090923752">Želeli bismo da podstaknemo veb lokacije da koriste način neposrednog, nenametljivog reklamiranja. Zato smo utvrdili stroge smernice za identifikovanje prihvatljivih reklama, koje mogu da se vide pod podrazumevanim postavkama. Ako želite da pregledate bez reklama, ovu postavku možete da onemogućite bilo kad.</translation>
++<translation id="7857292107035345544">Bela lista domena</translation>
++<translation id="3575711988891311088">Na ovu listu dodajte veb lokacije sa kojih želite da vidite reklame</translation>
++<translation id="7059127752542505809">Dodaj domen</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_sv.xtb b/components/adblock/android/translations/adblock_strings_sv.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_sv.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="sv">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Tillåt annonsblockering på webbplatser i denna app</translation>
++<translation id="4516904298421534459">Filterlistor</translation>
++<translation id="4713094065435138404">Lägg till och ta bort språkspecifika filterlistor</translation>
++<translation id="1575042640644572091">Accepterade annonser</translation>
++<translation id="2763228171090923752">Vi vill uppmuntra webbplatser att använda enkel, icke påträngande annonsering. Därför har vi upprättat strikta riktlinjer för att identifiera Accepterade annonser, som visas under standardinställningarna. Om du vill surfa annonsfritt kan du när som helst inaktivera den här inställningen.</translation>
++<translation id="7857292107035345544">Godkända domäner</translation>
++<translation id="3575711988891311088">Lägg till webbplatser där du vill se annonser i den här listan</translation>
++<translation id="7059127752542505809">Lägg till domän</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_sw.xtb b/components/adblock/android/translations/adblock_strings_sw.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_sw.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="sw">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Tillåt annonsblockering på webbplatser i denna app</translation>
++<translation id="4516904298421534459">Chuja Orodha</translation>
++<translation id="4713094065435138404">Ongeza au ondoa uchujaji wa orodha kwa misingi ya lugha</translation>
++<translation id="1575042640644572091">Ads Zinazokubalika</translation>
++<translation id="2763228171090923752">Tungependa kuhimiza tovuti zitumie utangazaji wa moja kwa moja usio na uingiliaji. Hiyo ndio sababu tumeanzisha mwongozo mkali wa kutambua Ads Zinazokubalika, ambazo zinaonyeshwa kwenye mpangilio asili. Ikiwa ungependa kudurusu bila ads, unaweza kusimamisha mpangilio huu wakati wowote.</translation>
++<translation id="7857292107035345544">Domeini za Orodha Nyeupe</translation>
++<translation id="3575711988891311088">Ongeza tovuti ambazo kwazo ungependa kuona ads kwenye orodha hii</translation>
++<translation id="7059127752542505809">Ongeza domeini</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ta.xtb b/components/adblock/android/translations/adblock_strings_ta.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ta.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ta">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_te.xtb b/components/adblock/android/translations/adblock_strings_te.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_te.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="te">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_th.xtb b/components/adblock/android/translations/adblock_strings_th.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_th.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="th">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">อนุญาตให้บล็อคโฆษณาบนเว็บไซต์ในแอปนี้</translation>
++<translation id="4516904298421534459">ตัวกรองรายการ</translation>
++<translation id="4713094065435138404">เพิ่มหรือลบตัวกรองรายการภาษาที่ระบุ</translation>
++<translation id="1575042640644572091">โฆษณาที่ยอมรับได้</translation>
++<translation id="2763228171090923752">เราต้องการส่งเสริมให้เว็บไซต์ทำการโฆษณาโดยตรง โดยไม่สร้างความรำคาญแก่ผู้ชม นั่นจึงเป็นเหตุผลว่าทำไมเราถึงได้กำหนดแนวทางที่เข้มงวดเพื่อระบุโฆษณาที่ยอมรับได้ ซึ่งแสดงอยู่ด้านล่างในค่าเริ่มต้นของการตั้งค่า หากคุณต้องการเรียกใช้งานโฆษณาฟรี คุณสามารถปิดใช้งานการตั้งค่านี้ได้ตลอดเวลา</translation>
++<translation id="7857292107035345544">โดเมนที่อนุญาต</translation>
++<translation id="3575711988891311088">เพิ่มเว็บไซต์ที่คุณต้องการเห็นโฆษณาบนรายการนี้</translation>
++<translation id="7059127752542505809">เพิ่มโดเมน</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_tr.xtb b/components/adblock/android/translations/adblock_strings_tr.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_tr.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="tr">
++<translation id="8714145577049629910">Reklam engelleme</translation>
++<translation id="3493556515901914593">Bu uygulamadaki web sitelerinde reklamların engellenmesine izin verin</translation>
++<translation id="4516904298421534459">Filtre listeleri</translation>
++<translation id="4713094065435138404">Web sitelerinde düzenli olarak gezindiğiniz dilleri ekleyin</translation>
++<translation id="1575042640644572091">Kabul edilebilir reklamlar</translation>
++<translation id="2763228171090923752">Kabul edilebilir reklamlar, katı bir reklam standardına uygun olan, can sıkıcı olmayan reklamlardır. Bunlar, içerik yaratıcılarının gelir elde etmesini sağlar ve görüntülediğiniz içeriği sekteye uğratmaz. Bu özellik varsayılan olarak açıktır, ancak istediğiniz zaman kapatabilirsiniz.</translation>
++<translation id="7857292107035345544">İzin listesi</translation>
++<translation id="3575711988891311088">En sevdiğiniz web sitelerini bu listeye ekleyerek destekleyin.  Bu sitelerde reklamlar görebilirsiniz.</translation>
++<translation id="7059127752542505809">URL gir</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_uk.xtb b/components/adblock/android/translations/adblock_strings_uk.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_uk.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="uk">
++<translation id="8714145577049629910">Блокування реклами</translation>
++<translation id="3493556515901914593">Дозволити блокування реклами на веб-сайтах у цьому додатку</translation>
++<translation id="4516904298421534459">Списки фільтрів</translation>
++<translation id="4713094065435138404">Додавання або видалення списків фільтрів для різних мов</translation>
++<translation id="1575042640644572091">Допустима реклама</translation>
++<translation id="2763228171090923752">Ми хотіли б заохотити веб-сайти використовувати просту, ненав\'язливу рекламу. Тому ми створили суворі принципи для ідентифікації допустимої реклами, яка відображається за замовчуванням. Якщо ви хочете переглядати сайти без реклами, ви можете відключити її у будь-який момент.</translation>
++<translation id="7857292107035345544">Дозволені домени</translation>
++<translation id="3575711988891311088">Додайте веб-сайти у білий список, щоб дозволити відображення реклами</translation>
++<translation id="7059127752542505809">Додати домен</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_ur.xtb b/components/adblock/android/translations/adblock_strings_ur.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_ur.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="ur">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">اس ایپ میں ویب سائٹوں پر اشتہارات روکنے کی اجازت دیں۔</translation>
++<translation id="4516904298421534459">فلٹر والی فہرستیں</translation>
++<translation id="4713094065435138404">زبان کے ساتھ مخصوص فلٹر والی فہرستیں اضافہ کریں یا ہٹائیں</translation>
++<translation id="1575042640644572091">قابل قبول اشتہارات</translation>
++<translation id="2763228171090923752">ہم اس بات کی ترغیب دینا چاہیں گے کہ ویب سائٹیں راست، غیر مداخلتی اشتہارات استعمال کریں۔ یہی وجہ ہے کہ ہم نے قابل قبول اشتہارات کی شناخت کے لیے سخت ہدایات مرتب کی ہیں، جنہیں ڈیفالٹ ترتیبات میں دکھایا گیا ہے۔ اگر آپ اشتہارات سے پاک براؤزنگ کرنا چاہتے ہیں تو کسی بھی وقت اس ترتیب کو غیر فعال کر سکتے ہیں۔</translation>
++<translation id="7857292107035345544">منظور شدہ فہرست میں داخل کردہ ڈومین</translation>
++<translation id="3575711988891311088">اس فہرست میں ویب سائٹوں کا اضافہ کریں آپ جن کے اشتہارات دیکھنا چاہتے ہیں</translation>
++<translation id="7059127752542505809">ڈومین کا اضافہ کریں</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_uz.xtb b/components/adblock/android/translations/adblock_strings_uz.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_uz.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="uz">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_vi.xtb b/components/adblock/android/translations/adblock_strings_vi.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_vi.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="vi">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">Cho phép chặn quảng cáo trên trang web trong ứng dụng này</translation>
++<translation id="4516904298421534459">Danh sách lọc</translation>
++<translation id="4713094065435138404">Thêm hoặc xóa danh sách bộ lọc ngôn ngữ</translation>
++<translation id="1575042640644572091">Quảng cáo chấp nhận được</translation>
++<translation id="2763228171090923752">Chúng tôi khuyến khích các trang web sử dụng quảng cáo đơn giản, không gây phiền toái. Đó là lý do tại sao chúng tôi tạo ra hướng dẫn chặt chẽ để xác định Quảng cáo chấp nhận được, những quảng cáo được hiển thị ở chế độ cài đặt mặc định. Nếu bạn muốn duyệt web không có quảng cáo, bạn có thể vô hiệu hóa cài đặt này bất kỳ lúc nào.</translation>
++<translation id="7857292107035345544">Danh sách tên miền không gây hại</translation>
++<translation id="3575711988891311088">Thêm các trang web mà bạn muốn xem quảng cáo vào danh sách này</translation>
++<translation id="7059127752542505809">Thêm tên miền</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_zh-CN.xtb b/components/adblock/android/translations/adblock_strings_zh-CN.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_zh-CN.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="zh-CN">
++<translation id="8714145577049629910">广告拦截</translation>
++<translation id="3493556515901914593">允许于此应用程序中启用网站广告拦截功能</translation>
++<translation id="4516904298421534459">过滤列表</translation>
++<translation id="4713094065435138404">添加您浏览网站时通常使用的语言</translation>
++<translation id="1575042640644572091">可接受广告</translation>
++<translation id="2763228171090923752">可接受广告是符合严格广告标准的广告，不会给人造成困扰。这些广告助于内容创作者 带来收入，并且不会干扰您观看的内容。此功能默认为开启，但您可以随时关闭。</translation>
++<translation id="7857292107035345544">允许列表</translation>
++<translation id="3575711988891311088">支持您最喜爱的网站，将其添加到此列表。您可能在这些网站上看到广告。</translation>
++<translation id="7059127752542505809">输入 URL</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_zh-HK.xtb b/components/adblock/android/translations/adblock_strings_zh-HK.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_zh-HK.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="zh-HK">
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_zh-TW.xtb b/components/adblock/android/translations/adblock_strings_zh-TW.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_zh-TW.xtb
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="zh-TW">
++<translation id="8714145577049629910">Ad blocking</translation>
++<translation id="3493556515901914593">允許於此App中啟用網站廣告攔截功能</translation>
++<translation id="4516904298421534459">過濾列表</translation>
++<translation id="4713094065435138404">新增或移除特定於語言的篩選清單</translation>
++<translation id="1575042640644572091">可接受廣告</translation>
++<translation id="2763228171090923752">我們鼓勵網站使用直接的非侵入性廣告。這就是我們設立嚴格的指引來識別依預設顯示之可接受廣告的原因。若您希望無廣告瀏覽，則可以隨時停用此設定。</translation>
++<translation id="7857292107035345544">列出的白名單網域</translation>
++<translation id="3575711988891311088">將您想要在其上查看廣告的網站新增至此清單</translation>
++<translation id="7059127752542505809">新增網域</translation>
++</translationbundle>
+diff --git a/components/adblock/android/translations/adblock_strings_zu.xtb b/components/adblock/android/translations/adblock_strings_zu.xtb
+new file mode 100644
+--- /dev/null
++++ b/components/adblock/android/translations/adblock_strings_zu.xtb
+@@ -0,0 +1,4 @@
++<?xml version="1.0" ?>
++<!DOCTYPE translationbundle>
++<translationbundle lang="zu">
++</translationbundle>
+--
+2.25.1

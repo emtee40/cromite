@@ -10,7 +10,7 @@ Subject: Add browser policy
  ...nfiguration_policy_handler_list_factory.cc |   6 +-
  .../account_consistency_mode_manager.cc       |   5 +-
  chrome/browser/signin/chrome_signin_client.cc |   7 +-
- .../ui/webui/policy/policy_ui_handler.cc      | 105 ++++++++++++++-
+ .../ui/webui/policy/policy_ui_handler.cc      | 104 ++++++++++++++-
  .../ui/webui/policy/policy_ui_handler.h       |   2 +
  .../core/browser/browser_policy_connector.cc  |   3 +
  .../common/command_line_policy_provider.cc    |   3 +
@@ -22,11 +22,11 @@ Subject: Add browser policy
  .../policy/core/common/policy_switches.h      |   1 +
  .../Miscellaneous/SyncDisabled.yaml           |   2 +-
  .../policy/resources/webui/policy_row.html    |   1 +
- .../policy/resources/webui/policy_row.js      |  12 ++
+ .../policy/resources/webui/policy_row.ts      |  12 ++
  components/policy_strings.grdp                |   4 +-
  .../gaia_cookie_manager_service.cc            |   4 +
  google_apis/gaia/gaia_auth_fetcher.cc         |   1 +
- 23 files changed, 281 insertions(+), 89 deletions(-)
+ 23 files changed, 280 insertions(+), 89 deletions(-)
 
 diff --git a/base/win/win_util.cc b/base/win/win_util.cc
 --- a/base/win/win_util.cc
@@ -158,7 +158,7 @@ diff --git a/chrome/browser/metrics/chrome_feature_list_creator.cc b/chrome/brow
 diff --git a/chrome/browser/policy/chrome_browser_policy_connector.cc b/chrome/browser/policy/chrome_browser_policy_connector.cc
 --- a/chrome/browser/policy/chrome_browser_policy_connector.cc
 +++ b/chrome/browser/policy/chrome_browser_policy_connector.cc
-@@ -151,8 +151,6 @@ bool ChromeBrowserPolicyConnector::HasMachineLevelPolicies() {
+@@ -155,8 +155,6 @@ bool ChromeBrowserPolicyConnector::HasMachineLevelPolicies() {
    if (ProviderHasPolicies(machine_level_user_cloud_policy_manager()))
      return true;
  #endif  // !BUILDFLAG(IS_CHROMEOS_ASH)
@@ -170,7 +170,7 @@ diff --git a/chrome/browser/policy/chrome_browser_policy_connector.cc b/chrome/b
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
-@@ -1924,9 +1924,9 @@ bool AreFuturePoliciesEnabledByDefault() {
+@@ -1918,9 +1918,9 @@ bool AreFuturePoliciesEnabledByDefault() {
    // Enable future policies for branded browser tests.
    if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kTestType))
      return true;
@@ -186,7 +186,7 @@ diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc 
 diff --git a/chrome/browser/signin/account_consistency_mode_manager.cc b/chrome/browser/signin/account_consistency_mode_manager.cc
 --- a/chrome/browser/signin/account_consistency_mode_manager.cc
 +++ b/chrome/browser/signin/account_consistency_mode_manager.cc
-@@ -198,7 +198,8 @@ AccountConsistencyModeManager::ComputeAccountConsistencyMethod(
+@@ -199,7 +199,8 @@ AccountConsistencyModeManager::ComputeAccountConsistencyMethod(
  #endif
  
  #if BUILDFLAG(ENABLE_MIRROR)
@@ -196,7 +196,7 @@ diff --git a/chrome/browser/signin/account_consistency_mode_manager.cc b/chrome/
  #endif
  
  #if BUILDFLAG(ENABLE_DICE_SUPPORT)
-@@ -208,7 +209,7 @@ AccountConsistencyModeManager::ComputeAccountConsistencyMethod(
+@@ -209,7 +210,7 @@ AccountConsistencyModeManager::ComputeAccountConsistencyMethod(
      return AccountConsistencyMethod::kDisabled;
    }
  
@@ -240,13 +240,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
  #include "base/strings/utf_string_conversions.h"
  #include "base/task/task_traits.h"
  #include "base/task/thread_pool.h"
-@@ -49,11 +50,13 @@
- #include "components/enterprise/browser/reporting/common_pref_names.h"
- #include "components/policy/core/browser/configuration_policy_handler_list.h"
- #include "components/policy/core/browser/policy_conversions.h"
-+#include "components/policy/core/browser/webui/policy_webui_constants.h"
- #include "components/policy/core/browser/webui/json_generation.h"
- #include "components/policy/core/common/cloud/cloud_policy_manager.h"
+@@ -55,6 +56,7 @@
  #include "components/policy/core/common/cloud/cloud_policy_refresh_scheduler.h"
  #include "components/policy/core/common/cloud/cloud_policy_util.h"
  #include "components/policy/core/common/policy_details.h"
@@ -254,7 +248,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
  #include "components/policy/core/common/policy_scheduler.h"
  #include "components/policy/core/common/policy_types.h"
  #include "components/policy/core/common/remote_commands/remote_commands_service.h"
-@@ -160,6 +163,10 @@ void PolicyUIHandler::RegisterMessages() {
+@@ -168,6 +170,10 @@ void PolicyUIHandler::RegisterMessages() {
        "exportPoliciesJSON",
        base::BindRepeating(&PolicyUIHandler::HandleExportPoliciesJson,
                            base::Unretained(this)));
@@ -265,7 +259,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
    web_ui()->RegisterMessageCallback(
        "listenPoliciesUpdates",
        base::BindRepeating(&PolicyUIHandler::HandleListenPoliciesUpdates,
-@@ -323,8 +330,102 @@ void PolicyUIHandler::SendPolicies() {
+@@ -331,8 +337,102 @@ void PolicyUIHandler::SendPolicies() {
        "policies-updated",
        base::Value(
            policy_value_and_status_aggregator_->GetAggregatedPolicyNames()),
@@ -567,7 +561,7 @@ diff --git a/components/policy/core/common/policy_pref_names.cc b/components/pol
 diff --git a/components/policy/core/common/policy_pref_names.h b/components/policy/core/common/policy_pref_names.h
 --- a/components/policy/core/common/policy_pref_names.h
 +++ b/components/policy/core/common/policy_pref_names.h
-@@ -33,6 +33,7 @@ extern const char kUrlAllowlist[];
+@@ -50,6 +50,7 @@ extern const char kUrlAllowlist[];
  extern const char kUserPolicyRefreshRate[];
  extern const char kIntensiveWakeUpThrottlingEnabled[];
  extern const char kUserAgentClientHintsGREASEUpdateEnabled[];
@@ -641,53 +635,53 @@ diff --git a/components/policy/resources/webui/policy_row.html b/components/poli
        <span id="name"></span>
        <img src="chrome://resources/images/open_in_new.svg">
      </a>
-diff --git a/components/policy/resources/webui/policy_row.js b/components/policy/resources/webui/policy_row.js
---- a/components/policy/resources/webui/policy_row.js
-+++ b/components/policy/resources/webui/policy_row.js
+diff --git a/components/policy/resources/webui/policy_row.ts b/components/policy/resources/webui/policy_row.ts
+--- a/components/policy/resources/webui/policy_row.ts
++++ b/components/policy/resources/webui/policy_row.ts
 @@ -15,6 +15,7 @@ import {getTemplate} from './policy_row.html.js';
-  * @typedef {{
-  *    ignored?: boolean,
-  *    name: string,
-+ *    disabled: boolean,
-  *    level: string,
-  *    link: ?string,
-  *    scope: string,
-@@ -46,6 +47,9 @@ export class PolicyRowElement extends CustomElement {
+ export interface Policy {
+   ignored?: boolean;
+   name: string;
++  disabled: boolean;
+   level: string;
+   link?: string;
+   scope: string;
+@@ -56,6 +57,9 @@ export class PolicyRowElement extends CustomElement {
+     const copy = this.shadowRoot!.querySelector('.copy-value');
+     copy!.addEventListener('click', () => this.copyValue_());
  
++    const enabledBox = this.shadowRoot!.querySelector('.enabled_box');
++    enabledBox!.addEventListener('change', () => this.enabledChanged_());
++
      this.setAttribute('role', 'rowgroup');
      this.classList.add('policy-data');
-+
-+    const enabledBox = this.shadowRoot.querySelector('.enabled_box');
-+    enabledBox.addEventListener('change', () => this.enabledChanged_());
    }
- 
-   /** @param {Policy} policy */
-@@ -92,6 +96,9 @@ export class PolicyRowElement extends CustomElement {
+@@ -94,6 +98,9 @@ export class PolicyRowElement extends CustomElement {
        this.toggleAttribute('no-help-link', true);
      }
  
-+    const enabledBox = this.shadowRoot.querySelector('.enabled_box');
-+    enabledBox.checked = !policy.disabled;
++    const enabledBox = this.shadowRoot!.querySelector('.enabled_box');
++    enabledBox!.checked = !policy.disabled;
 +
      // Populate the remaining columns with policy scope, level and value if a
      // value has been set. Otherwise, leave them blank.
      if (!this.unset_) {
-@@ -204,6 +211,11 @@ export class PolicyRowElement extends CustomElement {
+@@ -213,6 +220,11 @@ export class PolicyRowElement extends CustomElement {
      }
    }
  
 +  enabledChanged_() {
-+    const enabledBox = this.shadowRoot.querySelector('.enabled_box');
++    const enabledBox = this.shadowRoot!.querySelector('.enabled_box');
 +    chrome.send('setEnabledPolicy', [this.policy.name, enabledBox.checked]);
 +  }
 +
-   /**
-    * Copies the policy's value to the clipboard.
-    * @private
+   // Copies the policy's value to the clipboard.
+   private copyValue_() {
+     const policyValueDisplay =
 diff --git a/components/policy_strings.grdp b/components/policy_strings.grdp
 --- a/components/policy_strings.grdp
 +++ b/components/policy_strings.grdp
-@@ -591,8 +591,8 @@ Additional details:
+@@ -585,8 +585,8 @@ Additional details:
    <message name="IDS_POLICY_SOURCE_DEFAULT" desc="Indicates that a policy is set by default and can be overridden.">
      Default
    </message>
@@ -701,16 +695,16 @@ diff --git a/components/policy_strings.grdp b/components/policy_strings.grdp
 diff --git a/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc b/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
 --- a/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
 +++ b/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
-@@ -486,6 +486,8 @@ void GaiaCookieManagerService::RegisterPrefs(PrefRegistrySimple* registry) {
+@@ -494,6 +494,8 @@ void GaiaCookieManagerService::RegisterPrefs(PrefRegistrySimple* registry) {
  }
  
  void GaiaCookieManagerService::InitCookieListener() {
 +  // Make GaiaCookieManagerService compliant to SigninAllowed policy
 +  if (!signin_client_->AreSigninCookiesAllowed()) return;
    DCHECK(!cookie_listener_receiver_.is_bound());
+ 
    network::mojom::CookieManager* cookie_manager =
-       signin_client_->GetCookieManager();
-@@ -1087,6 +1089,8 @@ void GaiaCookieManagerService::OnSetAccountsFinished(
+@@ -1111,6 +1113,8 @@ void GaiaCookieManagerService::OnSetAccountsFinished(
  }
  
  void GaiaCookieManagerService::HandleNextRequest() {
@@ -722,7 +716,7 @@ diff --git a/components/signin/internal/identity_manager/gaia_cookie_manager_ser
 diff --git a/google_apis/gaia/gaia_auth_fetcher.cc b/google_apis/gaia/gaia_auth_fetcher.cc
 --- a/google_apis/gaia/gaia_auth_fetcher.cc
 +++ b/google_apis/gaia/gaia_auth_fetcher.cc
-@@ -587,6 +587,7 @@ void GaiaAuthFetcher::StartListAccounts() {
+@@ -607,6 +607,7 @@ void GaiaAuthFetcher::StartListAccounts() {
              }
            }
          })");

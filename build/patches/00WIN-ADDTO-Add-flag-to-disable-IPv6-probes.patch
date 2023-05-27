@@ -15,7 +15,7 @@ Subject: WIN ADDTO Add flag to disable IPv6 probes
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -6148,7 +6148,7 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -6341,7 +6341,7 @@ const FeatureEntry kFeatureEntries[] = {
      {"ipv6-probing",
       flag_descriptions::kIPv6ProbingName,
       flag_descriptions::kIPv6ProbingDescription, kOsAll,
@@ -70,7 +70,7 @@ diff --git a/components/url_formatter/spoof_checks/top_domains/BUILD.gn b/compon
 diff --git a/net/BUILD.gn b/net/BUILD.gn
 --- a/net/BUILD.gn
 +++ b/net/BUILD.gn
-@@ -1082,6 +1082,7 @@ component("net") {
+@@ -1085,6 +1085,7 @@ component("net") {
      "//build:chromeos_buildflags",
      "//net/data/ssl/chrome_root_store:gen_root_store_inc",
      "//net/http:transport_security_state_generated_files",
@@ -108,14 +108,14 @@ diff --git a/net/base/features.h b/net/base/features.h
 diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
 --- a/net/dns/host_resolver_manager.cc
 +++ b/net/dns/host_resolver_manager.cc
-@@ -3761,7 +3761,7 @@ bool HostResolverManager::IsIPv6Reachable(const NetLogWithSource& net_log) {
-       (tick_clock_->NowTicks() - last_ipv6_probe_time_).InMilliseconds() >
-           kIPv6ProbePeriodMs) {
+@@ -3950,7 +3950,7 @@ int HostResolverManager::StartIPv6ReachabilityCheck(
+     return OK;
+   }
  
--    if (!base::FeatureList::IsEnabled(network::features::kIPv6Probing)) {
-+    if (!base::FeatureList::IsEnabled(net::features::kIPv6Probing)) {
-       // pretend IPv6 connectivy probe is successful when probing is disabled
-       SetLastIPv6ProbeResult(true);
-     } else {
+-  if (!base::FeatureList::IsEnabled(network::features::kIPv6Probing)) {
++  if (!base::FeatureList::IsEnabled(net::features::kIPv6Probing)) {
+     probing_ipv6_ = false;
+     last_ipv6_probe_result_ = false;
+     last_ipv6_probe_time_ = base::TimeTicks();
 --
 2.25.1

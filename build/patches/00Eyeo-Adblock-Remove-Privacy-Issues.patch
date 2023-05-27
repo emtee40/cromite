@@ -31,14 +31,14 @@ settings ui in Windows
  .../settings/AdblockFilterListsAdapter.java   |    3 +
  .../settings/AdblockSettingsFragment.java     |    2 +-
  components/adblock/content/browser/BUILD.gn   |   14 -
- components/adblock/core/BUILD.gn              |   45 -
- .../activeping_telemetry_topic_provider.cc    |  241 --
- .../activeping_telemetry_topic_provider.h     |   83 -
+ components/adblock/core/BUILD.gn              |   37 -
+ .../activeping_telemetry_topic_provider.cc    |  242 --
+ .../activeping_telemetry_topic_provider.h     |   84 -
  .../adblock/core/adblock_controller_impl.cc   |    7 +-
  components/adblock/core/adblock_switches.cc   |    1 -
  components/adblock/core/adblock_switches.h    |    1 -
  .../adblock/core/adblock_telemetry_service.cc |  244 --
- .../adblock/core/adblock_telemetry_service.h  |  106 -
+ .../adblock/core/adblock_telemetry_service.h  |  107 -
  .../adblock/core/common/adblock_constants.cc  |    2 -
  .../adblock/core/common/adblock_constants.h   |    1 -
  .../adblock/core/common/adblock_prefs.cc      |   44 +-
@@ -48,7 +48,7 @@ settings ui in Windows
  .../adblock/core/sitekey_storage_impl.cc      |    6 +
  ...filtering_configuration_maintainer_impl.cc |   10 -
  .../filtering_configuration_maintainer_impl.h |    1 -
- .../ongoing_subscription_request_impl.cc      |   31 +-
+ .../ongoing_subscription_request_impl.cc      |   27 +-
  .../preloaded_subscription_provider_impl.cc   |    4 +-
  .../core/subscription/subscription_config.cc  |    8 +-
  .../subscription_downloader_impl.cc           |   15 +-
@@ -66,7 +66,7 @@ settings ui in Windows
  .../blink/renderer/core/css/style_engine.cc   |    8 +
  .../blink/renderer/core/css/style_engine.h    |    1 +
  .../renderer/core/exported/web_document.cc    |   13 +-
- 61 files changed, 3712 insertions(+), 1150 deletions(-)
+ 61 files changed, 3711 insertions(+), 1142 deletions(-)
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.cc
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.h
  create mode 100644 chrome/browser/resources/settings/adblock_page/adblock_page.html
@@ -374,7 +374,7 @@ diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
  #include "chrome/browser/adblock/content_security_policy_injector_factory.h"
  #include "chrome/browser/adblock/element_hider_factory.h"
  #include "chrome/browser/adblock/resource_classification_runner_factory.h"
-@@ -640,7 +639,6 @@ void ChromeBrowserMainExtraPartsProfiles::
+@@ -648,7 +647,6 @@ void ChromeBrowserMainExtraPartsProfiles::
    ExitTypeServiceFactory::GetInstance();
  #endif
    adblock::AdblockControllerFactory::GetInstance();
@@ -393,7 +393,7 @@ diff --git a/chrome/browser/resources/settings/BUILD.gn b/chrome/browser/resourc
      "appearance_page/appearance_fonts_page.ts",
      "appearance_page/appearance_page.ts",
      "appearance_page/home_url_input.ts",
-@@ -390,6 +391,7 @@ build_webui("build") {
+@@ -382,6 +383,7 @@ build_webui("build") {
    ts_composite = true
    ts_definitions = [
      "//tools/typescript/definitions/autofill_private.d.ts",
@@ -848,7 +848,7 @@ diff --git a/chrome/browser/resources/settings/page_visibility.ts b/chrome/brows
 diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resources/settings/route.ts
 --- a/chrome/browser/resources/settings/route.ts
 +++ b/chrome/browser/resources/settings/route.ts
-@@ -159,6 +159,10 @@ function createBrowserSettingsRoutes(): SettingsRoutes {
+@@ -167,6 +167,10 @@ function createBrowserSettingsRoutes(): SettingsRoutes {
      r.FONTS = r.APPEARANCE.createChild('/fonts');
    }
  
@@ -873,18 +873,18 @@ diff --git a/chrome/browser/resources/settings/router.ts b/chrome/browser/resour
 diff --git a/chrome/browser/resources/settings/settings.ts b/chrome/browser/resources/settings/settings.ts
 --- a/chrome/browser/resources/settings/settings.ts
 +++ b/chrome/browser/resources/settings/settings.ts
-@@ -25,6 +25,7 @@ export {AppearanceBrowserProxy, AppearanceBrowserProxyImpl} from './appearance_p
+@@ -40,6 +40,7 @@ export {AppearanceBrowserProxy, AppearanceBrowserProxyImpl} from './appearance_p
  export {SettingsAppearancePageElement, SystemTheme} from './appearance_page/appearance_page.js';
  export {HomeUrlInputElement} from './appearance_page/home_url_input.js';
  export {SettingsAutofillPageElement} from './autofill_page/autofill_page.js';
 +export {SettingsAdblockPageElement} from './adblock_page/adblock_page.js';
- export {AccountStorageOptInStateChangedListener, CredentialsChangedListener, PasswordCheckInteraction, PasswordCheckReferrer, PasswordCheckStatusChangedListener, PasswordExceptionListChangedListener, PasswordManagerAuthTimeoutListener, PasswordManagerImpl, PasswordManagerProxy, PasswordsFileExportProgressListener, SavedPasswordListChangedListener} from './autofill_page/password_manager_proxy.js';
+ export {AccountStorageOptInStateChangedListener, CredentialsChangedListener, PasswordCheckInteraction, PasswordCheckReferrer, PasswordCheckStatusChangedListener, PasswordExceptionListChangedListener, PasswordManagerAuthTimeoutListener, PasswordManagerImpl, PasswordManagerPage, PasswordManagerProxy, PasswordsFileExportProgressListener, SavedPasswordListChangedListener} from './autofill_page/password_manager_proxy.js';
  export {BaseMixin} from './base_mixin.js';
  export {SettingsBasicPageElement} from './basic_page/basic_page.js';
 diff --git a/chrome/browser/resources/settings/settings_menu/settings_menu.html b/chrome/browser/resources/settings/settings_menu/settings_menu.html
 --- a/chrome/browser/resources/settings/settings_menu/settings_menu.html
 +++ b/chrome/browser/resources/settings/settings_menu/settings_menu.html
-@@ -138,6 +138,11 @@
+@@ -139,6 +139,11 @@
            $i18n{a11yPageTitle}
            <paper-ripple></paper-ripple>
          </a>
@@ -899,7 +899,7 @@ diff --git a/chrome/browser/resources/settings/settings_menu/settings_menu.html 
 diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
 --- a/chrome/browser/ui/tab_helpers.cc
 +++ b/chrome/browser/ui/tab_helpers.cc
-@@ -323,6 +323,8 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
+@@ -330,6 +330,8 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
    }
  #endif
  
@@ -922,7 +922,7 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 diff --git a/components/adblock/android/BUILD.gn b/components/adblock/android/BUILD.gn
 --- a/components/adblock/android/BUILD.gn
 +++ b/components/adblock/android/BUILD.gn
-@@ -95,7 +95,7 @@ android_resources("java_resources") {
+@@ -91,7 +91,7 @@ android_resources("java_resources") {
      "java/res/layout/adblock_custom_item_settings.xml",
      "java/res/layout/adblock_filter_lists_list_item.xml",
      "java/res/xml/adblock_more_options.xml",
@@ -1027,15 +1027,15 @@ diff --git a/components/adblock/core/BUILD.gn b/components/adblock/core/BUILD.gn
  import("//third_party/flatbuffers/flatbuffer.gni")
  
  flatbuffer("schema") {
-@@ -61,56 +60,14 @@ generate_sha256_header("schema_hash") {
+@@ -61,48 +60,14 @@ generate_sha256_header("schema_hash") {
    files_to_hash = [ "${target_gen_dir}/schema/filter_list_schema_generated.h" ]
  }
  
--config("adblock_core_config") {
+-config("eyeo_telemetry_config") {
 -  defines = []
 -
 -  if (eyeo_telemetry_server_url != "") {
--    # Expicitly setting Telemetry server URL, used for testing with a test
+-    # Explicitly setting Telemetry server URL, used for testing with a test
 -    # server.
 -    defines += [ "EYEO_TELEMETRY_SERVER_URL=\"$eyeo_telemetry_server_url\"" ]
 -  } else {
@@ -1059,14 +1059,6 @@ diff --git a/components/adblock/core/BUILD.gn b/components/adblock/core/BUILD.gn
 -    print("WARNING! gn arg eyeo_telemetry_activeping_auth_token is not set. " +
 -          "Users will not be counted correctly by eyeo.")
 -  }
--
--  if (eyeo_application_name != "") {
--    defines += [ "EYEO_APPLICATION_NAME=\"$eyeo_application_name\"" ]
--  }
--
--  if (eyeo_application_version != "") {
--    defines += [ "EYEO_APPLICATION_VERSION=\"$eyeo_application_version\"" ]
--  }
 -}
 -
  source_set("core") {
@@ -1084,12 +1076,12 @@ diff --git a/components/adblock/core/BUILD.gn b/components/adblock/core/BUILD.gn
      "features.cc",
      "features.h",
      "sitekey_storage.h",
-@@ -134,8 +91,6 @@ source_set("core") {
+@@ -126,8 +91,6 @@ source_set("core") {
      "//components/prefs",
      "//components/version_info",
    ]
 -
--  all_dependent_configs = [ ":adblock_core_config" ]
+-  configs += [ ":eyeo_telemetry_config" ]
  }
  
  source_set("test_support") {
@@ -1097,7 +1089,7 @@ diff --git a/components/adblock/core/activeping_telemetry_topic_provider.cc b/co
 deleted file mode 100644
 --- a/components/adblock/core/activeping_telemetry_topic_provider.cc
 +++ /dev/null
-@@ -1,241 +0,0 @@
+@@ -1,242 +0,0 @@
 -/*
 - * This file is part of eyeo Chromium SDK,
 - * Copyright (C) 2006-present eyeo GmbH
@@ -1145,7 +1137,7 @@ deleted file mode 100644
 -base::TimeDelta GetNormalPingInterval() {
 -  static base::TimeDelta kNormalPingInterval =
 -      g_time_delta_for_testing ? g_time_delta_for_testing.value()
--                               : base::Hours(8);
+-                               : base::Hours(12);
 -  return kNormalPingInterval;
 -}
 -
@@ -1254,8 +1246,9 @@ deleted file mode 100644
 -      pref_service_->GetTime(prefs::kTelemetryNextPingTime);
 -  // Next ping time may be unset if this is a first run. Next request should
 -  // happen ASAP.
--  if (next_ping_time.is_null())
+-  if (next_ping_time.is_null()) {
 -    return base::Time::Now();
+-  }
 -
 -  return next_ping_time;
 -}
@@ -1343,7 +1336,7 @@ diff --git a/components/adblock/core/activeping_telemetry_topic_provider.h b/com
 deleted file mode 100644
 --- a/components/adblock/core/activeping_telemetry_topic_provider.h
 +++ /dev/null
-@@ -1,83 +0,0 @@
+@@ -1,84 +0,0 @@
 -/*
 - * This file is part of eyeo Chromium SDK,
 - * Copyright (C) 2006-present eyeo GmbH
@@ -1364,6 +1357,7 @@ deleted file mode 100644
 -#ifndef COMPONENTS_ADBLOCK_CORE_ACTIVEPING_TELEMETRY_TOPIC_PROVIDER_H_
 -#define COMPONENTS_ADBLOCK_CORE_ACTIVEPING_TELEMETRY_TOPIC_PROVIDER_H_
 -
+-#include "base/memory/raw_ptr.h"
 -#include "base/time/time.h"
 -#include "components/adblock/core/adblock_controller.h"
 -#include "components/adblock/core/adblock_telemetry_service.h"
@@ -1398,7 +1392,7 @@ deleted file mode 100644
 -  std::string GetAuthToken() const final;
 -  void GetPayload(PayloadCallback callback) final;
 -
--  // Normally 8 hours since last ping, 1 hour in case of retries.
+-  // Normally 12 hours since last ping, 1 hour in case of retries.
 -  base::Time GetTimeOfNextRequest() const final;
 -
 -  // Attempts to parse "token" (an opaque server description of last ping time)
@@ -1418,8 +1412,8 @@ deleted file mode 100644
 -  void UpdatePrefs(const std::string& ping_response_time);
 -
 -  const utils::AppInfo app_info_;
--  PrefService* pref_service_;
--  AdblockController* adblock_controller_;
+-  raw_ptr<PrefService> pref_service_;
+-  raw_ptr<AdblockController> adblock_controller_;
 -  const GURL base_url_;
 -  const std::string auth_token_;
 -};
@@ -1740,7 +1734,7 @@ diff --git a/components/adblock/core/adblock_telemetry_service.h b/components/ad
 deleted file mode 100644
 --- a/components/adblock/core/adblock_telemetry_service.h
 +++ /dev/null
-@@ -1,106 +0,0 @@
+@@ -1,107 +0,0 @@
 -/*
 - * This file is part of eyeo Chromium SDK,
 - * Copyright (C) 2006-present eyeo GmbH
@@ -1765,6 +1759,7 @@ deleted file mode 100644
 -#include <string>
 -#include <vector>
 -
+-#include "base/memory/raw_ptr.h"
 -#include "base/sequence_checker.h"
 -#include "base/time/time.h"
 -#include "base/timer/timer.h"
@@ -1834,7 +1829,7 @@ deleted file mode 100644
 -  void RunPeriodicCheck();
 -
 -  SEQUENCE_CHECKER(sequence_checker_);
--  FilteringConfiguration* adblock_filtering_configuration_;
+-  raw_ptr<FilteringConfiguration> adblock_filtering_configuration_;
 -  scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory_;
 -  base::TimeDelta initial_delay_;
 -  base::TimeDelta check_interval_;
@@ -2008,7 +2003,7 @@ diff --git a/components/adblock/core/converter/parser/url_filter.cc b/components
 +++ b/components/adblock/core/converter/parser/url_filter.cc
 @@ -47,6 +47,10 @@ std::string SanitizePipeCharacters(std::string pattern) {
    // Skip up to one trailing | characters, this is the right anchor.
-   bool pattern_has_right_anchor = base::EndsWith(pattern, "|");
+   bool pattern_has_right_anchor = base::EndsWith(piece, "|");
    if (pattern_has_right_anchor) {
 +    if (piece.size() == 0) {
 +      LOG(ERROR) << "[eyeo] Found invalid pattern string '" << pattern << "'";
@@ -2046,7 +2041,7 @@ diff --git a/components/adblock/core/sitekey_storage_impl.cc b/components/adbloc
 +  if ((true)) return false; // simple caution, never invoked being private
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
    std::string signature;
-   if (!base::Base64Decode(signature_b64, &signature)) {
+   if (!base::Base64Decode(signature_b64, &signature,
 diff --git a/components/adblock/core/subscription/filtering_configuration_maintainer_impl.cc b/components/adblock/core/subscription/filtering_configuration_maintainer_impl.cc
 --- a/components/adblock/core/subscription/filtering_configuration_maintainer_impl.cc
 +++ b/components/adblock/core/subscription/filtering_configuration_maintainer_impl.cc
@@ -2077,7 +2072,7 @@ diff --git a/components/adblock/core/subscription/filtering_configuration_mainta
 diff --git a/components/adblock/core/subscription/filtering_configuration_maintainer_impl.h b/components/adblock/core/subscription/filtering_configuration_maintainer_impl.h
 --- a/components/adblock/core/subscription/filtering_configuration_maintainer_impl.h
 +++ b/components/adblock/core/subscription/filtering_configuration_maintainer_impl.h
-@@ -83,7 +83,6 @@ class FilteringConfigurationMaintainerImpl
+@@ -84,7 +84,6 @@ class FilteringConfigurationMaintainerImpl
    void SubscriptionAddedToStorage(
        scoped_refptr<OngoingInstallation> ongoing_installation,
        scoped_refptr<InstalledSubscription> subscription);
@@ -2164,17 +2159,6 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
    loader_ =
        network::SimpleURLLoader::Create(std::move(request), kTrafficAnnotation);
  
-@@ -177,9 +194,7 @@ const char* OngoingSubscriptionRequestImpl::MethodToString() const {
- bool OngoingSubscriptionRequestImpl::IsConnectionAvailable(
-     net::NetworkChangeNotifier::ConnectionType connection_type) const {
-   return connection_type !=
--             net::NetworkChangeNotifier::ConnectionType::CONNECTION_NONE &&
--         connection_type !=
--             net::NetworkChangeNotifier::ConnectionType::CONNECTION_UNKNOWN;
-+             net::NetworkChangeNotifier::ConnectionType::CONNECTION_NONE;
- }
- 
- bool OngoingSubscriptionRequestImpl::IsStarted() const {
 diff --git a/components/adblock/core/subscription/preloaded_subscription_provider_impl.cc b/components/adblock/core/subscription/preloaded_subscription_provider_impl.cc
 --- a/components/adblock/core/subscription/preloaded_subscription_provider_impl.cc
 +++ b/components/adblock/core/subscription/preloaded_subscription_provider_impl.cc
@@ -2351,7 +2335,7 @@ diff --git a/components/adblock/core/subscription/subscription_updater_impl.cc b
 diff --git a/components/adblock/core/subscription/subscription_validator_impl.cc b/components/adblock/core/subscription/subscription_validator_impl.cc
 --- a/components/adblock/core/subscription/subscription_validator_impl.cc
 +++ b/components/adblock/core/subscription/subscription_validator_impl.cc
-@@ -65,11 +65,11 @@ bool IsSignatureValidInternal(
+@@ -64,11 +64,11 @@ bool IsSignatureValidInternal(
    const auto* expected_hash = initial_subscription_signatures.FindString(
        path.BaseName().AsUTF8Unsafe());
    if (!expected_hash) {
@@ -2428,7 +2412,7 @@ diff --git a/components/resources/BUILD.gn b/components/resources/BUILD.gn
 diff --git a/components/resources/adblock_resources.grdp b/components/resources/adblock_resources.grdp
 --- a/components/resources/adblock_resources.grdp
 +++ b/components/resources/adblock_resources.grdp
-@@ -17,7 +17,4 @@
+@@ -20,7 +20,4 @@
      <include name="IDR_ADBLOCK_ELEMHIDE_FOR_SELECTOR_JS" file="adblocking/elemhide_for_selector.jst" type="BINDATA" />
      <include name="IDR_ADBLOCK_ELEMHIDE_EMU_JS" file="adblocking/elemhideemu.jst" type="BINDATA" />
      <include name="IDR_ADBLOCK_SNIPPETS_JS" file="${root_gen_dir}/components/resources/adblocking/snippets.jst" use_base_dir="false" type="BINDATA"  compress="gzip" />
@@ -5692,7 +5676,7 @@ new file mode 100755
 diff --git a/third_party/blink/renderer/core/css/style_engine.cc b/third_party/blink/renderer/core/css/style_engine.cc
 --- a/third_party/blink/renderer/core/css/style_engine.cc
 +++ b/third_party/blink/renderer/core/css/style_engine.cc
-@@ -540,6 +540,14 @@ void StyleEngine::UpdateActiveStyleSheetsInShadow(
+@@ -541,6 +541,14 @@ void StyleEngine::UpdateActiveStyleSheetsInShadow(
    }
  }
  

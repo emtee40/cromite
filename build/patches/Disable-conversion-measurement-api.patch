@@ -15,15 +15,18 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../render_view_context_menu_base.cc              |  3 ---
  .../aggregatable_report_sender.cc                 | 15 +++++++--------
  .../attribution_reporting/attribution_host.cc     |  1 +
+ .../attribution_manager_impl.cc                   |  1 +
+ .../attribution_os_level_manager_android.cc       |  1 +
  .../attribution_report_network_sender.cc          |  9 +++++++++
  .../attribution_storage_sql.cc                    |  8 +++++---
  content/browser/storage_partition_impl.cc         |  8 +-------
  content/public/browser/navigation_controller.cc   |  1 -
  content/renderer/render_thread_impl.cc            |  2 +-
+ services/network/public/cpp/attribution_utils.cc  |  3 +++
  third_party/blink/common/features.cc              |  8 ++++----
  .../platform/runtime_enabled_features.json5       |  7 +++++++
  ui/base/ui_base_features.cc                       |  2 +-
- 12 files changed, 40 insertions(+), 32 deletions(-)
+ 15 files changed, 45 insertions(+), 32 deletions(-)
 
 diff --git a/components/embedder_support/origin_trials/features.cc b/components/embedder_support/origin_trials/features.cc
 --- a/components/embedder_support/origin_trials/features.cc
@@ -90,7 +93,7 @@ diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
-@@ -251,6 +251,7 @@ void AttributionHost::DidFinishNavigation(NavigationHandle* navigation_handle) {
+@@ -333,6 +333,7 @@ void AttributionHost::RegisterNavigationDataHost(
      return;
    }
  
@@ -98,6 +101,28 @@ diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content
    AttributionManager* attribution_manager =
        AttributionManager::FromWebContents(web_contents());
    DCHECK(attribution_manager);
+diff --git a/content/browser/attribution_reporting/attribution_manager_impl.cc b/content/browser/attribution_reporting/attribution_manager_impl.cc
+--- a/content/browser/attribution_reporting/attribution_manager_impl.cc
++++ b/content/browser/attribution_reporting/attribution_manager_impl.cc
+@@ -470,6 +470,7 @@ AttributionManagerImpl::CreateForTesting(
+ 
+ // static
+ network::mojom::AttributionSupport AttributionManagerImpl::GetSupport() {
++  if ((true)) return network::mojom::AttributionSupport::kNone;
+ #if BUILDFLAG(IS_ANDROID)
+   bool is_web_allowed =
+       GetContentClient()->browser()->IsWebAttributionReportingAllowed();
+diff --git a/content/browser/attribution_reporting/attribution_os_level_manager_android.cc b/content/browser/attribution_reporting/attribution_os_level_manager_android.cc
+--- a/content/browser/attribution_reporting/attribution_os_level_manager_android.cc
++++ b/content/browser/attribution_reporting/attribution_os_level_manager_android.cc
+@@ -260,6 +260,7 @@ void AttributionOsLevelManagerAndroid::InitializeOsSupport() {
+ 
+   // Only make the async call once.
+   g_state.emplace(ApiState::kDisabled);
++  to be checked
+ 
+   Java_AttributionOsLevelManager_getMeasurementApiStatus(
+       base::android::AttachCurrentThread(), jobj_);
 diff --git a/content/browser/attribution_reporting/attribution_report_network_sender.cc b/content/browser/attribution_reporting/attribution_report_network_sender.cc
 --- a/content/browser/attribution_reporting/attribution_report_network_sender.cc
 +++ b/content/browser/attribution_reporting/attribution_report_network_sender.cc
@@ -127,7 +152,7 @@ diff --git a/content/browser/attribution_reporting/attribution_report_network_se
 diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
 --- a/content/browser/attribution_reporting/attribution_storage_sql.cc
 +++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
-@@ -443,6 +443,8 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
+@@ -591,6 +591,8 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
    return user_data_directory.Append(kDatabasePath);
  }
  
@@ -136,7 +161,7 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
  }  // namespace
  
  // static
-@@ -454,9 +456,9 @@ bool AttributionStorageSql::DeleteStorageForTesting(
+@@ -602,9 +604,9 @@ bool AttributionStorageSql::DeleteStorageForTesting(
  AttributionStorageSql::AttributionStorageSql(
      const base::FilePath& user_data_directory,
      std::unique_ptr<AttributionStorageDelegate> delegate)
@@ -146,13 +171,13 @@ diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/
 +    : path_to_database_(user_data_directory.empty() || g_run_in_memory
 +                             ? base::FilePath()
 +                             : DatabasePath(user_data_directory)),
-       delegate_(std::move(delegate)),
-       rate_limit_table_(delegate_.get()) {
-   DCHECK(delegate_);
+       db_(sql::DatabaseOptions{.exclusive_locking = true,
+                                .page_size = 4096,
+                                .cache_size = 32}),
 diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
 --- a/content/browser/storage_partition_impl.cc
 +++ b/content/browser/storage_partition_impl.cc
-@@ -1423,13 +1423,7 @@ void StoragePartitionImpl::Initialize(
+@@ -1432,13 +1432,7 @@ void StoragePartitionImpl::Initialize(
  
    bucket_manager_ = std::make_unique<BucketManager>(this);
  
@@ -181,30 +206,57 @@ diff --git a/content/public/browser/navigation_controller.cc b/content/public/br
 diff --git a/content/renderer/render_thread_impl.cc b/content/renderer/render_thread_impl.cc
 --- a/content/renderer/render_thread_impl.cc
 +++ b/content/renderer/render_thread_impl.cc
-@@ -1845,7 +1845,7 @@ RenderThreadImpl::GetOsSupportForAttributionReporting() {
+@@ -1837,7 +1837,7 @@ RenderThreadImpl::GetAttributionReportingSupport() {
  #if BUILDFLAG(IS_ANDROID)
- void RenderThreadImpl::SetOsSupportForAttributionReporting(
-     attribution_reporting::mojom::OsSupport attribution_os_support) {
--  attribution_os_support_ = attribution_os_support;
-+  attribution_os_support_ = attribution_reporting::mojom::OsSupport::kDisabled;
+ void RenderThreadImpl::SetAttributionReportingSupport(
+     network::mojom::AttributionSupport attribution_support) {
+-  attribution_support_ = attribution_support;
++  attribution_support_ = attribution_reporting::mojom::OsSupport::kDisabled;
  }
  #endif
  
+diff --git a/services/network/public/cpp/attribution_utils.cc b/services/network/public/cpp/attribution_utils.cc
+--- a/services/network/public/cpp/attribution_utils.cc
++++ b/services/network/public/cpp/attribution_utils.cc
+@@ -13,6 +13,7 @@ namespace network {
+ 
+ base::StringPiece GetAttributionSupportHeader(
+     mojom::AttributionSupport attribution_support) {
++  if ((true)) return "";
+   switch (attribution_support) {
+     case mojom::AttributionSupport::kWeb:
+       return "web";
+@@ -28,6 +29,7 @@ base::StringPiece GetAttributionSupportHeader(
+ }
+ 
+ bool HasAttributionOsSupport(mojom::AttributionSupport attribution_support) {
++  if ((true)) return false;
+   switch (attribution_support) {
+ #if BUILDFLAG(IS_ANDROID)
+     case mojom::AttributionSupport::kOs:
+@@ -45,6 +47,7 @@ bool HasAttributionOsSupport(mojom::AttributionSupport attribution_support) {
+ #if BUILDFLAG(IS_ANDROID)
+ 
+ bool HasAttributionWebSupport(mojom::AttributionSupport attribution_support) {
++  if ((true)) return false;
+   switch (attribution_support) {
+     case mojom::AttributionSupport::kWeb:
+     case mojom::AttributionSupport::kWebAndOs:
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -29,8 +29,8 @@ BASE_FEATURE(kAnonymousIframeOriginTrial,
- // Gate access to Attribution Reporting cross app and web APIs that allow
- // registering with a native attribution API.
- BASE_FEATURE(kAttributionReportingCrossAppWeb,
--             "AttributionReportingCrossAppWeb",
--             base::FEATURE_DISABLED_BY_DEFAULT);
-+             "AttributionReportingCrossAppWeb",     // must be disabled
-+             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
+@@ -23,8 +23,8 @@ namespace features {
+ // feature flag allows Chrome developers to restrict the access to the first
+ // fully supported version.
+ BASE_FEATURE(kAnonymousIframeOriginTrial,
+-             "AnonymousIframeOriginTrial",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "AnonymousIframeOriginTrial",     // must be disabled
++             base::FEATURE_ENABLED_BY_DEFAULT);    // in bromite
  
  // If enabled, whenever form controls are removed from the DOM, the ChromeClient
  // is informed about this. This enables Autofill to trigger a reparsing of
-@@ -135,8 +135,8 @@ BASE_FEATURE(kBlockingDownloadsInAdFrameWithoutUserActivation,
+@@ -136,8 +136,8 @@ BASE_FEATURE(kBlockingDownloadsInAdFrameWithoutUserActivation,
  
  // Controls whether the Conversion Measurement API infrastructure is enabled.
  BASE_FEATURE(kConversionMeasurement,
@@ -235,7 +287,7 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
 diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
 --- a/ui/base/ui_base_features.cc
 +++ b/ui/base/ui_base_features.cc
-@@ -467,6 +467,6 @@ bool IsChromeRefresh2023() {
+@@ -502,6 +502,6 @@ BASE_FEATURE(kCr2023MacFontSmoothing,
  
  BASE_FEATURE(kUseNanosecondsForMotionEvent,
               "UseNanosecondsForMotionEvent",

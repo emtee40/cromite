@@ -39,11 +39,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/omaha/UpdateStatusProvider.java   |   2 -
  .../settings/PasswordSettings.java            |   9 -
  .../modules/chrome_feature_modules.gni        |   3 -
- chrome/browser/BUILD.gn                       |   2 -
  chrome/browser/language/android/BUILD.gn      |   3 -
  .../language/AppLanguagePromoDialog.java      |  23 -
  .../language/settings/LanguageSettings.java   |   6 -
- .../prefetch/prefetch_service_factory.cc      |  16 -
  .../browser/password_manager/android/BUILD.gn |   4 -
  .../PasswordManagerAndroidBackendUtil.java    |  40 +-
  .../PasswordManagerHelper.java                |  20 +-
@@ -71,7 +69,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../components/media_router/MediaSink.java    |  44 +-
  .../media_router/MediaStatusBridge.java       |  40 +-
  .../caf/BaseNotificationController.java       |  48 --
- .../caf/BaseSessionController.java            | 100 +--
+ .../caf/BaseSessionController.java            | 100 +---
  .../caf/CafBaseMediaRouteProvider.java        | 103 +---
  .../caf/CafMediaRouteProvider.java            |  16 -
  .../media_router/caf/CafMessageHandler.java   |  97 +--
@@ -100,11 +98,11 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  services/BUILD.gn                             |   9 -
  services/device/geolocation/BUILD.gn          |   4 -
  services/shape_detection/BUILD.gn             |   2 -
- third_party/android_deps/BUILD.gn             | 568 +-----------------
+ third_party/android_deps/BUILD.gn             | 557 +-----------------
  .../preconditions/javatests/BUILD.gn          |   1 -
  .../gms/ChromiumPlayServicesAvailability.java |  10 +-
  weblayer/browser/java/BUILD.gn                |   1 -
- 80 files changed, 97 insertions(+), 1968 deletions(-)
+ 78 files changed, 97 insertions(+), 1939 deletions(-)
 
 diff --git a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected b/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
 --- a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
@@ -131,7 +129,7 @@ diff --git a/android_webview/expectations/system_webview_bundle.AndroidManifest.
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -231,14 +231,6 @@ if (current_toolchain == default_toolchain) {
+@@ -204,14 +204,6 @@ if (current_toolchain == default_toolchain) {
        ":chrome_public_apk_template_resources",
        ":update_proto_java",
        ":usage_stats_proto_java",
@@ -146,7 +144,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:jni_java",
        "//cc:cc_java",
        "//cc/mojom:mojom_java",
-@@ -534,14 +526,23 @@ if (current_toolchain == default_toolchain) {
+@@ -512,14 +504,23 @@ if (current_toolchain == default_toolchain) {
        "//services/shape_detection:shape_detection_java",
        "//services/shape_detection/public/mojom:mojom_java",
        "//skia/public/mojom:mojom_java",
@@ -173,7 +171,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//third_party/android_deps:protobuf_lite_runtime_java",
        "//third_party/android_media:android_media_java",
        "//third_party/android_swipe_refresh:android_swipe_refresh_java",
-@@ -823,11 +824,6 @@ if (current_toolchain == default_toolchain) {
+@@ -790,11 +791,6 @@ if (current_toolchain == default_toolchain) {
        ":chrome_java",
        ":chrome_jni_headers",
        ":delegate_public_impl_java",
@@ -183,9 +181,9 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 -      "$google_play_services_package:google_play_services_cast_java",
 -      "$google_play_services_package:google_play_services_gcm_java",
        "//base:base_java_test_support",
+       "//base:base_java_test_support_uncommon",
        "//base:base_junit_test_support",
-       "//base/test:test_support_java",
-@@ -1387,13 +1383,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1357,13 +1353,6 @@ if (current_toolchain == default_toolchain) {
        ":chrome_app_java_resources",
        ":chrome_test_util_java",
        ":delegate_public_impl_java",
@@ -198,8 +196,8 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 -      "$google_play_services_package:google_play_services_tasks_java",
        "//base:base_java",
        "//base:base_java_test_support",
-       "//base:jni_java",
-@@ -2327,7 +2316,6 @@ if (current_toolchain == default_toolchain) {
+       "//base:base_java_test_support_uncommon",
+@@ -2244,7 +2233,6 @@ if (current_toolchain == default_toolchain) {
      ]
      deps = [
        ":chrome_java",
@@ -207,7 +205,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java",
        "//base:base_java_test_support",
        "//base:jni_java",
-@@ -2465,7 +2453,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2337,7 +2325,6 @@ if (current_toolchain == default_toolchain) {
    # is in a DFM.
    android_library("base_module_java") {
      sources = [
@@ -215,7 +213,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "java/src/org/chromium/chrome/app/TrichromeZygotePreload.java",
        "java/src/org/chromium/chrome/browser/ChromeBackgroundService.java",
        "java/src/org/chromium/chrome/browser/ChromeBackupAgent.java",
-@@ -2481,8 +2468,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2353,8 +2340,6 @@ if (current_toolchain == default_toolchain) {
        "java/src/org/chromium/chrome/browser/base/SplitCompatBackupAgent.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatContentProvider.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatCustomTabsService.java",
@@ -224,7 +222,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "java/src/org/chromium/chrome/browser/base/SplitCompatIntentService.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatJobService.java",
        "java/src/org/chromium/chrome/browser/base/SplitCompatMinidumpUploadJobService.java",
-@@ -2507,17 +2492,11 @@ if (current_toolchain == default_toolchain) {
+@@ -2379,17 +2364,11 @@ if (current_toolchain == default_toolchain) {
        "java/src/org/chromium/chrome/browser/photo_picker/DecoderService.java",
        "java/src/org/chromium/chrome/browser/prerender/ChromePrerenderService.java",
        "java/src/org/chromium/chrome/browser/provider/ChromeBrowserProvider.java",
@@ -242,7 +240,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//base:base_java",
        "//base:jni_java",
        "//chrome/browser/download/android:file_provider_java",
-@@ -2531,7 +2510,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2403,7 +2382,6 @@ if (current_toolchain == default_toolchain) {
        "//components/media_router/browser/android:cast_options_provider_java",
        "//components/minidump_uploader:minidump_uploader_java",
        "//components/module_installer/android:module_installer_java",
@@ -250,7 +248,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//third_party/androidx:androidx_annotation_annotation_java",
        "//third_party/androidx:androidx_collection_collection_java",
        "//ui/android:ui_no_recycler_view_java",
-@@ -2550,7 +2528,6 @@ if (current_toolchain == default_toolchain) {
+@@ -2422,7 +2400,6 @@ if (current_toolchain == default_toolchain) {
        # Deps to pull services into base module.
        # TODO(crbug.com/1126301): Consider moving these to the chrome module to
        # reduce base dex size.
@@ -269,7 +267,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/ChromeBackupAgentImpl.java",
    "java/src/org/chromium/chrome/browser/ChromeBackupWatcher.java",
    "java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java",
-@@ -982,10 +981,6 @@ chrome_java_sources = [
+@@ -986,10 +985,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/segmentation_platform/PriceTrackingActionProvider.java",
    "java/src/org/chromium/chrome/browser/segmentation_platform/ReaderModeActionProvider.java",
    "java/src/org/chromium/chrome/browser/segmentation_platform/SignalAccumulator.java",
@@ -295,7 +293,7 @@ diff --git a/chrome/android/features/cablev2_authenticator/BUILD.gn b/chrome/and
 diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
 --- a/chrome/android/java/AndroidManifest.xml
 +++ b/chrome/android/java/AndroidManifest.xml
-@@ -114,21 +114,16 @@ by a child template that "extends" this file.
+@@ -121,21 +121,16 @@ by a child template that "extends" this file.
      <permission android:name="{{ manifest_package }}.permission.CHILD_SERVICE" android:protectionLevel="signature" />
      <permission android:name="{{ manifest_package }}.permission.READ_WRITE_BOOKMARK_FOLDERS" android:protectionLevel="signatureOrSystem" />
      <permission android:name="{{ manifest_package }}.TOS_ACKED" android:protectionLevel="signatureOrSystem" />
@@ -317,7 +315,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
      <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
  
      <uses-permission android:name="com.google.android.apps.now.CURRENT_ACCOUNT_ACCESS" />
-@@ -799,16 +794,6 @@ by a child template that "extends" this file.
+@@ -801,16 +796,6 @@ by a child template that "extends" this file.
              </intent-filter>
          </activity>
  
@@ -334,7 +332,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <!-- This activity is used to restart the main Chrome process.  Should never be exported. -->
          <activity android:name="org.chromium.chrome.browser.BrowserRestartActivity"
              android:launchMode="singleInstance"
-@@ -1000,26 +985,6 @@ by a child template that "extends" this file.
+@@ -997,26 +982,6 @@ by a child template that "extends" this file.
              android:configChanges="orientation|keyboardHidden|keyboard|screenSize|mcc|mnc|screenLayout|smallestScreenSize"
              android:hardwareAccelerated="false" />
  
@@ -361,7 +359,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <!-- Android Notification service listener -->
          <service android:name="org.chromium.chrome.browser.notifications.NotificationService"
              android:exported="false"/>
-@@ -1050,20 +1015,10 @@ by a child template that "extends" this file.
+@@ -1047,20 +1012,10 @@ by a child template that "extends" this file.
          <service android:name="org.chromium.components.background_task_scheduler.internal.BackgroundTaskJobService"
              android:exported="false"
              android:permission="android.permission.BIND_JOB_SERVICE"/>
@@ -382,7 +380,7 @@ diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/Andro
          <service android:name="org.chromium.chrome.browser.prerender.ChromePrerenderService"
              android:exported="true"
              tools:ignore="ExportedService" />
-@@ -1295,12 +1250,6 @@ by a child template that "extends" this file.
+@@ -1292,12 +1247,6 @@ by a child template that "extends" this file.
  
        {% endif %}
  
@@ -407,8 +405,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/AppHooks.java b
 -
  import org.chromium.base.ContextUtils;
  import org.chromium.base.PackageUtils;
- import org.chromium.base.annotations.CalledByNative;
-@@ -245,11 +242,7 @@ public abstract class AppHooks {
+ import org.chromium.chrome.browser.customtabs.CustomTabsConnection;
+@@ -235,11 +232,7 @@ public abstract class AppHooks {
       * same as {@link GoogleApiAvailability#isGooglePlayServicesAvailable()}.
       */
      public int isGoogleApiAvailableWithMinApkVersion(int minApkVersion) {
@@ -479,15 +477,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/PlayServicesVer
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java b/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/background_task_scheduler/ChromeBackgroundTaskFactory.java
-@@ -14,7 +14,6 @@ import org.chromium.chrome.browser.notifications.scheduler.NotificationScheduler
+@@ -13,7 +13,6 @@ import org.chromium.chrome.browser.notifications.NotificationTriggerBackgroundTa
+ import org.chromium.chrome.browser.notifications.scheduler.NotificationSchedulerTask;
  import org.chromium.chrome.browser.offlinepages.OfflineBackgroundTask;
- import org.chromium.chrome.browser.offlinepages.prefetch.PrefetchBackgroundTask;
  import org.chromium.chrome.browser.omaha.OmahaService;
 -import org.chromium.chrome.browser.services.gcm.GCMBackgroundTask;
  import org.chromium.chrome.browser.webapps.WebApkUpdateTask;
  import org.chromium.components.background_task_scheduler.BackgroundTask;
  import org.chromium.components.background_task_scheduler.BackgroundTaskFactory;
-@@ -55,8 +54,6 @@ public class ChromeBackgroundTaskFactory implements BackgroundTaskFactory {
+@@ -54,8 +53,6 @@ public class ChromeBackgroundTaskFactory implements BackgroundTaskFactory {
          switch (taskId) {
              case TaskIds.OMAHA_JOB_ID:
                  return new OmahaService();
@@ -495,7 +493,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/background_task
 -                return new GCMBackgroundTask();
              case TaskIds.OFFLINE_PAGES_BACKGROUND_JOB_ID:
                  return new OfflineBackgroundTask();
-             case TaskIds.OFFLINE_PAGES_PREFETCH_JOB_ID:
+             case TaskIds.DOWNLOAD_SERVICE_JOB_ID:
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/gcore/ChromeGoogleApiClientImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/gcore/ChromeGoogleApiClientImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/gcore/ChromeGoogleApiClientImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/gcore/ChromeGoogleApiClientImpl.java
@@ -774,35 +772,23 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/password_manage
 diff --git a/chrome/android/modules/chrome_feature_modules.gni b/chrome/android/modules/chrome_feature_modules.gni
 --- a/chrome/android/modules/chrome_feature_modules.gni
 +++ b/chrome/android/modules/chrome_feature_modules.gni
-@@ -6,8 +6,6 @@ import("//build/config/android/config.gni")
+@@ -5,8 +5,6 @@
+ import("//build/config/android/config.gni")
  import("//chrome/android/features/dev_ui/dev_ui_module.gni")
- import("//chrome/android/features/tab_ui/tab_ui_module.gni")
  import("//chrome/android/modules/buildflags.gni")
 -import(
 -    "//chrome/android/modules/cablev2_authenticator/cablev2_authenticator_module.gni")
  import("//chrome/android/modules/stack_unwinder/stack_unwinder_module.gni")
  import("//chrome/android/modules/test_dummy/test_dummy_module.gni")
  import("//device/vr/buildflags/buildflags.gni")
-@@ -56,7 +54,6 @@ if (false) {  # AR DFM is currently disabled
- if (!disable_tab_ui_dfm) {
-   monochrome_module_descs += [ tab_ui_module_desc ]
- }
--monochrome_module_descs += [ cablev2_authenticator_module_desc ]
+@@ -39,7 +37,6 @@ if (enable_arcore) {
+ # Each new module needs to add a desc to one of the lists below.
  
- # Modules shipped in Trichrome (Android Q+).
- trichrome_module_descs = monochrome_module_descs
-diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
---- a/chrome/browser/BUILD.gn
-+++ b/chrome/browser/BUILD.gn
-@@ -7100,8 +7100,6 @@ static_library("browser") {
-       "offline_pages/offliner_helper.h",
-       "offline_pages/offliner_user_data.cc",
-       "offline_pages/offliner_user_data.h",
--      "offline_pages/prefetch/gcm_token.cc",
--      "offline_pages/prefetch/gcm_token.h",
-       "offline_pages/prefetch/offline_metrics_collector_impl.cc",
-       "offline_pages/prefetch/offline_metrics_collector_impl.h",
-       "offline_pages/prefetch/offline_prefetch_download_client.cc",
+ chrome_module_descs = [
+-  cablev2_authenticator_module_desc,
+   test_dummy_module_desc,
+   stack_unwinder_module_desc,
+ ]
 diff --git a/chrome/browser/language/android/BUILD.gn b/chrome/browser/language/android/BUILD.gn
 --- a/chrome/browser/language/android/BUILD.gn
 +++ b/chrome/browser/language/android/BUILD.gn
@@ -825,7 +811,7 @@ diff --git a/chrome/browser/language/android/BUILD.gn b/chrome/browser/language/
 diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLanguagePromoDialog.java b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLanguagePromoDialog.java
 --- a/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLanguagePromoDialog.java
 +++ b/chrome/browser/language/android/java/src/org/chromium/chrome/browser/language/AppLanguagePromoDialog.java
-@@ -531,12 +531,6 @@ public class AppLanguagePromoDialog {
+@@ -552,12 +552,6 @@ public class AppLanguagePromoDialog {
  
          mLoadingModal.set(ModalDialogProperties.CUSTOM_VIEW, customView);
  
@@ -838,7 +824,7 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
          boolean isSelectedCurrentUI = AppLocaleUtils.isAppLanguagePref(selectedLanguage.getCode());
          if (!isSelectedCurrentUI) {
              // Only record isTopLanguage if the app language has changed.
-@@ -544,23 +538,6 @@ public class AppLanguagePromoDialog {
+@@ -565,23 +559,6 @@ public class AppLanguagePromoDialog {
          }
          AndroidLanguageMetricsBridge.reportAppLanguagePromptLanguage(
                  selectedLanguage.isSystemDefault() ? "" : selectedLanguage.getCode());
@@ -885,39 +871,6 @@ diff --git a/chrome/browser/language/android/java/src/org/chromium/chrome/browse
          SettingsUtils.addPreferencesFromResource(this, R.xml.languages_detailed_preferences);
  
          setupAppLanguageSection();
-diff --git a/chrome/browser/offline_pages/prefetch/prefetch_service_factory.cc b/chrome/browser/offline_pages/prefetch/prefetch_service_factory.cc
---- a/chrome/browser/offline_pages/prefetch/prefetch_service_factory.cc
-+++ b/chrome/browser/offline_pages/prefetch/prefetch_service_factory.cc
-@@ -18,7 +18,6 @@
- #include "chrome/browser/image_fetcher/image_fetcher_service_factory.h"
- #include "chrome/browser/net/system_network_context_manager.h"
- #include "chrome/browser/offline_pages/offline_page_model_factory.h"
--#include "chrome/browser/offline_pages/prefetch/gcm_token.h"
- #include "chrome/browser/offline_pages/prefetch/offline_metrics_collector_impl.h"
- #include "chrome/browser/offline_pages/prefetch/prefetch_background_task_handler_impl.h"
- #include "chrome/browser/profiles/profile.h"
-@@ -68,21 +67,6 @@ void SwitchToFullBrowserImageFetcher(PrefetchServiceImpl* prefetch_service,
- }
- 
- void OnProfileCreated(PrefetchServiceImpl* prefetch_service, Profile* profile) {
--  if (IsPrefetchingOfflinePagesEnabled()) {
--    // Trigger an update of the cached GCM token. This needs to be post tasked
--    // because otherwise leads to circular dependency between
--    // PrefetchServiceFactory and GCMProfileServiceFactory. See
--    // https://crbug.com/944952
--    // Update is not a priority so make sure it happens after the critical
--    // startup path.
--    content::GetUIThreadTaskRunner({base::TaskPriority::BEST_EFFORT})
--        ->PostTask(FROM_HERE,
--                   base::BindOnce(
--                       &GetGCMToken, profile, kPrefetchingOfflinePagesAppId,
--                       base::BindOnce(&PrefetchServiceImpl::GCMTokenReceived,
--                                      prefetch_service->GetWeakPtr())));
--  }
--
-   SwitchToFullBrowserImageFetcher(prefetch_service, profile->GetProfileKey());
- }
- 
 diff --git a/chrome/browser/password_manager/android/BUILD.gn b/chrome/browser/password_manager/android/BUILD.gn
 --- a/chrome/browser/password_manager/android/BUILD.gn
 +++ b/chrome/browser/password_manager/android/BUILD.gn
@@ -938,7 +891,7 @@ diff --git a/chrome/browser/password_manager/android/BUILD.gn b/chrome/browser/p
 -    "$google_play_services_package:google_play_services_basement_java",
      "//base:base_java",
      "//base:base_java_test_support",
-     "//base:base_junit_test_support",
+     "//base:base_java_test_support_uncommon",
 diff --git a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerAndroidBackendUtil.java b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerAndroidBackendUtil.java
 --- a/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerAndroidBackendUtil.java
 +++ b/chrome/browser/password_manager/android/java/src/org/chromium/chrome/browser/password_manager/PasswordManagerAndroidBackendUtil.java
@@ -1099,7 +1052,7 @@ diff --git a/chrome/browser/push_messaging/push_messaging_service_factory.cc b/c
 diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resources/settings/route.ts
 --- a/chrome/browser/resources/settings/route.ts
 +++ b/chrome/browser/resources/settings/route.ts
-@@ -43,8 +43,6 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
+@@ -50,8 +50,6 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
  
    if (loadTimeData.getBoolean('enableSecurityKeysSubpage')) {
      r.SECURITY_KEYS = r.SECURITY.createChild('/securityKeys');
@@ -1111,7 +1064,7 @@ diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resourc
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -255,8 +255,6 @@ static_library("ui") {
+@@ -259,8 +259,6 @@ static_library("ui") {
      "webui/flags/flags_ui.h",
      "webui/flags/flags_ui_handler.cc",
      "webui/flags/flags_ui_handler.h",
@@ -1120,7 +1073,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
      "webui/internals/internals_ui.cc",
      "webui/internals/internals_ui.h",
      "webui/interstitials/interstitial_ui.cc",
-@@ -491,7 +489,6 @@ static_library("ui") {
+@@ -496,7 +494,6 @@ static_library("ui") {
      "//components/feedback/redaction_tool",
      "//components/find_in_page",
      "//components/flags_ui",
@@ -1131,7 +1084,7 @@ diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
 diff --git a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java b/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
 --- a/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
 +++ b/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/fre/SigninFirstRunMediator.java
-@@ -183,12 +183,8 @@ public class SigninFirstRunMediator
+@@ -185,12 +185,8 @@ public class SigninFirstRunMediator
          boolean isSigninDisabledByPolicy = false;
          boolean isMetricsReportingDisabledByPolicy = false;
          if (hasPolicies) {
@@ -1166,7 +1119,7 @@ diff --git a/chrome/browser/ui/webauthn/sheet_models.cc b/chrome/browser/ui/weba
 diff --git a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc b/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
 --- a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
 +++ b/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc
-@@ -42,7 +42,6 @@
+@@ -43,7 +43,6 @@
  #include "chrome/browser/ui/webui/download_internals/download_internals_ui.h"
  #include "chrome/browser/ui/webui/engagement/site_engagement_ui.h"
  #include "chrome/browser/ui/webui/flags/flags_ui.h"
@@ -1174,7 +1127,7 @@ diff --git a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc b/chrom
  #include "chrome/browser/ui/webui/internals/internals_ui.h"
  #include "chrome/browser/ui/webui/interstitials/interstitial_ui.h"
  #include "chrome/browser/ui/webui/intro/intro_ui.h"
-@@ -814,8 +813,6 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
+@@ -773,8 +772,6 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
      return &NewWebUI<FlagsDeprecatedUI>;
    if (url.host_piece() == chrome::kChromeUIFlagsHost)
      return &NewWebUI<FlagsUI>;
@@ -1186,7 +1139,7 @@ diff --git a/chrome/browser/ui/webui/chrome_web_ui_controller_factory.cc b/chrom
 diff --git a/chrome/browser/webauthn/authenticator_request_dialog_model.cc b/chrome/browser/webauthn/authenticator_request_dialog_model.cc
 --- a/chrome/browser/webauthn/authenticator_request_dialog_model.cc
 +++ b/chrome/browser/webauthn/authenticator_request_dialog_model.cc
-@@ -1137,10 +1137,6 @@ void AuthenticatorRequestDialogModel::PopulateMechanisms(
+@@ -1169,10 +1169,6 @@ void AuthenticatorRequestDialogModel::PopulateMechanisms() {
    if (cable_ui_type_) {
      switch (*cable_ui_type_) {
        case AuthenticatorRequestDialogModel::CableUIType::CABLE_V2_2ND_FACTOR:
@@ -1213,7 +1166,7 @@ diff --git a/chrome/browser/webauthn/cablev2_devices.cc b/chrome/browser/webauth
 diff --git a/chrome/test/android/BUILD.gn b/chrome/test/android/BUILD.gn
 --- a/chrome/test/android/BUILD.gn
 +++ b/chrome/test/android/BUILD.gn
-@@ -247,8 +247,6 @@ android_library("chrome_java_integration_test_support") {
+@@ -284,8 +284,6 @@ android_library("chrome_java_integration_test_support") {
  
    deps = [
      ":chrome_java_test_support_common",
@@ -1225,7 +1178,7 @@ diff --git a/chrome/test/android/BUILD.gn b/chrome/test/android/BUILD.gn
 diff --git a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
 --- a/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
 +++ b/components/external_intents/android/java/src/org/chromium/components/external_intents/ExternalNavigationHandler.java
-@@ -2421,14 +2421,6 @@ public class ExternalNavigationHandler {
+@@ -2435,14 +2435,6 @@ public class ExternalNavigationHandler {
       * @return Whether the given intent is going to open an Instant App.
       */
      private static boolean isIntentToInstantApp(Intent intent) {
@@ -1378,7 +1331,7 @@ diff --git a/components/gcm_driver/android/java/src/org/chromium/components/gcm_
 diff --git a/components/gcm_driver/gcm_client_impl.cc b/components/gcm_driver/gcm_client_impl.cc
 --- a/components/gcm_driver/gcm_client_impl.cc
 +++ b/components/gcm_driver/gcm_client_impl.cc
-@@ -463,6 +463,7 @@ void GCMClientImpl::StartGCM() {
+@@ -450,6 +450,7 @@ void GCMClientImpl::StartGCM() {
  
  void GCMClientImpl::InitializeMCSClient() {
    DCHECK(network_connection_tracker_);
@@ -1386,7 +1339,7 @@ diff --git a/components/gcm_driver/gcm_client_impl.cc b/components/gcm_driver/gc
    std::vector<GURL> endpoints;
    endpoints.push_back(gservices_settings_.GetMCSMainEndpoint());
    GURL fallback_endpoint = gservices_settings_.GetMCSFallbackEndpoint();
-@@ -657,6 +658,7 @@ void GCMClientImpl::AddHeartbeatInterval(const std::string& scope,
+@@ -643,6 +644,7 @@ void GCMClientImpl::AddHeartbeatInterval(const std::string& scope,
                                           int interval_ms) {
    DCHECK(io_task_runner_->RunsTasksInCurrentSequence());
    DCHECK(mcs_client_);
@@ -1394,7 +1347,7 @@ diff --git a/components/gcm_driver/gcm_client_impl.cc b/components/gcm_driver/gc
    mcs_client_->AddHeartbeatInterval(scope, interval_ms);
  }
  
-@@ -668,6 +670,7 @@ void GCMClientImpl::RemoveHeartbeatInterval(const std::string& scope) {
+@@ -654,6 +656,7 @@ void GCMClientImpl::RemoveHeartbeatInterval(const std::string& scope) {
  
  void GCMClientImpl::StartCheckin() {
    DCHECK(io_task_runner_->RunsTasksInCurrentSequence());
@@ -1402,7 +1355,7 @@ diff --git a/components/gcm_driver/gcm_client_impl.cc b/components/gcm_driver/gc
  
    // Make sure no checkin is in progress.
    if (checkin_request_)
-@@ -750,6 +753,7 @@ void GCMClientImpl::SetGServicesSettingsCallback(bool success) {
+@@ -736,6 +739,7 @@ void GCMClientImpl::SetGServicesSettingsCallback(bool success) {
  
  void GCMClientImpl::SchedulePeriodicCheckin() {
    DCHECK(io_task_runner_->RunsTasksInCurrentSequence());
@@ -1559,7 +1512,7 @@ diff --git a/components/media_router/browser/android/BUILD.gn b/components/media
    ]
  }
  
-@@ -141,9 +135,6 @@ robolectric_library("junit") {
+@@ -145,9 +139,6 @@ robolectric_library("junit") {
    deps = [
      ":java",
      ":test_support_java",
@@ -2008,7 +1961,7 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
      public void requestSessionLaunch() {
          mRouteCreationInfo = mProvider.getPendingCreateRouteRequestInfo();
 -        CastUtils.getCastContext().setReceiverApplicationId(
--                mRouteCreationInfo.source.getApplicationId());
+-                mRouteCreationInfo.getMediaSource().getApplicationId());
 -
          // When the user clicks a route on the MediaRouteChooserDialog, we intercept the click event
          // and do not select the route. Instead the route selection is postponed to here. This will
@@ -2158,7 +2111,7 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
      private static final String TAG = "CafMR";
  
      protected static final List<MediaSink> NO_SINKS = Collections.emptyList();
-@@ -170,7 +167,6 @@ public abstract class CafBaseMediaRouteProvider
+@@ -175,7 +172,6 @@ public abstract class CafBaseMediaRouteProvider
              // current session and clean up the routes (can't wait for session ending as the signal
              // might be delayed).
              sessionController().endSession();
@@ -2166,7 +2119,7 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
          }
          if (mPendingCreateRouteRequestInfo != null) {
              cancelPendingRequest("Request replaced");
-@@ -199,9 +195,6 @@ public abstract class CafBaseMediaRouteProvider
+@@ -204,9 +200,6 @@ public abstract class CafBaseMediaRouteProvider
              mManager.onCreateRouteRequestError("The sink does not exist", nativeRequestId);
          }
  
@@ -2176,7 +2129,7 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
          mPendingCreateRouteRequestInfo = new CreateRouteRequestInfo(source, sink, presentationId,
                  origin, tabId, isOffTheRecord, nativeRequestId, targetRouteInfo);
  
-@@ -228,100 +221,6 @@ public abstract class CafBaseMediaRouteProvider
+@@ -233,100 +226,6 @@ public abstract class CafBaseMediaRouteProvider
          removeRoute(routeId, /* error= */ null);
      }
  
@@ -2249,7 +2202,7 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
 -        sessionController().onSessionStarted();
 -
 -        MediaSink sink = mPendingCreateRouteRequestInfo.sink;
--        MediaSource source = mPendingCreateRouteRequestInfo.source;
+-        MediaSource source = mPendingCreateRouteRequestInfo.getMediaSource();
 -        MediaRoute route = new MediaRoute(
 -                sink.getId(), source.getSourceId(), mPendingCreateRouteRequestInfo.presentationId);
 -        addRoute(route, mPendingCreateRouteRequestInfo.origin, mPendingCreateRouteRequestInfo.tabId,
@@ -2395,7 +2348,7 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
              jsonReceiver.put("displayStatus", null);
              jsonReceiver.put("receiverType", "cast");
  
-@@ -700,23 +646,14 @@ public class CafMessageHandler {
+@@ -700,25 +646,16 @@ public class CafMessageHandler {
  
              JSONObject jsonMessage = new JSONObject();
              jsonMessage.put("sessionId", mSessionController.getSessionId());
@@ -2412,16 +2365,18 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
 -                jsonMessage.put("appId", applicationMetadata.getApplicationId());
 -            } else {
 -                jsonMessage.put("appId",
--                        mSessionController.getRouteCreationInfo().source.getApplicationId());
+-                        mSessionController.getRouteCreationInfo()
++            jsonMessage.put("appId",
++                    mSessionController.getRouteCreationInfo()
+                                 .getMediaSource()
+                                 .getApplicationId());
 -            }
 -            jsonMessage.put("displayName",
 -                    mSessionController.getSession().getCastDevice().getFriendlyName());
-+            jsonMessage.put("appId",
-+                    mSessionController.getRouteCreationInfo().source.getApplicationId());
  
              return jsonMessage.toString();
          } catch (JSONException e) {
-@@ -797,32 +734,6 @@ public class CafMessageHandler {
+@@ -799,32 +736,6 @@ public class CafMessageHandler {
      boolean sendStringCastMessage(
              String message, String namespace, String clientId, int sequenceNumber) {
          if (!mSessionController.isConnected()) return false;
@@ -2760,14 +2715,15 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
 diff --git a/components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/CafRemotingMediaRouteProvider.java b/components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/CafRemotingMediaRouteProvider.java
 --- a/components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/CafRemotingMediaRouteProvider.java
 +++ b/components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/CafRemotingMediaRouteProvider.java
-@@ -65,6 +65,6 @@ public class CafRemotingMediaRouteProvider extends CafBaseMediaRouteProvider {
+@@ -70,7 +70,7 @@ public class CafRemotingMediaRouteProvider extends CafBaseMediaRouteProvider {
  
          if (!mRoutes.containsKey(routeId)) return null;
  
 -        return sessionController().getFlingingController();
 +        return null;
      }
- }
+ 
+     @Override
 diff --git a/components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java b/components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java
 --- a/components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java
 +++ b/components/media_router/browser/android/java/src/org/chromium/components/media_router/caf/remoting/FlingingControllerAdapter.java
@@ -2783,9 +2739,9 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
  import org.chromium.base.Log;
  import org.chromium.components.media_router.FlingingController;
  import org.chromium.components.media_router.MediaController;
-@@ -69,14 +64,6 @@ public class FlingingControllerAdapter implements FlingingController, MediaContr
+@@ -80,14 +75,6 @@ public class FlingingControllerAdapter implements FlingingController, MediaContr
      /** Starts loading the media URL, from the given position. */
-     public void load(long position) {
+     public void load(long position, boolean autoplay) {
          if (!mSessionController.isConnected()) return;
 -
 -        mLoaded = true;
@@ -2794,12 +2750,12 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
 -                                      .setContentType("*/*")
 -                                      .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
 -                                      .build();
--        mSessionController.getRemoteMediaClient().load(mediaInfo, /* autoplay= */ true, position);
+-        mSessionController.getRemoteMediaClient().load(mediaInfo, autoplay, position);
      }
  
      ////////////////////////////////////////////
-@@ -91,89 +78,28 @@ public class FlingingControllerAdapter implements FlingingController, MediaContr
-             load(/* position= */ 0);
+@@ -102,89 +89,28 @@ public class FlingingControllerAdapter implements FlingingController, MediaContr
+             load(/* position= */ 0, /* autoplay= */ true);
              return;
          }
 -
@@ -2833,7 +2789,7 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
 -        if (!mSessionController.isConnected()) return;
 -
 -        if (!mLoaded) {
--            load(position);
+-            load(position, /* autoplay= */ true);
 -            return;
 -        }
 -
@@ -2931,9 +2887,9 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
 -
  import org.chromium.base.Log;
  import org.chromium.components.media_router.CastSessionUtil;
- import org.chromium.components.media_router.caf.BaseNotificationController;
-@@ -33,19 +31,6 @@ public class RemotingSessionController extends BaseSessionController {
-         sInstance = new WeakReference<>(this);
+ import org.chromium.components.media_router.MediaSource;
+@@ -45,19 +43,6 @@ public class RemotingSessionController extends BaseSessionController {
+         getProvider().updateRouteMediaSource(getRouteCreationInfo().routeId, source.getSourceId());
      }
  
 -    @Override
@@ -2952,7 +2908,7 @@ diff --git a/components/media_router/browser/android/java/src/org/chromium/compo
      @Override
      public void onSessionStarted() {
          super.onSessionStarted();
-@@ -53,17 +38,6 @@ public class RemotingSessionController extends BaseSessionController {
+@@ -65,17 +50,6 @@ public class RemotingSessionController extends BaseSessionController {
          mFlingingControllerAdapter = new FlingingControllerAdapter(this, source.getMediaUrl());
      }
  
@@ -3020,14 +2976,14 @@ diff --git a/components/signin/public/android/BUILD.gn b/components/signin/publi
      "//base:base_java",
      "//base:jni_java",
      "//build/android:build_java",
-@@ -175,7 +173,6 @@ robolectric_library("junit") {
+@@ -177,7 +175,6 @@ robolectric_library("junit") {
    deps = [
      ":java",
      ":signin_java_test_support",
 -    "$google_play_services_package:google_play_services_auth_base_java",
      "//base:base_java",
      "//base:base_java_test_support",
-     "//base:base_junit_test_support",
+     "//base:base_java_test_support_uncommon",
 diff --git a/components/signin/public/android/java/src/org/chromium/components/signin/AccountRenameChecker.java b/components/signin/public/android/java/src/org/chromium/components/signin/AccountRenameChecker.java
 --- a/components/signin/public/android/java/src/org/chromium/components/signin/AccountRenameChecker.java
 +++ b/components/signin/public/android/java/src/org/chromium/components/signin/AccountRenameChecker.java
@@ -3069,10 +3025,10 @@ diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/
  generate_jni("jni_headers") {
    sources = [
 -    "java/src/org/chromium/components/webauthn/Fido2Api.java",
+     "java/src/org/chromium/components/webauthn/Fido2CredentialRequest.java",
      "java/src/org/chromium/components/webauthn/InternalAuthenticator.java",
      "java/src/org/chromium/components/webauthn/WebAuthnBrowserBridge.java",
-   ]
-@@ -16,11 +15,7 @@ android_library("java") {
+@@ -17,11 +16,7 @@ android_library("java") {
    sources = [
      "java/src/org/chromium/components/webauthn/AuthenticatorFactory.java",
      "java/src/org/chromium/components/webauthn/AuthenticatorImpl.java",
@@ -3084,7 +3040,7 @@ diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/
      "java/src/org/chromium/components/webauthn/GetAssertionResponseCallback.java",
      "java/src/org/chromium/components/webauthn/GetMatchingCredentialIdsResponseCallback.java",
      "java/src/org/chromium/components/webauthn/InternalAuthenticator.java",
-@@ -31,9 +26,6 @@ android_library("java") {
+@@ -32,9 +27,6 @@ android_library("java") {
    ]
    annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
    deps = [
@@ -3094,14 +3050,14 @@ diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/
      "//base:base_java",
      "//base:jni_java",
      "//build/android:build_java",
-@@ -70,7 +62,6 @@ android_library("test_support_java") {
+@@ -74,7 +66,6 @@ android_library("test_support_java") {
  
  source_set("android") {
    sources = [
 -    "fido2api_native_android.cc",
+     "fido2credentialrequest_native_android.cc",
      "internal_authenticator_android.cc",
      "internal_authenticator_android.h",
-     "webauthn_browser_bridge.cc",
 diff --git a/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java b/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
 --- a/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
 +++ b/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
@@ -3324,9 +3280,9 @@ diff --git a/content/browser/push_messaging/push_messaging_manager.cc b/content/
 diff --git a/content/public/android/BUILD.gn b/content/public/android/BUILD.gn
 --- a/content/public/android/BUILD.gn
 +++ b/content/public/android/BUILD.gn
-@@ -129,10 +129,6 @@ android_library("content_main_dex_java") {
- android_library("content_full_java") {
+@@ -130,10 +130,6 @@ android_library("content_full_java") {
    deps = [
+     ":content_java_resources",
      ":content_main_dex_java",
 -    "$google_play_services_package:google_play_services_auth_api_phone_java",
 -    "$google_play_services_package:google_play_services_base_java",
@@ -3338,7 +3294,7 @@ diff --git a/content/public/android/BUILD.gn b/content/public/android/BUILD.gn
 diff --git a/content/test/BUILD.gn b/content/test/BUILD.gn
 --- a/content/test/BUILD.gn
 +++ b/content/test/BUILD.gn
-@@ -3271,10 +3271,6 @@ if (is_android) {
+@@ -3291,10 +3291,6 @@ if (is_android) {
      testonly = true
      sources = content_java_sources_needing_jni
      deps = [
@@ -3365,7 +3321,7 @@ diff --git a/device/BUILD.gn b/device/BUILD.gn
 diff --git a/device/fido/features.cc b/device/fido/features.cc
 --- a/device/fido/features.cc
 +++ b/device/fido/features.cc
-@@ -33,12 +33,12 @@ BASE_FEATURE(kWebAuthnGoogleCorpRemoteDesktopClientPrivilege,
+@@ -33,13 +33,13 @@ BASE_FEATURE(kWebAuthnGoogleCorpRemoteDesktopClientPrivilege,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kWebAuthPasskeysUI,
@@ -3374,15 +3330,16 @@ diff --git a/device/fido/features.cc b/device/fido/features.cc
 +             "WebAuthenticationPasskeysUI",                     // disabled by default
 +             base::FEATURE_ENABLED_BY_DEFAULT);                // in Bromite
  
--BASE_FEATURE(kWebAuthnNoEmptyDisplayNameCBOR,
--             "WebAuthenticationNoEmptyDisplayNameCBOR",
+ // Added in M112. Remove in or after M115.
+-BASE_FEATURE(kWebAuthnCredProtectThree,
+-             "WebAuthenticationCredProtectThree",
 -             base::FEATURE_ENABLED_BY_DEFAULT);
-+BASE_FEATURE(kWebAuthnNoEmptyDisplayNameCBOR,             // disabled by default
-+             "WebAuthenticationNoEmptyDisplayNameCBOR",   // in Bromite
++BASE_FEATURE(kWebAuthnCredProtectThree,             // disabled by default
++             "WebAuthenticationCredProtectThree",   // in Bromite
 +             base::FEATURE_DISABLED_BY_DEFAULT);
  
- BASE_FEATURE(kWebAuthnNonDiscoverableMakeCredentialQRFlag,
-              "WebAuthenticationNonDiscoverableMakeCredentialQRFlag",
+ // Added in M112. Enabled in M113. Remove in or after M116.
+ BASE_FEATURE(kWebAuthnPRFAsAuthenticator,
 diff --git a/remoting/android/client_java_tmpl.gni b/remoting/android/client_java_tmpl.gni
 --- a/remoting/android/client_java_tmpl.gni
 +++ b/remoting/android/client_java_tmpl.gni
@@ -3399,7 +3356,7 @@ diff --git a/remoting/android/client_java_tmpl.gni b/remoting/android/client_jav
 diff --git a/services/BUILD.gn b/services/BUILD.gn
 --- a/services/BUILD.gn
 +++ b/services/BUILD.gn
-@@ -123,11 +123,6 @@ if (is_android) {
+@@ -124,11 +124,6 @@ if (is_android) {
        "shape_detection/android/junit/src/org/chromium/shape_detection/BitmapUtilsTest.java",
      ]
      deps = [
@@ -3411,7 +3368,7 @@ diff --git a/services/BUILD.gn b/services/BUILD.gn
        "//base:base_java",
        "//base:base_java_test_support",
        "//base:base_junit_test_support",
-@@ -156,10 +151,6 @@ if (is_android) {
+@@ -157,10 +152,6 @@ if (is_android) {
        "shape_detection/android/javatests/src/org/chromium/shape_detection/TextDetectionImplTest.java",
      ]
      deps = [
@@ -3475,7 +3432,7 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
  }
  
  # TODO(crbug.com/1366370) Remove this once all depencencies are updated to
-@@ -961,210 +952,6 @@ if (!limit_android_deps) {
+@@ -961,199 +952,6 @@ if (!limit_android_deps) {
      ]
    }
  
@@ -3590,17 +3547,6 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
 -  }
 -
 -  # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
--  android_aar_prebuilt("google_play_services_fido_java") {
--    aar_path = "libs/com_google_android_gms_play_services_fido/play-services-fido-19.0.0-beta.aar"
--    info_path = "libs/com_google_android_gms_play_services_fido/com_google_android_gms_play_services_fido.info"
--    deps = [
--      ":google_play_services_base_java",
--      ":google_play_services_basement_java",
--      ":google_play_services_tasks_java",
--    ]
--  }
--
--  # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
 -  android_aar_prebuilt("google_play_services_gcm_java") {
 -    aar_path = "libs/com_google_android_gms_play_services_gcm/play-services-gcm-17.0.0.aar"
 -    info_path = "libs/com_google_android_gms_play_services_gcm/com_google_android_gms_play_services_gcm.info"
@@ -3686,7 +3632,7 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
    # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
    android_aar_prebuilt("com_google_android_material_material_java") {
      aar_path =
-@@ -1210,64 +997,6 @@ if (!limit_android_deps) {
+@@ -1199,64 +997,6 @@ if (!limit_android_deps) {
      ]
    }
  
@@ -3751,7 +3697,7 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
    # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
    java_prebuilt("com_google_guava_guava_android_java") {
      jar_path = "libs/com_google_guava_guava_android/guava-31.1-android.jar"
-@@ -1571,19 +1300,6 @@ if (!limit_android_deps) {
+@@ -1573,19 +1313,6 @@ if (!limit_android_deps) {
      is_robolectric = true
    }
  
@@ -3771,7 +3717,7 @@ diff --git a/third_party/android_deps/BUILD.gn b/third_party/android_deps/BUILD.
    # This is generated, do not edit. Update BuildConfigGenerator.groovy instead.
    java_prebuilt("org_robolectric_utils_java") {
      jar_path = "libs/org_robolectric_utils/utils-4.8.1.jar"
-@@ -1944,288 +1660,6 @@ if (!limit_android_deps) {
+@@ -1946,288 +1673,6 @@ if (!limit_android_deps) {
      deps = [ "//third_party/androidx:androidx_annotation_annotation_java" ]
    }
  
@@ -4107,7 +4053,7 @@ diff --git a/third_party/android_deps/util/org/chromium/gms/ChromiumPlayServices
 diff --git a/weblayer/browser/java/BUILD.gn b/weblayer/browser/java/BUILD.gn
 --- a/weblayer/browser/java/BUILD.gn
 +++ b/weblayer/browser/java/BUILD.gn
-@@ -96,7 +96,6 @@ android_library("base_module_java") {
+@@ -86,7 +86,6 @@ android_library("base_module_java") {
    ]
    deps = [
      ":base_module_interfaces_java",

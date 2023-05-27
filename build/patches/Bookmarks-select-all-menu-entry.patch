@@ -4,10 +4,10 @@ Subject: Bookmarks select all menu entry
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../java/res/menu/bookmark_toolbar_menu.xml        |  7 +++++++
- .../chrome/browser/bookmarks/BookmarkToolbar.java  | 14 ++++++++++++++
- .../ui/android/strings/android_chrome_strings.grd  |  3 +++
- 3 files changed, 24 insertions(+)
+ .../java/res/menu/bookmark_toolbar_menu.xml       |  7 +++++++
+ .../chrome/browser/bookmarks/BookmarkToolbar.java | 15 +++++++++++++++
+ .../ui/android/strings/android_chrome_strings.grd |  3 +++
+ 3 files changed, 25 insertions(+)
 
 diff --git a/chrome/android/java/res/menu/bookmark_toolbar_menu.xml b/chrome/android/java/res/menu/bookmark_toolbar_menu.xml
 --- a/chrome/android/java/res/menu/bookmark_toolbar_menu.xml
@@ -29,35 +29,28 @@ diff --git a/chrome/android/java/res/menu/bookmark_toolbar_menu.xml b/chrome/and
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbar.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbar.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbar.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkToolbar.java
-@@ -29,6 +29,7 @@ import org.chromium.components.browser_ui.widget.selectable_list.SelectableListT
- import org.chromium.components.browser_ui.widget.selectable_list.SelectionDelegate;
+@@ -27,6 +27,8 @@ import org.chromium.components.browser_ui.widget.selectable_list.SelectionDelega
  
  import java.util.List;
+ import java.util.function.Function;
 +import java.util.HashSet;
- 
++
  /**
   * Main toolbar of bookmark UI. It is responsible for displaying title and buttons
-@@ -138,6 +139,7 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
-     void setCurrentFolder(BookmarkItem folder) {
-         mCurrentFolder = folder;
+  * associated with the current context.
+@@ -150,6 +152,7 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
  
+     void setCurrentFolder(BookmarkId folder) {
+         mCurrentFolder = mBookmarkModel.getBookmarkById(folder);
 +        getMenu().findItem(R.id.select_all_menu_id).setVisible(true);
          getMenu().findItem(R.id.import_menu_id).setVisible(true);
          getMenu().findItem(R.id.export_menu_id).setVisible(true);
-         getMenu().findItem(R.id.search_menu_id).setVisible(true);
-@@ -185,6 +187,7 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
-     void showLoadingUi() {
-         setTitle(null);
-         setNavigationButton(NAVIGATION_BUTTON_NONE);
-+        getMenu().findItem(R.id.select_all_menu_id).setVisible(false);
-         getMenu().findItem(R.id.import_menu_id).setVisible(false);
-         getMenu().findItem(R.id.export_menu_id).setVisible(false);
-         getMenu().findItem(R.id.search_menu_id).setVisible(false);
-@@ -269,6 +272,16 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
-             }
-             mSelectionDelegate.clearSelection();
+     }
+@@ -178,6 +181,17 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
+             mExportBookmarkRunnable.run();
              return true;
-+        } else if (menuItem.getItemId() == R.id.select_all_menu_id) {
+         }
++        if (menuItem.getItemId() == R.id.select_all_menu_id) {
 +            if (mBookmarkModel.isBookmarkModelLoaded()) {
 +                List<BookmarkItem> items = mBookmarkModel.getBookmarksForFolder(mCurrentFolder.getId());
 +                HashSet<BookmarkId> ids = new HashSet<>(items.size());
@@ -67,17 +60,18 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 +                mSelectionDelegate.setSelectedItems(ids);
 +            }
 +            return true;
-         }
++        }
+         return mMenuIdClickedFunction.apply(menuItem.getItemId());
+     }
  
-         assert false : "Unhandled menu click.";
-@@ -292,6 +305,7 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
-         super.showNormalView();
+@@ -200,6 +214,7 @@ public class BookmarkToolbar extends SelectableListToolbar<BookmarkId>
  
-         if (mCurrentFolder == null) {
-+            getMenu().findItem(R.id.select_all_menu_id).setVisible(false);
-             getMenu().findItem(R.id.import_menu_id).setVisible(false);
-             getMenu().findItem(R.id.export_menu_id).setVisible(false);
-             getMenu().findItem(R.id.search_menu_id).setVisible(false);
+         getMenu().findItem(R.id.import_menu_id).setVisible(mCurrentFolder != null);
+         getMenu().findItem(R.id.export_menu_id).setVisible(mCurrentFolder != null);
++        getMenu().findItem(R.id.select_all_menu_id).setVisible(mCurrentFolder != null);
+ 
+         // SelectableListToolbar will show/hide the entire group.
+         setSearchButtonVisible(mSearchButtonVisible);
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd

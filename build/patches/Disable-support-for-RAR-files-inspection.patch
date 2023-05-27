@@ -6,11 +6,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../download_protection/file_analyzer.cc        |  2 +-
  chrome/common/safe_browsing/BUILD.gn            |  2 --
- chrome/common/safe_browsing/zip_analyzer.cc     |  7 -------
- chrome/common/safe_browsing/zip_analyzer.h      |  2 --
+ chrome/common/safe_browsing/archive_analyzer.cc |  3 +--
  .../services/file_util/safe_archive_analyzer.cc | 17 +++--------------
  .../services/file_util/safe_archive_analyzer.h  |  2 --
- 6 files changed, 4 insertions(+), 28 deletions(-)
+ 5 files changed, 5 insertions(+), 21 deletions(-)
 
 diff --git a/chrome/browser/safe_browsing/download_protection/file_analyzer.cc b/chrome/browser/safe_browsing/download_protection/file_analyzer.cc
 --- a/chrome/browser/safe_browsing/download_protection/file_analyzer.cc
@@ -27,7 +26,7 @@ diff --git a/chrome/browser/safe_browsing/download_protection/file_analyzer.cc b
 diff --git a/chrome/common/safe_browsing/BUILD.gn b/chrome/common/safe_browsing/BUILD.gn
 --- a/chrome/common/safe_browsing/BUILD.gn
 +++ b/chrome/common/safe_browsing/BUILD.gn
-@@ -143,8 +143,6 @@ source_set("safe_browsing") {
+@@ -145,8 +145,6 @@ source_set("safe_browsing") {
        "protobuf_message_log_macros.h",
        "protobuf_message_read_macros.h",
        "protobuf_message_write_macros.h",
@@ -36,46 +35,30 @@ diff --git a/chrome/common/safe_browsing/BUILD.gn b/chrome/common/safe_browsing/
        "seven_zip_analyzer.cc",
        "seven_zip_analyzer.h",
        "zip_analyzer.cc",
-diff --git a/chrome/common/safe_browsing/zip_analyzer.cc b/chrome/common/safe_browsing/zip_analyzer.cc
---- a/chrome/common/safe_browsing/zip_analyzer.cc
-+++ b/chrome/common/safe_browsing/zip_analyzer.cc
-@@ -132,13 +132,6 @@ bool ZipAnalyzer::AnalyzeNestedArchive(
-                                std::move(nested_analysis_finished_callback),
-                                get_temp_file_callback_, results_);
-     return true;
--  } else if (file_type == DownloadFileType::RAR) {
--    nested_rar_analyzer_ = std::make_unique<safe_browsing::RarAnalyzer>();
--    nested_rar_analyzer_->Init(temp_file_.Duplicate(),
--                               root_zip_path_.Append(path),
--                               std::move(nested_analysis_finished_callback),
--                               get_temp_file_callback_, results_);
--    return true;
-   }
-   return false;
- }
-diff --git a/chrome/common/safe_browsing/zip_analyzer.h b/chrome/common/safe_browsing/zip_analyzer.h
---- a/chrome/common/safe_browsing/zip_analyzer.h
-+++ b/chrome/common/safe_browsing/zip_analyzer.h
-@@ -14,7 +14,6 @@
- #include "third_party/zlib/google/zip_reader.h"
- 
- namespace safe_browsing {
--class RarAnalyzer;
- 
- struct ArchiveAnalyzerResults;
- using FinishedAnalysisCallback = base::OnceCallback<void()>;
-@@ -78,7 +77,6 @@ class ZipAnalyzer {
-   // DFS.
-   // TODO(crbug.com/1426164) Create a common class to hold all analyzers.
-   std::unique_ptr<safe_browsing::ZipAnalyzer> nested_zip_analyzer_;
--  std::unique_ptr<safe_browsing::RarAnalyzer> nested_rar_analyzer_;
- 
-   base::WeakPtrFactory<ZipAnalyzer> weak_factory_{this};
- };
+diff --git a/chrome/common/safe_browsing/archive_analyzer.cc b/chrome/common/safe_browsing/archive_analyzer.cc
+--- a/chrome/common/safe_browsing/archive_analyzer.cc
++++ b/chrome/common/safe_browsing/archive_analyzer.cc
+@@ -8,7 +8,6 @@
+ #include "build/build_config.h"
+ #include "build/buildflag.h"
+ #include "chrome/common/safe_browsing/archive_analyzer_results.h"
+-#include "chrome/common/safe_browsing/rar_analyzer.h"
+ #include "chrome/common/safe_browsing/seven_zip_analyzer.h"
+ #include "chrome/common/safe_browsing/zip_analyzer.h"
+ #include "components/safe_browsing/content/common/proto/download_file_types.pb.h"
+@@ -24,7 +23,7 @@ namespace safe_browsing {
+ std::unique_ptr<ArchiveAnalyzer> ArchiveAnalyzer::CreateForArchiveType(
+     DownloadFileType_InspectionType file_type) {
+   if (file_type == DownloadFileType::RAR) {
+-    return std::make_unique<RarAnalyzer>();
++    return nullptr;
+   } else if (file_type == DownloadFileType::ZIP) {
+     return std::make_unique<ZipAnalyzer>();
+   } else if (file_type == DownloadFileType::SEVEN_ZIP) {
 diff --git a/chrome/services/file_util/safe_archive_analyzer.cc b/chrome/services/file_util/safe_archive_analyzer.cc
 --- a/chrome/services/file_util/safe_archive_analyzer.cc
 +++ b/chrome/services/file_util/safe_archive_analyzer.cc
-@@ -62,20 +62,9 @@ void SafeArchiveAnalyzer::AnalyzeRarFile(
+@@ -72,20 +72,9 @@ void SafeArchiveAnalyzer::AnalyzeRarFile(
      mojo::PendingRemote<chrome::mojom::TemporaryFileGetter> temp_file_getter,
      AnalyzeRarFileCallback callback) {
    DCHECK(rar_file.IsValid());
@@ -90,9 +73,9 @@ diff --git a/chrome/services/file_util/safe_archive_analyzer.cc b/chrome/service
 -                              weak_factory_.GetWeakPtr());
 -  timeout_timer_.Start(FROM_HERE, kArchiveAnalysisTimeout, this,
 -                       &SafeArchiveAnalyzer::Timeout);
--  rar_analyzer_.Init(std::move(rar_file), base::FilePath(),
--                     std::move(analysis_finished_callback),
--                     std::move(temp_file_getter_callback), &results_);
+-  rar_analyzer_.Analyze(std::move(rar_file), base::FilePath(),
+-                        std::move(analysis_finished_callback),
+-                        std::move(temp_file_getter_callback), &results_);
 +  LOG(FATAL) << "AnalyzeRarFile is disabled in this build";
 +  safe_browsing::ArchiveAnalyzerResults results;
 +  std::move(callback).Run(results);
@@ -107,16 +90,16 @@ diff --git a/chrome/services/file_util/safe_archive_analyzer.h b/chrome/services
  
  #include "chrome/common/safe_browsing/archive_analyzer_results.h"
 -#include "chrome/common/safe_browsing/rar_analyzer.h"
+ #include "chrome/common/safe_browsing/seven_zip_analyzer.h"
+ #include "chrome/common/safe_browsing/zip_analyzer.h"
  #include "chrome/services/file_util/public/mojom/safe_archive_analyzer.mojom.h"
- #include "mojo/public/cpp/bindings/remote.h"
- 
-@@ -59,7 +58,6 @@ class SafeArchiveAnalyzer : public chrome::mojom::SafeArchiveAnalyzer {
+@@ -63,7 +62,6 @@ class SafeArchiveAnalyzer : public chrome::mojom::SafeArchiveAnalyzer {
    void Timeout();
  
    safe_browsing::ZipAnalyzer zip_analyzer_;
 -  safe_browsing::RarAnalyzer rar_analyzer_;
- 
-   // A timer to ensure no archive takes too long to unpack.
-   base::OneShotTimer timeout_timer_;
+   safe_browsing::SevenZipAnalyzer seven_zip_analyzer_;
+ #if BUILDFLAG(IS_MAC)
+   safe_browsing::dmg::DMGAnalyzer dmg_analyzer_;
 --
 2.25.1
