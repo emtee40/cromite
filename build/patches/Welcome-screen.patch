@@ -11,7 +11,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../android/java/res/layout/fre_tosanduma.xml | 160 +++++++++
  chrome/android/java/res/values/dimens.xml     |  10 +
  chrome/android/java/res/values/styles.xml     |  24 ++
- .../firstrun/ChildAccountStatusSupplier.java  |   9 -
+ .../firstrun/ChildAccountStatusSupplier.java  |   8 -
  .../browser/firstrun/FirstRunActivity.java    |  21 +-
  .../firstrun/FirstRunActivityBase.java        |   6 +-
  .../firstrun/FirstRunFlowSequencer.java       |  52 +--
@@ -19,7 +19,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../firstrun/ToSAndUMAFirstRunFragment.java   | 336 ++++++++++++++++++
  .../firstrun/TosAndUmaFragmentView.java       | 336 ++++++++++++++++++
  .../strings/android_chrome_strings.grd        |  24 +-
- 13 files changed, 910 insertions(+), 87 deletions(-)
+ 13 files changed, 910 insertions(+), 86 deletions(-)
  create mode 100644 chrome/android/java/res/layout/fre_tosanduma.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/firstrun/ToSAndUMAFirstRunFragment.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/firstrun/TosAndUmaFragmentView.java
@@ -269,16 +269,15 @@ diff --git a/chrome/android/java/res/values/styles.xml b/chrome/android/java/res
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildAccountStatusSupplier.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildAccountStatusSupplier.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildAccountStatusSupplier.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/ChildAccountStatusSupplier.java
-@@ -12,8 +12,6 @@ import org.chromium.base.Callback;
- import org.chromium.base.metrics.RecordHistogram;
+@@ -13,7 +13,6 @@ import org.chromium.base.metrics.RecordHistogram;
  import org.chromium.base.supplier.OneshotSupplier;
  import org.chromium.base.supplier.OneshotSupplierImpl;
--import org.chromium.components.signin.AccountManagerFacade;
+ import org.chromium.components.signin.AccountManagerFacade;
 -import org.chromium.components.signin.AccountUtils;
  
  /**
   * Fetches the child account status to be used by other FRE components.
-@@ -41,13 +39,6 @@ public class ChildAccountStatusSupplier implements OneshotSupplier<Boolean> {
+@@ -41,13 +40,6 @@ public class ChildAccountStatusSupplier implements OneshotSupplier<Boolean> {
      public ChildAccountStatusSupplier(AccountManagerFacade accountManagerFacade,
              FirstRunAppRestrictionInfo appRestrictionInfo) {
          mChildAccountStatusStartTime = SystemClock.elapsedRealtime();
@@ -382,7 +381,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstR
 -        AccountManagerFacade accountManagerFacade = AccountManagerFacadeProvider.getInstance();
 -        mChildAccountStatusSupplier =
 -                new ChildAccountStatusSupplier(accountManagerFacade, mFirstRunAppRestrictionInfo);
-+        mChildAccountStatusSupplier = new ChildAccountStatusSupplier();
++        mChildAccountStatusSupplier = new ChildAccountStatusSupplier(null, null);
      }
  
      @Override

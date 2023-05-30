@@ -1,0 +1,46 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Tue, 30 May 2023 15:45:59 +0000
+Subject: 114 temp disable find_bad_constructs external repo
+
+---
+ crypto/BUILD.gn               | 1 +
+ net/BUILD.gn                  | 1 +
+ third_party/libevent/BUILD.gn | 2 ++
+ 3 files changed, 4 insertions(+)
+
+diff --git a/crypto/BUILD.gn b/crypto/BUILD.gn
+--- a/crypto/BUILD.gn
++++ b/crypto/BUILD.gn
+@@ -14,6 +14,7 @@ buildflag_header("buildflags") {
+ }
+ 
+ component("crypto") {
++  configs -= [ "//build/config/clang:find_bad_constructs" ]
+   output_name = "crcrypto"  # Avoid colliding with OpenSSL's libcrypto.
+   sources = [
+     "aead.cc",
+diff --git a/net/BUILD.gn b/net/BUILD.gn
+--- a/net/BUILD.gn
++++ b/net/BUILD.gn
+@@ -1633,6 +1633,7 @@ component("net") {
+     configs -= [ "//build/config/compiler:default_optimization" ]
+     configs += [ "//build/config/compiler:optimize_max" ]
+   }
++  configs -= [ "//build/config/clang:find_bad_constructs" ]
+ }
+ 
+ # net_export.h has its own build target so that code (eg
+diff --git a/third_party/libevent/BUILD.gn b/third_party/libevent/BUILD.gn
+--- a/third_party/libevent/BUILD.gn
++++ b/third_party/libevent/BUILD.gn
+@@ -69,6 +69,8 @@ static_library("libevent") {
+     configs += [ "//build/config/compiler:optimize_max" ]
+   }
+ 
++  configs -= [ "//build/config/clang:find_bad_constructs" ]
++
+   configs -= [ "//build/config/compiler:chromium_code" ]
+   configs += [ "//build/config/compiler:no_chromium_code" ]
+ }
+--
+2.25.1

@@ -52,11 +52,10 @@ See also: https://github.com/bromite/bromite/issues/1549
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
+ .../permissions/last_tab_standing_tracker.cc  | 33 ++++++++
  .../one_time_permissions_tracker.cc           | 34 +++++++-
  .../one_time_permissions_tracker.h            |  5 +-
  .../one_time_permissions_tracker_factory.cc   |  2 +-
- ...hrome_browser_main_extra_parts_profiles.cc |  1 +
- chrome/browser/ui/tab_helpers.cc              |  1 +
  .../site_settings/PermissionInfo.java         | 14 +++-
  .../site_settings/SingleWebsiteSettings.java  | 10 +++
  .../WebsitePreferenceBridge.java              |  6 +-
@@ -87,8 +86,56 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/permissions/permission_request.h   | 18 ++++-
  .../permissions/permission_request_manager.cc | 45 +++++++----
  .../permissions/permission_request_manager.h  | 11 ++-
- 35 files changed, 484 insertions(+), 59 deletions(-)
+ 34 files changed, 515 insertions(+), 59 deletions(-)
 
+diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
+--- a/chrome/browser/permissions/last_tab_standing_tracker.cc
++++ b/chrome/browser/permissions/last_tab_standing_tracker.cc
+@@ -7,6 +7,33 @@
+ #include "base/observer_list.h"
+ #include "url/gurl.h"
+ 
++#include "components/content_settings/core/browser/host_content_settings_map.h"
++#include "components/content_settings/core/common/content_settings_utils.h"
++#include "components/permissions/permissions_client.h"
++
++namespace {
++  // Remove all sessions content setting by origin and type
++  void RemoveSessionSettings(HostContentSettingsMap* content_settings,
++                             const url::Origin& origin,
++                             ContentSettingsType type) {
++    ContentSettingsForOneType session_settings;
++    content_settings->GetSettingsForOneType(
++        type, &session_settings,
++        content_settings::SessionModel::UserSession);
++
++    GURL url = origin.GetURL();
++    for (ContentSettingPatternSource& entry : session_settings) {
++      if (content_settings::IsConstraintSessionExpiration(entry,
++              content_settings::LifetimeMode::UntilOriginClosed) &&
++          entry.primary_pattern.Matches(url)) {
++        content_settings->SetWebsiteSettingCustomScope(
++            entry.primary_pattern, entry.secondary_pattern,
++            type, base::Value());
++      }
++    }
++  }
++}
++
+ LastTabStandingTracker::LastTabStandingTracker(content::BrowserContext* context)
+     : context_(context) {}
+ 
+@@ -56,4 +83,10 @@ void LastTabStandingTracker::WebContentsUnloadedOrigin(
+     for (auto& observer : observer_list_) {
+       observer.OnLastPageFromOriginClosed(origin);
+     }
++    HostContentSettingsMap* content_settings =
++            permissions::PermissionsClient::Get()->GetSettingsMap(context_);
++    RemoveSessionSettings(content_settings, origin, ContentSettingsType::GEOLOCATION);
++    RemoveSessionSettings(content_settings, origin, ContentSettingsType::MEDIASTREAM_MIC);
++    RemoveSessionSettings(content_settings, origin, ContentSettingsType::MEDIASTREAM_CAMERA);
++  }
+ }
 diff --git a/chrome/browser/permissions/one_time_permissions_tracker.cc b/chrome/browser/permissions/one_time_permissions_tracker.cc
 --- a/chrome/browser/permissions/one_time_permissions_tracker.cc
 +++ b/chrome/browser/permissions/one_time_permissions_tracker.cc
@@ -183,28 +230,6 @@ diff --git a/chrome/browser/permissions/one_time_permissions_tracker_factory.cc 
 -  return new OneTimePermissionsTracker();
 +  return new OneTimePermissionsTracker(context);
  }
-diff --git a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
---- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-+++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
-@@ -706,6 +706,7 @@ void ChromeBrowserMainExtraPartsProfiles::
-   ManagedConfigurationAPIFactory::GetInstance();
- #endif
- #if BUILDFLAG(IS_ANDROID)
-+  OneTimePermissionsTrackerFactory::GetInstance();
-   MediaDrmOriginIdManagerFactory::GetInstance();
- #endif
-   if (MediaEngagementService::IsEnabled()) {
-diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
---- a/chrome/browser/ui/tab_helpers.cc
-+++ b/chrome/browser/ui/tab_helpers.cc
-@@ -475,6 +475,7 @@ void TabHelpers::AttachTabHelpers(WebContents* web_contents) {
-   PolicyAuditorBridge::CreateForWebContents(web_contents);
-   PluginObserverAndroid::CreateForWebContents(web_contents);
-   video_tutorials::VideoTutorialTabHelper::CreateForWebContents(web_contents);
-+  OneTimePermissionsTrackerHelper::CreateForWebContents(web_contents);
- #else
-   if (web_app::AreWebAppsUserInstallable(profile))
-     webapps::AppBannerManagerDesktop::CreateForWebContents(web_contents);
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java

@@ -6,6 +6,7 @@ Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  chrome/browser/browser_features.cc            | 12 +++---
+ .../ranking/history_clusters_module_ranker.cc |  3 +-
  .../chrome_hints_manager.cc                   |  1 +
  .../optimization_guide_keyed_service.cc       |  1 -
  .../predictors/loading_predictor_config.cc    |  4 +-
@@ -20,7 +21,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/permissions/features.cc            |  8 ++--
  third_party/blink/common/features.cc          |  8 +---
  .../platform/runtime_enabled_features.json5   |  2 +-
- 15 files changed, 52 insertions(+), 50 deletions(-)
+ 16 files changed, 54 insertions(+), 51 deletions(-)
 
 diff --git a/chrome/browser/browser_features.cc b/chrome/browser/browser_features.cc
 --- a/chrome/browser/browser_features.cc
@@ -49,6 +50,21 @@ diff --git a/chrome/browser/browser_features.cc b/chrome/browser/browser_feature
  const base::FeatureParam<SearchSuggestionPrerenderImplementationType>::Option
      search_suggestion_implementation_types[] = {
          {SearchSuggestionPrerenderImplementationType::kUsePrefetch,
+diff --git a/chrome/browser/new_tab_page/modules/history_clusters/ranking/history_clusters_module_ranker.cc b/chrome/browser/new_tab_page/modules/history_clusters/ranking/history_clusters_module_ranker.cc
+--- a/chrome/browser/new_tab_page/modules/history_clusters/ranking/history_clusters_module_ranker.cc
++++ b/chrome/browser/new_tab_page/modules/history_clusters/ranking/history_clusters_module_ranker.cc
+@@ -62,9 +62,10 @@ void HistoryClustersModuleRanker::OnAllSignalsReady(
+   for (const auto& cluster : clusters) {
+     ranking_signals->emplace_back(active_carts, category_boostlist_, cluster);
+   }
+-  auto* ranking_signals_ptr = ranking_signals.get();
+ 
+ #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
++  auto* ranking_signals_ptr = ranking_signals.get();
++
+   if (model_handler_ && model_handler_->CanExecuteAvailableModel()) {
+     model_handler_->ExecuteBatch(
+         ranking_signals_ptr,
 diff --git a/chrome/browser/optimization_guide/chrome_hints_manager.cc b/chrome/browser/optimization_guide/chrome_hints_manager.cc
 --- a/chrome/browser/optimization_guide/chrome_hints_manager.cc
 +++ b/chrome/browser/optimization_guide/chrome_hints_manager.cc
@@ -122,15 +138,22 @@ diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
 diff --git a/components/omnibox/browser/autocomplete_controller.cc b/components/omnibox/browser/autocomplete_controller.cc
 --- a/components/omnibox/browser/autocomplete_controller.cc
 +++ b/components/omnibox/browser/autocomplete_controller.cc
-@@ -86,6 +86,8 @@
+@@ -1561,6 +1561,7 @@ void AutocompleteController::RunUrlScoringModel(
+     base::OnceClosure completion_callback) {
+   TRACE_EVENT0("omnibox", "AutocompleteController::RunUrlScoringModel");
  
- #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
- #include "components/omnibox/browser/autocomplete_scoring_model_service.h"
-+#else
-+  return false;
- #endif  // BUILDFLAG(BUILD_WITH_TFLITE_LIB)
++#if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
+   auto barrier_callback =
+       base::BarrierCallback<std::tuple<absl::optional<float>, size_t, GURL>>(
+           result_.size(),
+@@ -1583,6 +1584,7 @@ void AutocompleteController::RunUrlScoringModel(
+           std::make_tuple(absl::nullopt, match_index, match->destination_url));
+     }
+   }
++#endif
+ }
  
- namespace {
+ void AutocompleteController::CancelUrlScoringModel() {
 diff --git a/components/optimization_guide/core/hints_fetcher.cc b/components/optimization_guide/core/hints_fetcher.cc
 --- a/components/optimization_guide/core/hints_fetcher.cc
 +++ b/components/optimization_guide/core/hints_fetcher.cc

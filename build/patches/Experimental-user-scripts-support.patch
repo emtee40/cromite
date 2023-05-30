@@ -129,13 +129,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/user_script_set_manager.h        |  61 ++
  .../renderer/user_scripts_dispatcher.cc       |  36 +
  .../renderer/user_scripts_dispatcher.h        |  49 ++
- .../renderer/user_scripts_renderer_client.cc  | 105 +++
- .../renderer/user_scripts_renderer_client.h   |  36 +
+ .../renderer/user_scripts_renderer_client.cc  | 108 +++
+ .../renderer/user_scripts_renderer_client.h   |  38 +
  .../renderer/web_ui_injection_host.cc         |  40 +
  .../renderer/web_ui_injection_host.h          |  27 +
  .../strings/userscripts_strings.grdp          |  54 ++
  tools/gritsettings/resource_ids.spec          |   6 +
- 108 files changed, 9429 insertions(+), 1 deletion(-)
+ 108 files changed, 9434 insertions(+), 1 deletion(-)
  create mode 100644 components/user_scripts/README.md
  create mode 100755 components/user_scripts/android/BUILD.gn
  create mode 100644 components/user_scripts/android/java/res/layout/accept_script_item.xml
@@ -590,7 +590,7 @@ diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer
 +  user_scripts::UserScriptsRendererClient* userscript_client =
 +    user_scripts::UserScriptsRendererClient::GetInstance();
 +  if (userscript_client) {
-+    userscript_client->RenderThreadStarted();
++    userscript_client->RenderThreadStarted(GetChromeObserver());
 +  }
 +
  #if BUILDFLAG(ENABLE_SPELLCHECK)
@@ -3683,10 +3683,10 @@ new file mode 100755
 +  bool ready_;
 +
 +  // The browser_context for which the scripts managed here are installed.
-+  content::BrowserContext* browser_context_;
++  raw_ptr<content::BrowserContext> browser_context_;
 +
 +  // Manage load and store from preferences
-+  UserScriptsPrefs* prefs_;
++  raw_ptr<UserScriptsPrefs> prefs_;
 +
 +  // The associated observers.
 +  base::ObserverList<Observer>::Unchecked observers_;
@@ -4163,7 +4163,7 @@ new file mode 100644
 +        const std::string& script_id) const;
 +
 + private:
-+    PrefService* prefs_;
++    raw_ptr<PrefService> prefs_;
 +};
 +
 +}
@@ -4311,7 +4311,7 @@ new file mode 100755
 +
 +  private:
 +    std::unique_ptr<UserScriptList> scripts_;
-+    content::BrowserContext* browser_context_;
++    raw_ptr<content::BrowserContext> browser_context_;
 +    std::unique_ptr<user_scripts::UserScriptsPrefs> prefs_;
 +    std::unique_ptr<user_scripts::UserScriptLoader> userscript_loader_;
 +};
@@ -10147,7 +10147,7 @@ diff --git a/components/user_scripts/renderer/user_scripts_renderer_client.cc b/
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/renderer/user_scripts_renderer_client.cc
-@@ -0,0 +1,105 @@
+@@ -0,0 +1,108 @@
 +#include "user_scripts_renderer_client.h"
 +
 +#include <memory>
@@ -10178,7 +10178,10 @@ new file mode 100755
 +  return client.Pointer();
 +}
 +
-+void UserScriptsRendererClient::RenderThreadStarted() {
++void UserScriptsRendererClient::RenderThreadStarted(
++        ChromeRenderThreadObserver* chrome_observer) {
++  chrome_observer_ = chrome_observer;
++
 +  if (base::FeatureList::IsEnabled(features::kEnableLoggingUserScripts))
 +    LOG(INFO) << "UserScripts: RenderThreadStarted";
 +
@@ -10208,8 +10211,8 @@ new file mode 100755
 +    content::RenderFrame* render_frame,
 +    service_manager::BinderRegistry* registry) {
 +
-+  auto params = ChromeRenderThreadObserver::GetDynamicParams();
-+  enabled_ = params.allow_userscript;
++  auto params = chrome_observer_->GetDynamicParams();
++  enabled_ = params->allow_userscript;
 +  if (!enabled_) return;
 +
 +  ExtensionFrameHelper* frame_helper = ExtensionFrameHelper::Get(render_frame);
@@ -10257,7 +10260,7 @@ diff --git a/components/user_scripts/renderer/user_scripts_renderer_client.h b/c
 new file mode 100755
 --- /dev/null
 +++ b/components/user_scripts/renderer/user_scripts_renderer_client.h
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,38 @@
 +#ifndef USERSCRIPTS_RENDER_CLIENT_H_
 +#define USERSCRIPTS_RENDER_CLIENT_H_
 +
@@ -10266,6 +10269,7 @@ new file mode 100755
 +
 +#include "user_scripts_dispatcher.h"
 +#include "services/service_manager/public/cpp/binder_registry.h"
++#include "chrome/renderer/chrome_render_thread_observer.h"
 +
 +namespace user_scripts {
 +
@@ -10278,7 +10282,7 @@ new file mode 100755
 +
 +  static UserScriptsRendererClient* GetInstance();
 +
-+  void RenderThreadStarted();
++  void RenderThreadStarted(ChromeRenderThreadObserver* chrome_observer);
 +  void ConfigurationUpdated();
 +  void RenderFrameCreated(content::RenderFrame* render_frame,
 +    service_manager::BinderRegistry* registry);
@@ -10289,6 +10293,7 @@ new file mode 100755
 + private:
 +  std::unique_ptr<UserScriptsDispatcher> dispatcher_;
 +  bool enabled_ = false;
++  raw_ptr<ChromeRenderThreadObserver> chrome_observer_;
 +};
 +
 +}
