@@ -11,22 +11,39 @@ being sent and being saved to disk, although it is currently in uncalled code.
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../embedder_support/origin_trials/features.cc    |  8 ++++----
- .../render_view_context_menu_base.cc              |  3 ---
- .../aggregatable_report_sender.cc                 | 15 +++++++--------
- .../attribution_reporting/attribution_host.cc     |  1 +
- .../attribution_manager_impl.cc                   |  1 +
- .../attribution_report_network_sender.cc          |  9 +++++++++
- .../attribution_storage_sql.cc                    |  8 +++++---
- content/browser/storage_partition_impl.cc         |  8 +-------
- content/public/browser/navigation_controller.cc   |  1 -
- content/renderer/render_thread_impl.cc            |  5 ++++-
- services/network/public/cpp/attribution_utils.cc  |  3 +++
- third_party/blink/common/features.cc              |  8 ++++----
- .../platform/runtime_enabled_features.json5       |  7 +++++++
- ui/base/ui_base_features.cc                       |  2 +-
- 14 files changed, 47 insertions(+), 32 deletions(-)
+ chrome/android/java/AndroidManifest.xml       |  1 -
+ .../origin_trials/features.cc                 |  8 +-
+ .../render_view_context_menu_base.cc          |  3 -
+ .../aggregatable_report_sender.cc             | 15 ++--
+ .../aggregation_service_features.cc           |  4 +-
+ .../attribution_data_host_manager_impl.cc     |  5 ++
+ .../attribution_reporting/attribution_host.cc |  1 +
+ .../attribution_manager_impl.cc               |  1 +
+ .../attribution_report_network_sender.cc      |  9 ++
+ .../attribution_storage_sql.cc                |  8 +-
+ content/browser/storage_partition_impl.cc     |  8 +-
+ content/public/android/BUILD.gn               |  2 -
+ .../browser/AttributionOsLevelManager.java    | 89 +------------------
+ .../public/browser/navigation_controller.cc   |  1 -
+ content/public/common/content_features.cc     |  4 +-
+ content/renderer/render_thread_impl.cc        |  5 +-
+ .../network/public/cpp/attribution_utils.cc   |  3 +
+ third_party/blink/common/features.cc          | 16 ++--
+ .../platform/runtime_enabled_features.json5   |  7 ++
+ ui/base/ui_base_features.cc                   |  2 +-
+ 20 files changed, 63 insertions(+), 129 deletions(-)
 
+diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
+--- a/chrome/android/java/AndroidManifest.xml
++++ b/chrome/android/java/AndroidManifest.xml
+@@ -39,7 +39,6 @@ by a child template that "extends" this file.
+         <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+     {% endif %}
+ 
+-    <uses-permission-sdk-23 android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" />
+     <uses-permission-sdk-23 android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
+     <uses-permission-sdk-23 android:name="android.permission.BLUETOOTH_CONNECT"/>
+     <!--
 diff --git a/components/embedder_support/origin_trials/features.cc b/components/embedder_support/origin_trials/features.cc
 --- a/components/embedder_support/origin_trials/features.cc
 +++ b/components/embedder_support/origin_trials/features.cc
@@ -89,6 +106,35 @@ diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b
    RequestStatus status;
  
    absl::optional<int> http_response_code;
+diff --git a/content/browser/aggregation_service/aggregation_service_features.cc b/content/browser/aggregation_service/aggregation_service_features.cc
+--- a/content/browser/aggregation_service/aggregation_service_features.cc
++++ b/content/browser/aggregation_service/aggregation_service_features.cc
+@@ -8,8 +8,8 @@ namespace content {
+ 
+ // Enables the Aggregation Service. See crbug.com/1207974.
+ BASE_FEATURE(kPrivacySandboxAggregationService,
+-             "PrivacySandboxAggregationService",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "PrivacySandboxAggregationService",   // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);   // in bromite
+ 
+ const base::FeatureParam<std::string>
+     kPrivacySandboxAggregationServiceTrustedServerUrlAwsParam{
+diff --git a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
+--- a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
++++ b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
+@@ -478,6 +478,11 @@ void AttributionDataHostManagerImpl::ParseSource(
+     RegistrarAndHeader header) {
+   DCHECK(it != registrations_.end());
+ 
++  if ((true)) {
++    MaybeOnRegistrationsFinished(it);
++    return;
++  }
++
+   switch (header.registrar) {
+     case Registrar::kWeb:
+ #if BUILDFLAG(IS_ANDROID)
 diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
 --- a/content/browser/attribution_reporting/attribution_host.cc
 +++ b/content/browser/attribution_reporting/attribution_host.cc
@@ -180,6 +226,166 @@ diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage
  
    if (base::FeatureList::IsEnabled(blink::features::kInterestGroupStorage)) {
      // Auction worklets on non-Android use dedicated processes; on Android due
+diff --git a/content/public/android/BUILD.gn b/content/public/android/BUILD.gn
+--- a/content/public/android/BUILD.gn
++++ b/content/public/android/BUILD.gn
+@@ -168,8 +168,6 @@ android_library("content_full_java") {
+     "//third_party/androidx:androidx_annotation_annotation_java",
+     "//third_party/androidx:androidx_collection_collection_java",
+     "//third_party/androidx:androidx_core_core_java",
+-    "//third_party/androidx:androidx_privacysandbox_ads_ads_adservices_java",
+-    "//third_party/androidx:androidx_privacysandbox_ads_ads_adservices_java_java",
+     "//third_party/blink/public:blink_headers_java",
+     "//third_party/blink/public/common:common_java",
+     "//third_party/blink/public/mojom:android_mojo_bindings_java",
+diff --git a/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java b/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java
+--- a/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java
++++ b/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java
+@@ -10,15 +10,6 @@ import android.os.Build;
+ import android.os.Process;
+ import android.view.MotionEvent;
+ 
+-import androidx.privacysandbox.ads.adservices.java.measurement.MeasurementManagerFutures;
+-import androidx.privacysandbox.ads.adservices.measurement.DeletionRequest;
+-import androidx.privacysandbox.ads.adservices.measurement.WebSourceParams;
+-import androidx.privacysandbox.ads.adservices.measurement.WebSourceRegistrationRequest;
+-import androidx.privacysandbox.ads.adservices.measurement.WebTriggerParams;
+-import androidx.privacysandbox.ads.adservices.measurement.WebTriggerRegistrationRequest;
+-
+-import com.google.common.util.concurrent.FutureCallback;
+-import com.google.common.util.concurrent.Futures;
+ import com.google.common.util.concurrent.ListenableFuture;
+ 
+ import org.chromium.base.ContextUtils;
+@@ -38,6 +29,8 @@ import java.util.Arrays;
+  */
+ @JNINamespace("content")
+ public class AttributionOsLevelManager {
++    private class MeasurementManagerFutures {}
++
+     private static final String TAG = "AttributionManager";
+     // TODO: replace with constant in android.Manifest.permission once it becomes available in U.
+     private static final String PERMISSION_ACCESS_ADSERVICES_ATTRIBUTION =
+@@ -51,12 +44,7 @@ public class AttributionOsLevelManager {
+     }
+ 
+     private MeasurementManagerFutures getManager() {
+-        if (mManager != null) return mManager;
+-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+-            return null;
+-        }
+-        mManager = MeasurementManagerFutures.from(ContextUtils.getApplicationContext());
+-        return mManager;
++        return null;
+     }
+ 
+     private void onRegistrationCompleted(int requestId, boolean success) {
+@@ -66,23 +54,6 @@ public class AttributionOsLevelManager {
+         }
+     }
+ 
+-    private void addRegistrationFutureCallback(int requestId, ListenableFuture<?> future) {
+-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+-            return;
+-        }
+-        Futures.addCallback(future, new FutureCallback<Object>() {
+-            @Override
+-            public void onSuccess(Object result) {
+-                onRegistrationCompleted(requestId, /*success=*/true);
+-            }
+-            @Override
+-            public void onFailure(Throwable thrown) {
+-                Log.w(TAG, "Failed to register", thrown);
+-                onRegistrationCompleted(requestId, /*success=*/false);
+-            }
+-        }, ContextUtils.getApplicationContext().getMainExecutor());
+-    }
+-
+     /**
+      * Registers a web attribution source with native, see `registerWebSourceAsync()`:
+      * https://developer.android.com/reference/androidx/privacysandbox/ads/adservices/java/measurement/MeasurementManagerFutures.
+@@ -99,13 +70,6 @@ public class AttributionOsLevelManager {
+             onRegistrationCompleted(requestId, /*success=*/false);
+             return;
+         }
+-        ListenableFuture<?> future = mm.registerWebSourceAsync(new WebSourceRegistrationRequest(
+-                Arrays.asList(new WebSourceParams(
+-                        Uri.parse(registrationUrl.getSpec()), isDebugKeyAllowed)),
+-                Uri.parse(topLevelOrigin.getSpec()), /*inputEvent=*/event,
+-                /*appDestination=*/null, /*webDestination=*/null,
+-                /*verifiedDestination=*/null));
+-        addRegistrationFutureCallback(requestId, future);
+     }
+ 
+     /**
+@@ -125,11 +89,6 @@ public class AttributionOsLevelManager {
+             onRegistrationCompleted(requestId, /*success=*/false);
+             return;
+         }
+-        ListenableFuture<?> future = mm.registerWebTriggerAsync(new WebTriggerRegistrationRequest(
+-                Arrays.asList(new WebTriggerParams(
+-                        Uri.parse(registrationUrl.getSpec()), isDebugKeyAllowed)),
+-                Uri.parse(topLevelOrigin.getSpec())));
+-        addRegistrationFutureCallback(requestId, future);
+     }
+ 
+     private void onDataDeletionCompleted(int requestId) {
+@@ -163,22 +122,6 @@ public class AttributionOsLevelManager {
+         for (String domain : domains) {
+             domainUris.add(Uri.parse(domain));
+         }
+-
+-        ListenableFuture<?> future = mm.deleteRegistrationsAsync(
+-                new DeletionRequest(deletionMode, matchBehavior, Instant.ofEpochMilli(startMs),
+-                        Instant.ofEpochMilli(endMs), originUris, domainUris));
+-
+-        Futures.addCallback(future, new FutureCallback<Object>() {
+-            @Override
+-            public void onSuccess(Object result) {
+-                onDataDeletionCompleted(requestId);
+-            }
+-            @Override
+-            public void onFailure(Throwable thrown) {
+-                Log.w(TAG, "Failed to delete measurement API data", thrown);
+-                onDataDeletionCompleted(requestId);
+-            }
+-        }, ContextUtils.getApplicationContext().getMainExecutor());
+     }
+ 
+     /**
+@@ -203,32 +146,6 @@ public class AttributionOsLevelManager {
+             AttributionOsLevelManagerJni.get().onMeasurementStateReturned(0);
+             return;
+         }
+-
+-        ListenableFuture<Integer> future = null;
+-        try {
+-            future = mm.getMeasurementApiStatusAsync();
+-        } catch (IllegalStateException ex) {
+-            // An illegal state exception may be thrown for some versions of the underlying
+-            // Privacy Sandbox SDK.
+-            Log.i(TAG, "Failed to get measurement API status", ex);
+-        }
+-
+-        if (future == null) {
+-            AttributionOsLevelManagerJni.get().onMeasurementStateReturned(0);
+-            return;
+-        }
+-
+-        Futures.addCallback(future, new FutureCallback<Integer>() {
+-            @Override
+-            public void onSuccess(Integer status) {
+-                AttributionOsLevelManagerJni.get().onMeasurementStateReturned(status);
+-            }
+-            @Override
+-            public void onFailure(Throwable thrown) {
+-                Log.w(TAG, "Failed to get measurement API status", thrown);
+-                AttributionOsLevelManagerJni.get().onMeasurementStateReturned(0);
+-            }
+-        }, ContextUtils.getApplicationContext().getMainExecutor());
+     }
+ 
+     @CalledByNative
 diff --git a/content/public/browser/navigation_controller.cc b/content/public/browser/navigation_controller.cc
 --- a/content/public/browser/navigation_controller.cc
 +++ b/content/public/browser/navigation_controller.cc
@@ -191,6 +397,20 @@ diff --git a/content/public/browser/navigation_controller.cc b/content/public/br
        is_pdf(input.is_pdf) {
  #if DCHECK_IS_ON()
    DCHECK(input.Valid());
+diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
+--- a/content/public/common/content_features.cc
++++ b/content/public/common/content_features.cc
+@@ -892,8 +892,8 @@ BASE_FEATURE(kPreloadingHoldback,
+ // Enables exposure of ads APIs in the renderer: Attribution Reporting,
+ // FLEDGE, Topics.
+ BASE_FEATURE(kPrivacySandboxAdsAPIsOverride,
+-             "PrivacySandboxAdsAPIsOverride",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivacySandboxAdsAPIsOverride",       // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
+ 
+ // Enables Private Network Access checks for all types of web workers.
+ //
 diff --git a/content/renderer/render_thread_impl.cc b/content/renderer/render_thread_impl.cc
 --- a/content/renderer/render_thread_impl.cc
 +++ b/content/renderer/render_thread_impl.cc
@@ -265,6 +485,28 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  // Controls whether LCP calculations should exclude low-entropy images. If
  // enabled, then the associated parameter sets the cutoff, expressed as the
+@@ -221,8 +221,8 @@ BASE_FEATURE(kPath2DPaintCache,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kPrivacySandboxAdsAPIs,
+-             "PrivacySandboxAdsAPIs",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivacySandboxAdsAPIs",               // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
+ 
+ // When enabled, pages that don't specify a layout width will default to the
+ // window width rather than the traditional mobile fallback width of 980px.
+@@ -277,8 +277,8 @@ BASE_FEATURE(kFencedFrames, "FencedFrames", base::FEATURE_DISABLED_BY_DEFAULT);
+ // `kPrivacySandboxAggregationService` to be enabled to successfully send
+ // reports.
+ BASE_FEATURE(kPrivateAggregationApi,
+-             "PrivateAggregationApi",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivateAggregationApi",               // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
+ 
+ // Selectively allows the JavaScript API to be disabled in just one of the
+ // contexts.
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
