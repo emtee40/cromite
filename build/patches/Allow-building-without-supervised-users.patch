@@ -4,50 +4,104 @@ Subject: Allow building without supervised users
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../browser/supervised_user/ChildAccountService.java  | 11 -----------
- .../child_accounts/child_account_service_android.cc   |  9 ---------
- 2 files changed, 20 deletions(-)
+ chrome/android/BUILD.gn                   | 1 -
+ chrome/android/chrome_java_sources.gni    | 1 -
+ chrome/browser/BUILD.gn                   | 6 ------
+ chrome/browser/about_flags.cc             | 4 ++++
+ components/supervised_user/buildflags.gni | 6 +-----
+ 5 files changed, 5 insertions(+), 13 deletions(-)
 
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/supervised_user/ChildAccountService.java b/chrome/android/java/src/org/chromium/chrome/browser/supervised_user/ChildAccountService.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/supervised_user/ChildAccountService.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/supervised_user/ChildAccountService.java
-@@ -31,21 +31,10 @@ public class ChildAccountService {
-         ThreadUtils.assertOnUiThread();
-         final Activity activity = windowAndroid.getActivity().get();
-         if (activity == null) {
--            PostTask.postTask(TaskTraits.UI_DEFAULT, () -> {
--                ChildAccountServiceJni.get().onReauthenticationFailed(nativeOnFailureCallback);
--            });
-             return;
-         }
-         Account account = AccountUtils.createAccountFromName(accountName);
-         AccountManagerFacadeProvider.getInstance().updateCredentials(account, activity, success -> {
--            if (!success) {
--                ChildAccountServiceJni.get().onReauthenticationFailed(nativeOnFailureCallback);
--            }
-         });
-     }
--
--    @NativeMethods
--    interface Natives {
--        void onReauthenticationFailed(long onFailureCallbackPtr);
--    }
+diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
+--- a/chrome/android/BUILD.gn
++++ b/chrome/android/BUILD.gn
+@@ -3366,7 +3366,6 @@ generate_jni("chrome_jni_headers") {
+     "java/src/org/chromium/chrome/browser/suggestions/mostvisited/MostVisitedSites.java",
+     "java/src/org/chromium/chrome/browser/suggestions/mostvisited/MostVisitedSitesBridge.java",
+     "java/src/org/chromium/chrome/browser/supervised_user/ChildAccountFeedbackReporter.java",
+-    "java/src/org/chromium/chrome/browser/supervised_user/ChildAccountService.java",
+     "java/src/org/chromium/chrome/browser/sync/TrustedVaultClient.java",
+     "java/src/org/chromium/chrome/browser/tab/TabBrowserControlsConstraintsHelper.java",
+     "java/src/org/chromium/chrome/browser/tab/TabFavicon.java",
+diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
+--- a/chrome/android/chrome_java_sources.gni
++++ b/chrome/android/chrome_java_sources.gni
+@@ -1057,7 +1057,6 @@ chrome_java_sources = [
+   "java/src/org/chromium/chrome/browser/suggestions/tile/TileRenderer.java",
+   "java/src/org/chromium/chrome/browser/suggestions/tile/TopSitesTileView.java",
+   "java/src/org/chromium/chrome/browser/supervised_user/ChildAccountFeedbackReporter.java",
+-  "java/src/org/chromium/chrome/browser/supervised_user/ChildAccountService.java",
+   "java/src/org/chromium/chrome/browser/survey/ChromeSurveyController.java",
+   "java/src/org/chromium/chrome/browser/survey/SurveyController.java",
+   "java/src/org/chromium/chrome/browser/sync/SyncErrorNotifier.java",
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -3003,8 +3003,6 @@ static_library("browser") {
+       "feed/android/refresh_task_scheduler_impl.cc",
+       "feed/android/refresh_task_scheduler_impl.h",
+       "feed/android/web_feed_bridge.cc",
+-      "feedback/android/family_info_feedback_source.cc",
+-      "feedback/android/family_info_feedback_source.h",
+       "file_select_helper_contacts_android.cc",
+       "file_select_helper_contacts_android.h",
+       "first_run/android/first_run_prefs.cc",
+@@ -3208,10 +3206,6 @@ static_library("browser") {
+       "ssl/chrome_security_state_model_delegate.h",
+       "ssl/known_interception_disclosure_infobar.cc",
+       "ssl/known_interception_disclosure_infobar.h",
+-      "supervised_user/android/favicon_fetcher.cc",
+-      "supervised_user/android/favicon_fetcher.h",
+-      "supervised_user/android/supervised_user_web_content_handler_impl.cc",
+-      "supervised_user/android/supervised_user_web_content_handler_impl.h",
+       "sync/android/sync_service_android_bridge.cc",
+       "sync/android/sync_service_android_bridge.h",
+       "sync/glue/synced_tab_delegate_android.cc",
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -1461,6 +1461,7 @@ const FeatureEntry::FeatureVariation kJourneysLabelsVariations[] = {
+ };
+ 
+ #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_ANDROID)
++#if BUILDFLAG(ENABLE_SUPERVISED_USERS)
+ const FeatureEntry::FeatureParam kLocalWebApprovalsPreferLocalParams[] = {
+     {"preferred_button", "local"}};
+ const FeatureEntry::FeatureParam kLocalWebApprovalsPreferRemoteParams[] = {
+@@ -1472,6 +1473,7 @@ const FeatureEntry::FeatureVariation kLocalWebApprovalsVariations[] = {
+      std::size(kLocalWebApprovalsPreferRemoteParams), nullptr},
+ };
+ #endif
++#endif
+ 
+ const FeatureEntry::FeatureParam kChromeRefresh2023Level1[] = {{"level", "1"}};
+ 
+@@ -7459,11 +7461,13 @@ const FeatureEntry kFeatureEntries[] = {
+ #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+ 
+ #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_ANDROID)
++#if BUILDFLAG(ENABLE_SUPERVISED_USERS)
+     {"enable-local-web-approvals", flag_descriptions::kLocalWebApprovalsName,
+      flag_descriptions::kLocalWebApprovalsDescription, kOsCrOS | kOsAndroid,
+      FEATURE_WITH_PARAMS_VALUE_TYPE(supervised_user::kLocalWebApprovals,
+                                     kLocalWebApprovalsVariations,
+                                     "LocalWebApprovals")},
++#endif
+ #endif  // BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_ANDROID)
+ 
+ #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
+diff --git a/components/supervised_user/buildflags.gni b/components/supervised_user/buildflags.gni
+--- a/components/supervised_user/buildflags.gni
++++ b/components/supervised_user/buildflags.gni
+@@ -4,9 +4,5 @@
+ 
+ declare_args() {
+   # Enables supervision for Family Link users.
+-  enable_supervised_users =
+-      # Platforms which fully support supervision features:
+-      is_android || is_chromeos ||
+-      # Platforms for which support is currently in development:
+-      is_ios || is_linux || is_mac || is_win
++  enable_supervised_users = false
  }
-diff --git a/chrome/browser/supervised_user/child_accounts/child_account_service_android.cc b/chrome/browser/supervised_user/child_accounts/child_account_service_android.cc
---- a/chrome/browser/supervised_user/child_accounts/child_account_service_android.cc
-+++ b/chrome/browser/supervised_user/child_accounts/child_account_service_android.cc
-@@ -39,12 +39,3 @@ void ReauthenticateChildAccount(
-       env, window_android->GetJavaObject(), ConvertUTF8ToJavaString(env, email),
-       reinterpret_cast<jlong>(callback_copy.release()));
- }
--
--void JNI_ChildAccountService_OnReauthenticationFailed(JNIEnv* env,
--                                                      jlong jcallbackPtr) {
--  // Cast the pointer value back to a Callback and take ownership of it.
--  std::unique_ptr<base::RepeatingCallback<void()>> callback(
--      reinterpret_cast<base::RepeatingCallback<void()>*>(jcallbackPtr));
--
--  callback->Run();
--}
 --
 2.25.1
