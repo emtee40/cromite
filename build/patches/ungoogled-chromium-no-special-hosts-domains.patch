@@ -34,13 +34,16 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../webui/settings/reset_settings_handler.cc  |   1 -
  .../upgrade_detector/upgrade_detector_impl.cc |   2 +-
  chrome/common/BUILD.gn                        |   2 -
+ chrome/common/chrome_features.cc              |   4 +-
+ .../google_accounts_private_api_util.cc       |   1 +
  .../url_loader_throttle_provider_impl.cc      |  10 -
  chrome/test/BUILD.gn                          |   1 -
- components/domain_reliability/BUILD.gn        |  42 +--
+ components/domain_reliability/BUILD.gn        |   5 +-
  .../domain_reliability/bake_in_configs.py     |   2 +-
  .../domain_reliability/context_manager.cc     |  22 +-
  .../domain_reliability/google_configs.cc      |  10 +-
  .../domain_reliability/google_configs.h       |   8 +-
+ components/domain_reliability/monitor.cc      |   8 -
  components/domain_reliability/uploader.cc     |   2 +-
  components/google/core/common/google_util.cc  | 313 +-----------------
  components/google/core/common/google_util.h   |  15 +-
@@ -54,7 +57,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/url_matcher/url_util.cc            |  83 -----
  net/base/url_util.cc                          |  21 --
  services/network/network_context.cc           |   2 +-
- 47 files changed, 65 insertions(+), 800 deletions(-)
+ 50 files changed, 54 insertions(+), 787 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
@@ -691,6 +694,31 @@ diff --git a/chrome/common/BUILD.gn b/chrome/common/BUILD.gn
      "logging_chrome.cc",
      "logging_chrome.h",
      "media/cdm_registration.cc",
+diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
+--- a/chrome/common/chrome_features.cc
++++ b/chrome/common/chrome_features.cc
+@@ -1525,8 +1525,8 @@ BASE_FEATURE(kUseWebAppDBInsteadOfExternalPrefs,
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kWebAuthFlowInBrowserTab,
+-             "WebAuthFlowInBrowserTab",
+-             base::FeatureState::FEATURE_DISABLED_BY_DEFAULT);
++             "WebAuthFlowInBrowserTab",                         // disable by default
++             base::FeatureState::FEATURE_DISABLED_BY_DEFAULT);  // in bromite
+ const base::FeatureParam<WebAuthFlowInBrowserTabMode>::Option
+     web_auth_flow_modes[] = {
+         {WebAuthFlowInBrowserTabMode::kNewTab, "new_tab"},
+diff --git a/chrome/renderer/google_accounts_private_api_util.cc b/chrome/renderer/google_accounts_private_api_util.cc
+--- a/chrome/renderer/google_accounts_private_api_util.cc
++++ b/chrome/renderer/google_accounts_private_api_util.cc
+@@ -22,6 +22,7 @@ const url::Origin& GetAllowedGoogleAccountsOrigin() {
+ 
+ bool ShouldExposeGoogleAccountsJavascriptApi(
+     content::RenderFrame* render_frame) {
++  if ((true)) return false;
+   DCHECK(render_frame);
+ 
+   const url::Origin origin = render_frame->GetWebFrame()->GetSecurityOrigin();
 diff --git a/chrome/renderer/url_loader_throttle_provider_impl.cc b/chrome/renderer/url_loader_throttle_provider_impl.cc
 --- a/chrome/renderer/url_loader_throttle_provider_impl.cc
 +++ b/chrome/renderer/url_loader_throttle_provider_impl.cc
@@ -725,62 +753,28 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
 diff --git a/components/domain_reliability/BUILD.gn b/components/domain_reliability/BUILD.gn
 --- a/components/domain_reliability/BUILD.gn
 +++ b/components/domain_reliability/BUILD.gn
-@@ -7,26 +7,6 @@ action("bake_in_configs") {
+@@ -2,7 +2,7 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+-action("bake_in_configs") {
++action("bake_in_configs_EXCLUDED") {
+   visibility = [ ":*" ]
    script = "bake_in_configs.py"
  
-   inputs = [
--    "baked_in_configs/c_android_clients_google_com.json",
--    "baked_in_configs/c_bigcache_googleapis_com.json",
--    "baked_in_configs/c_doc-0-0-sj_sj_googleusercontent_com.json",
--    "baked_in_configs/c_docs_google_com.json",
--    "baked_in_configs/c_drive_google_com.json",
--    "baked_in_configs/c_googlesyndication_com.json",
--    "baked_in_configs/c_pack_google_com.json",
--    "baked_in_configs/c_play_google_com.json",
--    "baked_in_configs/c_youtube_com.json",
--    "baked_in_configs/clients2_google_com.json",
--    "baked_in_configs/docs_google_com.json",
--    "baked_in_configs/gcp_gvt2_com.json",
--    "baked_in_configs/gcp_gvt6_com.json",
--    "baked_in_configs/google-analytics_com.json",
--    "baked_in_configs/googlevideo_com.json",
--    "baked_in_configs/gvt1_com.json",
--    "baked_in_configs/gvt2_com.json",
--    "baked_in_configs/gvt6_com.json",
--    "baked_in_configs/ssl_gstatic_com.json",
--    "baked_in_configs/www_google_com.json",
+@@ -73,12 +73,9 @@ component("domain_reliability") {
+     "util.cc",
+     "util.h",
    ]
+-  sources += get_target_outputs(":bake_in_configs")
+-
+   defines = [ "DOMAIN_RELIABILITY_IMPLEMENTATION" ]
  
-   output_file = "$target_gen_dir/baked_in_configs.cc"
-@@ -34,13 +14,21 @@ action("bake_in_configs") {
- 
-   # The JSON file list is too long for the command line on Windows, so put
-   # them in a response file.
--  response_file_contents = rebase_path(inputs, root_build_dir)
--  args = [
--    "--file-list",
--    "{{response_file_name}}",
--    "--output",
--    rebase_path(output_file, root_build_dir),
--  ]
-+  if (is_win) {
-+      args = [
-+        "--file-list",
-+        "nul",
-+        "--output",
-+        rebase_path(output_file, root_build_dir),
-+      ]
-+  } else {
-+        args = [
-+        "--file-list",
-+        "/dev/null",
-+        "--output",
-+        rebase_path(output_file, root_build_dir),
-+      ]
-+  }
- }
- 
- component("domain_reliability") {
+   deps = [
+-    ":bake_in_configs",
+     ":prefs",
+     "//base",
+     "//net",
 diff --git a/components/domain_reliability/bake_in_configs.py b/components/domain_reliability/bake_in_configs.py
 --- a/components/domain_reliability/bake_in_configs.py
 +++ b/components/domain_reliability/bake_in_configs.py
@@ -887,6 +881,24 @@ diff --git a/components/domain_reliability/google_configs.h b/components/domain_
  
  }  // namespace domain_reliability
  
+diff --git a/components/domain_reliability/monitor.cc b/components/domain_reliability/monitor.cc
+--- a/components/domain_reliability/monitor.cc
++++ b/components/domain_reliability/monitor.cc
+@@ -94,14 +94,6 @@ void DomainReliabilityMonitor::Shutdown() {
+ }
+ 
+ void DomainReliabilityMonitor::AddBakedInConfigs() {
+-  for (size_t i = 0; kBakedInJsonConfigs[i]; ++i) {
+-    base::StringPiece json(kBakedInJsonConfigs[i]);
+-    std::unique_ptr<const DomainReliabilityConfig> config =
+-        DomainReliabilityConfig::FromJSON(json);
+-    // Guard against accidentally checking in malformed JSON configs.
+-    DCHECK(config->IsValid());
+-    context_manager_.AddContextForConfig(std::move(config));
+-  }
+ }
+ 
+ void DomainReliabilityMonitor::SetDiscardUploads(bool discard_uploads) {
 diff --git a/components/domain_reliability/uploader.cc b/components/domain_reliability/uploader.cc
 --- a/components/domain_reliability/uploader.cc
 +++ b/components/domain_reliability/uploader.cc
