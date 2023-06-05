@@ -14,10 +14,10 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../settings/SearchEngineAdapter.java         |  4 +-
  .../search_engine_tab_helper.cc               | 51 ++++++++++++++-----
  .../renderer/chrome_render_frame_observer.cc  |  2 +
- .../search_engines/template_url_fetcher.cc    | 23 +++++++--
+ .../search_engines/template_url_fetcher.cc    | 24 +++++++--
  .../search_engines/template_url_parser.cc     |  2 +-
  .../search_engines/template_url_service.h     |  8 +--
- 6 files changed, 66 insertions(+), 24 deletions(-)
+ 6 files changed, 67 insertions(+), 24 deletions(-)
 
 diff --git a/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java b/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
 --- a/chrome/browser/search_engines/android/java/src/org/chromium/chrome/browser/search_engines/settings/SearchEngineAdapter.java
@@ -192,14 +192,14 @@ diff --git a/chrome/renderer/chrome_render_frame_observer.cc b/chrome/renderer/c
  
    GURL osdd_url = frame->GetDocument().OpenSearchDescriptionURL();
    if (!osdd_url.is_empty()) {
-+    LOG(INFO) << "OpenSearch: found OSDD URL: " << osdd_url;
++    DLOG(INFO) << "OpenSearch: found OSDD URL: " << osdd_url;
      mojo::Remote<chrome::mojom::OpenSearchDescriptionDocumentHandler>
          osdd_handler;
      render_frame()->GetBrowserInterfaceBroker()->GetInterface(
 diff --git a/components/search_engines/template_url_fetcher.cc b/components/search_engines/template_url_fetcher.cc
 --- a/components/search_engines/template_url_fetcher.cc
 +++ b/components/search_engines/template_url_fetcher.cc
-@@ -259,16 +259,29 @@ void TemplateURLFetcher::ScheduleDownload(
+@@ -259,18 +259,32 @@ void TemplateURLFetcher::ScheduleDownload(
      return;
    }
  
@@ -217,7 +217,7 @@ diff --git a/components/search_engines/template_url_fetcher.cc b/components/sear
 +    if (template_url->originating_url() == osdd_url) {
 +      // Either there is a user created TemplateURL for this keyword, or the
 +      // keyword has the same OSDD url and we've parsed it.
-+      LOG(INFO) << "OpenSearch: OSDD URL was already parsed: " << osdd_url;
++      DLOG(INFO) << "OpenSearch: OSDD URL was already parsed: " << osdd_url;
 +      // always update the visit timestamp
 +      template_url_service_->UpdateTemplateURLVisitTime(template_url);
 +      return;
@@ -233,7 +233,10 @@ diff --git a/components/search_engines/template_url_fetcher.cc b/components/sear
 +    }
    }
  
++  LOG(INFO) << "OpenSearch: getting " << osdd_url;
    requests_.push_back(std::make_unique<RequestDelegate>(
+       this, keyword, osdd_url, favicon_url, initiator, url_loader_factory,
+       render_frame_id, request_id));
 diff --git a/components/search_engines/template_url_parser.cc b/components/search_engines/template_url_parser.cc
 --- a/components/search_engines/template_url_parser.cc
 +++ b/components/search_engines/template_url_parser.cc
