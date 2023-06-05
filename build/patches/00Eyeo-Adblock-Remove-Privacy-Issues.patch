@@ -53,7 +53,7 @@ settings ui in Windows
  .../preloaded_subscription_provider_impl.cc   |    4 +-
  .../core/subscription/subscription_config.cc  |    8 +-
  .../subscription_downloader_impl.cc           |   15 +-
- .../subscription_persistent_storage_impl.cc   |    4 +
+ .../subscription_persistent_storage_impl.cc   |   11 +-
  .../subscription/subscription_service_impl.cc |    2 +-
  .../subscription/subscription_updater_impl.cc |    8 +-
  .../subscription_validator_impl.cc            |    4 +-
@@ -62,12 +62,14 @@ settings ui in Windows
  components/resources/adblock_resources.grdp   |    3 -
  components/resources/adblocking/.gitignore    |    2 +-
  components/resources/adblocking/BUILD.gn      |   30 +-
+ .../adblocking/elemhide_for_selector.jst      |    2 +-
+ .../resources/adblocking/elemhideemu.jst      |    2 +
  .../snippets/dist/isolated-first.jst          |   62 +
  .../snippets/dist/isolated-first.source.jst   | 3126 +++++++++++++++++
  .../blink/renderer/core/css/style_engine.cc   |    8 +
  .../blink/renderer/core/css/style_engine.h    |    1 +
  .../renderer/core/exported/web_document.cc    |   13 +-
- 62 files changed, 3711 insertions(+), 1154 deletions(-)
+ 64 files changed, 3719 insertions(+), 1157 deletions(-)
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.cc
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.h
  create mode 100644 chrome/browser/resources/settings/adblock_page/adblock_page.html
@@ -2307,6 +2309,15 @@ diff --git a/components/adblock/core/subscription/subscription_downloader_impl.c
 diff --git a/components/adblock/core/subscription/subscription_persistent_storage_impl.cc b/components/adblock/core/subscription/subscription_persistent_storage_impl.cc
 --- a/components/adblock/core/subscription/subscription_persistent_storage_impl.cc
 +++ b/components/adblock/core/subscription/subscription_persistent_storage_impl.cc
+@@ -98,7 +98,7 @@ SubscriptionPersistentStorageImpl::ReadSubscriptionsFromDirectory(
+     const base::FilePath& storage_dir,
+     SubscriptionValidator::IsSignatureValidThreadSafeCallback
+         is_signature_valid) {
+-  DLOG(INFO) << "[eyeo] Reading subscriptions from directory";
++  LOG(INFO) << "[eyeo] Reading subscriptions from directory " << storage_dir;
+   TRACE_EVENT0("eyeo", "ReadSubscriptionsFromDirectory");
+   // Does nothing if directory already exists:
+   base::CreateDirectory(storage_dir);
 @@ -116,6 +116,8 @@ SubscriptionPersistentStorageImpl::ReadSubscriptionsFromDirectory(
      if (!base::ReadFileToString(flatbuffer_path, &contents)) {
        // File could not be read.
@@ -2325,6 +2336,24 @@ diff --git a/components/adblock/core/subscription/subscription_persistent_storag
        // This is not a valid subscription file, remove it.
        base::DeleteFile(flatbuffer_path);
        continue;
+@@ -130,13 +134,16 @@ SubscriptionPersistentStorageImpl::ReadSubscriptionsFromDirectory(
+     TRACE_EVENT_END0("eyeo", "VerifySubscriptionBuffer");
+     auto buffer = std::make_unique<MemoryMappedFlatbufferData>(flatbuffer_path);
+     if (!buffer->data()) {
++      LOG(INFO) << "[eyeo] Could not create mapped memory region to file content for "
++                << flatbuffer_path.BaseName().AsUTF8Unsafe();
+       // Could not create mapped memory region to file content.
+       // TODO(mpawlowski) revert to in-memory buffer?
+       continue;
+     }
++    LOG(INFO) << "[eyeo] Loaded " << flatbuffer_path.BaseName().AsUTF8Unsafe();
+     result.emplace_back(std::move(buffer), std::move(flatbuffer_path));
+   }
+-  DLOG(INFO) << "[eyeo] Finished reading and validating subscriptions. Loaded "
++  LOG(INFO) << "[eyeo] Finished reading and validating subscriptions. Loaded "
+              << result.size() << " subscriptions.";
+   return result;
+ }
 diff --git a/components/adblock/core/subscription/subscription_service_impl.cc b/components/adblock/core/subscription/subscription_service_impl.cc
 --- a/components/adblock/core/subscription/subscription_service_impl.cc
 +++ b/components/adblock/core/subscription/subscription_service_impl.cc
@@ -2508,6 +2537,31 @@ diff --git a/components/resources/adblocking/BUILD.gn b/components/resources/adb
  copy("copy_snippets_lib") {
    if (is_debug) {
      sources = [ "//components/resources/adblocking/snippets/dist/isolated-first.source.jst" ]
+diff --git a/components/resources/adblocking/elemhide_for_selector.jst b/components/resources/adblocking/elemhide_for_selector.jst
+--- a/components/resources/adblocking/elemhide_for_selector.jst
++++ b/components/resources/adblocking/elemhide_for_selector.jst
+@@ -43,7 +43,7 @@ if (typeof(elemhideForSelector) !== typeof(Function))
+     }
+     else
+     {
+-      console.debug("Nothing found for selector " + selector + ", retrying elemhide in 100 millis");
++      //console.debug("Nothing found for selector " + selector + ", retrying elemhide in 100 millis");
+       setTimeout(elemhideForSelector, 100, url, selector, attempt + 1);
+     }
+   }
+diff --git a/components/resources/adblocking/elemhideemu.jst b/components/resources/adblocking/elemhideemu.jst
+--- a/components/resources/adblocking/elemhideemu.jst
++++ b/components/resources/adblocking/elemhideemu.jst
+@@ -1,3 +1,4 @@
++(function() {
+ /*
+  * This file is part of eyeo Chromium SDK,
+  * Copyright (C) 2006-present eyeo GmbH
+@@ -1434,3 +1435,4 @@ let elemHideEmulation = new ElemHideEmulation(
+ );
+ 
+ elemHideEmulation.apply(elemHidingEmulatedPatterns);
++})()
 diff --git a/components/resources/adblocking/snippets/dist/isolated-first.jst b/components/resources/adblocking/snippets/dist/isolated-first.jst
 new file mode 100755
 --- /dev/null
