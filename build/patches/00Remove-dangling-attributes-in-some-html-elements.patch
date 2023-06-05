@@ -1,0 +1,138 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Mon, 5 Jun 2023 17:06:03 +0000
+Subject: Remove dangling attributes in some html elements
+
+Removes for iframes and the base tag all attributes
+containing newlines or the less-then sign that can be exploited
+to extract or send otherwise inaccessible information.
+---
+ third_party/blink/renderer/core/dom/element.cc       | 12 +++++++++++-
+ third_party/blink/renderer/core/dom/element.h        |  3 ++-
+ .../blink/renderer/core/html/html_base_element.cc    |  6 ++++++
+ .../blink/renderer/core/html/html_base_element.h     |  2 ++
+ .../blink/renderer/core/html/html_iframe_element.cc  |  6 ++++++
+ .../blink/renderer/core/html/html_iframe_element.h   |  2 ++
+ third_party/blink/renderer/core/page/frame_tree.cc   |  2 ++
+ .../renderer/platform/runtime_enabled_features.json5 |  4 ++--
+ 8 files changed, 33 insertions(+), 4 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/renderer/core/dom/element.cc
+--- a/third_party/blink/renderer/core/dom/element.cc
++++ b/third_party/blink/renderer/core/dom/element.cc
+@@ -2529,8 +2529,18 @@ void Element::StripScriptingAttributes(
+   attribute_vector.Shrink(destination);
+ }
+ 
++void Element::RemoveDanglingAttributes(
++    Vector<Attribute, kAttributePrealloc>& attribute_vector) {
++  for (auto& attribute : attribute_vector) {
++    auto value = attribute.Value();
++    if (value.Contains('\n') || value.Contains('<')) {
++      attribute.SetValue(g_null_atom);
++    }
++  }
++}
++
+ void Element::ParserSetAttributes(
+-    const Vector<Attribute, kAttributePrealloc>& attribute_vector) {
++    Vector<Attribute, kAttributePrealloc>& attribute_vector) {
+   DCHECK(!isConnected());
+   DCHECK(!parentNode());
+   DCHECK(!element_data_);
+diff --git a/third_party/blink/renderer/core/dom/element.h b/third_party/blink/renderer/core/dom/element.h
+--- a/third_party/blink/renderer/core/dom/element.h
++++ b/third_party/blink/renderer/core/dom/element.h
+@@ -568,7 +568,8 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
+   virtual const QualifiedName& SubResourceAttributeName() const;
+ 
+   // Only called by the parser immediately after element construction.
+-  void ParserSetAttributes(const Vector<Attribute, kAttributePrealloc>&);
++  virtual void ParserSetAttributes(Vector<Attribute, kAttributePrealloc>&);
++  void RemoveDanglingAttributes(Vector<Attribute, kAttributePrealloc>&);
+ 
+   // Remove attributes that might introduce scripting from the vector leaving
+   // the element unchanged.
+diff --git a/third_party/blink/renderer/core/html/html_base_element.cc b/third_party/blink/renderer/core/html/html_base_element.cc
+--- a/third_party/blink/renderer/core/html/html_base_element.cc
++++ b/third_party/blink/renderer/core/html/html_base_element.cc
+@@ -61,6 +61,12 @@ bool HTMLBaseElement::IsURLAttribute(const Attribute& attribute) const {
+          HTMLElement::IsURLAttribute(attribute);
+ }
+ 
++void HTMLBaseElement::ParserSetAttributes(
++    Vector<Attribute, kAttributePrealloc>& attribute_vector) {
++  Element::RemoveDanglingAttributes(attribute_vector);
++  Element::ParserSetAttributes(attribute_vector);
++}
++
+ KURL HTMLBaseElement::href() const {
+   // This does not use the GetURLAttribute function because that will resolve
+   // relative to the document's base URL; base elements like this one can be
+diff --git a/third_party/blink/renderer/core/html/html_base_element.h b/third_party/blink/renderer/core/html/html_base_element.h
+--- a/third_party/blink/renderer/core/html/html_base_element.h
++++ b/third_party/blink/renderer/core/html/html_base_element.h
+@@ -37,6 +37,8 @@ class CORE_EXPORT HTMLBaseElement final : public HTMLElement {
+   KURL href() const;
+   void setHref(const AtomicString&);
+ 
++  void ParserSetAttributes(Vector<Attribute, kAttributePrealloc>&) override;
++
+  private:
+   bool IsURLAttribute(const Attribute&) const override;
+   void ParseAttribute(const AttributeModificationParams&) override;
+diff --git a/third_party/blink/renderer/core/html/html_iframe_element.cc b/third_party/blink/renderer/core/html/html_iframe_element.cc
+--- a/third_party/blink/renderer/core/html/html_iframe_element.cc
++++ b/third_party/blink/renderer/core/html/html_iframe_element.cc
+@@ -167,6 +167,12 @@ void HTMLIFrameElement::CollectStyleForPresentationAttribute(
+   }
+ }
+ 
++void HTMLIFrameElement::ParserSetAttributes(
++    Vector<Attribute, kAttributePrealloc>& attribute_vector) {
++  Element::RemoveDanglingAttributes(attribute_vector);
++  Element::ParserSetAttributes(attribute_vector);
++}
++
+ void HTMLIFrameElement::ParseAttribute(
+     const AttributeModificationParams& params) {
+   const QualifiedName& name = params.name;
+diff --git a/third_party/blink/renderer/core/html/html_iframe_element.h b/third_party/blink/renderer/core/html/html_iframe_element.h
+--- a/third_party/blink/renderer/core/html/html_iframe_element.h
++++ b/third_party/blink/renderer/core/html/html_iframe_element.h
+@@ -61,6 +61,8 @@ class CORE_EXPORT HTMLIFrameElement : public HTMLFrameElementBase,
+ 
+   bool Credentialless() const override { return credentialless_; }
+ 
++  void ParserSetAttributes(Vector<Attribute, kAttributePrealloc>&) override;
++
+  private:
+   void SetCollapsed(bool) override;
+ 
+diff --git a/third_party/blink/renderer/core/page/frame_tree.cc b/third_party/blink/renderer/core/page/frame_tree.cc
+--- a/third_party/blink/renderer/core/page/frame_tree.cc
++++ b/third_party/blink/renderer/core/page/frame_tree.cc
+@@ -237,6 +237,8 @@ FrameTree::FindResult FrameTree::FindOrCreateFrameForNavigation(
+   if (ContainsNewLineAndLessThan(name) && IsRequestFromHtml(request) &&
+       current_frame->GetDocument()) {
+     LogDanglingMarkupHistogram(current_frame->GetDocument(), name);
++    // if the name contains a \n or <, the search is always deactivated
++    return FindResult(nullptr, false);
+   }
+ 
+   const KURL& url = request.GetResourceRequest().Url();
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -1452,8 +1452,8 @@
+       // Experiment with preventing some instances of mutation XSS
+       // by escaping "<" and ">" in attribute values.
+       // See: crbug.com/1175016
+-      name: "EscapeLtGtInAttributes",
+-      status: "experimental",
++      name: "EscapeLtGtInAttributes",  // enabled by default
++      status: "stable",
+     },
+     {
+       // Non-standard API Event.path. Should be replaced by Event.composedPath.
+--
+2.25.1
