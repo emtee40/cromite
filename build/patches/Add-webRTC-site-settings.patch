@@ -7,58 +7,24 @@ Requires patch: Content-settings-infrastructure.patch
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../browser_ui/site_settings/android/BUILD.gn |  3 +
- .../BromiteCustomContentSettingImpl.java      |  1 +
- .../BromiteWebRTCContentSetting.java          | 86 +++++++++++++++++++
- .../site_settings/SiteSettingsCategory.java   |  5 +-
- .../strings/android/browser_ui_strings.grd    |  1 +
- .../browser_ui/strings/android/webrtc.grdp    | 18 ++++
- components/components_strings.grd             |  1 +
- .../core/browser/content_settings_registry.cc | 13 +++
- .../core/browser/content_settings_utils.cc    |  2 +
- .../core/common/content_settings.cc           |  4 +-
- .../core/common/content_settings.h            |  1 +
- .../core/common/content_settings.mojom        |  1 +
- .../common/content_settings_mojom_traits.cc   |  3 +-
- .../common/content_settings_mojom_traits.h    |  5 ++
- .../core/common/content_settings_types.h      |  2 +
- .../renderer/content_settings_agent_impl.cc   |  9 ++
- .../renderer/content_settings_agent_impl.h    |  1 +
- .../platform/web_content_settings_client.h    |  2 +
+ .../impl/BromiteWebRTCContentSetting.java     | 88 +++++++++++++++++++
+ .../bromite_content_settings/webrtc.grdp      | 18 ++++
+ .../bromite_content_settings/webrtc.inc       | 13 +++
+ .../bromite_content_settings/WEBRTC.inc       |  1 +
  .../peer_connection_dependency_factory.cc     |  6 ++
- 19 files changed, 160 insertions(+), 4 deletions(-)
- create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteWebRTCContentSetting.java
- create mode 100644 components/browser_ui/strings/android/webrtc.grdp
+ .../peerconnection/rtc_rtp_receiver.cc        | 10 +++
+ .../modules/peerconnection/rtc_rtp_sender.cc  | 10 +++
+ 7 files changed, 146 insertions(+)
+ create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebRTCContentSetting.java
+ create mode 100644 components/browser_ui/strings/android/bromite_content_settings/webrtc.grdp
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/webrtc.inc
+ create mode 100644 components/content_settings/core/common/bromite_content_settings/WEBRTC.inc
 
-diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
---- a/components/browser_ui/site_settings/android/BUILD.gn
-+++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -109,6 +109,9 @@ android_library("java") {
-   sources += [
-     "java/src/org/chromium/components/browser_ui/site_settings/BromiteWebGLContentSetting.java",
-   ]
-+  sources += [
-+    "java/src/org/chromium/components/browser_ui/site_settings/BromiteWebRTCContentSetting.java",
-+  ]
-   annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
-   resources_package = "org.chromium.components.browser_ui.site_settings"
-   deps = [
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
-@@ -44,6 +44,7 @@ public abstract class BromiteCustomContentSettingImpl {
-     static {
-         mItemList = new ArrayList<BromiteCustomContentSetting>();
-         mItemList.add(new BromiteWebGLContentSetting());
-+        mItemList.add(new BromiteWebRTCContentSetting());
-     }
- 
-     public static SiteSettingsCategory createFromType(
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteWebRTCContentSetting.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteWebRTCContentSetting.java
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebRTCContentSetting.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebRTCContentSetting.java
 new file mode 100644
 --- /dev/null
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteWebRTCContentSetting.java
-@@ -0,0 +1,86 @@
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebRTCContentSetting.java
+@@ -0,0 +1,88 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -76,8 +42,11 @@ new file mode 100644
 +    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
 +*/
 +
-+package org.chromium.components.browser_ui.site_settings;
++package org.chromium.components.browser_ui.site_settings.impl;
 +
++import org.chromium.components.browser_ui.site_settings.R;
++
++import org.chromium.components.browser_ui.site_settings.BromiteCustomContentSetting;
 +import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
 +import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
 +import org.chromium.components.content_settings.ContentSettingValues;
@@ -93,7 +62,6 @@ new file mode 100644
 +public class BromiteWebRTCContentSetting extends BromiteCustomContentSetting {
 +    public BromiteWebRTCContentSetting() {
 +        super(/*contentSettingsType*/ ContentSettingsType.WEBRTC,
-+              /*siteSettingsCategory*/ SiteSettingsCategory.Type.WEBRTC,
 +              /*defaultEnabledValue*/ ContentSettingValues.ALLOW,
 +              /*defaultDisabledValue*/ ContentSettingValues.BLOCK,
 +              /*allowException*/ true,
@@ -145,46 +113,10 @@ new file mode 100644
 +        return value != ContentSettingValues.BLOCK;
 +    }
 +}
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-@@ -48,7 +48,7 @@ public class SiteSettingsCategory {
-             Type.USE_STORAGE, Type.AUTO_DARK_WEB_CONTENT, Type.REQUEST_DESKTOP_SITE,
-             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA, Type.ANTI_ABUSE,
-             Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT, Type.IMAGES,
--            Type.NUM_ENTRIES, Type.WEBGL})
-+            Type.NUM_ENTRIES, Type.WEBGL, Type.WEBRTC})
-     @Retention(RetentionPolicy.SOURCE)
-     public @interface Type {
-         // All updates here must also be reflected in {@link #preferenceKey(int)
-@@ -87,10 +87,11 @@ public class SiteSettingsCategory {
-         int JAVASCRIPT_JIT = 31;
-         int IMAGES = 32;
-         int WEBGL = 33;
-+        int WEBRTC = 34;
-         /**
-          * Number of handled categories used for calculating array sizes.
-          */
--        int NUM_ENTRIES = 34;
-+        int NUM_ENTRIES = 35;
-     }
- 
-     private final BrowserContextHandle mBrowserContextHandle;
-diff --git a/components/browser_ui/strings/android/browser_ui_strings.grd b/components/browser_ui/strings/android/browser_ui_strings.grd
---- a/components/browser_ui/strings/android/browser_ui_strings.grd
-+++ b/components/browser_ui/strings/android/browser_ui_strings.grd
-@@ -175,6 +175,7 @@
-     <messages fallback_to_english="true">
-       <part file="site_settings.grdp" />
-       <part file="webgl.grdp" />
-+      <part file="webrtc.grdp" />
- 
-       <message name="IDS_GOT_IT" desc="Button for the user to accept a disclosure/message" formatter_data="android_java">
-         Got it
-diff --git a/components/browser_ui/strings/android/webrtc.grdp b/components/browser_ui/strings/android/webrtc.grdp
+diff --git a/components/browser_ui/strings/android/bromite_content_settings/webrtc.grdp b/components/browser_ui/strings/android/bromite_content_settings/webrtc.grdp
 new file mode 100644
 --- /dev/null
-+++ b/components/browser_ui/strings/android/webrtc.grdp
++++ b/components/browser_ui/strings/android/bromite_content_settings/webrtc.grdp
 @@ -0,0 +1,18 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
@@ -204,175 +136,30 @@ new file mode 100644
 +    Disabled
 +  </message>
 +</grit-part>
-diff --git a/components/components_strings.grd b/components/components_strings.grd
---- a/components/components_strings.grd
-+++ b/components/components_strings.grd
-@@ -337,6 +337,7 @@
-       <part file="webapps_strings.grdp" />
- 
-       <part file="browser_ui/strings/android/webgl.grdp" />
-+      <part file="browser_ui/strings/android/webrtc.grdp" />
-       <if expr="not is_ios">
-         <part file="history_clusters_strings.grdp" />
-       </if>
-diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
---- a/components/content_settings/core/browser/content_settings_registry.cc
-+++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -619,6 +619,19 @@ void ContentSettingsRegistry::Init() {
-            /*show_into_info_page*/ true,
-            /*permission_type_ui*/ IDS_SITE_SETTINGS_TYPE_WEBGL,
-            /*permission_type_ui_mid_sentence*/ IDS_SITE_SETTINGS_TYPE_WEBGL_MID_SENTENCE);
-+
+diff --git a/components/content_settings/core/browser/bromite_content_settings/webrtc.inc b/components/content_settings/core/browser/bromite_content_settings/webrtc.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/webrtc.inc
+@@ -0,0 +1,13 @@
 +  Register(ContentSettingsType::WEBRTC, "webrtc", CONTENT_SETTING_BLOCK,
 +           WebsiteSettingsInfo::SYNCABLE,
 +           /*allowlisted_schemes=*/{},
 +           /*valid_settings=*/{CONTENT_SETTING_ALLOW,
 +                               CONTENT_SETTING_BLOCK},
 +           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
-+           WebsiteSettingsRegistry::PLATFORM_ANDROID,
++           WebsiteSettingsRegistry::ALL_PLATFORMS,
 +           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
 +           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS,
 +           /*show_into_info_page*/ true,
++           /*is_renderer_content_setting*/ true,
 +           /*permission_type_ui*/ IDS_SITE_SETTINGS_TYPE_WEBRTC,
 +           /*permission_type_ui_mid_sentence*/ IDS_SITE_SETTINGS_TYPE_WEBRTC_MID_SENTENCE);
- }
- 
- void ContentSettingsRegistry::Register(
-diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
---- a/components/content_settings/core/browser/content_settings_utils.cc
-+++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -160,6 +160,8 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
-   rules->timezone_override_value = timezone;
-   map->GetSettingsForOneType(ContentSettingsType::WEBGL,
-                              &(rules->webgl_rules));
-+  map->GetSettingsForOneType(ContentSettingsType::WEBRTC,
-+                             &(rules->webrtc_rules));
- }
- 
- bool IsMorePermissive(ContentSetting a, ContentSetting b) {
-diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
---- a/components/content_settings/core/common/content_settings.cc
-+++ b/components/content_settings/core/common/content_settings.cc
-@@ -219,7 +219,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
-          content_type == ContentSettingsType::MIXEDSCRIPT ||
-          content_type == ContentSettingsType::AUTO_DARK_WEB_CONTENT ||
-          content_type == ContentSettingsType::TIMEZONE_OVERRIDE ||
--         content_type == ContentSettingsType::WEBGL;
-+         content_type == ContentSettingsType::WEBGL ||
-+         content_type == ContentSettingsType::WEBRTC;
- }
- 
- void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-@@ -232,6 +233,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-   FilterRulesForType(timezone_override_rules, outermost_main_frame_url);
-   FilterRulesForType(autoplay_rules, outermost_main_frame_url);
-   FilterRulesForType(webgl_rules, outermost_main_frame_url);
-+  FilterRulesForType(webrtc_rules, outermost_main_frame_url);
- }
- 
- RendererContentSettingRules::RendererContentSettingRules() = default;
-diff --git a/components/content_settings/core/common/content_settings.h b/components/content_settings/core/common/content_settings.h
---- a/components/content_settings/core/common/content_settings.h
-+++ b/components/content_settings/core/common/content_settings.h
-@@ -97,6 +97,7 @@ struct RendererContentSettingRules {
-   ContentSettingsForOneType timezone_override_rules;
-   std::string timezone_override_value;
-   ContentSettingsForOneType webgl_rules;
-+  ContentSettingsForOneType webrtc_rules;
- };
- 
- namespace content_settings {
-diff --git a/components/content_settings/core/common/content_settings.mojom b/components/content_settings/core/common/content_settings.mojom
---- a/components/content_settings/core/common/content_settings.mojom
-+++ b/components/content_settings/core/common/content_settings.mojom
-@@ -82,4 +82,5 @@ struct RendererContentSettingRules {
-   array<ContentSettingPatternSource> timezone_override_rules;
-   string timezone_override_value;
-   array<ContentSettingPatternSource> webgl_rules;
-+  array<ContentSettingPatternSource> webrtc_rules;
- };
-diff --git a/components/content_settings/core/common/content_settings_mojom_traits.cc b/components/content_settings/core/common/content_settings_mojom_traits.cc
---- a/components/content_settings/core/common/content_settings_mojom_traits.cc
-+++ b/components/content_settings/core/common/content_settings_mojom_traits.cc
-@@ -106,7 +106,8 @@ bool StructTraits<content_settings::mojom::RendererContentSettingRulesDataView,
-          data.ReadAutoDarkContentRules(&out->auto_dark_content_rules) &&
-          data.ReadTimezoneOverrideRules(&out->timezone_override_rules) &&
-          data.ReadTimezoneOverrideValue(&out->timezone_override_value) &&
--         data.ReadWebglRules(&out->webgl_rules);
-+         data.ReadWebglRules(&out->webgl_rules) &&
-+         data.ReadWebrtcRules(&out->webrtc_rules);
- }
- 
- }  // namespace mojo
-diff --git a/components/content_settings/core/common/content_settings_mojom_traits.h b/components/content_settings/core/common/content_settings_mojom_traits.h
---- a/components/content_settings/core/common/content_settings_mojom_traits.h
-+++ b/components/content_settings/core/common/content_settings_mojom_traits.h
-@@ -170,6 +170,11 @@ struct StructTraits<
-     return r.webgl_rules;
-   }
- 
-+  static const std::vector<ContentSettingPatternSource>& webrtc_rules(
-+      const RendererContentSettingRules& r) {
-+    return r.webrtc_rules;
-+  }
-+
-   static bool Read(
-       content_settings::mojom::RendererContentSettingRulesDataView data,
-       RendererContentSettingRules* out);
-diff --git a/components/content_settings/core/common/content_settings_types.h b/components/content_settings/core/common/content_settings_types.h
---- a/components/content_settings/core/common/content_settings_types.h
-+++ b/components/content_settings/core/common/content_settings_types.h
-@@ -279,6 +279,8 @@ enum class ContentSettingsType : int32_t {
- 
-   WEBGL,
- 
+diff --git a/components/content_settings/core/common/bromite_content_settings/WEBRTC.inc b/components/content_settings/core/common/bromite_content_settings/WEBRTC.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/common/bromite_content_settings/WEBRTC.inc
+@@ -0,0 +1 @@
 +  WEBRTC,
-+
-   // Setting to indicate whether browser should allow signing into a website via
-   // the browser FedCM API.
-   FEDERATED_IDENTITY_API,
-diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
---- a/components/content_settings/renderer/content_settings_agent_impl.cc
-+++ b/components/content_settings/renderer/content_settings_agent_impl.cc
-@@ -450,6 +450,15 @@ bool ContentSettingsAgentImpl::AllowWebgl(bool enabled_per_settings) {
-              url::Origin(frame->GetDocument().GetSecurityOrigin()).GetURL());
- }
- 
-+bool ContentSettingsAgentImpl::AllowWebRTC(bool enabled_per_settings) {
-+  if (!content_setting_rules_)
-+    return false;
-+  blink::WebLocalFrame* frame = render_frame()->GetWebFrame();
-+  return CONTENT_SETTING_ALLOW == GetContentSettingFromRules(
-+             content_setting_rules_->webrtc_rules,
-+             url::Origin(frame->GetDocument().GetSecurityOrigin()).GetURL());
-+}
-+
- bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
-   if (should_allowlist_)
-     return true;
-diff --git a/components/content_settings/renderer/content_settings_agent_impl.h b/components/content_settings/renderer/content_settings_agent_impl.h
---- a/components/content_settings/renderer/content_settings_agent_impl.h
-+++ b/components/content_settings/renderer/content_settings_agent_impl.h
-@@ -100,6 +100,7 @@ class ContentSettingsAgentImpl
-   bool AllowPopupsAndRedirects(bool default_value) override;
-   bool ShouldAutoupgradeMixedContent() override;
-   bool AllowWebgl(bool enabled_per_settings) override;
-+  bool AllowWebRTC(bool enabled_per_settings) override;
- 
-   bool allow_running_insecure_content() const {
-     return allow_running_insecure_content_;
-diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/third_party/blink/public/platform/web_content_settings_client.h
---- a/third_party/blink/public/platform/web_content_settings_client.h
-+++ b/third_party/blink/public/platform/web_content_settings_client.h
-@@ -101,6 +101,8 @@ class WebContentSettingsClient {
- 
-   virtual bool AllowWebgl(bool default_value) { return default_value; }
- 
-+  virtual bool AllowWebRTC(bool default_value) { return default_value; }
-+
-   // Reports that passive mixed content was found at the provided URL.
-   virtual void PassiveInsecureContentFound(const WebURL&) {}
- 
 diff --git a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
 --- a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
@@ -384,17 +171,71 @@ diff --git a/third_party/blink/renderer/modules/peerconnection/peer_connection_d
  #include "third_party/blink/public/platform/web_url.h"
  #include "third_party/blink/public/web/modules/mediastream/media_stream_video_source.h"
  #include "third_party/blink/public/web/web_document.h"
-@@ -750,6 +751,11 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
+@@ -752,6 +753,11 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
        // origin.
        WebRTCIPHandlingPolicy policy =
            GetWebRTCIPHandlingPolicy(webrtc_ip_handling_policy);
 +      blink::WebContentSettingsClient* settings = web_frame->GetContentSettingsClient();
-+      if (settings && settings->AllowWebRTC(false)) {
++      if (settings && settings->AllowContentSetting(ContentSettingsType::WEBRTC, false)) {
 +        policy = kDefault;
 +      }
 +
        switch (policy) {
          // TODO(guoweis): specify the flag of disabling local candidate
          // collection when webrtc is updated.
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc
+@@ -11,6 +11,8 @@
+ #include "third_party/blink/public/common/privacy_budget/identifiability_study_settings.h"
+ #include "third_party/blink/public/common/privacy_budget/identifiable_surface.h"
+ #include "third_party/blink/public/common/privacy_budget/identifiable_token_builder.h"
++#include "third_party/blink/public/platform/web_content_settings_client.h"
++#include "third_party/blink/public/web/web_local_frame.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_insertable_streams.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_rtcp_parameters.h"
+@@ -256,6 +258,14 @@ RTCRtpCapabilities* RTCRtpReceiver::getCapabilities(ScriptState* state,
+   if (kind != "audio" && kind != "video")
+     return nullptr;
+ 
++  LocalDOMWindow* window = To<LocalDOMWindow>(ExecutionContext::From(state));
++  auto* web_frame =
++      static_cast<WebLocalFrame*>(WebFrame::FromCoreFrame(window->GetFrame()));
++  blink::WebContentSettingsClient* settings = web_frame->GetContentSettingsClient();
++  if (settings && !settings->AllowContentSetting(ContentSettingsType::WEBRTC, false)) {
++    return nullptr;
++  }
++
+   RTCRtpCapabilities* capabilities = RTCRtpCapabilities::Create();
+   capabilities->setCodecs(HeapVector<Member<RTCRtpCodecCapability>>());
+   capabilities->setHeaderExtensions(
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
+@@ -16,6 +16,8 @@
+ #include "third_party/blink/public/common/privacy_budget/identifiability_study_settings.h"
+ #include "third_party/blink/public/common/privacy_budget/identifiable_surface.h"
+ #include "third_party/blink/public/common/privacy_budget/identifiable_token_builder.h"
++#include "third_party/blink/public/platform/web_content_settings_client.h"
++#include "third_party/blink/public/web/web_local_frame.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_insertable_streams.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_rtcp_parameters.h"
+@@ -941,6 +943,14 @@ RTCRtpCapabilities* RTCRtpSender::getCapabilities(ScriptState* state,
+   if (kind != "audio" && kind != "video")
+     return nullptr;
+ 
++  LocalDOMWindow* window = To<LocalDOMWindow>(ExecutionContext::From(state));
++  auto* web_frame =
++      static_cast<WebLocalFrame*>(WebFrame::FromCoreFrame(window->GetFrame()));
++  blink::WebContentSettingsClient* settings = web_frame->GetContentSettingsClient();
++  if (settings && !settings->AllowContentSetting(ContentSettingsType::WEBRTC, false)) {
++    return nullptr;
++  }
++
+   RTCRtpCapabilities* capabilities = RTCRtpCapabilities::Create();
+   capabilities->setCodecs(HeapVector<Member<RTCRtpCodecCapability>>());
+   capabilities->setHeaderExtensions(
 --
 2.25.1

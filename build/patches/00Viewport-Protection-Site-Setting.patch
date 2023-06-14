@@ -17,35 +17,23 @@ Subject: Viewport Protection Site Setting
  .../views/page_info/page_info_view_factory.cc |  3 +
  .../settings_localized_strings_provider.cc    |  7 ++
  .../ui/webui/settings/site_settings_helper.cc |  1 +
- .../browser_ui/site_settings/android/BUILD.gn |  3 +
- .../BromiteCustomContentSettingImpl.java      |  1 +
- .../BromiteViewportContentSetting.java        | 86 +++++++++++++++++++
- .../site_settings/SiteSettingsCategory.java   |  5 +-
- .../strings/android/browser_ui_strings.grd    |  1 +
- .../browser_ui/strings/android/viewport.grdp  | 18 ++++
- components/components_strings.grd             |  1 +
- .../core/browser/content_settings_registry.cc | 15 +++-
- .../core/browser/content_settings_utils.cc    |  2 +
- .../core/common/content_settings.cc           |  4 +-
- .../core/common/content_settings.h            |  1 +
- .../core/common/content_settings.mojom        |  1 +
- .../common/content_settings_mojom_traits.cc   |  3 +-
- .../common/content_settings_mojom_traits.h    |  5 ++
- .../core/common/content_settings_types.h      |  2 +
- .../renderer/content_settings_agent_impl.cc   |  9 ++
- .../renderer/content_settings_agent_impl.h    |  1 +
+ .../impl/BromiteViewportContentSetting.java   | 88 +++++++++++++++++++
+ .../bromite_content_settings/viewport.grdp    | 18 ++++
+ .../bromite_content_settings/viewport.inc     | 13 +++
+ .../bromite_content_settings/VIEWPORT.inc     |  1 +
  third_party/blink/common/features.cc          |  2 +-
- .../platform/web_content_settings_client.h    |  2 +
- .../renderer/core/frame/local_dom_window.cc   |  1 +
- third_party/blink/renderer/core/page/page.cc  |  2 +
- 35 files changed, 234 insertions(+), 6 deletions(-)
- create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteViewportContentSetting.java
- create mode 100644 components/browser_ui/strings/android/viewport.grdp
+ .../renderer/core/frame/local_dom_window.cc   |  2 +
+ third_party/blink/renderer/core/page/page.cc  |  3 +
+ 21 files changed, 201 insertions(+), 1 deletion(-)
+ create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java
+ create mode 100644 components/browser_ui/strings/android/bromite_content_settings/viewport.grdp
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/viewport.inc
+ create mode 100644 components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc
 
 diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -4424,6 +4424,25 @@
+@@ -4434,6 +4434,25 @@
      Not allowed to use WebRTC
    </message>
  
@@ -235,7 +223,7 @@ diff --git a/chrome/browser/ui/views/page_info/page_info_view_factory.cc b/chrom
 diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2555,6 +2555,13 @@ void AddSiteSettingsStrings(content::WebUIDataSource* html_source,
+@@ -2556,6 +2556,13 @@ void AddSiteSettingsStrings(content::WebUIDataSource* html_source,
      {"siteSettingsWebRTCAllowedExceptions",IDS_SETTINGS_SITE_SETTINGS_WEBRTC_ALLOWED_EXCEPTIONS},
      {"siteSettingsWebRTCBlockedExceptions", IDS_SETTINGS_SITE_SETTINGS_WEBRTC_BLOCKED_EXCEPTIONS},
      {"siteSettingsWebRTCMidSentence", IDS_SITE_SETTINGS_WEBRTC_TITLE},
@@ -260,35 +248,11 @@ diff --git a/chrome/browser/ui/webui/settings/site_settings_helper.cc b/chrome/b
  
      // Add new content settings here if a corresponding Javascript string
      // representation for it is not required, for example if the content setting
-diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
---- a/components/browser_ui/site_settings/android/BUILD.gn
-+++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -112,6 +112,9 @@ android_library("java") {
-   sources += [
-     "java/src/org/chromium/components/browser_ui/site_settings/BromiteWebRTCContentSetting.java",
-   ]
-+  sources += [
-+    "java/src/org/chromium/components/browser_ui/site_settings/BromiteViewportContentSetting.java",
-+  ]
-   annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
-   resources_package = "org.chromium.components.browser_ui.site_settings"
-   deps = [
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
-@@ -45,6 +45,7 @@ public abstract class BromiteCustomContentSettingImpl {
-         mItemList = new ArrayList<BromiteCustomContentSetting>();
-         mItemList.add(new BromiteWebGLContentSetting());
-         mItemList.add(new BromiteWebRTCContentSetting());
-+        mItemList.add(new BromiteViewportContentSetting());
-     }
- 
-     public static SiteSettingsCategory createFromType(
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteViewportContentSetting.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteViewportContentSetting.java
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java
 new file mode 100644
 --- /dev/null
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteViewportContentSetting.java
-@@ -0,0 +1,86 @@
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java
+@@ -0,0 +1,88 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -306,8 +270,11 @@ new file mode 100644
 +    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
 +*/
 +
-+package org.chromium.components.browser_ui.site_settings;
++package org.chromium.components.browser_ui.site_settings.impl;
 +
++import org.chromium.components.browser_ui.site_settings.R;
++
++import org.chromium.components.browser_ui.site_settings.BromiteCustomContentSetting;
 +import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
 +import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
 +import org.chromium.components.content_settings.ContentSettingValues;
@@ -323,7 +290,6 @@ new file mode 100644
 +public class BromiteViewportContentSetting extends BromiteCustomContentSetting {
 +    public BromiteViewportContentSetting() {
 +        super(/*contentSettingsType*/ ContentSettingsType.VIEWPORT,
-+              /*siteSettingsCategory*/ SiteSettingsCategory.Type.VIEWPORT,
 +              /*defaultEnabledValue*/ ContentSettingValues.ALLOW,
 +              /*defaultDisabledValue*/ ContentSettingValues.BLOCK,
 +              /*allowException*/ true,
@@ -375,46 +341,10 @@ new file mode 100644
 +        return value != ContentSettingValues.BLOCK;
 +    }
 +}
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-@@ -48,7 +48,7 @@ public class SiteSettingsCategory {
-             Type.USE_STORAGE, Type.AUTO_DARK_WEB_CONTENT, Type.REQUEST_DESKTOP_SITE,
-             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA, Type.ANTI_ABUSE,
-             Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT, Type.IMAGES,
--            Type.NUM_ENTRIES, Type.WEBGL, Type.WEBRTC})
-+            Type.NUM_ENTRIES, Type.WEBGL, Type.WEBRTC, Type.VIEWPORT})
-     @Retention(RetentionPolicy.SOURCE)
-     public @interface Type {
-         // All updates here must also be reflected in {@link #preferenceKey(int)
-@@ -88,10 +88,11 @@ public class SiteSettingsCategory {
-         int IMAGES = 32;
-         int WEBGL = 33;
-         int WEBRTC = 34;
-+        int VIEWPORT = 35;
-         /**
-          * Number of handled categories used for calculating array sizes.
-          */
--        int NUM_ENTRIES = 35;
-+        int NUM_ENTRIES = 36;
-     }
- 
-     private final BrowserContextHandle mBrowserContextHandle;
-diff --git a/components/browser_ui/strings/android/browser_ui_strings.grd b/components/browser_ui/strings/android/browser_ui_strings.grd
---- a/components/browser_ui/strings/android/browser_ui_strings.grd
-+++ b/components/browser_ui/strings/android/browser_ui_strings.grd
-@@ -176,6 +176,7 @@
-       <part file="site_settings.grdp" />
-       <part file="webgl.grdp" />
-       <part file="webrtc.grdp" />
-+      <part file="viewport.grdp" />
- 
-       <message name="IDS_GOT_IT" desc="Button for the user to accept a disclosure/message" formatter_data="android_java">
-         Got it
-diff --git a/components/browser_ui/strings/android/viewport.grdp b/components/browser_ui/strings/android/viewport.grdp
+diff --git a/components/browser_ui/strings/android/bromite_content_settings/viewport.grdp b/components/browser_ui/strings/android/bromite_content_settings/viewport.grdp
 new file mode 100644
 --- /dev/null
-+++ b/components/browser_ui/strings/android/viewport.grdp
++++ b/components/browser_ui/strings/android/bromite_content_settings/viewport.grdp
 @@ -0,0 +1,18 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
@@ -434,32 +364,11 @@ new file mode 100644
 +    Disabled
 +  </message>
 +</grit-part>
-diff --git a/components/components_strings.grd b/components/components_strings.grd
---- a/components/components_strings.grd
-+++ b/components/components_strings.grd
-@@ -339,6 +339,7 @@
- 
-       <part file="browser_ui/strings/android/webgl.grdp" />
-       <part file="browser_ui/strings/android/webrtc.grdp" />
-+      <part file="browser_ui/strings/android/viewport.grdp" />
-       <if expr="not is_ios">
-         <part file="history_clusters_strings.grdp" />
-       </if>
-diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
---- a/components/content_settings/core/browser/content_settings_registry.cc
-+++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -627,12 +627,25 @@ void ContentSettingsRegistry::Init() {
-            /*valid_settings=*/{CONTENT_SETTING_ALLOW,
-                                CONTENT_SETTING_BLOCK},
-            WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
--           WebsiteSettingsRegistry::PLATFORM_ANDROID,
-+           WebsiteSettingsRegistry::ALL_PLATFORMS,
-            ContentSettingsInfo::INHERIT_IN_INCOGNITO,
-            ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS,
-            /*show_into_info_page*/ true,
-            /*permission_type_ui*/ IDS_SITE_SETTINGS_TYPE_WEBRTC,
-            /*permission_type_ui_mid_sentence*/ IDS_SITE_SETTINGS_TYPE_WEBRTC_MID_SENTENCE);
-+
+diff --git a/components/content_settings/core/browser/bromite_content_settings/viewport.inc b/components/content_settings/core/browser/bromite_content_settings/viewport.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/viewport.inc
+@@ -0,0 +1,13 @@
 +  Register(ContentSettingsType::VIEWPORT, "viewport", CONTENT_SETTING_ALLOW,
 +           WebsiteSettingsInfo::SYNCABLE,
 +           /*allowlisted_schemes=*/{},
@@ -470,134 +379,15 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
 +           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
 +           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS,
 +           /*show_into_info_page*/ true,
++           /*is_renderer_content_setting*/ true,
 +           /*permission_type_ui*/ IDS_SITE_SETTINGS_TYPE_VIEWPORT,
 +           /*permission_type_ui_mid_sentence*/ IDS_SITE_SETTINGS_TYPE_VIEWPORT_MID_SENTENCE);
- }
- 
- void ContentSettingsRegistry::Register(
-diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
---- a/components/content_settings/core/browser/content_settings_utils.cc
-+++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -162,6 +162,8 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
-                              &(rules->webgl_rules));
-   map->GetSettingsForOneType(ContentSettingsType::WEBRTC,
-                              &(rules->webrtc_rules));
-+  map->GetSettingsForOneType(ContentSettingsType::VIEWPORT,
-+                             &(rules->viewport_rules));
- }
- 
- bool IsMorePermissive(ContentSetting a, ContentSetting b) {
-diff --git a/components/content_settings/core/common/content_settings.cc b/components/content_settings/core/common/content_settings.cc
---- a/components/content_settings/core/common/content_settings.cc
-+++ b/components/content_settings/core/common/content_settings.cc
-@@ -221,7 +221,8 @@ bool RendererContentSettingRules::IsRendererContentSetting(
-          content_type == ContentSettingsType::AUTO_DARK_WEB_CONTENT ||
-          content_type == ContentSettingsType::TIMEZONE_OVERRIDE ||
-          content_type == ContentSettingsType::WEBGL ||
--         content_type == ContentSettingsType::WEBRTC;
-+         content_type == ContentSettingsType::WEBRTC ||
-+         content_type == ContentSettingsType::VIEWPORT;
- }
- 
- void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-@@ -235,6 +236,7 @@ void RendererContentSettingRules::FilterRulesByOutermostMainFrameURL(
-   FilterRulesForType(autoplay_rules, outermost_main_frame_url);
-   FilterRulesForType(webgl_rules, outermost_main_frame_url);
-   FilterRulesForType(webrtc_rules, outermost_main_frame_url);
-+  FilterRulesForType(viewport_rules, outermost_main_frame_url);
- }
- 
- RendererContentSettingRules::RendererContentSettingRules() = default;
-diff --git a/components/content_settings/core/common/content_settings.h b/components/content_settings/core/common/content_settings.h
---- a/components/content_settings/core/common/content_settings.h
-+++ b/components/content_settings/core/common/content_settings.h
-@@ -98,6 +98,7 @@ struct RendererContentSettingRules {
-   std::string timezone_override_value;
-   ContentSettingsForOneType webgl_rules;
-   ContentSettingsForOneType webrtc_rules;
-+  ContentSettingsForOneType viewport_rules;
- };
- 
- namespace content_settings {
-diff --git a/components/content_settings/core/common/content_settings.mojom b/components/content_settings/core/common/content_settings.mojom
---- a/components/content_settings/core/common/content_settings.mojom
-+++ b/components/content_settings/core/common/content_settings.mojom
-@@ -83,4 +83,5 @@ struct RendererContentSettingRules {
-   string timezone_override_value;
-   array<ContentSettingPatternSource> webgl_rules;
-   array<ContentSettingPatternSource> webrtc_rules;
-+  array<ContentSettingPatternSource> viewport_rules;
- };
-diff --git a/components/content_settings/core/common/content_settings_mojom_traits.cc b/components/content_settings/core/common/content_settings_mojom_traits.cc
---- a/components/content_settings/core/common/content_settings_mojom_traits.cc
-+++ b/components/content_settings/core/common/content_settings_mojom_traits.cc
-@@ -107,7 +107,8 @@ bool StructTraits<content_settings::mojom::RendererContentSettingRulesDataView,
-          data.ReadTimezoneOverrideRules(&out->timezone_override_rules) &&
-          data.ReadTimezoneOverrideValue(&out->timezone_override_value) &&
-          data.ReadWebglRules(&out->webgl_rules) &&
--         data.ReadWebrtcRules(&out->webrtc_rules);
-+         data.ReadWebrtcRules(&out->webrtc_rules) &&
-+         data.ReadViewportRules(&out->viewport_rules);
- }
- 
- }  // namespace mojo
-diff --git a/components/content_settings/core/common/content_settings_mojom_traits.h b/components/content_settings/core/common/content_settings_mojom_traits.h
---- a/components/content_settings/core/common/content_settings_mojom_traits.h
-+++ b/components/content_settings/core/common/content_settings_mojom_traits.h
-@@ -175,6 +175,11 @@ struct StructTraits<
-     return r.webrtc_rules;
-   }
- 
-+ static const std::vector<ContentSettingPatternSource>& viewport_rules(
-+      const RendererContentSettingRules& r) {
-+    return r.viewport_rules;
-+  }
-+
-   static bool Read(
-       content_settings::mojom::RendererContentSettingRulesDataView data,
-       RendererContentSettingRules* out);
-diff --git a/components/content_settings/core/common/content_settings_types.h b/components/content_settings/core/common/content_settings_types.h
---- a/components/content_settings/core/common/content_settings_types.h
-+++ b/components/content_settings/core/common/content_settings_types.h
-@@ -281,6 +281,8 @@ enum class ContentSettingsType : int32_t {
- 
-   WEBRTC,
- 
+diff --git a/components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc b/components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc
+@@ -0,0 +1 @@
 +  VIEWPORT,
-+
-   // Setting to indicate whether browser should allow signing into a website via
-   // the browser FedCM API.
-   FEDERATED_IDENTITY_API,
-diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
---- a/components/content_settings/renderer/content_settings_agent_impl.cc
-+++ b/components/content_settings/renderer/content_settings_agent_impl.cc
-@@ -459,6 +459,15 @@ bool ContentSettingsAgentImpl::AllowWebRTC(bool enabled_per_settings) {
-              url::Origin(frame->GetDocument().GetSecurityOrigin()).GetURL());
- }
- 
-+bool ContentSettingsAgentImpl::AllowViewportChange(bool enabled_per_settings) {
-+  if (!content_setting_rules_)
-+    return false;
-+  blink::WebLocalFrame* frame = render_frame()->GetWebFrame();
-+  return CONTENT_SETTING_ALLOW == GetContentSettingFromRules(
-+             content_setting_rules_->viewport_rules,
-+             url::Origin(frame->GetDocument().GetSecurityOrigin()).GetURL());
-+}
-+
- bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
-   if (should_allowlist_)
-     return true;
-diff --git a/components/content_settings/renderer/content_settings_agent_impl.h b/components/content_settings/renderer/content_settings_agent_impl.h
---- a/components/content_settings/renderer/content_settings_agent_impl.h
-+++ b/components/content_settings/renderer/content_settings_agent_impl.h
-@@ -101,6 +101,7 @@ class ContentSettingsAgentImpl
-   bool ShouldAutoupgradeMixedContent() override;
-   bool AllowWebgl(bool enabled_per_settings) override;
-   bool AllowWebRTC(bool enabled_per_settings) override;
-+  bool AllowViewportChange(bool enabled_per_settings) override;
- 
-   bool allow_running_insecure_content() const {
-     return allow_running_insecure_content_;
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
@@ -610,38 +400,28 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
  
  BASE_FEATURE(kPrivacySandboxAdsAPIs,
               "PrivacySandboxAdsAPIs",               // disabled by default
-diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/third_party/blink/public/platform/web_content_settings_client.h
---- a/third_party/blink/public/platform/web_content_settings_client.h
-+++ b/third_party/blink/public/platform/web_content_settings_client.h
-@@ -103,6 +103,8 @@ class WebContentSettingsClient {
- 
-   virtual bool AllowWebRTC(bool default_value) { return default_value; }
- 
-+  virtual bool AllowViewportChange(bool default_value) { return default_value; }
-+
-   // Reports that passive mixed content was found at the provided URL.
-   virtual void PassiveInsecureContentFound(const WebURL&) {}
- 
 diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_party/blink/renderer/core/frame/local_dom_window.cc
 --- a/third_party/blink/renderer/core/frame/local_dom_window.cc
 +++ b/third_party/blink/renderer/core/frame/local_dom_window.cc
-@@ -2322,6 +2322,7 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
+@@ -2322,6 +2322,8 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
      //     var w = window.open()
      //     var not_emulated_screen_info = w.screen
      bool protection_enabled = base::FeatureList::IsEnabled(features::kViewportProtection);
-+    protection_enabled |= GetFrame()->GetContentSettingsClient()->AllowViewportChange(false);
++    protection_enabled |= GetFrame()->GetContentSettingsClient()->AllowContentSetting(
++        ContentSettingsType::VIEWPORT, false);
      result.frame->GetPage()->CalculateEmulatedScreenSetting(
        To<LocalFrame>(result.frame),
        /*force*/ protection_enabled);
 diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
 --- a/third_party/blink/renderer/core/page/page.cc
 +++ b/third_party/blink/renderer/core/page/page.cc
-@@ -884,6 +884,8 @@ void Page::UpdateAcceleratedCompositingSettings() {
+@@ -884,6 +884,9 @@ void Page::UpdateAcceleratedCompositingSettings() {
  
  void Page::CalculateEmulatedScreenSetting(LocalFrame* frame, bool force) {
    bool isEnabled = base::FeatureList::IsEnabled(features::kViewportProtection);
 +  blink::WebContentSettingsClient* settings = frame->GetContentSettingsClient();
-+  isEnabled |= (settings && settings->AllowViewportChange(false));
++  isEnabled |= (settings && settings->AllowContentSetting(
++        ContentSettingsType::VIEWPORT, /*default_value*/ false));
    if (isEnabled || force) {
      // this is the maximum (and minimum) value which in percentage
      // corresponds to +- 0.03%

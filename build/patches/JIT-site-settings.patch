@@ -12,71 +12,62 @@ note: needs SitePerProcess and StrictOriginIsolation flags enabled
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../browser_ui/site_settings/android/BUILD.gn |   5 +++++
+ .../browser_ui/site_settings/android/BUILD.gn |   5 +
  .../permission_javascript_jit.png             | Bin 0 -> 433 bytes
  .../permission_javascript_jit.png             | Bin 0 -> 377 bytes
  .../permission_javascript_jit.png             | Bin 0 -> 518 bytes
  .../permission_javascript_jit.png             | Bin 0 -> 629 bytes
  .../permission_javascript_jit.png             | Bin 0 -> 797 bytes
- .../res/xml/site_settings_preferences.xml     |   4 ++++
- .../ContentSettingsResources.java             |   7 ++++++
- .../site_settings/SingleCategorySettings.java |   9 ++++++++
- .../site_settings/SingleWebsiteSettings.java  |  21 ++++++++++++++++++
- .../site_settings/SiteSettingsCategory.java   |   9 ++++++--
- .../site_settings/SiteSettingsUtil.java       |   1 +
- .../browser_ui/site_settings/Website.java     |   7 ++++++
- .../android/website_preference_bridge.cc      |   1 +
- .../strings/android/site_settings.grdp        |  17 ++++++++++++++
- .../core/browser/content_settings_registry.cc |   2 +-
- .../android/page_info_controller_android.cc   |   3 +++
- components/page_info/page_info.cc             |   6 +++++
- components/page_info/page_info_ui.cc          |   2 ++
- components/site_settings_strings.grdp         |   6 +++++
- 20 files changed, 97 insertions(+), 3 deletions(-)
+ .../BromiteJavascriptJITContentSetting.java   |  87 ++++++++++++++++++
+ .../javascript_jit.grdp                       |  18 ++++
+ .../core/browser/content_settings_registry.cc |   8 +-
+ 9 files changed, 116 insertions(+), 2 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_javascript_jit.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/permission_javascript_jit.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/permission_javascript_jit.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xxhdpi/permission_javascript_jit.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xxxhdpi/permission_javascript_jit.png
+ create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteJavascriptJITContentSetting.java
+ create mode 100644 components/browser_ui/strings/android/bromite_content_settings/javascript_jit.grdp
 
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -187,6 +187,7 @@ android_resources("java_resources") {
-     "java/res/drawable-hdpi/ic_volume_up_grey600_24dp.png",
+@@ -203,6 +203,7 @@ android_resources("java_resources") {
      "java/res/drawable-hdpi/permission_background_sync.png",
+     "java/res/drawable-hdpi/permission_images.png",
      "java/res/drawable-hdpi/permission_javascript.png",
 +    "java/res/drawable-hdpi/permission_javascript_jit.png",
      "java/res/drawable-hdpi/permission_popups.png",
      "java/res/drawable-hdpi/permission_protected_media.png",
      "java/res/drawable-hdpi/settings_sensors.png",
-@@ -194,6 +195,7 @@ android_resources("java_resources") {
-     "java/res/drawable-mdpi/ic_volume_up_grey600_24dp.png",
+@@ -211,6 +212,7 @@ android_resources("java_resources") {
      "java/res/drawable-mdpi/permission_background_sync.png",
+     "java/res/drawable-mdpi/permission_images.png",
      "java/res/drawable-mdpi/permission_javascript.png",
 +    "java/res/drawable-mdpi/permission_javascript_jit.png",
      "java/res/drawable-hdpi/settings_autoplay.png",
      "java/res/drawable-xhdpi/settings_autoplay.png",
      "java/res/drawable-xxhdpi/settings_autoplay.png",
-@@ -206,6 +208,7 @@ android_resources("java_resources") {
-     "java/res/drawable-xhdpi/ic_volume_up_grey600_24dp.png",
+@@ -224,6 +226,7 @@ android_resources("java_resources") {
      "java/res/drawable-xhdpi/permission_background_sync.png",
+     "java/res/drawable-xhdpi/permission_images.png",
      "java/res/drawable-xhdpi/permission_javascript.png",
 +    "java/res/drawable-xhdpi/permission_javascript_jit.png",
      "java/res/drawable-xhdpi/permission_popups.png",
      "java/res/drawable-xhdpi/permission_protected_media.png",
      "java/res/drawable-xhdpi/settings_sensors.png",
-@@ -213,6 +216,7 @@ android_resources("java_resources") {
-     "java/res/drawable-xxhdpi/ic_volume_up_grey600_24dp.png",
+@@ -232,6 +235,7 @@ android_resources("java_resources") {
      "java/res/drawable-xxhdpi/permission_background_sync.png",
+     "java/res/drawable-xxhdpi/permission_images.png",
      "java/res/drawable-xxhdpi/permission_javascript.png",
 +    "java/res/drawable-xxhdpi/permission_javascript_jit.png",
      "java/res/drawable-xxhdpi/permission_popups.png",
      "java/res/drawable-xxhdpi/permission_protected_media.png",
      "java/res/drawable-xxhdpi/settings_sensors.png",
-@@ -220,6 +224,7 @@ android_resources("java_resources") {
-     "java/res/drawable-xxxhdpi/ic_volume_up_grey600_24dp.png",
+@@ -240,6 +244,7 @@ android_resources("java_resources") {
      "java/res/drawable-xxxhdpi/permission_background_sync.png",
+     "java/res/drawable-xxxhdpi/permission_images.png",
      "java/res/drawable-xxxhdpi/permission_javascript.png",
 +    "java/res/drawable-xxxhdpi/permission_javascript_jit.png",
      "java/res/drawable-xxxhdpi/permission_popups.png",
@@ -180,228 +171,125 @@ G2~7a)DNWn}
 literal 0
 HcmV?d00001
 
-diff --git a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
---- a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
-+++ b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
-@@ -43,6 +43,10 @@ Also add new settings to site_settings_preferences_with_categories.xml!
-     <org.chromium.components.browser_ui.settings.ChromeBasePreference
-         android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings"
-         android:key="notifications" />
-+    <!-- JavaScript-JIT -->
-+    <org.chromium.components.browser_ui.settings.ChromeBasePreference
-+        android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings"
-+        android:key="javascript_jit" />
-     <!-- JavaScript -->
-     <org.chromium.components.browser_ui.settings.ChromeBasePreference
-         android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings"
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
-@@ -218,6 +218,13 @@ public class ContentSettingsResources {
-                         ContentSettingValues.BLOCK,
-                         R.string.website_settings_category_javascript_allowed, 0);
- 
-+            case ContentSettingsType.JAVASCRIPT_JIT:
-+                return new ResourceItem(R.drawable.permission_javascript_jit,
-+                        R.string.javascript_jit_permission_title, ContentSettingValues.ALLOW,
-+                        ContentSettingValues.BLOCK,
-+                        R.string.website_settings_category_javascript_jit_allowed,
-+                        R.string.website_settings_category_javascript_jit_blocked);
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteJavascriptJITContentSetting.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteJavascriptJITContentSetting.java
+new file mode 100644
+--- /dev/null
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteJavascriptJITContentSetting.java
+@@ -0,0 +1,87 @@
++/*
++    This file is part of Bromite.
 +
-             case ContentSettingsType.MEDIASTREAM_CAMERA:
-                 return new ResourceItem(R.drawable.gm_filled_videocam_24,
-                         R.string.website_settings_use_camera, ContentSettingValues.ASK,
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
-@@ -779,6 +779,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-                         ? R.string.website_settings_add_site_description_sound_block
-                         : R.string.website_settings_add_site_description_sound_allow;
-                 break;
-+            case SiteSettingsCategory.Type.JAVASCRIPT_JIT:
-+                resource = WebsitePreferenceBridge.isCategoryEnabled(
-+                                   browserContextHandle, ContentSettingsType.JAVASCRIPT_JIT)
-+                        ? R.string.website_settings_add_site_description_javascript_jit_block
-+                        : R.string.website_settings_add_site_description_javascript_jit_allow;
-+                break;
-             case SiteSettingsCategory.Type.COOKIES:
-                 resource = getCookieSettingsState() == CookieSettingsState.ALLOW
-                         ? R.string.website_settings_add_site_description_cookies_block
-@@ -943,6 +949,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-             case SiteSettingsCategory.Type.AUTOPLAY:
-                 allowSpecifyingExceptions = true;
-                 break;
-+            case SiteSettingsCategory.Type.JAVASCRIPT_JIT:
-+                allowSpecifyingExceptions = true;
-+                break;
-             default:
-                 break;
-         }
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -139,6 +139,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
-                 return "idle_detection_permission_list";
-             case ContentSettingsType.JAVASCRIPT:
-                 return "javascript_permission_list";
-+            case ContentSettingsType.JAVASCRIPT_JIT:
-+                return "javascript_jit_permission_list";
-             case ContentSettingsType.POPUPS:
-                 return "popup_permission_list";
-             case ContentSettingsType.SOUND:
-@@ -520,6 +522,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
-                 setUpJavascriptPreference(preference);
-             } else if (type == ContentSettingsType.GEOLOCATION) {
-                 setUpLocationPreference(preference);
-+            } else if (type == ContentSettingsType.JAVASCRIPT_JIT) {
-+                setUpJavascriptJitPreference(preference);
-             } else if (type == ContentSettingsType.NOTIFICATIONS) {
-                 setUpNotificationsPreference(preference, mSite.isEmbargoed(type));
-             } else if (type == ContentSettingsType.REQUEST_DESKTOP_SITE) {
-@@ -1072,6 +1076,23 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
-         setupContentSettingsPreference(preference, currentValue, false /* isEmbargoed */);
-     }
- 
-+    private void setUpJavascriptJitPreference(Preference preference) {
-+        BrowserContextHandle browserContextHandle =
-+                getSiteSettingsDelegate().getBrowserContextHandle();
-+        @ContentSettingValues
-+        @Nullable
-+        Integer currentValue =
-+                mSite.getContentSetting(browserContextHandle, ContentSettingsType.JAVASCRIPT_JIT);
-+        if (currentValue == null || currentValue == ContentSettingValues.DEFAULT) {
-+            currentValue = WebsitePreferenceBridge.isCategoryEnabled(
-+                                   browserContextHandle, ContentSettingsType.JAVASCRIPT_JIT)
-+                    ? ContentSettingValues.ALLOW
-+                    : ContentSettingValues.BLOCK;
-+        }
-+        // Not possible to embargo JAVASCRIPT_JIT.
-+        setupContentSettingsPreference(preference, currentValue, false /* isEmbargoed */);
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++package org.chromium.components.browser_ui.site_settings.impl;
++
++import org.chromium.components.browser_ui.site_settings.R;
++
++import org.chromium.components.browser_ui.site_settings.BromiteCustomContentSetting;
++import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
++import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
++import org.chromium.components.content_settings.ContentSettingValues;
++import org.chromium.components.content_settings.ContentSettingsType;
++import org.chromium.content_public.browser.BrowserContextHandle;
++
++import androidx.annotation.Nullable;
++import androidx.preference.Preference;
++import androidx.preference.PreferenceScreen;
++
++import java.util.ArrayList;
++
++public class BromiteJavascriptJITContentSetting extends BromiteCustomContentSetting {
++    public BromiteJavascriptJITContentSetting() {
++        super(/*contentSettingsType*/ ContentSettingsType.JAVASCRIPT_JIT,
++              /*defaultEnabledValue*/ ContentSettingValues.ALLOW,
++              /*defaultDisabledValue*/ ContentSettingValues.BLOCK,
++              /*allowException*/ true,
++              /*preferenceKey*/ "javascript_jit",
++              /*profilePrefKey*/ "javascript_jit");
 +    }
 +
-     /**
-      * Updates the ads list preference based on whether the site is a candidate for blocking. This
-      * has some custom behavior.
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-@@ -47,7 +47,7 @@ public class SiteSettingsCategory {
-             Type.PROTECTED_MEDIA, Type.SENSORS, Type.SOUND, Type.USB, Type.VIRTUAL_REALITY,
-             Type.USE_STORAGE, Type.AUTO_DARK_WEB_CONTENT, Type.REQUEST_DESKTOP_SITE,
-             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA, Type.ANTI_ABUSE,
--            Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY,
-+            Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT,
-             Type.NUM_ENTRIES})
-     @Retention(RetentionPolicy.SOURCE)
-     public @interface Type {
-@@ -84,10 +84,11 @@ public class SiteSettingsCategory {
-         int ANTI_ABUSE = 28;
-         int TIMEZONE_OVERRIDE = 29;
-         int AUTOPLAY = 30;
-+        int JAVASCRIPT_JIT = 31;
-         /**
-          * Number of handled categories used for calculating array sizes.
-          */
--        int NUM_ENTRIES = 31;
-+        int NUM_ENTRIES = 32;
-     }
- 
-     private final BrowserContextHandle mBrowserContextHandle;
-@@ -198,6 +199,8 @@ public class SiteSettingsCategory {
-                 return ContentSettingsType.IDLE_DETECTION;
-             case Type.JAVASCRIPT:
-                 return ContentSettingsType.JAVASCRIPT;
-+            case Type.JAVASCRIPT_JIT:
-+                return ContentSettingsType.JAVASCRIPT_JIT;
-             case Type.MICROPHONE:
-                 return ContentSettingsType.MEDIASTREAM_MIC;
-             case Type.NFC:
-@@ -285,6 +288,8 @@ public class SiteSettingsCategory {
-                 return "javascript";
-             case Type.MICROPHONE:
-                 return "microphone";
-+            case Type.JAVASCRIPT_JIT:
-+                return "javascript_jit";
-             case Type.NFC:
-                 return "nfc";
-             case Type.NOTIFICATIONS:
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsUtil.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsUtil.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsUtil.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsUtil.java
-@@ -26,6 +26,7 @@ public class SiteSettingsUtil {
-             ContentSettingsType.MEDIASTREAM_MIC,
-             ContentSettingsType.NOTIFICATIONS,
-             ContentSettingsType.JAVASCRIPT,
-+            ContentSettingsType.JAVASCRIPT_JIT,
-             ContentSettingsType.POPUPS,
-             ContentSettingsType.ADS,
-             ContentSettingsType.BACKGROUND_SYNC,
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-@@ -230,6 +230,13 @@ public final class Website implements WebsiteEntry {
-             } else {
-                 RecordUserAction.record("JavascriptContentSetting.DisableBy.SiteSettings");
-             }
-+        } else if (type == ContentSettingsType.JAVASCRIPT_JIT) {
-+            if (exception == null) {
-+                exception = new ContentSettingException(
-+                        ContentSettingsType.JAVASCRIPT_JIT, getAddress().getHost(), value, "",
-+                        /*isEmbargoed=*/false);
-+                setContentSettingException(type, exception);
-+            }
-         } else if (type == ContentSettingsType.AUTOPLAY) {
-             // It is possible to set the permission without having an existing exception,
-             // because we always show the autoplay permission in Site Settings.
-diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
---- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
-+++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -823,6 +823,7 @@ static void JNI_WebsitePreferenceBridge_SetContentSettingEnabled(
-       case ContentSettingsType::COOKIES:
-       case ContentSettingsType::FEDERATED_IDENTITY_API:
-       case ContentSettingsType::JAVASCRIPT:
-+      case ContentSettingsType::JAVASCRIPT_JIT:
-       case ContentSettingsType::POPUPS:
-       case ContentSettingsType::REQUEST_DESKTOP_SITE:
-       case ContentSettingsType::SENSORS:
-diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
---- a/components/browser_ui/strings/android/site_settings.grdp
-+++ b/components/browser_ui/strings/android/site_settings.grdp
-@@ -79,6 +79,9 @@
-   <message name="IDS_JAVASCRIPT_PERMISSION_TITLE" desc="Title of the permission to run javascript [CHAR_LIMIT=32]">
-     JavaScript
-   </message>
++    @Override
++    public ContentSettingsResources.ResourceItem getResourceItem() {
++        return new ContentSettingsResources.ResourceItem(
++            /*icon*/ R.drawable.web_asset,
++            /*title*/ R.string.javascript_jit_permission_title,
++            /*defaultEnabledValue*/ getDefaultEnabledValue(),
++            /*defaultDisabledValue*/ getDefaultDisabledValue(),
++            /*enabledSummary*/ R.string.website_settings_category_javascript_jit_enabled,
++            /*disabledSummary*/ R.string.website_settings_category_javascript_jit_disabled);
++    }
++
++    @Override
++    public int getCategorySummary(@Nullable @ContentSettingValues int value) {
++        switch (value) {
++            case ContentSettingValues.ALLOW:
++                return R.string.website_settings_category_javascript_jit_enabled;
++            case ContentSettingValues.BLOCK:
++                return R.string.website_settings_category_javascript_jit_disabled;
++            default:
++                return 0;
++        }
++    }
++
++    @Override
++    public boolean requiresTriStateContentSetting() {
++        return false;
++    }
++
++    @Override
++    public boolean showOnlyDescriptions() {
++        return true;
++    }
++
++    @Override
++    public int getAddExceptionDialogMessage() {
++        return R.string.website_settings_category_javascript_jit_enabled;
++    }
++
++    @Override
++    public @Nullable Boolean considerException(SiteSettingsCategory category, @ContentSettingValues int value) {
++        return value != ContentSettingValues.BLOCK;
++    }
++}
+diff --git a/components/browser_ui/strings/android/bromite_content_settings/javascript_jit.grdp b/components/browser_ui/strings/android/bromite_content_settings/javascript_jit.grdp
+new file mode 100644
+--- /dev/null
++++ b/components/browser_ui/strings/android/bromite_content_settings/javascript_jit.grdp
+@@ -0,0 +1,18 @@
++<?xml version="1.0" encoding="utf-8"?>
++<grit-part>
 +  <message name="IDS_JAVASCRIPT_JIT_PERMISSION_TITLE" desc="Title of the permission to run javascript [CHAR_LIMIT=32]">
 +    JavaScript JIT
 +  </message>
-   <message name="IDS_WEBSITE_SETTINGS_DEVICE_LOCATION" desc="Title for Location settings, which control which websites can access your location." meaning="Geolocation">
-     Location
-   </message>
-@@ -658,6 +661,20 @@
-     Block JavaScript for a specific site.
-   </message>
- 
-+  <!-- JavaScript JIT -->
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_JAVASCRIPT_JIT_ALLOWED" desc="Summary text explaining that sites are allowed to compile JavaScript in JIT mode.">
-+    Allow sites to use just-in-time compilation; more performant but a constant source of security vulnerabilities.
-+  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_JAVASCRIPT_JIT_BLOCKED" desc="Summary text explaining that sites are running JavaScript in JITless mode.">
-+    Block sites from using just-in-time compilation, using only interpreted JavaScript; less performant but more secure against security vulnerabilities.
-+  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_JAVASCRIPT_JIT_ALLOW" desc="The description for the allow Javascript JIT for website dialog.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_JAVASCRIPT_JIT_ENABLED" desc="Summary text explaining that sites are allowed to compile JavaScript in JIT mode.">
 +    Allow JIT on a specific site.
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_JAVASCRIPT_JIT_BLOCK" desc="The description for the block Javascript JIT for website dialog.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_JAVASCRIPT_JIT_DISABLED" desc="Summary text explaining that sites are running JavaScript in JITless mode.">
 +    Block JIT on a specific site.
 +  </message>
-+
-   <!-- Location -->
- 
-   <message name="IDS_WEBSITE_SETTINGS_CATEGORY_LOCATION_ASK" desc="Summary text explaining that sites need to ask for permission before knowing location and that it is the recommended setting.">
++  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_JAVASCRIPT_JIT_ALLOW" desc="The description for the allow Javascript JIT for website dialog.">
++    Allow sites to use just-in-time compilation; more performant but a constant source of security vulnerabilities.
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_JAVASCRIPT_JIT_BLOCK" desc="The description for the block Javascript JIT for website dialog.">
++    Block sites from using just-in-time compilation, using only interpreted JavaScript; less performant but more secure against security vulnerabilities.
++  </message>
++</grit-part>
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -508,7 +508,7 @@ void ContentSettingsRegistry::Init() {
+@@ -518,14 +518,18 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
    Register(ContentSettingsType::JAVASCRIPT_JIT, "javascript-jit",
@@ -410,76 +298,17 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
             /*allowlisted_schemes=*/{},
             /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
             WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
-diff --git a/components/page_info/android/page_info_controller_android.cc b/components/page_info/android/page_info_controller_android.cc
---- a/components/page_info/android/page_info_controller_android.cc
-+++ b/components/page_info/android/page_info_controller_android.cc
-@@ -134,6 +134,7 @@ void PageInfoControllerAndroid::SetPermissionInfo(
-   permissions_to_display.push_back(ContentSettingsType::IDLE_DETECTION);
-   permissions_to_display.push_back(ContentSettingsType::IMAGES);
-   permissions_to_display.push_back(ContentSettingsType::JAVASCRIPT);
-+  permissions_to_display.push_back(ContentSettingsType::JAVASCRIPT_JIT);
-   permissions_to_display.push_back(ContentSettingsType::POPUPS);
-   permissions_to_display.push_back(ContentSettingsType::ADS);
-   permissions_to_display.push_back(
-@@ -217,6 +218,8 @@ absl::optional<ContentSetting> PageInfoControllerAndroid::GetSettingToDisplay(
-     // The javascript content setting should show up if it is blocked globally
-     // to give users an easy way to create exceptions.
-     return permission.default_setting;
-+  } else if (permission.type == ContentSettingsType::JAVASCRIPT_JIT) {
-+    return permission.default_setting;
-   } else if (permission.type == ContentSettingsType::SOUND) {
-     // The sound content setting should always show up when the tab has played
-     // audio since last navigation.
-diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.cc
---- a/components/page_info/page_info.cc
-+++ b/components/page_info/page_info.cc
-@@ -130,6 +130,7 @@ ContentSettingsType kPermissionType[] = {
-     ContentSettingsType::AR,
-     ContentSettingsType::IDLE_DETECTION,
-     ContentSettingsType::FEDERATED_IDENTITY_API,
-+    ContentSettingsType::JAVASCRIPT_JIT,
- };
+            WebsiteSettingsRegistry::DESKTOP |
+                WebsiteSettingsRegistry::PLATFORM_ANDROID,
+            ContentSettingsInfo::INHERIT_IN_INCOGNITO,
+-           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
++           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS,
++           /*show_into_info_page*/ true,
++           /*is_renderer_content_setting*/ true,
++           /*permission_type_ui*/ IDS_JAVASCRIPT_JIT_PERMISSION_TITLE,
++           /*permission_type_ui_mid_sentence*/ IDS_JAVASCRIPT_JIT_PERMISSION_TITLE);
  
- // Determines whether to show permission |type| in the Page Info UI. Only
-@@ -163,6 +164,11 @@ bool ShouldShowPermission(const PageInfo::PermissionInfo& info,
-       return true;
-   }
- 
-+  // Always show JIT settings UI when when it has a site-specific override.
-+  if (info.type == ContentSettingsType::JAVASCRIPT_JIT) {
-+    return true;
-+  }
-+
-   const bool is_incognito = web_contents->GetBrowserContext()->IsOffTheRecord();
- #if BUILDFLAG(IS_ANDROID)
-   // Special geolocation DSE settings apply only on Android, so make sure it
-diff --git a/components/page_info/page_info_ui.cc b/components/page_info/page_info_ui.cc
---- a/components/page_info/page_info_ui.cc
-+++ b/components/page_info/page_info_ui.cc
-@@ -137,6 +137,8 @@ base::span<const PageInfoUI::PermissionUIInfo> GetContentSettingsUIInfo() {
-      IDS_SITE_SETTINGS_TYPE_COOKIES_MID_SENTENCE},
-     {ContentSettingsType::JAVASCRIPT, IDS_SITE_SETTINGS_TYPE_JAVASCRIPT,
-      IDS_SITE_SETTINGS_TYPE_JAVASCRIPT_MID_SENTENCE},
-+    {ContentSettingsType::JAVASCRIPT_JIT, IDS_SITE_SETTINGS_TYPE_JAVASCRIPT_JIT,
-+     IDS_SITE_SETTINGS_TYPE_JAVASCRIPT_JIT_MID_SENTENCE},
-     {ContentSettingsType::POPUPS, IDS_SITE_SETTINGS_TYPE_POPUPS_REDIRECTS,
-      IDS_SITE_SETTINGS_TYPE_POPUPS_REDIRECTS_MID_SENTENCE},
-     {ContentSettingsType::GEOLOCATION, IDS_SITE_SETTINGS_TYPE_LOCATION,
-diff --git a/components/site_settings_strings.grdp b/components/site_settings_strings.grdp
---- a/components/site_settings_strings.grdp
-+++ b/components/site_settings_strings.grdp
-@@ -82,6 +82,12 @@
-   <message name="IDS_SITE_SETTINGS_TYPE_JAVASCRIPT_MID_SENTENCE" desc="The label used for JavaScript site settings controls when used mid-sentence.">
-     javascript
-   </message>
-+  <message name="IDS_SITE_SETTINGS_TYPE_JAVASCRIPT_JIT" desc="The label used for JavaScript JIT site settings controls.">
-+    JavaScript JIT
-+  </message>
-+  <message name="IDS_SITE_SETTINGS_TYPE_JAVASCRIPT_JIT_MID_SENTENCE" desc="The label used for JavaScript JIT site settings controls when used mid-sentence.">
-+    javascript JIT
-+  </message>
-   <message name="IDS_SITE_SETTINGS_TYPE_LOCATION" desc="The label used for geolocation site settings controls." meaning="Geolocation">
-     Location
-   </message>
+   Register(ContentSettingsType::PRIVATE_NETWORK_GUARD, "private-network-guard",
+            CONTENT_SETTING_ASK, WebsiteSettingsInfo::UNSYNCABLE,
 --
 2.25.1
