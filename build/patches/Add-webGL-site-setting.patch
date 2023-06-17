@@ -9,17 +9,17 @@ Requires patch: Content-settings-infrastructure.patch
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../impl/BromiteWebGLContentSetting.java      | 87 +++++++++++++++++++
- .../bromite_content_settings/webgl.grdp       | 18 ++++
- .../bromite_content_settings/webgl.inc        | 13 +++
+ .../impl/BromiteWebGLContentSetting.java      | 92 +++++++++++++++++++
+ .../bromite_content_settings/webgl.grdp       | 27 ++++++
+ .../bromite_content_settings/webgl.inc        | 23 +++++
  .../common/bromite_content_settings/WEBGL.inc |  1 +
  .../execution_context/execution_context.cc    |  7 ++
  .../execution_context/execution_context.h     |  2 +
  .../webgl/webgl_rendering_context_base.cc     | 32 +++----
  .../webgl/webgl_rendering_context_base.h      |  2 +
- 8 files changed, 143 insertions(+), 19 deletions(-)
+ 8 files changed, 167 insertions(+), 19 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebGLContentSetting.java
- create mode 100644 components/browser_ui/strings/android/bromite_content_settings/webgl.grdp
+ create mode 100644 components/browser_ui/strings/bromite_content_settings/webgl.grdp
  create mode 100644 components/content_settings/core/browser/bromite_content_settings/webgl.inc
  create mode 100644 components/content_settings/core/common/bromite_content_settings/WEBGL.inc
 
@@ -27,7 +27,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebGLContentSetting.java
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,92 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -96,6 +96,11 @@ new file mode 100644
 +    }
 +
 +    @Override
++    public int getCategoryDescription() {
++        return R.string.settings_site_settings_webgl_description;
++    }
++
++    @Override
 +    public boolean requiresTriStateContentSetting() {
 +        return false;
 +    }
@@ -115,34 +120,43 @@ new file mode 100644
 +        return value != ContentSettingValues.BLOCK;
 +    }
 +}
-diff --git a/components/browser_ui/strings/android/bromite_content_settings/webgl.grdp b/components/browser_ui/strings/android/bromite_content_settings/webgl.grdp
+diff --git a/components/browser_ui/strings/bromite_content_settings/webgl.grdp b/components/browser_ui/strings/bromite_content_settings/webgl.grdp
 new file mode 100644
 --- /dev/null
-+++ b/components/browser_ui/strings/android/bromite_content_settings/webgl.grdp
-@@ -0,0 +1,18 @@
++++ b/components/browser_ui/strings/bromite_content_settings/webgl.grdp
+@@ -0,0 +1,27 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
-+  <message name="IDS_SITE_SETTINGS_TYPE_WEBGL" desc="The label used for webgl site settings controls.">
++  <message name="IDS_SITE_SETTINGS_TYPE_WEBGL" desc="The label used for webgl site settings controls." formatter_data="android_java">
 +    Webgl
 +  </message>
-+  <message name="IDS_SITE_SETTINGS_TYPE_WEBGL_MID_SENTENCE" desc="The label used for webgl site settings controls when used mid-sentence.">
++  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBGL_DESCRIPTION" desc="Description of the webgl content setting." formatter_data="android_java">
++    Enable Webgl, a JavaScript API for rendering high-performance interactive 3D and 2D graphics
++  </message>
++  <message name="IDS_SITE_SETTINGS_TYPE_WEBGL_MID_SENTENCE" desc="The label used for webgl site settings controls when used mid-sentence." formatter_data="android_java">
 +    webgl
 +  </message>
-+  <message name="IDS_WEBGL_PERMISSION_TITLE" desc="Title of the permission to use webgl [CHAR-LIMIT=32]">
++  <message name="IDS_WEBGL_PERMISSION_TITLE" desc="Title of the permission to use webgl [CHAR-LIMIT=32]" formatter_data="android_java">
 +    Webgl
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_ENABLED" desc="Summary text explaining that webgl is full enabled.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_ENABLED" desc="Summary text explaining that webgl is full enabled." formatter_data="android_java">
 +    Enabled
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_DISABLED" desc="Summary text explaining that webgl is full disabled.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_DISABLED" desc="Summary text explaining that webgl is full disabled." formatter_data="android_java">
 +    Disabled
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBGL_ALLOWED_EXCEPTIONS" desc="Label for the allowed exceptions site list of the webgl setting.">
++    Allowed to use webgl
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBGL_BLOCKED_EXCEPTIONS" desc="Label for the blocked exceptions site list of the webgl setting.">
++    Not allowed to use webgl
 +  </message>
 +</grit-part>
 diff --git a/components/content_settings/core/browser/bromite_content_settings/webgl.inc b/components/content_settings/core/browser/bromite_content_settings/webgl.inc
 new file mode 100644
 --- /dev/null
 +++ b/components/content_settings/core/browser/bromite_content_settings/webgl.inc
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,23 @@
 +  Register(ContentSettingsType::WEBGL, "webgl", CONTENT_SETTING_BLOCK,
 +           WebsiteSettingsInfo::SYNCABLE,
 +           /*allowlisted_schemes=*/{},
@@ -151,11 +165,21 @@ new file mode 100644
 +           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
 +           WebsiteSettingsRegistry::ALL_PLATFORMS,
 +           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
-+           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS,
-+           /*show_into_info_page*/ true,
-+           /*is_renderer_content_setting*/ true,
-+           /*permission_type_ui*/ IDS_SITE_SETTINGS_TYPE_WEBGL,
-+           /*permission_type_ui_mid_sentence*/ IDS_SITE_SETTINGS_TYPE_WEBGL_MID_SENTENCE);
++           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
++
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::WEBGL)
++    ->set_show_into_info_page()
++    .set_desktop_ui()
++    .set_is_renderer_content_setting()
++    .set_title_ui(IDS_SITE_SETTINGS_TYPE_WEBGL)
++    .set_description_ui(IDS_SETTINGS_SITE_SETTINGS_WEBGL_DESCRIPTION)
++    .set_allowed_ui(IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_ENABLED)
++    .set_blocked_ui(IDS_WEBSITE_SETTINGS_CATEGORY_WEBGL_DISABLED)
++    .set_allowed_exceptions_ui(IDS_SETTINGS_SITE_SETTINGS_WEBGL_ALLOWED_EXCEPTIONS)
++    .set_blocked_exceptions_ui(IDS_SETTINGS_SITE_SETTINGS_WEBGL_BLOCKED_EXCEPTIONS)
++    .set_mid_sentence_ui(IDS_SITE_SETTINGS_TYPE_WEBGL);
++
 diff --git a/components/content_settings/core/common/bromite_content_settings/WEBGL.inc b/components/content_settings/core/common/bromite_content_settings/WEBGL.inc
 new file mode 100644
 --- /dev/null

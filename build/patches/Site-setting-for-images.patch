@@ -11,23 +11,25 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../res/drawable-xhdpi/permission_images.png  | Bin 0 -> 316 bytes
  .../res/drawable-xxhdpi/permission_images.png | Bin 0 -> 449 bytes
  .../drawable-xxxhdpi/permission_images.png    | Bin 0 -> 532 bytes
- .../impl/BromiteImagesContentSetting.java     |  87 ++++++++++++++++++
+ .../impl/BromiteImagesContentSetting.java     |  92 ++++++++++++++++++
  .../bromite_content_settings/images.grdp      |  23 +++++
- .../core/browser/content_settings_registry.cc |   8 +-
+ .../bromite_content_settings/images.inc       |   7 ++
+ .../core/browser/content_settings_registry.cc |   2 +-
  .../core/browser/content_settings_utils.cc    |   8 +-
- 10 files changed, 123 insertions(+), 8 deletions(-)
+ 11 files changed, 130 insertions(+), 7 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xxhdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xxxhdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteImagesContentSetting.java
- create mode 100644 components/browser_ui/strings/android/bromite_content_settings/images.grdp
+ create mode 100644 components/browser_ui/strings/bromite_content_settings/images.grdp
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/images.inc
 
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -201,6 +201,7 @@ android_resources("java_resources") {
+@@ -200,6 +200,7 @@ android_resources("java_resources") {
    sources = [
      "java/res/drawable-hdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-hdpi/permission_background_sync.png",
@@ -35,7 +37,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-hdpi/permission_javascript.png",
      "java/res/drawable-hdpi/permission_popups.png",
      "java/res/drawable-hdpi/permission_protected_media.png",
-@@ -208,6 +209,7 @@ android_resources("java_resources") {
+@@ -207,6 +208,7 @@ android_resources("java_resources") {
      "java/res/drawable-hdpi/web_asset.png",
      "java/res/drawable-mdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-mdpi/permission_background_sync.png",
@@ -43,7 +45,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-mdpi/permission_javascript.png",
      "java/res/drawable-hdpi/settings_autoplay.png",
      "java/res/drawable-xhdpi/settings_autoplay.png",
-@@ -220,6 +222,7 @@ android_resources("java_resources") {
+@@ -219,6 +221,7 @@ android_resources("java_resources") {
      "java/res/drawable-mdpi/web_asset.png",
      "java/res/drawable-xhdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-xhdpi/permission_background_sync.png",
@@ -51,7 +53,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-xhdpi/permission_javascript.png",
      "java/res/drawable-xhdpi/permission_popups.png",
      "java/res/drawable-xhdpi/permission_protected_media.png",
-@@ -227,6 +230,7 @@ android_resources("java_resources") {
+@@ -226,6 +229,7 @@ android_resources("java_resources") {
      "java/res/drawable-xhdpi/web_asset.png",
      "java/res/drawable-xxhdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-xxhdpi/permission_background_sync.png",
@@ -59,7 +61,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-xxhdpi/permission_javascript.png",
      "java/res/drawable-xxhdpi/permission_popups.png",
      "java/res/drawable-xxhdpi/permission_protected_media.png",
-@@ -234,6 +238,7 @@ android_resources("java_resources") {
+@@ -233,6 +237,7 @@ android_resources("java_resources") {
      "java/res/drawable-xxhdpi/web_asset.png",
      "java/res/drawable-xxxhdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-xxxhdpi/permission_background_sync.png",
@@ -153,7 +155,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteImagesContentSetting.java
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,92 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -222,6 +224,11 @@ new file mode 100644
 +    }
 +
 +    @Override
++    public int getCategoryDescription() {
++        return 0;
++    }
++
++    @Override
 +    public boolean requiresTriStateContentSetting() {
 +        return false;
 +    }
@@ -241,53 +248,58 @@ new file mode 100644
 +        return value != ContentSettingValues.BLOCK;
 +    }
 +}
-diff --git a/components/browser_ui/strings/android/bromite_content_settings/images.grdp b/components/browser_ui/strings/android/bromite_content_settings/images.grdp
+diff --git a/components/browser_ui/strings/bromite_content_settings/images.grdp b/components/browser_ui/strings/bromite_content_settings/images.grdp
 new file mode 100644
 --- /dev/null
-+++ b/components/browser_ui/strings/android/bromite_content_settings/images.grdp
++++ b/components/browser_ui/strings/bromite_content_settings/images.grdp
 @@ -0,0 +1,23 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
 +<if expr="is_android">
-+  <message name="IDS_SITE_SETTINGS_TYPE_IMAGES" desc="The label used for images site settings controls.">
++  <message name="IDS_SITE_SETTINGS_TYPE_IMAGES" desc="The label used for images site settings controls." formatter_data="android_java">
 +    Images
 +  </message>
-+  <message name="IDS_SITE_SETTINGS_TYPE_IMAGES_MID_SENTENCE" desc="The label used for images site settings controls when used mid-sentence.">
-+    images
++  <message name="IDS_SITE_SETTINGS_TYPE_IMAGES_MID_SENTENCE" desc="The label used for images site settings controls when used mid-sentence." formatter_data="android_java">
++    Images
 +  </message>
 +</if>
-+  <message name="IDS_IMAGES_PERMISSION_TITLE" desc="Title of the permission to show images [CHAR-LIMIT=32]">
++  <message name="IDS_IMAGES_PERMISSION_TITLE" desc="Title of the permission to show images [CHAR-LIMIT=32]" formatter_data="android_java">
 +    Images
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_IMAGES" desc="The description for the allow Images on website dialog.">
++  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_IMAGES" desc="The description for the allow Images on website dialog." formatter_data="android_java">
 +    Allow images on websites you specify while blocking them for the rest of the web
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_IMAGES_ENABLED" desc="Summary text explaining that sites are allowed to load images.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_IMAGES_ENABLED" desc="Summary text explaining that sites are allowed to load images." formatter_data="android_java">
 +    Allow sites to load images
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_IMAGES_DISABLED" desc="Summary text explaining that sites are not allowed to load images.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_IMAGES_DISABLED" desc="Summary text explaining that sites are not allowed to load images." formatter_data="android_java">
 +    Disallow sites to load images
 +  </message>
 +</grit-part>
+diff --git a/components/content_settings/core/browser/bromite_content_settings/images.inc b/components/content_settings/core/browser/bromite_content_settings/images.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/images.inc
+@@ -0,0 +1,7 @@
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::IMAGES)
++    ->set_show_into_info_page()
++    .set_is_renderer_content_setting()
++    .set_title_ui(IDS_SITE_SETTINGS_TYPE_IMAGES)
++    .set_mid_sentence_ui(IDS_SITE_SETTINGS_TYPE_IMAGES_MID_SENTENCE);
++
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -97,9 +97,13 @@ void ContentSettingsRegistry::Init() {
+@@ -96,7 +96,7 @@ void ContentSettingsRegistry::Init() {
             {kChromeUIScheme, kChromeDevToolsScheme, kExtensionScheme},
             /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
             WebsiteSettingsInfo::TOP_ORIGIN_WITH_RESOURCE_EXCEPTIONS_SCOPE,
 -           WebsiteSettingsRegistry::DESKTOP,
 +           WebsiteSettingsRegistry::DESKTOP | WebsiteSettingsRegistry::PLATFORM_ANDROID,
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
--           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
-+           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS,
-+           /*show_into_info_page*/ true,
-+           /*is_renderer_content_setting*/ true,
-+           /*permission_type_ui*/ IDS_SITE_SETTINGS_TYPE_IMAGES,
-+           /*permission_type_ui_mid_sentence*/ IDS_SITE_SETTINGS_TYPE_IMAGES_MID_SENTENCE);
+            ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
  
-   Register(ContentSettingsType::JAVASCRIPT, "javascript", CONTENT_SETTING_ALLOW,
-            WebsiteSettingsInfo::SYNCABLE,
 diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc

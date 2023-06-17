@@ -5,15 +5,16 @@ Subject: bromite build utils
 ---
  build/android/gyp/java_cpp_enum.py           | 36 ++++++--
  build/android/gyp/util/build_utils.py        | 25 +++++-
- build/bromite/bromite_utils.gni              | 68 +++++++++++++++
+ build/bromite/bromite_utils.gni              | 69 ++++++++++++++
  build/bromite/gyp/cpp_bromite_include.py     | 35 ++++++++
  build/bromite/gyp/cpp_bromite_include.pydeps |  9 ++
- build/bromite/gyp/java_bromite_impl.py       | 92 ++++++++++++++++++++
+ build/bromite/gyp/java_bromite_impl.py       | 94 ++++++++++++++++++++
  build/bromite/gyp/java_bromite_impl.pydeps   |  9 ++
  build/config/BUILDCONFIG.gn                  |  1 +
  build/config/android/rules.gni               |  4 +
  tools/grit/grit/grd_reader.py                | 27 ++++--
- 10 files changed, 294 insertions(+), 12 deletions(-)
+ tools/grit/preprocess_if_expr.py             | 32 ++++++-
+ 11 files changed, 328 insertions(+), 13 deletions(-)
  create mode 100644 build/bromite/bromite_utils.gni
  create mode 100644 build/bromite/gyp/cpp_bromite_include.py
  create mode 100644 build/bromite/gyp/cpp_bromite_include.pydeps
@@ -153,7 +154,7 @@ diff --git a/build/bromite/bromite_utils.gni b/build/bromite/bromite_utils.gni
 new file mode 100644
 --- /dev/null
 +++ b/build/bromite/bromite_utils.gni
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,69 @@
 +import("//build/config/python.gni")
 +
 +# generates the file specified in ouput_file containing
@@ -179,10 +180,11 @@ new file mode 100644
 +    forward_variables_from(invoker,
 +                           TESTONLY_AND_VISIBILITY + [
 +                                 "deps",
++                                 "inputs",
 +                               ])
 +    script = "//build/bromite/gyp/cpp_bromite_include.py"
 +
-+    _rebased_directories = rebase_path(invoker.directories, root_build_dir)
++    _rebased_directories = rebase_path(invoker.inputs, root_build_dir)
 +    _output = "$target_gen_dir/" + invoker.output_file
 +    _output_rebased = rebase_path(_output)
 +
@@ -210,7 +212,7 @@ new file mode 100644
 +
 +    _srcjar_path = "${target_gen_dir}/${target_name}.srcjar"
 +    _rebased_srcjar_path = rebase_path(_srcjar_path, root_build_dir)
-+    _rebased_directories = rebase_path(invoker.directories, root_build_dir)
++    _rebased_directories = rebase_path(invoker.inputs, root_build_dir)
 +    _rebased_template = rebase_path(invoker.template, root_build_dir)
 +
 +    args = [
@@ -249,7 +251,7 @@ new file mode 100644
 +    directory = os.path.dirname(include_file)
 +    files = []
 +    for root, dirs, directory_files in os.walk(directory):
-+      for directory_file in directory_files:
++      for directory_file in sorted(directory_files):
 +        files.append(os.path.join(directory, directory_file))
 +
 +    files = [f for f in files if f.endswith('.inc')]
@@ -280,7 +282,7 @@ diff --git a/build/bromite/gyp/java_bromite_impl.py b/build/bromite/gyp/java_bro
 new file mode 100644
 --- /dev/null
 +++ b/build/bromite/gyp/java_bromite_impl.py
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,94 @@
 +#!/usr/bin/env python3
 +
 +import argparse
@@ -336,8 +338,10 @@ new file mode 100644
 +  strings = []
 +
 +  for directory in source_paths:
-+    for root, dirs, directory_files in os.walk(directory):
-+      for directory_file in directory_files:
++    if not directory.endswith('include_all_directory.java'):
++      raise Exception("input path not ends with 'include_all_directory.java'")
++    for root, dirs, directory_files in os.walk(os.path.dirname(directory)):
++      for directory_file in sorted(directory_files):
 +        strings.append(directory_file)
 +
 +  strings = [f.replace('.java', '') for f in strings
@@ -449,5 +453,61 @@ diff --git a/tools/grit/grit/grd_reader.py b/tools/grit/grit/grd_reader.py
  
      if self.debug:
        print("End parsing of element %s" % name)
+diff --git a/tools/grit/preprocess_if_expr.py b/tools/grit/preprocess_if_expr.py
+--- a/tools/grit/preprocess_if_expr.py
++++ b/tools/grit/preprocess_if_expr.py
+@@ -8,6 +8,7 @@ import io
+ import json
+ import os
+ import sys
++import re
+ 
+ # For Node, EvaluateExpression
+ import grit.node.base
+@@ -71,6 +72,35 @@ def ExtensionForComments(input_file):
+     extension = '.html'
+   return extension
+ 
++def _extract_template_from_dir(html_file):
++  template = ''
++  directory = os.path.dirname(html_file)
++  for root, dirs, directory_files in os.walk(directory):
++    for directory_file in directory_files:
++      if directory_file.endswith(".html"):
++        template += _extract_template(os.path.join(directory, directory_file))
++
++  return template
++
++def _extract_template(html_file):
++  include_re = re.compile(r'^\s*<include\s*path="(.*)"\s*/>')
++  with io.open(html_file, encoding='utf-8', mode='r') as f:
++    lines = f.readlines()
++
++    template_lines = []
++    for line in lines:
++      include_line = include_re.match(line)
++      if include_line:
++        include_file = include_line.groups()[0]
++        file_to_include = os.path.join(os.path.dirname(html_file), include_file)
++        if file_to_include.endswith("placeholder.txt"):
++          line = _extract_template_from_dir(file_to_include)
++        else:
++          line = _extract_template(file_to_include)
++      template_lines.append(line)
++
++    template = ''.join(template_lines)
++    return template
+ 
+ def main(argv):
+   parser = argparse.ArgumentParser()
+@@ -95,7 +125,7 @@ def main(argv):
+     in_path = os.path.join(in_folder, input_file)
+     content = ""
+     with open(in_path, encoding='utf-8') as f:
+-      content = f.read()
++      content = _extract_template(in_path)
+ 
+     removal_comments_extension = None  # None means no removal comments
+     if args.enable_removal_comments:
 --
 2.25.1

@@ -18,22 +18,24 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../permission_javascript_jit.png             | Bin 0 -> 518 bytes
  .../permission_javascript_jit.png             | Bin 0 -> 629 bytes
  .../permission_javascript_jit.png             | Bin 0 -> 797 bytes
- .../BromiteJavascriptJITContentSetting.java   |  87 ++++++++++++++++++
- .../javascript_jit.grdp                       |  18 ++++
- .../core/browser/content_settings_registry.cc |   8 +-
- 9 files changed, 116 insertions(+), 2 deletions(-)
+ .../BromiteJavascriptJITContentSetting.java   |  92 ++++++++++++++++++
+ .../javascript_jit.grdp                       |  21 ++++
+ .../javascript_jit.inc                        |  13 +++
+ .../core/browser/content_settings_registry.cc |   2 +-
+ 10 files changed, 132 insertions(+), 1 deletion(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_javascript_jit.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/permission_javascript_jit.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/permission_javascript_jit.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xxhdpi/permission_javascript_jit.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xxxhdpi/permission_javascript_jit.png
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteJavascriptJITContentSetting.java
- create mode 100644 components/browser_ui/strings/android/bromite_content_settings/javascript_jit.grdp
+ create mode 100644 components/browser_ui/strings/bromite_content_settings/javascript_jit.grdp
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/javascript_jit.inc
 
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -203,6 +203,7 @@ android_resources("java_resources") {
+@@ -202,6 +202,7 @@ android_resources("java_resources") {
      "java/res/drawable-hdpi/permission_background_sync.png",
      "java/res/drawable-hdpi/permission_images.png",
      "java/res/drawable-hdpi/permission_javascript.png",
@@ -41,7 +43,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-hdpi/permission_popups.png",
      "java/res/drawable-hdpi/permission_protected_media.png",
      "java/res/drawable-hdpi/settings_sensors.png",
-@@ -211,6 +212,7 @@ android_resources("java_resources") {
+@@ -210,6 +211,7 @@ android_resources("java_resources") {
      "java/res/drawable-mdpi/permission_background_sync.png",
      "java/res/drawable-mdpi/permission_images.png",
      "java/res/drawable-mdpi/permission_javascript.png",
@@ -49,7 +51,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-hdpi/settings_autoplay.png",
      "java/res/drawable-xhdpi/settings_autoplay.png",
      "java/res/drawable-xxhdpi/settings_autoplay.png",
-@@ -224,6 +226,7 @@ android_resources("java_resources") {
+@@ -223,6 +225,7 @@ android_resources("java_resources") {
      "java/res/drawable-xhdpi/permission_background_sync.png",
      "java/res/drawable-xhdpi/permission_images.png",
      "java/res/drawable-xhdpi/permission_javascript.png",
@@ -57,7 +59,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-xhdpi/permission_popups.png",
      "java/res/drawable-xhdpi/permission_protected_media.png",
      "java/res/drawable-xhdpi/settings_sensors.png",
-@@ -232,6 +235,7 @@ android_resources("java_resources") {
+@@ -231,6 +234,7 @@ android_resources("java_resources") {
      "java/res/drawable-xxhdpi/permission_background_sync.png",
      "java/res/drawable-xxhdpi/permission_images.png",
      "java/res/drawable-xxhdpi/permission_javascript.png",
@@ -65,7 +67,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
      "java/res/drawable-xxhdpi/permission_popups.png",
      "java/res/drawable-xxhdpi/permission_protected_media.png",
      "java/res/drawable-xxhdpi/settings_sensors.png",
-@@ -240,6 +244,7 @@ android_resources("java_resources") {
+@@ -239,6 +243,7 @@ android_resources("java_resources") {
      "java/res/drawable-xxxhdpi/permission_background_sync.png",
      "java/res/drawable-xxxhdpi/permission_images.png",
      "java/res/drawable-xxxhdpi/permission_javascript.png",
@@ -175,7 +177,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteJavascriptJITContentSetting.java
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,92 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -244,6 +246,11 @@ new file mode 100644
 +    }
 +
 +    @Override
++    public int getCategoryDescription() {
++        return R.string.settings_site_settings_javascript_jit_description;
++    }
++
++    @Override
 +    public boolean requiresTriStateContentSetting() {
 +        return false;
 +    }
@@ -263,33 +270,54 @@ new file mode 100644
 +        return value != ContentSettingValues.BLOCK;
 +    }
 +}
-diff --git a/components/browser_ui/strings/android/bromite_content_settings/javascript_jit.grdp b/components/browser_ui/strings/android/bromite_content_settings/javascript_jit.grdp
+diff --git a/components/browser_ui/strings/bromite_content_settings/javascript_jit.grdp b/components/browser_ui/strings/bromite_content_settings/javascript_jit.grdp
 new file mode 100644
 --- /dev/null
-+++ b/components/browser_ui/strings/android/bromite_content_settings/javascript_jit.grdp
-@@ -0,0 +1,18 @@
++++ b/components/browser_ui/strings/bromite_content_settings/javascript_jit.grdp
+@@ -0,0 +1,21 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
-+  <message name="IDS_JAVASCRIPT_JIT_PERMISSION_TITLE" desc="Title of the permission to run javascript [CHAR_LIMIT=32]">
++  <message name="IDS_JAVASCRIPT_JIT_PERMISSION_TITLE" desc="Title of the permission to run javascript [CHAR_LIMIT=32]" formatter_data="android_java">
 +    JavaScript JIT
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_JAVASCRIPT_JIT_ENABLED" desc="Summary text explaining that sites are allowed to compile JavaScript in JIT mode.">
-+    Allow JIT on a specific site.
++  <message name="IDS_SETTINGS_SITE_SETTINGS_JAVASCRIPT_JIT_DESCRIPTION" desc="Description of the Javascript JIT content setting." formatter_data="android_java">
++    Enable the JIT compiler and WebAssembly support in V8
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_JAVASCRIPT_JIT_DISABLED" desc="Summary text explaining that sites are running JavaScript in JITless mode.">
-+    Block JIT on a specific site.
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_JAVASCRIPT_JIT_ENABLED" desc="Summary text explaining that sites are allowed to compile JavaScript in JIT mode." formatter_data="android_java">
++    Allow JIT and WebAssembly on a specific site.
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_JAVASCRIPT_JIT_ALLOW" desc="The description for the allow Javascript JIT for website dialog.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_JAVASCRIPT_JIT_DISABLED" desc="Summary text explaining that sites are running JavaScript in JITless mode." formatter_data="android_java">
++    Block JIT and WebAssembly on a specific site.
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_JAVASCRIPT_JIT_ALLOW" desc="The description for the allow Javascript JIT for website dialog." formatter_data="android_java">
 +    Allow sites to use just-in-time compilation; more performant but a constant source of security vulnerabilities.
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_JAVASCRIPT_JIT_BLOCK" desc="The description for the block Javascript JIT for website dialog.">
++  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_JAVASCRIPT_JIT_BLOCK" desc="The description for the block Javascript JIT for website dialog." formatter_data="android_java">
 +    Block sites from using just-in-time compilation, using only interpreted JavaScript; less performant but more secure against security vulnerabilities.
 +  </message>
 +</grit-part>
+diff --git a/components/content_settings/core/browser/bromite_content_settings/javascript_jit.inc b/components/content_settings/core/browser/bromite_content_settings/javascript_jit.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/javascript_jit.inc
+@@ -0,0 +1,13 @@
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::JAVASCRIPT_JIT)
++    ->set_show_into_info_page()
++    .set_desktop_ui()
++    .set_is_renderer_content_setting()
++    .set_title_ui(IDS_JAVASCRIPT_JIT_PERMISSION_TITLE)
++    .set_description_ui(IDS_SETTINGS_SITE_SETTINGS_JAVASCRIPT_JIT_DESCRIPTION)
++    .set_allowed_ui(IDS_WEBSITE_SETTINGS_CATEGORY_JAVASCRIPT_JIT_ENABLED)
++    .set_blocked_ui(IDS_WEBSITE_SETTINGS_CATEGORY_JAVASCRIPT_JIT_DISABLED)
++    .set_allowed_exceptions_ui(IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_JAVASCRIPT_JIT_ALLOW)
++    .set_blocked_exceptions_ui(IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_JAVASCRIPT_JIT_BLOCK)
++    .set_mid_sentence_ui(IDS_JAVASCRIPT_JIT_PERMISSION_TITLE);
++
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -518,14 +518,18 @@ void ContentSettingsRegistry::Init() {
+@@ -509,7 +509,7 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
    Register(ContentSettingsType::JAVASCRIPT_JIT, "javascript-jit",
@@ -298,17 +326,5 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
             /*allowlisted_schemes=*/{},
             /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
             WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
-            WebsiteSettingsRegistry::DESKTOP |
-                WebsiteSettingsRegistry::PLATFORM_ANDROID,
-            ContentSettingsInfo::INHERIT_IN_INCOGNITO,
--           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
-+           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS,
-+           /*show_into_info_page*/ true,
-+           /*is_renderer_content_setting*/ true,
-+           /*permission_type_ui*/ IDS_JAVASCRIPT_JIT_PERMISSION_TITLE,
-+           /*permission_type_ui_mid_sentence*/ IDS_JAVASCRIPT_JIT_PERMISSION_TITLE);
- 
-   Register(ContentSettingsType::PRIVATE_NETWORK_GUARD, "private-network-guard",
-            CONTENT_SETTING_ASK, WebsiteSettingsInfo::UNSYNCABLE,
 --
 2.25.1

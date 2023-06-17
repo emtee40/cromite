@@ -11,24 +11,26 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../res/drawable-xhdpi/settings_autoplay.png  | Bin 0 -> 551 bytes
  .../res/drawable-xxhdpi/settings_autoplay.png | Bin 0 -> 792 bytes
  .../drawable-xxxhdpi/settings_autoplay.png    | Bin 0 -> 1064 bytes
- .../impl/BromiteAutoplayContentSetting.java   |  87 ++++++++++++++++++
- .../bromite_content_settings/autoplay.grdp    |  15 +++
- .../core/browser/content_settings_registry.cc |   8 +-
+ .../impl/BromiteAutoplayContentSetting.java   |  92 ++++++++++++++++++
+ .../bromite_content_settings/autoplay.grdp    |  21 ++++
+ .../bromite_content_settings/autoplay.inc     |  13 +++
+ .../core/browser/content_settings_registry.cc |   2 +-
  .../core/html/media/autoplay_policy.cc        |  14 +++
  .../core/html/media/autoplay_policy.h         |   4 +
- 11 files changed, 131 insertions(+), 2 deletions(-)
+ 12 files changed, 150 insertions(+), 1 deletion(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xxhdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xxxhdpi/settings_autoplay.png
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteAutoplayContentSetting.java
- create mode 100644 components/browser_ui/strings/android/bromite_content_settings/autoplay.grdp
+ create mode 100644 components/browser_ui/strings/bromite_content_settings/autoplay.grdp
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/autoplay.inc
 
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -209,6 +209,11 @@ android_resources("java_resources") {
+@@ -208,6 +208,11 @@ android_resources("java_resources") {
      "java/res/drawable-mdpi/ic_volume_up_grey600_24dp.png",
      "java/res/drawable-mdpi/permission_background_sync.png",
      "java/res/drawable-mdpi/permission_javascript.png",
@@ -152,7 +154,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 new file mode 100644
 --- /dev/null
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteAutoplayContentSetting.java
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,92 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -221,6 +223,11 @@ new file mode 100644
 +    }
 +
 +    @Override
++    public int getCategoryDescription() {
++        return R.string.website_settings_add_site_description_autoplay;
++    }
++
++    @Override
 +    public boolean requiresTriStateContentSetting() {
 +        return false;
 +    }
@@ -240,30 +247,54 @@ new file mode 100644
 +        return value != ContentSettingValues.BLOCK;
 +    }
 +}
-diff --git a/components/browser_ui/strings/android/bromite_content_settings/autoplay.grdp b/components/browser_ui/strings/android/bromite_content_settings/autoplay.grdp
+diff --git a/components/browser_ui/strings/bromite_content_settings/autoplay.grdp b/components/browser_ui/strings/bromite_content_settings/autoplay.grdp
 new file mode 100644
 --- /dev/null
-+++ b/components/browser_ui/strings/android/bromite_content_settings/autoplay.grdp
-@@ -0,0 +1,15 @@
++++ b/components/browser_ui/strings/bromite_content_settings/autoplay.grdp
+@@ -0,0 +1,21 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
-+  <message name="IDS_AUTOPLAY_PERMISSION_TITLE" desc='Title for the Autoplay settings screen [CHAR-LIMIT=32]'>
++  <message name="IDS_AUTOPLAY_PERMISSION_TITLE" desc='Title for the Autoplay settings screen [CHAR-LIMIT=32]' formatter_data="android_java">
 +    Autoplay
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_AUTOPLAY" desc="The description for the allow autoplay of muted videos for website dialog.">
++  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_AUTOPLAY" desc="The description for the allow autoplay of muted videos for website dialog." formatter_data="android_java">
 +    Allow autoplay for a specific site.
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_ENABLED" desc="Summary text explaining that sites are allowed to compile JavaScript in JIT mode.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_ENABLED" desc="Summary text explaining that sites are allowed to compile JavaScript in JIT mode." formatter_data="android_java">
 +    Allow sites to automatically play muted videos
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_DISABLED" desc="Summary text explaining that sites are running JavaScript in JITless mode.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_DISABLED" desc="Summary text explaining that sites are running JavaScript in JITless mode." formatter_data="android_java">
 +    Autoplay disabled
 +  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_AUTOPLAY_ALLOWED_EXCEPTIONS" desc="Label for the allowed exceptions site list of the autoplay setting.">
++    Allowed to autoplay
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_AUTOPLAY_BLOCKED_EXCEPTIONS" desc="Label for the blocked exceptions site list of the autoplay setting.">
++    Not allowed to autoplay
++  </message>
 +</grit-part>
+diff --git a/components/content_settings/core/browser/bromite_content_settings/autoplay.inc b/components/content_settings/core/browser/bromite_content_settings/autoplay.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/autoplay.inc
+@@ -0,0 +1,13 @@
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::AUTOPLAY)
++    ->set_show_into_info_page()
++    .set_desktop_ui()
++    .set_is_renderer_content_setting()
++    .set_title_ui(IDS_AUTOPLAY_PERMISSION_TITLE)
++    .set_description_ui(IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_AUTOPLAY)
++    .set_allowed_ui(IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_ENABLED)
++    .set_blocked_ui(IDS_WEBSITE_SETTINGS_CATEGORY_AUTOPLAY_DISABLED)
++    .set_allowed_exceptions_ui(IDS_SETTINGS_SITE_SETTINGS_AUTOPLAY_ALLOWED_EXCEPTIONS)
++    .set_blocked_exceptions_ui(IDS_SETTINGS_SITE_SETTINGS_AUTOPLAY_BLOCKED_EXCEPTIONS)
++    .set_mid_sentence_ui(IDS_AUTOPLAY_PERMISSION_TITLE);
++
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -238,14 +238,18 @@ void ContentSettingsRegistry::Init() {
+@@ -237,7 +237,7 @@ void ContentSettingsRegistry::Init() {
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
  
@@ -272,18 +303,6 @@ diff --git a/components/content_settings/core/browser/content_settings_registry.
             WebsiteSettingsInfo::UNSYNCABLE, /*allowlisted_schemes=*/{},
             /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
             WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
-            WebsiteSettingsRegistry::DESKTOP |
-                WebsiteSettingsRegistry::PLATFORM_ANDROID,
-            ContentSettingsInfo::INHERIT_IN_INCOGNITO,
--           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
-+           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS,
-+           /*show_into_info_page*/ false,
-+           /*is_renderer_content_setting*/ true,
-+           /*permission_type_ui*/ IDS_AUTOPLAY_PERMISSION_TITLE,
-+           /*permission_type_ui_mid_sentence*/ IDS_AUTOPLAY_PERMISSION_TITLE);
- 
-   Register(ContentSettingsType::SOUND, "sound", CONTENT_SETTING_ALLOW,
-            WebsiteSettingsInfo::UNSYNCABLE, /*allowlisted_schemes=*/{},
 diff --git a/third_party/blink/renderer/core/html/media/autoplay_policy.cc b/third_party/blink/renderer/core/html/media/autoplay_policy.cc
 --- a/third_party/blink/renderer/core/html/media/autoplay_policy.cc
 +++ b/third_party/blink/renderer/core/html/media/autoplay_policy.cc

@@ -26,28 +26,30 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../WebsitePermissionsFetcher.java            |   2 +
  .../WebsitePreferenceBridge.java              |  12 ++
  .../android/website_preference_bridge.cc      |  16 ++
- .../bromite_content_settings/timezone.grdp    |  36 ++++
+ .../bromite_content_settings/timezone.grdp    |  39 ++++
+ .../timezone_override.inc                     |  24 +++
  .../browser/content_settings_pref_provider.cc |  16 ++
  .../browser/content_settings_pref_provider.h  |   4 +
- .../core/browser/content_settings_registry.cc |  13 ++
  .../core/browser/content_settings_utils.cc    |   5 +
  .../core/browser/host_content_settings_map.cc |   8 +
  .../core/browser/host_content_settings_map.h  |   3 +
+ .../bromite_content_settings/TIMEZONE.inc     |   2 +
  .../core/common/content_settings.h            |   1 +
  .../core/common/content_settings.mojom        |   1 +
  .../common/content_settings_mojom_traits.cc   |   3 +-
  .../common/content_settings_mojom_traits.h    |   5 +
- .../core/common/content_settings_types.h      |   3 +
  .../core/common/pref_names.cc                 |   3 +
  .../content_settings/core/common/pref_names.h |   2 +
  .../renderer/content_settings_agent_impl.cc   |  80 ++++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 34 files changed, 664 insertions(+), 6 deletions(-)
+ 34 files changed, 677 insertions(+), 6 deletions(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
- create mode 100644 components/browser_ui/strings/android/bromite_content_settings/timezone.grdp
+ create mode 100644 components/browser_ui/strings/bromite_content_settings/timezone.grdp
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/timezone_override.inc
+ create mode 100644 components/content_settings/core/common/bromite_content_settings/TIMEZONE.inc
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java
@@ -93,7 +95,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
    ]
    annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
    resources_package = "org.chromium.components.browser_ui.site_settings"
-@@ -263,6 +264,8 @@ android_resources("java_resources") {
+@@ -262,6 +263,8 @@ android_resources("java_resources") {
      "java/res/xml/site_settings_preferences.xml",
      "java/res/xml/site_settings_preferences_with_categories.xml",
      "java/res/xml/website_preferences.xml",
@@ -447,7 +449,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
                  configureTriStateToggle(triStateToggle, contentType);
                  break;
              case GlobalToggleLayout.TRI_STATE_COOKIE_TOGGLE:
-@@ -1200,6 +1239,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1204,6 +1243,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          }
          BromiteCustomContentSettingImpl.configureGlobalToggles(mCategory, screen);
  
@@ -460,7 +462,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
          if (permissionBlockedByOs) {
              maybeShowOsWarning(screen);
  
-@@ -1355,6 +1400,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
+@@ -1359,6 +1404,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
          triStateToggle.initialize(contentType, setting, descriptionIds);
      }
  
@@ -778,7 +780,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
              case ContentSettingsType.AR:
              case ContentSettingsType.CLIPBOARD_READ_WRITE:
 @@ -212,6 +213,7 @@ public class WebsitePermissionsFetcher {
-             for (@ContentSettingsType int type = 0; type < ContentSettingsType.NUM_TYPES; type++) {
+             for (@ContentSettingsType int type = 0; type < ContentSettingsType.NUM_TYPES_BROMITE; type++) {
                  addFetcherForContentSettingsType(queue, type);
              }
 +            queue.add(new ExceptionInfoFetcher(ContentSettingsType.TIMEZONE_OVERRIDE));
@@ -843,47 +845,79 @@ diff --git a/components/browser_ui/site_settings/android/website_preference_brid
 +  GetHostContentSettingsMap(jbrowser_context_handle)->GetTimezoneOverrideValue(custom_timezone);
 +  return ConvertUTF8ToJavaString(env, custom_timezone);
 +}
-diff --git a/components/browser_ui/strings/android/bromite_content_settings/timezone.grdp b/components/browser_ui/strings/android/bromite_content_settings/timezone.grdp
+diff --git a/components/browser_ui/strings/bromite_content_settings/timezone.grdp b/components/browser_ui/strings/bromite_content_settings/timezone.grdp
 new file mode 100644
 --- /dev/null
-+++ b/components/browser_ui/strings/android/bromite_content_settings/timezone.grdp
-@@ -0,0 +1,36 @@
++++ b/components/browser_ui/strings/bromite_content_settings/timezone.grdp
+@@ -0,0 +1,39 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<grit-part>
-+  <message name="IDS_WEBSITE_SETTINGS_TIMEOVERRIDE_INFO" desc="Primary text explaining the timezone override feature.">
++  <message name="IDS_SITE_SETTINGS_TIMEZONE_OVERRIDE_TITLE" desc="Description of the timezone override content setting page title.">
++    Timezone override
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_TIMEOVERRIDE_INFO" desc="Primary text explaining the timezone override feature." formatter_data="android_java">
 +    Override timezone with a custom or random one, or use the system timezone
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_ALLOWED_TEXT" desc="Primary text explaining that sites are allowed to access the system timezone.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_ALLOWED_TEXT" desc="Primary text explaining that sites are allowed to access the system timezone." formatter_data="android_java">
 +    None (use system timezone)
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_RANDOM_TEXT" desc="Primary text for random timezone override.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_RANDOM_TEXT" desc="Primary text for random timezone override." formatter_data="android_java">
 +    Random
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_ALLOWED" desc="Summary text explaining that sites are allowed to access the system timezone.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_ALLOWED" desc="Summary text explaining that sites are allowed to access the system timezone." formatter_data="android_java">
 +    System timezone
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_CUSTOM" desc="Summary text explaining that sites use custom timezone.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_CUSTOM" desc="Summary text explaining that sites use custom timezone." formatter_data="android_java">
 +    Custom timezone
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_CUSTOM_HINT" desc="Hint text for edit custom timezone.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_CUSTOM_HINT" desc="Hint text for edit custom timezone." formatter_data="android_java">
 +    Specify a custom timezone (default UTC)
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_RANDOM" desc="Summary text for random timezone override.">
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_RANDOM" desc="Summary text for random timezone override." formatter_data="android_java">
 +    Random (for each page)
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_SELECT_BUTTON" desc="Primary button text for choosing a timezone from a list.">
++  <message name="IDS_WEBSITE_SETTINGS_SELECT_BUTTON" desc="Primary button text for choosing a timezone from a list." formatter_data="android_java">
 +    Choose Timezone...
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_SELECT_DIALOG_TITLE" desc="Text of the dialog to choose a timezone.">
++  <message name="IDS_WEBSITE_SETTINGS_SELECT_DIALOG_TITLE" desc="Text of the dialog to choose a timezone." formatter_data="android_java">
 +    Choose Timezone
 +  </message>
-+  <message name="IDS_WEBSITE_SETTINGS_SELECT_DIALOG_BUTTON" desc="Primary button text in the dialog used to choose the custom timezone.">
++  <message name="IDS_WEBSITE_SETTINGS_SELECT_DIALOG_BUTTON" desc="Primary button text in the dialog used to choose the custom timezone." formatter_data="android_java">
 +    Select
 +  </message>
-+  <message name="IDS_TIMEZONE_OVERRIDE_PERMISSION_TITLE" desc="Title of the permission to use TimeZone Override [CHAR-LIMIT=32]">
++  <message name="IDS_TIMEZONE_OVERRIDE_PERMISSION_TITLE" desc="Title of the permission to use TimeZone Override [CHAR-LIMIT=32]" formatter_data="android_java">
 +    Timezone override
 +  </message>
 +</grit-part>
+diff --git a/components/content_settings/core/browser/bromite_content_settings/timezone_override.inc b/components/content_settings/core/browser/bromite_content_settings/timezone_override.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/timezone_override.inc
+@@ -0,0 +1,24 @@
++  Register(ContentSettingsType::TIMEZONE_OVERRIDE, "timezone-override", CONTENT_SETTING_ALLOW,
++           WebsiteSettingsInfo::SYNCABLE,
++           /*allowlisted_schemes=*/{},
++           /*valid_settings=*/{CONTENT_SETTING_ALLOW,   // use system time
++                               CONTENT_SETTING_ASK,     // custom timezone, default UTC
++                               CONTENT_SETTING_BLOCK},  // random
++           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
++           WebsiteSettingsRegistry::ALL_PLATFORMS,
++           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
++           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
++
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::TIMEZONE_OVERRIDE)
++    ->set_show_into_info_page()
++    .set_desktop_ui()
++    .set_is_renderer_content_setting()
++    .set_title_ui(IDS_SITE_SETTINGS_TIMEZONE_OVERRIDE_TITLE)
++    .set_description_ui(IDS_WEBSITE_SETTINGS_TIMEOVERRIDE_INFO)
++    .set_allowed_ui(IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_ALLOWED)
++    .set_blocked_ui(IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_RANDOM)
++    .set_allowed_exceptions_ui(IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_ALLOWED)
++    .set_blocked_exceptions_ui(IDS_WEBSITE_SETTINGS_CATEGORY_TIMEZONE_OVERRIDE_RANDOM)
++    .set_mid_sentence_ui(IDS_SITE_SETTINGS_TIMEZONE_OVERRIDE_TITLE);
++
 diff --git a/components/content_settings/core/browser/content_settings_pref_provider.cc b/components/content_settings/core/browser/content_settings_pref_provider.cc
 --- a/components/content_settings/core/browser/content_settings_pref_provider.cc
 +++ b/components/content_settings/core/browser/content_settings_pref_provider.cc
@@ -943,29 +977,6 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
  };
  
  }  // namespace content_settings
-diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
---- a/components/content_settings/core/browser/content_settings_registry.cc
-+++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -557,6 +557,19 @@ void ContentSettingsRegistry::Init() {
-            ContentSettingsInfo::INHERIT_IN_INCOGNITO,
-            ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
- 
-+  Register(ContentSettingsType::TIMEZONE_OVERRIDE, "timezone-override", CONTENT_SETTING_ALLOW,
-+           WebsiteSettingsInfo::SYNCABLE,
-+           /*allowlisted_schemes=*/{},
-+           /*valid_settings=*/{CONTENT_SETTING_ALLOW,   // use system time
-+                               CONTENT_SETTING_ASK,     // custom timezone, default UTC
-+                               CONTENT_SETTING_BLOCK},  // random
-+           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
-+           WebsiteSettingsRegistry::PLATFORM_ANDROID,
-+           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
-+           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS,
-+           /*show_into_info_page*/ false,
-+           /*is_renderer_content_setting*/ true);
-+
-   Register(ContentSettingsType::FEDERATED_IDENTITY_API, "webid-api",
-            CONTENT_SETTING_ALLOW, WebsiteSettingsInfo::UNSYNCABLE,
-            /*allowlisted_schemes=*/{},
 diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc
@@ -1012,6 +1023,13 @@ diff --git a/components/content_settings/core/browser/host_content_settings_map.
   private:
    friend class base::RefCountedThreadSafe<HostContentSettingsMap>;
    friend class content_settings::TestUtils;
+diff --git a/components/content_settings/core/common/bromite_content_settings/TIMEZONE.inc b/components/content_settings/core/common/bromite_content_settings/TIMEZONE.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/common/bromite_content_settings/TIMEZONE.inc
+@@ -0,0 +1,2 @@
++  // Content setting for timezone customization functionality.
++  TIMEZONE_OVERRIDE,
 diff --git a/components/content_settings/core/common/content_settings.h b/components/content_settings/core/common/content_settings.h
 --- a/components/content_settings/core/common/content_settings.h
 +++ b/components/content_settings/core/common/content_settings.h
@@ -1060,19 +1078,6 @@ diff --git a/components/content_settings/core/common/content_settings_mojom_trai
    static bool Read(
        content_settings::mojom::RendererContentSettingRulesDataView data,
        RendererContentSettingRules* out);
-diff --git a/components/content_settings/core/common/content_settings_types.h b/components/content_settings/core/common/content_settings_types.h
---- a/components/content_settings/core/common/content_settings_types.h
-+++ b/components/content_settings/core/common/content_settings_types.h
-@@ -226,6 +226,9 @@ enum class ContentSettingsType : int32_t {
-   // by the File System Access API.
-   FILE_SYSTEM_LAST_PICKED_DIRECTORY,
- 
-+  // Content setting for timezone customization functionality.
-+  TIMEZONE_OVERRIDE,
-+
-   // Controls access to the getDisplayMedia API when {preferCurrentTab: true}
-   // is specified.
-   // TODO(crbug.com/1150788): Also apply this when getDisplayMedia() is called
 diff --git a/components/content_settings/core/common/pref_names.cc b/components/content_settings/core/common/pref_names.cc
 --- a/components/content_settings/core/common/pref_names.cc
 +++ b/components/content_settings/core/common/pref_names.cc
