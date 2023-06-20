@@ -6,20 +6,21 @@ Adds flag disable-speechsynthesis-voice-list to disable
 SpeechSynthesis.getVoices() call.
 If not active the user must also set the system timezone override
 to enable it.
+Require: Timezone-customization.patch
 ---
  chrome/browser/about_flags.cc                   |  5 +++++
- .../renderer/content_settings_agent_impl.cc     | 11 ++++++++++-
+ .../renderer/content_settings_agent_impl.cc     |  9 ++++++++-
  .../renderer/content_settings_agent_impl.h      |  2 ++
  third_party/blink/common/features.cc            |  4 ++++
  third_party/blink/public/common/features.h      |  2 ++
  .../platform/web_content_settings_client.h      |  2 ++
  .../renderer/modules/speech/speech_synthesis.cc | 17 ++++++++++++++---
- 7 files changed, 39 insertions(+), 4 deletions(-)
+ 7 files changed, 37 insertions(+), 4 deletions(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -7221,6 +7221,11 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -7217,6 +7217,11 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kFileHandlingIconsDescription, kOsDesktop,
       FEATURE_VALUE_TYPE(blink::features::kFileHandlingIcons)},
  
@@ -34,24 +35,22 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
 --- a/components/content_settings/renderer/content_settings_agent_impl.cc
 +++ b/components/content_settings/renderer/content_settings_agent_impl.cc
-@@ -501,6 +501,16 @@ bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
+@@ -496,6 +496,14 @@ bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
    return false;
  }
  
 +bool ContentSettingsAgentImpl::IsTimezoneChanged() {
 +  if (!content_setting_rules_)
 +    return false;
-+  blink::WebLocalFrame* frame = render_frame()->GetWebFrame();
 +  // CONTENT_SETTING_ALLOW = use system time
-+  return CONTENT_SETTING_ALLOW != GetContentSettingFromRules(
-+             content_setting_rules_->timezone_override_rules,
-+             url::Origin(frame->GetDocument().GetSecurityOrigin()).GetURL());
++  return CONTENT_SETTING_ALLOW != GetContentSetting(
++             ContentSettingsType::TIMEZONE_OVERRIDE, CONTENT_SETTING_ALLOW);
 +}
 +
  bool ContentSettingsAgentImpl::UpdateOverrides() {
    // Evaluate the content setting rules
    ContentSetting setting = CONTENT_SETTING_ALLOW;
-@@ -514,7 +524,6 @@ bool ContentSettingsAgentImpl::UpdateOverrides() {
+@@ -506,7 +514,6 @@ bool ContentSettingsAgentImpl::UpdateOverrides() {
    }
    return UpdateTimeZoneOverride(
        setting, content_setting_rules_->timezone_override_value);
@@ -62,7 +61,7 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.h b/components/content_settings/renderer/content_settings_agent_impl.h
 --- a/components/content_settings/renderer/content_settings_agent_impl.h
 +++ b/components/content_settings/renderer/content_settings_agent_impl.h
-@@ -116,6 +116,8 @@ class ContentSettingsAgentImpl
+@@ -117,6 +117,8 @@ class ContentSettingsAgentImpl
    void SetRendererContentSettingRulesForTest(
        const RendererContentSettingRules& rules);
  
@@ -100,7 +99,7 @@ diff --git a/third_party/blink/public/common/features.h b/third_party/blink/publ
 diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/third_party/blink/public/platform/web_content_settings_client.h
 --- a/third_party/blink/public/platform/web_content_settings_client.h
 +++ b/third_party/blink/public/platform/web_content_settings_client.h
-@@ -123,6 +123,8 @@ class WebContentSettingsClient {
+@@ -119,6 +119,8 @@ class WebContentSettingsClient {
    // frame.
    virtual bool ShouldAutoupgradeMixedContent() { return true; }
  

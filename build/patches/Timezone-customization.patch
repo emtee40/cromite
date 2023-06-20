@@ -8,23 +8,14 @@ See also: https://github.com/bromite/bromite/wiki/TimezoneOverride
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+Require: Content-settings-infrastructure.patch
 ---
- .../ChromeSiteSettingsDelegate.java           |  16 ++
  .../browser_ui/site_settings/android/BUILD.gn |   3 +
  .../res/layout/time_zone_select_dialog.xml    |  36 ++++
  ...ezoneoverride_site_settings_preference.xml |  68 ++++++
- .../res/xml/site_settings_preferences.xml     |   4 +
- .../java/res/xml/website_preferences.xml      |  10 +
- .../ContentSettingsResources.java             |  28 +++
- .../site_settings/SingleCategorySettings.java |  60 +++++-
- .../site_settings/SingleWebsiteSettings.java  |   2 +
- .../site_settings/SiteSettings.java           |   2 +-
- .../site_settings/SiteSettingsCategory.java   |   7 +-
- .../site_settings/SiteSettingsDelegate.java   |   2 +
  ...imezoneOverrideSiteSettingsPreference.java | 194 ++++++++++++++++++
- .../browser_ui/site_settings/Website.java     |  11 +
- .../WebsitePermissionsFetcher.java            |   2 +
- .../WebsitePreferenceBridge.java              |  12 ++
+ .../WebsitePreferenceBridge.java              |  10 +
+ ...BromiteTimezoneOverrideContentSetting.java | 146 +++++++++++++
  .../android/website_preference_bridge.cc      |  16 ++
  .../bromite_content_settings/timezone.grdp    |  39 ++++
  .../timezone_override.inc                     |  24 +++
@@ -42,48 +33,15 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../content_settings/core/common/pref_names.h |   2 +
  .../renderer/content_settings_agent_impl.cc   |  80 ++++++++
  .../renderer/content_settings_agent_impl.h    |  11 +
- .../WebLayerSiteSettingsDelegate.java         |   3 +
- 34 files changed, 677 insertions(+), 6 deletions(-)
+ 23 files changed, 679 insertions(+), 1 deletion(-)
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/time_zone_select_dialog.xml
  create mode 100755 components/browser_ui/site_settings/android/java/res/layout/timezoneoverride_site_settings_preference.xml
  create mode 100755 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
+ create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteTimezoneOverrideContentSetting.java
  create mode 100644 components/browser_ui/strings/bromite_content_settings/timezone.grdp
  create mode 100644 components/content_settings/core/browser/bromite_content_settings/timezone_override.inc
  create mode 100644 components/content_settings/core/common/bromite_content_settings/TIMEZONE.inc
 
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/site_settings/ChromeSiteSettingsDelegate.java
-@@ -46,6 +46,10 @@ import org.chromium.url.GURL;
- 
- import java.util.Set;
- 
-+import android.content.Intent;
-+import android.provider.Browser;
-+import android.net.Uri;
-+
- /**
-  * A SiteSettingsDelegate instance that contains Chrome-specific Site Settings logic.
-  */
-@@ -267,6 +271,18 @@ public class ChromeSiteSettingsDelegate implements SiteSettingsDelegate {
-         return PrivacySandboxBridge.getFirstPartySetOwner(memberOrigin);
-     }
- 
-+    // open wiki page for documentation about the timezone override feature
-+    @Override
-+    public void launchTimeZoneOverrideHelpAndFeedbackActivity(Activity currentActivity) {
-+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/bromite/bromite/wiki/TimezoneOverride"));
-+        // Let Chromium know that this intent is from Chromium, so that it does not close the app when
-+        // the user presses 'back' button.
-+        intent.putExtra(Browser.EXTRA_APPLICATION_ID, currentActivity.getPackageName());
-+        intent.putExtra(Browser.EXTRA_CREATE_NEW_TAB, true);
-+        intent.setPackage(currentActivity.getPackageName());
-+        currentActivity.startActivity(intent);
-+    }
-+
-     @Override
-     public boolean canLaunchClearBrowsingDataDialog() {
-         return true;
 diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
 --- a/components/browser_ui/site_settings/android/BUILD.gn
 +++ b/components/browser_ui/site_settings/android/BUILD.gn
@@ -95,7 +53,7 @@ diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/b
    ]
    annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
    resources_package = "org.chromium.components.browser_ui.site_settings"
-@@ -262,6 +263,8 @@ android_resources("java_resources") {
+@@ -263,6 +264,8 @@ android_resources("java_resources") {
      "java/res/xml/site_settings_preferences.xml",
      "java/res/xml/site_settings_preferences_with_categories.xml",
      "java/res/xml/website_preferences.xml",
@@ -219,335 +177,6 @@ new file mode 100755
 +    app:verticalInset="0dp" />
 +
 +</LinearLayout>
-diff --git a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
---- a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
-+++ b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
-@@ -47,6 +47,10 @@ Also add new settings to site_settings_preferences_with_categories.xml!
-     <org.chromium.components.browser_ui.settings.ChromeBasePreference
-         android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings"
-         android:key="javascript" />
-+    <!-- Timezone Override -->
-+    <org.chromium.components.browser_ui.settings.ChromeBasePreference
-+        android:key="timezone_override"
-+        android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings" />
-     <!-- Popups -->
-     <org.chromium.components.browser_ui.settings.ChromeBasePreference
-         android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings"
-diff --git a/components/browser_ui/site_settings/android/java/res/xml/website_preferences.xml b/components/browser_ui/site_settings/android/java/res/xml/website_preferences.xml
---- a/components/browser_ui/site_settings/android/java/res/xml/website_preferences.xml
-+++ b/components/browser_ui/site_settings/android/java/res/xml/website_preferences.xml
-@@ -14,6 +14,12 @@ found in the LICENSE file.
-     <org.chromium.components.browser_ui.settings.TextMessagePreference
-         android:key="info_text"/>
- 
-+  <!-- A text message describing timeoverride settings. -->
-+  <org.chromium.components.browser_ui.settings.TextMessagePreference
-+      android:key="timeoverride_info_text"
-+      android:summary="@string/website_settings_timeoverride_info"/>
-+
-+
-     <!-- A common binary toggle, only shown for specific categories that allow
-          turning default values for that category on/off.-->
-     <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
-@@ -30,6 +36,10 @@ found in the LICENSE file.
-     <!-- A three state toggle for third-party cookies preferences, only shown for the ThirdPartyCookies category. -->
-     <org.chromium.components.browser_ui.site_settings.TriStateCookieSettingsPreference
-         android:key="tri_state_cookie_toggle" />
-+    <!-- A specific state toggle for time override preferences, only shown for the TimeOverride category. -->
-+    <org.chromium.components.browser_ui.site_settings.TimezoneOverrideSiteSettingsPreference
-+        android:key="timeoverride_state_toggle" />
-+
-     <!-- A checkbox for enabling a quiet ui for notification prompts. Only shown in the Notifications category. -->
-     <org.chromium.components.browser_ui.settings.ChromeBaseCheckBoxPreference
-         android:key="notifications_quiet_ui"
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
-@@ -302,6 +302,12 @@ public class ContentSettingsResources {
-                         R.string.vr_permission_title, ContentSettingValues.ASK,
-                         ContentSettingValues.BLOCK, R.string.website_settings_category_vr_ask,
-                         R.string.website_settings_category_vr_blocked);
-+
-+            case ContentSettingsType.TIMEZONE_OVERRIDE:
-+                return new ResourceItem(R.drawable.web_asset, R.string.timezone_override_permission_title,
-+                            ContentSettingValues.ALLOW, ContentSettingValues.BLOCK,
-+                            R.string.website_settings_category_timezone_override_custom,
-+                            R.string.website_settings_category_timezone_override_random);
-         }
-         ResourceItem ri = BromiteCustomContentSettingImpl.getResourceItem(contentType);
-         if (ri != null) return ri;
-@@ -471,6 +477,18 @@ public class ContentSettingsResources {
-     }
- 
-     public static int getCategorySummary(int contentType, @Nullable @ContentSettingValues int value) {
-+        if (contentType == ContentSettingsType.TIMEZONE_OVERRIDE) {
-+            switch (value) {
-+                case ContentSettingValues.ALLOW:
-+                    return R.string.website_settings_category_timezone_override_allowed;
-+                case ContentSettingValues.ASK:
-+                    return R.string.website_settings_category_timezone_override_custom;
-+                case ContentSettingValues.BLOCK:
-+                    return R.string.website_settings_category_timezone_override_random;
-+                default:
-+                    return 0;
-+            }
-+        }
-         int result = BromiteCustomContentSettingImpl.getCategorySummary(contentType, value);
-         if (result != 0) return result;
-         return getCategorySummary(value);
-@@ -493,6 +511,9 @@ public class ContentSettingsResources {
-      */
-     public static int getSiteSummary(@ContentSettingValues @Nullable Integer value,
-             @ContentSettingsType int contentSettingsType) {
-+        if (contentSettingsType == ContentSettingsType.TIMEZONE_OVERRIDE)
-+            return getCategorySummary(contentSettingsType, value);
-+
-         switch (value) {
-             case ContentSettingValues.ALLOW:
-                 return contentSettingsType == ContentSettingsType.REQUEST_DESKTOP_SITE
-@@ -620,6 +641,13 @@ public class ContentSettingsResources {
-                     R.string.website_settings_category_protected_content_blocked};
-             return descriptionIDs;
-         }
-+        else if (contentType == ContentSettingsType.TIMEZONE_OVERRIDE) {
-+          int[] descriptionIDs = {
-+                  R.string.website_settings_category_timezone_override_allowed, // ALLOWED
-+                  R.string.website_settings_category_timezone_override_custom,  // ASK
-+                  R.string.website_settings_category_timezone_override_random}; // BLOCKED
-+          return descriptionIDs;
-+        }
- 
-         assert false;
-         return null;
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
-@@ -85,6 +85,10 @@ import org.chromium.ui.widget.Toast;
- 
- import java.lang.annotation.Retention;
- import java.lang.annotation.RetentionPolicy;
-+import android.app.Activity;
-+import android.content.Intent;
-+import org.chromium.components.browser_ui.site_settings.TimezoneOverrideSiteSettingsPreference;
-+
- import java.util.ArrayList;
- import java.util.Collection;
- import java.util.Collections;
-@@ -196,6 +200,7 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-     public static final String TRI_STATE_TOGGLE_KEY = "tri_state_toggle";
-     public static final String TRI_STATE_COOKIE_TOGGLE = "tri_state_cookie_toggle";
-     public static final String FOUR_STATE_COOKIE_TOGGLE_KEY = "four_state_cookie_toggle";
-+    public static final String TIMEOVERRIDE_STATE_TOGGLE_KEY = "timeoverride_state_toggle";
- 
-     // Keys for category-specific preferences (toggle, link, button etc.), dynamically shown.
-     public static final String NOTIFICATIONS_VIBRATE_TOGGLE_KEY = "notifications_vibrate";
-@@ -214,6 +219,7 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-             "anti_abuse_things_to_consider_header";
-     public static final String ANTI_ABUSE_THINGS_TO_CONSIDER_SECTION_ONE =
-             "anti_abuse_things_to_consider_section_one";
-+    public static final String TIMEOVERRIDE_INFO_TEXT = "timeoverride_info_text";
- 
-     // Keys for Allowed/Blocked preference groups/headers.
-     public static final String ALLOWED_GROUP = "allowed_group";
-@@ -310,7 +316,11 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-             return BromiteCustomContentSettingImpl.isOnBlockList(contentSetting, website, contentSetting);
-         }
-         if (contentSetting != null) {
--            return ContentSettingValues.BLOCK == contentSetting;
-+            if (mCategory.getContentSettingsType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
-+                return ContentSettingValues.ALLOW != contentSetting;
-+            } else {
-+                return ContentSettingValues.BLOCK == contentSetting;
-+            }
-         }
-         return false;
-     }
-@@ -492,7 +502,8 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-             if (queryHasChanged) getInfoForOrigins();
-         });
- 
--        if (getSiteSettingsDelegate().isHelpAndFeedbackEnabled()) {
-+        if (getSiteSettingsDelegate().isHelpAndFeedbackEnabled() ||
-+                mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
-             MenuItem help = menu.add(
-                     Menu.NONE, R.id.menu_id_site_settings_help, Menu.NONE, R.string.menu_help);
-             help.setIcon(TraceEventVectorDrawableCompat.create(
-@@ -503,7 +514,10 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-     @Override
-     public boolean onOptionsItemSelected(MenuItem item) {
-         if (item.getItemId() == R.id.menu_id_site_settings_help) {
--            if (mCategory.getType() == SiteSettingsCategory.Type.PROTECTED_MEDIA) {
-+            if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
-+                getSiteSettingsDelegate()
-+                        .launchTimeZoneOverrideHelpAndFeedbackActivity(getActivity());
-+            } else if (mCategory.getType() == SiteSettingsCategory.Type.PROTECTED_MEDIA) {
-                 getSiteSettingsDelegate().launchProtectedContentHelpAndFeedbackActivity(
-                         getActivity());
-             } else {
-@@ -610,6 +624,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-             WebsitePreferenceBridge.setDefaultContentSetting(
-                     browserContextHandle, mCategory.getContentSettingsType(), setting);
-             getInfoForOrigins();
-+        } else if (TIMEOVERRIDE_STATE_TOGGLE_KEY.equals(preference.getKey())) {
-+            @ContentSettingValues
-+            int setting = (int) newValue;
-+            WebsitePreferenceBridge.setDefaultContentSetting(
-+                    browserContextHandle, ContentSettingsType.TIMEZONE_OVERRIDE, setting);
-+            getInfoForOrigins();
-         } else if (FOUR_STATE_COOKIE_TOGGLE_KEY.equals(preference.getKey())) {
-             setCookieSettingsPreference((CookieSettingsState) newValue);
-             getInfoForOrigins();
-@@ -796,6 +816,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-                         ? R.string.website_settings_blocked_group_heading_request_desktop_site
-                         : R.string.website_settings_allowed_group_heading_request_desktop_site;
-                 break;
-+            case SiteSettingsCategory.Type.TIMEZONE_OVERRIDE:
-+                resource = WebsitePreferenceBridge.isCategoryEnabled(
-+                                   browserContextHandle, ContentSettingsType.TIMEZONE_OVERRIDE)
-+                        ? R.string.website_settings_category_timezone_override_allowed
-+                        : R.string.website_settings_category_timezone_override_allowed;
-+                break;
-         }
-         if (resource == 0)
-             resource = BromiteCustomContentSettingImpl.getAddExceptionDialogMessage(mCategory);
-@@ -917,6 +943,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-             case SiteSettingsCategory.Type.THIRD_PARTY_COOKIES:
-                 allowSpecifyingExceptions = getCookieControlsMode() != CookieControlsMode.OFF;
-                 break;
-+            case SiteSettingsCategory.Type.TIMEZONE_OVERRIDE:
-+                allowSpecifyingExceptions = true;
-+                break;
-             default:
-                 break;
-         }
-@@ -1138,6 +1167,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-         PreferenceGroup blockedGroup = screen.findPreference(BLOCKED_GROUP);
-         PreferenceGroup managedGroup = screen.findPreference(MANAGED_GROUP);
-         boolean permissionBlockedByOs = mCategory.showPermissionBlockedMessage(getContext());
-+        TimezoneOverrideSiteSettingsPreference timeOverrideStatePreference =
-+                (TimezoneOverrideSiteSettingsPreference) screen.findPreference(
-+                        TIMEOVERRIDE_STATE_TOGGLE_KEY);
- 
-         if (mGlobalToggleLayout != GlobalToggleLayout.BINARY_TOGGLE) {
-             screen.removePreference(binaryToggle);
-@@ -1151,11 +1183,18 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-         if (mGlobalToggleLayout != GlobalToggleLayout.FOUR_STATE_COOKIE_TOGGLE) {
-             screen.removePreference(fourStateCookieToggle);
-         }
-+        if (contentType != SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
-+            screen.removePreference(screen.findPreference(TIMEOVERRIDE_INFO_TEXT));
-+        }
-         switch (mGlobalToggleLayout) {
-             case GlobalToggleLayout.BINARY_TOGGLE:
-                 configureBinaryToggle(binaryToggle, contentType);
-                 break;
-             case GlobalToggleLayout.TRI_STATE_TOGGLE:
-+                if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
-+                    configureTimeOverrideStateToggle(timeOverrideStatePreference);
-+                    break;
-+                }
-                 configureTriStateToggle(triStateToggle, contentType);
-                 break;
-             case GlobalToggleLayout.TRI_STATE_COOKIE_TOGGLE:
-@@ -1204,6 +1243,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-         }
-         BromiteCustomContentSettingImpl.configureGlobalToggles(mCategory, screen);
- 
-+        if (mCategory.getType() == SiteSettingsCategory.Type.TIMEZONE_OVERRIDE) {
-+            screen.removePreference(triStateToggle);
-+        } else {
-+            screen.removePreference(timeOverrideStatePreference);
-+        }
-+
-         if (permissionBlockedByOs) {
-             maybeShowOsWarning(screen);
- 
-@@ -1359,6 +1404,15 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-         triStateToggle.initialize(contentType, setting, descriptionIds);
-     }
- 
-+    private void configureTimeOverrideStateToggle(
-+            TimezoneOverrideSiteSettingsPreference timeOverrideStateToggle) {
-+        timeOverrideStateToggle.setOnPreferenceChangeListener(this);
-+        @ContentSettingValues
-+        int setting = WebsitePreferenceBridge.getDefaultContentSetting(
-+                getSiteSettingsDelegate().getBrowserContextHandle(), ContentSettingsType.TIMEZONE_OVERRIDE);
-+        timeOverrideStateToggle.initialize(setting, getSiteSettingsDelegate().getBrowserContextHandle());
-+    }
-+
-     private void configureBinaryToggle(ChromeSwitchPreference binaryToggle, int contentType) {
-         binaryToggle.setOnPreferenceChangeListener(this);
-         binaryToggle.setTitle(
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -143,6 +143,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
-                 return "popup_permission_list";
-             case ContentSettingsType.SOUND:
-                 return "sound_permission_list";
-+            case ContentSettingsType.TIMEZONE_OVERRIDE:
-+                return "timezone_override_permission_list";
-             case ContentSettingsType.AR:
-                 return "ar_permission_list";
-             case ContentSettingsType.MEDIASTREAM_CAMERA:
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettings.java
-@@ -132,7 +132,7 @@ public class SiteSettings extends SiteSettingsPreferenceFragment
-             } else if (Type.AUTO_DARK_WEB_CONTENT == prefCategory) {
-                 p.setSummary(ContentSettingsResources.getAutoDarkWebContentListSummary(checked));
-             } else if (requiresTriStateSetting) {
--                p.setSummary(ContentSettingsResources.getCategorySummary(setting));
-+                p.setSummary(ContentSettingsResources.getCategorySummary(contentType, setting));
-             } else {
-                 p.setSummary(ContentSettingsResources.getCategorySummary(contentType, checked)); //
-             }
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-@@ -81,10 +81,11 @@ public class SiteSettingsCategory {
-         int THIRD_PARTY_COOKIES = 26;
-         int SITE_DATA = 27;
-         int ANTI_ABUSE = 28;
-+        int TIMEZONE_OVERRIDE = 29;
-         /**
-          * Number of handled categories used for calculating array sizes.
-          */
--        int NUM_ENTRIES_CHROMIUM = 29;
-+        int NUM_ENTRIES_CHROMIUM = 30;
-     }
- 
-     private final BrowserContextHandle mBrowserContextHandle;
-@@ -216,6 +217,8 @@ public class SiteSettingsCategory {
-                 return ContentSettingsType.USB_GUARD;
-             case Type.VIRTUAL_REALITY:
-                 return ContentSettingsType.VR;
-+            case Type.TIMEZONE_OVERRIDE:
-+                return ContentSettingsType.TIMEZONE_OVERRIDE;
-             case Type.ALL_SITES:
-             case Type.USE_STORAGE:
-                 return ContentSettingsType.DEFAULT; // Conversion unavailable.
-@@ -302,6 +305,8 @@ public class SiteSettingsCategory {
-                 return "site_data";
-             case Type.THIRD_PARTY_COOKIES:
-                 return "third_party_cookies";
-+            case Type.TIMEZONE_OVERRIDE:
-+                return "timezone_override";
-             default:
-             {
-                 String value = BromiteCustomContentSettingImpl.getPreferenceKey(type);
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsDelegate.java
-@@ -163,6 +163,8 @@ public interface SiteSettingsDelegate {
-      */
-     String getFirstPartySetOwner(String memberOrigin);
- 
-+    void launchTimeZoneOverrideHelpAndFeedbackActivity(Activity currentActivity);
-+
-     /**
-      * Returns whether the current implementation of the delegate is able to launch the Clear
-      * Browsing Data dialog in Settings.
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/TimezoneOverrideSiteSettingsPreference.java
 new file mode 100755
 --- /dev/null
@@ -747,59 +376,10 @@ new file mode 100755
 +        alertDialog.show();
 +    }
 +}
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-@@ -243,6 +243,17 @@ public final class Website implements WebsiteEntry {
-             } else {
-                 RecordUserAction.record("SoundContentSetting.UnmuteBy.SiteSettings");
-             }
-+        } else if (type == ContentSettingsType.TIMEZONE_OVERRIDE) {
-+            // It is possible to set the permission without having an existing exception,
-+            // because we can show the ALLOW state even when this permission is set to the
-+            // default. In that case, just set an exception now to ALLOW to enable changing the
-+            // permission.
-+            if (exception == null) {
-+                exception = new ContentSettingException(
-+                        ContentSettingsType.TIMEZONE_OVERRIDE, getAddress().getHost(), value, "",
-+                        /*isEmbargoed=*/false);
-+                setContentSettingException(type, exception);
-+            }
-         }
- 
-         if (exception == null) {
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
-@@ -75,6 +75,7 @@ public class WebsitePermissionsFetcher {
-             case ContentSettingsType.POPUPS:
-             case ContentSettingsType.REQUEST_DESKTOP_SITE:
-             case ContentSettingsType.SOUND:
-+            case ContentSettingsType.TIMEZONE_OVERRIDE:
-                 return WebsitePermissionsType.CONTENT_SETTING_EXCEPTION;
-             case ContentSettingsType.AR:
-             case ContentSettingsType.CLIPBOARD_READ_WRITE:
-@@ -212,6 +213,7 @@ public class WebsitePermissionsFetcher {
-             for (@ContentSettingsType int type = 0; type < ContentSettingsType.NUM_TYPES_BROMITE; type++) {
-                 addFetcherForContentSettingsType(queue, type);
-             }
-+            queue.add(new ExceptionInfoFetcher(ContentSettingsType.TIMEZONE_OVERRIDE));
-         }
- 
-         /**
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePreferenceBridge.java
-@@ -245,6 +245,8 @@ public class WebsitePreferenceBridge {
-         switch (contentSettingsType) {
-             case ContentSettingsType.PROTECTED_MEDIA_IDENTIFIER:
-                 return true;
-+            case ContentSettingsType.TIMEZONE_OVERRIDE:
-+                return true;
-             default:
-                 return BromiteCustomContentSettingImpl.requiresTriStateContentSetting(contentSettingsType);
-         }
-@@ -384,6 +386,14 @@ public class WebsitePreferenceBridge {
+@@ -384,6 +384,14 @@ public class WebsitePreferenceBridge {
          return WebsitePreferenceBridgeJni.get().toHostOnlyPattern(pattern);
      }
  
@@ -814,7 +394,7 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
      @NativeMethods
      public interface Natives {
          boolean isNotificationEmbargoedForOrigin(
-@@ -448,5 +458,7 @@ public class WebsitePreferenceBridge {
+@@ -448,5 +456,7 @@ public class WebsitePreferenceBridge {
          boolean getLocationAllowedByPolicy(BrowserContextHandle browserContextHandle);
          String toDomainWildcardPattern(String pattern);
          String toHostOnlyPattern(String pattern);
@@ -822,6 +402,157 @@ diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/c
 +        void setCustomTimezone(BrowserContextHandle browserContextHandle, String custom_timezone);
      }
  }
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteTimezoneOverrideContentSetting.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteTimezoneOverrideContentSetting.java
+new file mode 100644
+--- /dev/null
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteTimezoneOverrideContentSetting.java
+@@ -0,0 +1,146 @@
++/*
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++package org.chromium.components.browser_ui.site_settings.impl;
++
++import org.chromium.components.browser_ui.site_settings.R;
++
++import org.chromium.components.browser_ui.site_settings.BromiteCustomContentSetting;
++import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
++import org.chromium.components.browser_ui.site_settings.SingleCategorySettings;
++import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
++import org.chromium.components.browser_ui.site_settings.TimezoneOverrideSiteSettingsPreference;
++import org.chromium.components.browser_ui.site_settings.WebsitePreferenceBridge;
++import org.chromium.components.content_settings.ContentSettingValues;
++import org.chromium.components.content_settings.ContentSettingsType;
++import org.chromium.content_public.browser.BrowserContextHandle;
++
++import android.view.View;
++import androidx.annotation.Nullable;
++import androidx.preference.Preference;
++import androidx.preference.PreferenceScreen;
++
++import java.util.ArrayList;
++
++public class BromiteTimezoneOverrideContentSetting extends BromiteCustomContentSetting {
++    private static final String TIMEOVERRIDE_STATE_TOGGLE_KEY = "timeoverride_state_toggle";
++
++    public BromiteTimezoneOverrideContentSetting() {
++        super(/*contentSettingsType*/ ContentSettingsType.TIMEZONE_OVERRIDE,
++              /*defaultEnabledValue*/ ContentSettingValues.ALLOW,
++              /*defaultDisabledValue*/ ContentSettingValues.BLOCK,
++              /*allowException*/ true,
++              /*preferenceKey*/ "timezone_override",
++              /*profilePrefKey*/ "timezone_override_permission_list");
++    }
++
++    @Override
++    public ContentSettingsResources.ResourceItem getResourceItem() {
++        return new ContentSettingsResources.ResourceItem(
++            /*icon*/ R.drawable.web_asset,
++            /*title*/ R.string.timezone_override_permission_title,
++            /*defaultEnabledValue*/ getDefaultEnabledValue(),
++            /*defaultDisabledValue*/ getDefaultDisabledValue(),
++            /*enabledSummary*/ R.string.website_settings_category_timezone_override_custom,
++            /*disabledSummary*/ R.string.website_settings_category_timezone_override_random);
++    }
++
++    @Override
++    public int getCategorySummary(@Nullable @ContentSettingValues int value) {
++        switch (value) {
++            case ContentSettingValues.ALLOW:
++                return R.string.website_settings_category_timezone_override_allowed;
++            case ContentSettingValues.ASK:
++                return R.string.website_settings_category_timezone_override_custom;
++            case ContentSettingValues.BLOCK:
++                return R.string.website_settings_category_timezone_override_random;
++            default:
++                return 0;
++        }
++    }
++
++    @Override
++    public int[] getTriStateSettingDescriptionIDs() {
++          int[] descriptionIDs = {
++                  R.string.website_settings_category_timezone_override_allowed, // ALLOWED
++                  R.string.website_settings_category_timezone_override_custom,  // ASK
++                  R.string.website_settings_category_timezone_override_random}; // BLOCKED
++          return descriptionIDs;
++    }
++
++    @Override
++    public int getCategoryDescription() {
++        return R.string.website_settings_timeoverride_info;
++    }
++
++    @Override
++    public boolean requiresTriStateContentSetting() {
++        return true;
++    }
++
++    @Override
++    public boolean showOnlyDescriptions() {
++        return true;
++    }
++
++    @Override
++    public int getAddExceptionDialogMessage() {
++        return R.string.website_settings_category_timezone_override_allowed;
++    }
++
++    @Override
++    public @Nullable Boolean considerException(SiteSettingsCategory category, @ContentSettingValues int value) {
++        return value != ContentSettingValues.ALLOW;
++    }
++
++    @Override
++    public boolean isOnBlockList(@ContentSettingValues Integer contentSetting) {
++        return ContentSettingValues.ALLOW != contentSetting;
++    }
++
++    @Override
++    public boolean isHelpAndFeedbackEnabled() {
++        return true;
++    }
++
++    @Override
++    public String getHelpAndFeedbackActivityUrl() {
++        return "https://github.com/bromite/bromite/wiki/TimezoneOverride";
++    }
++
++    @Override
++    public void configureGlobalToggles(SiteSettingsCategory category, SingleCategorySettings setting) {
++        BrowserContextHandle browserContext = setting.getSiteSettingsDelegate().getBrowserContextHandle();
++        PreferenceScreen screen = setting.getPreferenceScreen();
++
++        Preference triStateToggle = screen.findPreference(
++                                            SingleCategorySettings.TRI_STATE_TOGGLE_KEY);
++        int order = triStateToggle.getOrder();
++        screen.removePreference(triStateToggle);
++
++        TimezoneOverrideSiteSettingsPreference timeOverrideStatePreference =
++            new TimezoneOverrideSiteSettingsPreference(setting.getContext(), null);
++        screen.addPreference(timeOverrideStatePreference);
++        timeOverrideStatePreference.setOrder(order);
++
++        timeOverrideStatePreference.setOnPreferenceChangeListener(setting);
++        @ContentSettingValues
++        int value = WebsitePreferenceBridge.getDefaultContentSetting(
++                browserContext, ContentSettingsType.TIMEZONE_OVERRIDE);
++        timeOverrideStatePreference.initialize(value, browserContext);
++    }
++}
 diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
 --- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
 +++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
@@ -980,7 +711,7 @@ diff --git a/components/content_settings/core/browser/content_settings_pref_prov
 diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -165,6 +165,11 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
+@@ -161,6 +161,11 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
                               &(rules->script_rules));
    map->GetSettingsForOneType(ContentSettingsType::POPUPS,
                               &(rules->popup_redirect_rules));
@@ -1233,18 +964,5 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
  };
  
  }  // namespace content_settings
-diff --git a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java b/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
---- a/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
-+++ b/weblayer/browser/java/org/chromium/weblayer_private/settings/WebLayerSiteSettingsDelegate.java
-@@ -155,6 +155,9 @@ public class WebLayerSiteSettingsDelegate
-     @Override
-     public void dismissPrivacySandboxSnackbar() {}
- 
-+    @Override
-+    public void launchTimeZoneOverrideHelpAndFeedbackActivity(Activity currentActivity) {}
-+
-     @Override
-     public boolean isFirstPartySetsDataAccessEnabled() {
-         return false;
 --
 2.25.1
