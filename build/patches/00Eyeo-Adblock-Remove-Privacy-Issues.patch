@@ -24,7 +24,7 @@ settings ui in Windows
  chrome/browser/resources/settings/settings.ts |    1 +
  .../settings/settings_menu/settings_menu.html |    5 +
  chrome/browser/ui/tab_helpers.cc              |    2 +
- chrome/test/BUILD.gn                          |    1 -
+ chrome/test/BUILD.gn                          |    5 -
  components/adblock/android/BUILD.gn           |    2 +-
  .../layout/adblock_filter_lists_list_item.xml |   10 +
  ...ences.xml => eyeo_adblock_preferences.xml} |    0
@@ -44,15 +44,15 @@ settings ui in Windows
  .../adblock/core/common/adblock_constants.h   |    1 -
  .../adblock/core/common/adblock_prefs.cc      |   44 +-
  .../adblock/core/common/adblock_utils.cc      |   23 -
- .../adblock/core/converter/parser/metadata.cc |    6 +-
+ .../adblock/core/converter/parser/metadata.cc |    7 +-
  .../core/converter/parser/url_filter.cc       |    4 +
  .../adblock/core/sitekey_storage_impl.cc      |    6 +
  ...filtering_configuration_maintainer_impl.cc |   10 -
  .../filtering_configuration_maintainer_impl.h |    1 -
- .../ongoing_subscription_request_impl.cc      |   27 +-
+ .../ongoing_subscription_request_impl.cc      |   33 +-
  .../preloaded_subscription_provider_impl.cc   |    4 +-
  .../core/subscription/subscription_config.cc  |    8 +-
- .../subscription_downloader_impl.cc           |   15 +-
+ .../subscription_downloader_impl.cc           |   17 +-
  .../subscription_persistent_storage_impl.cc   |   11 +-
  .../subscription/subscription_service_impl.cc |    2 +-
  .../subscription/subscription_updater_impl.cc |    8 +-
@@ -69,7 +69,7 @@ settings ui in Windows
  .../blink/renderer/core/css/style_engine.cc   |    8 +
  .../blink/renderer/core/css/style_engine.h    |    1 +
  .../renderer/core/exported/web_document.cc    |   13 +-
- 64 files changed, 3719 insertions(+), 1157 deletions(-)
+ 64 files changed, 3723 insertions(+), 1166 deletions(-)
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.cc
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.h
  create mode 100644 chrome/browser/resources/settings/adblock_page/adblock_page.html
@@ -922,6 +922,17 @@ diff --git a/chrome/test/BUILD.gn b/chrome/test/BUILD.gn
  import("//components/captive_portal/core/features.gni")
  import("//components/feed/features.gni")
  import("//components/lens/features.gni")
+@@ -2480,10 +2479,6 @@ if (!is_android) {
+       sources += [ "../browser/chrome_for_testing/chrome_for_testing_info_bar_browsertest.cc" ]
+     }
+ 
+-    if (eyeo_intercept_debug_url) {
+-      sources += [ "../browser/adblock/test/adblock_debug_url_browsertest.cc" ]
+-    }
+-
+     if (enable_reporting) {
+       sources += [ "../browser/net/reporting_browsertest.cc" ]
+     }
 diff --git a/components/adblock/android/BUILD.gn b/components/adblock/android/BUILD.gn
 --- a/components/adblock/android/BUILD.gn
 +++ b/components/adblock/android/BUILD.gn
@@ -2008,16 +2019,18 @@ diff --git a/components/adblock/core/common/adblock_utils.cc b/components/adbloc
 diff --git a/components/adblock/core/converter/parser/metadata.cc b/components/adblock/core/converter/parser/metadata.cc
 --- a/components/adblock/core/converter/parser/metadata.cc
 +++ b/components/adblock/core/converter/parser/metadata.cc
-@@ -40,7 +40,7 @@ absl::optional<Metadata> Metadata::FromStream(std::istream& filter_stream) {
+@@ -40,9 +40,8 @@ absl::optional<Metadata> Metadata::FromStream(std::istream& filter_stream) {
    std::string line;
    std::getline(filter_stream, line);
    if (!IsValidAdblockHeader(line)) {
 -    VLOG(1) << "[eyeo] Invalid filter list. Should start with [Adblock Plus "
 +    LOG(ERROR) << "[eyeo] Invalid filter list. Should start with [Adblock Plus "
                 "<x>.<y>].";
-     return {};
+-    return {};
    }
-@@ -62,7 +62,7 @@ absl::optional<Metadata> Metadata::FromStream(std::istream& filter_stream) {
+ 
+   std::string key, value;
+@@ -62,7 +61,7 @@ absl::optional<Metadata> Metadata::FromStream(std::istream& filter_stream) {
        if (url.is_valid()) {
          redirect_url = url;
        } else {
@@ -2026,7 +2039,7 @@ diff --git a/components/adblock/core/converter/parser/metadata.cc b/components/a
                  << ". Will not redirect.";
        }
      } else if (key == "title") {
-@@ -131,7 +131,7 @@ base::TimeDelta Metadata::ParseExpirationTime(
+@@ -131,7 +130,7 @@ base::TimeDelta Metadata::ParseExpirationTime(
  
    if (!re2::RE2::FullMatch(expiration_value, expiration_time_re,
                             &expiration_time, &expiration_unit)) {
@@ -2158,7 +2171,7 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
  OngoingSubscriptionRequestImpl::~OngoingSubscriptionRequestImpl() {
    if (!url_.is_empty()) {
 -    VLOG(1) << "[eyeo] Cancelling download of " << url_;
-+    LOG(INFO) << "[eyeo] Cancelling download of " << url_;
++    LOG(INFO) << "[eyeo] Finished download of " << url_;
    }
    net::NetworkChangeNotifier::RemoveNetworkChangeObserver(this);
  }
@@ -2180,12 +2193,13 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
    ++number_of_redirects_;
    url_ = std::move(redirect_url);
    StartInternal();
-@@ -126,10 +139,14 @@ void OngoingSubscriptionRequestImpl::StartInternal() {
+@@ -126,10 +139,15 @@ void OngoingSubscriptionRequestImpl::StartInternal() {
      // indefinitely.
      return;
    }
 -  VLOG(1) << "[eyeo] Downloading " << url_;
-+  LOG(INFO) << "[eyeo] Downloading " << url_;
++  LOG(INFO) << "[eyeo] Downloading " << url_
++            << " with method " << (method_ == Method::GET ? "get" : "headers only");
    auto request = std::make_unique<network::ResourceRequest>();
    request->url = url_;
    request->method = MethodToString();
@@ -2196,6 +2210,19 @@ diff --git a/components/adblock/core/subscription/ongoing_subscription_request_i
    loader_ =
        network::SimpleURLLoader::Create(std::move(request), kTrafficAnnotation);
  
+@@ -152,11 +170,8 @@ void OngoingSubscriptionRequestImpl::OnDownloadFinished(
+     base::FilePath downloaded_file) {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+   TRACE_EVENT_NESTABLE_ASYNC_END0("eyeo", "Downloading subscription", this);
+-  GURL::Replacements strip_query;
+-  strip_query.ClearQuery();
+-  GURL url = url_.ReplaceComponents(strip_query);
+   response_callback_.Run(
+-      url, std::move(downloaded_file),
++      url_, std::move(downloaded_file),
+       loader_->ResponseInfo() ? loader_->ResponseInfo()->headers : nullptr);
+   // response_callback_ may delete this, do not call any member variables now.
+ }
 diff --git a/components/adblock/core/subscription/preloaded_subscription_provider_impl.cc b/components/adblock/core/subscription/preloaded_subscription_provider_impl.cc
 --- a/components/adblock/core/subscription/preloaded_subscription_provider_impl.cc
 +++ b/components/adblock/core/subscription/preloaded_subscription_provider_impl.cc
@@ -2255,7 +2282,16 @@ diff --git a/components/adblock/core/subscription/subscription_downloader_impl.c
    const std::string query = base::StrCat(
        {"addonName=", "eyeo-chromium-sdk", "&addonVersion=", "1.0",
         "&application=", base::EscapeQueryParamValue(client_metadata.name, true),
-@@ -140,10 +141,6 @@ void SubscriptionDownloaderImpl::DoHeadRequest(
+@@ -116,6 +117,8 @@ void SubscriptionDownloaderImpl::StartDownload(
+ }
+ 
+ void SubscriptionDownloaderImpl::CancelDownload(const GURL& subscription_url) {
++  LOG(WARNING) << "[eyeo] Download cancelled: "
++                << subscription_url;
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+   ongoing_downloads_.erase(subscription_url);
+ }
+@@ -140,10 +143,6 @@ void SubscriptionDownloaderImpl::DoHeadRequest(
  
  bool SubscriptionDownloaderImpl::IsUrlAllowed(
      const GURL& subscription_url) const {
@@ -2266,7 +2302,7 @@ diff --git a/components/adblock/core/subscription/subscription_downloader_impl.c
    if (!subscription_url.SchemeIs("https") &&
        !subscription_url.SchemeIs("data")) {
      return false;
-@@ -193,11 +190,11 @@ void SubscriptionDownloaderImpl::OnDownloadFinished(
+@@ -193,11 +192,11 @@ void SubscriptionDownloaderImpl::OnDownloadFinished(
      persistent_metadata_->IncrementDownloadErrorCount(subscription_url);
      if (std::get<RetryPolicy>(download_it->second) ==
          RetryPolicy::RetryUntilSucceeded) {
@@ -2280,7 +2316,7 @@ diff --git a/components/adblock/core/subscription/subscription_downloader_impl.c
                      << subscription_url << ", will abort";
        std::move(std::get<DownloadCompletedCallback>(download_it->second))
            .Run(nullptr);
-@@ -229,14 +226,14 @@ void SubscriptionDownloaderImpl::OnConversionFinished(
+@@ -229,14 +228,14 @@ void SubscriptionDownloaderImpl::OnConversionFinished(
        TRACE_ID_LOCAL(GenerateTraceId(subscription_url)));
    const auto download_it = ongoing_downloads_.find(subscription_url);
    if (download_it == ongoing_downloads_.end()) {
@@ -2297,7 +2333,7 @@ diff --git a/components/adblock/core/subscription/subscription_downloader_impl.c
              << " successfully";
      std::move(std::get<DownloadCompletedCallback>(download_it->second))
          .Run(std::move(
-@@ -279,7 +276,7 @@ void SubscriptionDownloaderImpl::AbortWithWarning(
+@@ -279,7 +278,7 @@ void SubscriptionDownloaderImpl::AbortWithWarning(
    if (ongoing_download_it == ongoing_downloads_.end()) {
      return;
    }
