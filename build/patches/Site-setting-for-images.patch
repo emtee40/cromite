@@ -4,79 +4,28 @@ Subject: Site setting for images
 
 Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+Require: Content-settings-infrastructure.patch
 ---
- .../browser_ui/site_settings/android/BUILD.gn |   5 ++++
  .../res/drawable-hdpi/permission_images.png   | Bin 0 -> 257 bytes
  .../res/drawable-mdpi/permission_images.png   | Bin 0 -> 186 bytes
  .../res/drawable-xhdpi/permission_images.png  | Bin 0 -> 316 bytes
  .../res/drawable-xxhdpi/permission_images.png | Bin 0 -> 449 bytes
  .../drawable-xxxhdpi/permission_images.png    | Bin 0 -> 532 bytes
- .../res/xml/site_settings_preferences.xml     |   4 ++++
- .../ContentSettingsResources.java             |   4 ++++
- .../site_settings/SingleCategorySettings.java |   9 +++++++
- .../site_settings/SingleWebsiteSettings.java  |  22 ++++++++++++++++++
- .../site_settings/SiteSettingsCategory.java   |   9 +++++--
- .../site_settings/SiteSettingsUtil.java       |   1 +
- .../browser_ui/site_settings/Website.java     |   7 ++++++
- .../WebsitePermissionsFetcher.java            |   1 +
- .../android/website_preference_bridge.cc      |   1 +
- .../strings/android/site_settings.grdp        |   6 +++++
- .../core/browser/content_settings_registry.cc |   3 ++-
- .../core/browser/content_settings_utils.cc    |   8 ++-----
- .../android/page_info_controller_android.cc   |   4 ++++
- components/page_info/page_info.cc             |   7 ++++--
- components/page_info/page_info_ui.cc          |   4 ++--
- components/site_settings_strings.grdp         |  12 +++++-----
- 22 files changed, 88 insertions(+), 19 deletions(-)
+ .../impl/BromiteImagesContentSetting.java     |  92 ++++++++++++++++++
+ .../bromite_content_settings/images.grdp      |  23 +++++
+ .../bromite_content_settings/images.inc       |   7 ++
+ .../core/browser/content_settings_registry.cc |   2 +-
+ .../core/browser/content_settings_utils.cc    |   8 +-
+ 10 files changed, 125 insertions(+), 7 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-mdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xhdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xxhdpi/permission_images.png
  create mode 100644 components/browser_ui/site_settings/android/java/res/drawable-xxxhdpi/permission_images.png
+ create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteImagesContentSetting.java
+ create mode 100644 components/browser_ui/strings/bromite_content_settings/images.grdp
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/images.inc
 
-diff --git a/components/browser_ui/site_settings/android/BUILD.gn b/components/browser_ui/site_settings/android/BUILD.gn
---- a/components/browser_ui/site_settings/android/BUILD.gn
-+++ b/components/browser_ui/site_settings/android/BUILD.gn
-@@ -186,6 +186,7 @@ android_resources("java_resources") {
-   sources = [
-     "java/res/drawable-hdpi/ic_volume_up_grey600_24dp.png",
-     "java/res/drawable-hdpi/permission_background_sync.png",
-+    "java/res/drawable-hdpi/permission_images.png",
-     "java/res/drawable-hdpi/permission_javascript.png",
-     "java/res/drawable-hdpi/permission_javascript_jit.png",
-     "java/res/drawable-hdpi/permission_popups.png",
-@@ -194,6 +195,7 @@ android_resources("java_resources") {
-     "java/res/drawable-hdpi/web_asset.png",
-     "java/res/drawable-mdpi/ic_volume_up_grey600_24dp.png",
-     "java/res/drawable-mdpi/permission_background_sync.png",
-+    "java/res/drawable-mdpi/permission_images.png",
-     "java/res/drawable-mdpi/permission_javascript.png",
-     "java/res/drawable-mdpi/permission_javascript_jit.png",
-     "java/res/drawable-hdpi/settings_autoplay.png",
-@@ -207,6 +209,7 @@ android_resources("java_resources") {
-     "java/res/drawable-mdpi/web_asset.png",
-     "java/res/drawable-xhdpi/ic_volume_up_grey600_24dp.png",
-     "java/res/drawable-xhdpi/permission_background_sync.png",
-+    "java/res/drawable-xhdpi/permission_images.png",
-     "java/res/drawable-xhdpi/permission_javascript.png",
-     "java/res/drawable-xhdpi/permission_javascript_jit.png",
-     "java/res/drawable-xhdpi/permission_popups.png",
-@@ -215,6 +218,7 @@ android_resources("java_resources") {
-     "java/res/drawable-xhdpi/web_asset.png",
-     "java/res/drawable-xxhdpi/ic_volume_up_grey600_24dp.png",
-     "java/res/drawable-xxhdpi/permission_background_sync.png",
-+    "java/res/drawable-xxhdpi/permission_images.png",
-     "java/res/drawable-xxhdpi/permission_javascript.png",
-     "java/res/drawable-xxhdpi/permission_javascript_jit.png",
-     "java/res/drawable-xxhdpi/permission_popups.png",
-@@ -223,6 +227,7 @@ android_resources("java_resources") {
-     "java/res/drawable-xxhdpi/web_asset.png",
-     "java/res/drawable-xxxhdpi/ic_volume_up_grey600_24dp.png",
-     "java/res/drawable-xxxhdpi/permission_background_sync.png",
-+    "java/res/drawable-xxxhdpi/permission_images.png",
-     "java/res/drawable-xxxhdpi/permission_javascript.png",
-     "java/res/drawable-xxxhdpi/permission_javascript_jit.png",
-     "java/res/drawable-xxxhdpi/permission_popups.png",
 diff --git a/components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_images.png b/components/browser_ui/site_settings/android/java/res/drawable-hdpi/permission_images.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..cafee5acf2299e534676a15fb029192e066551c9
@@ -159,239 +108,159 @@ F0RV{K+KvDK
 literal 0
 HcmV?d00001
 
-diff --git a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
---- a/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
-+++ b/components/browser_ui/site_settings/android/java/res/xml/site_settings_preferences.xml
-@@ -51,6 +51,10 @@ Also add new settings to site_settings_preferences_with_categories.xml!
-     <org.chromium.components.browser_ui.settings.ChromeBasePreference
-         android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings"
-         android:key="javascript" />
-+    <!-- Images -->
-+    <org.chromium.components.browser_ui.settings.ChromeBasePreference
-+        android:key="images"
-+        android:fragment="org.chromium.components.browser_ui.site_settings.SingleCategorySettings" />
-     <!-- Timezone Override -->
-     <org.chromium.components.browser_ui.settings.ChromeBasePreference
-         android:key="timezone_override"
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/ContentSettingsResources.java
-@@ -146,6 +146,10 @@ public class ContentSettingsResources {
-                 return new ResourceItem(R.drawable.settings_bluetooth, 0, ContentSettingValues.ASK,
-                         ContentSettingValues.BLOCK, 0, 0);
- 
-+            case ContentSettingsType.IMAGES:
-+                return new ResourceItem(R.drawable.permission_images, R.string.images_permission_title,
-+                        ContentSettingValues.ALLOW, ContentSettingValues.BLOCK, 0, 0);
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteImagesContentSetting.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteImagesContentSetting.java
+new file mode 100644
+--- /dev/null
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteImagesContentSetting.java
+@@ -0,0 +1,92 @@
++/*
++    This file is part of Bromite.
 +
-             case ContentSettingsType.BLUETOOTH_GUARD:
-                 return new ResourceItem(R.drawable.settings_bluetooth,
-                         R.string.website_settings_bluetooth, ContentSettingValues.ASK,
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleCategorySettings.java
-@@ -785,6 +785,12 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-                         ? R.string.website_settings_add_site_description_javascript_jit_block
-                         : R.string.website_settings_add_site_description_javascript_jit_allow;
-                 break;
-+            case SiteSettingsCategory.Type.IMAGES:
-+                resource =  WebsitePreferenceBridge.isCategoryEnabled(
-+                                   browserContextHandle, ContentSettingsType.IMAGES)
-+                        ? R.string.website_settings_add_site_description_images
-+                        : R.string.website_settings_add_site_description_images;
-+                break;
-             case SiteSettingsCategory.Type.COOKIES:
-                 resource = getCookieSettingsState() == CookieSettingsState.ALLOW
-                         ? R.string.website_settings_add_site_description_cookies_block
-@@ -949,6 +955,9 @@ public class SingleCategorySettings extends SiteSettingsPreferenceFragment
-             case SiteSettingsCategory.Type.AUTOPLAY:
-                 allowSpecifyingExceptions = true;
-                 break;
-+            case SiteSettingsCategory.Type.IMAGES:
-+                allowSpecifyingExceptions = true;
-+                break;
-             case SiteSettingsCategory.Type.JAVASCRIPT_JIT:
-                 allowSpecifyingExceptions = true;
-                 break;
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SingleWebsiteSettings.java
-@@ -137,6 +137,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
-                 return "autoplay_permission_list";
-             case ContentSettingsType.IDLE_DETECTION:
-                 return "idle_detection_permission_list";
-+            case ContentSettingsType.IMAGES:
-+                return "images_permission_list";
-             case ContentSettingsType.JAVASCRIPT:
-                 return "javascript_permission_list";
-             case ContentSettingsType.JAVASCRIPT_JIT:
-@@ -522,6 +524,8 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
-                 setUpJavascriptPreference(preference);
-             } else if (type == ContentSettingsType.GEOLOCATION) {
-                 setUpLocationPreference(preference);
-+            } else if (type == ContentSettingsType.IMAGES) {
-+                setUpImagesPreference(preference);
-             } else if (type == ContentSettingsType.JAVASCRIPT_JIT) {
-                 setUpJavascriptJitPreference(preference);
-             } else if (type == ContentSettingsType.NOTIFICATIONS) {
-@@ -1149,6 +1153,24 @@ public class SingleWebsiteSettings extends SiteSettingsPreferenceFragment
-                 mSite.isEmbargoed(ContentSettingsType.REQUEST_DESKTOP_SITE));
-     }
- 
-+    private void setUpImagesPreference(Preference preference) {
-+        BrowserContextHandle browserContextHandle =
-+                getSiteSettingsDelegate().getBrowserContextHandle();
-+        @ContentSettingValues
-+        @Nullable
-+        Integer currentValue =
-+                mSite.getContentSetting(browserContextHandle, ContentSettingsType.IMAGES);
-+        // Always show the Images permission
-+        if (currentValue == null) {
-+            currentValue = WebsitePreferenceBridge.isCategoryEnabled(
-+                                   browserContextHandle, ContentSettingsType.IMAGES)
-+                    ? ContentSettingValues.ALLOW
-+                    : ContentSettingValues.BLOCK;
-+        }
-+        // Not possible to embargo IMAGES.
-+        setupContentSettingsPreference(preference, currentValue, false /* isEmbargoed */);
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++package org.chromium.components.browser_ui.site_settings.impl;
++
++import org.chromium.components.browser_ui.site_settings.R;
++
++import org.chromium.components.browser_ui.site_settings.BromiteCustomContentSetting;
++import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
++import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
++import org.chromium.components.content_settings.ContentSettingValues;
++import org.chromium.components.content_settings.ContentSettingsType;
++import org.chromium.content_public.browser.BrowserContextHandle;
++
++import androidx.annotation.Nullable;
++import androidx.preference.Preference;
++import androidx.preference.PreferenceScreen;
++
++import java.util.ArrayList;
++
++public class BromiteImagesContentSetting extends BromiteCustomContentSetting {
++    public BromiteImagesContentSetting() {
++        super(/*contentSettingsType*/ ContentSettingsType.IMAGES,
++              /*defaultEnabledValue*/ ContentSettingValues.ALLOW,
++              /*defaultDisabledValue*/ ContentSettingValues.BLOCK,
++              /*allowException*/ true,
++              /*preferenceKey*/ "images",
++              /*profilePrefKey*/ "images");
 +    }
 +
-     private String getDSECategorySummary(@ContentSettingValues int value) {
-         return value == ContentSettingValues.ALLOW
-                 ? getString(R.string.website_settings_permissions_allowed_dse)
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsCategory.java
-@@ -47,7 +47,7 @@ public class SiteSettingsCategory {
-             Type.PROTECTED_MEDIA, Type.SENSORS, Type.SOUND, Type.USB, Type.VIRTUAL_REALITY,
-             Type.USE_STORAGE, Type.AUTO_DARK_WEB_CONTENT, Type.REQUEST_DESKTOP_SITE,
-             Type.FEDERATED_IDENTITY_API, Type.THIRD_PARTY_COOKIES, Type.SITE_DATA, Type.ANTI_ABUSE,
--            Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT,
-+            Type.TIMEZONE_OVERRIDE, Type.AUTOPLAY, Type.JAVASCRIPT_JIT, Type.IMAGES,
-             Type.NUM_ENTRIES})
-     @Retention(RetentionPolicy.SOURCE)
-     public @interface Type {
-@@ -85,10 +85,11 @@ public class SiteSettingsCategory {
-         int TIMEZONE_OVERRIDE = 29;
-         int AUTOPLAY = 30;
-         int JAVASCRIPT_JIT = 31;
-+        int IMAGES = 32;
-         /**
-          * Number of handled categories used for calculating array sizes.
-          */
--        int NUM_ENTRIES = 32;
-+        int NUM_ENTRIES = 33;
-     }
- 
-     private final BrowserContextHandle mBrowserContextHandle;
-@@ -197,6 +198,8 @@ public class SiteSettingsCategory {
-                 return ContentSettingsType.FEDERATED_IDENTITY_API;
-             case Type.IDLE_DETECTION:
-                 return ContentSettingsType.IDLE_DETECTION;
-+            case Type.IMAGES:
-+                return ContentSettingsType.IMAGES;
-             case Type.JAVASCRIPT:
-                 return ContentSettingsType.JAVASCRIPT;
-             case Type.JAVASCRIPT_JIT:
-@@ -286,6 +289,8 @@ public class SiteSettingsCategory {
-                 return "idle_detection";
-             case Type.JAVASCRIPT:
-                 return "javascript";
-+            case Type.IMAGES:
-+                return "images";
-             case Type.MICROPHONE:
-                 return "microphone";
-             case Type.JAVASCRIPT_JIT:
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsUtil.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsUtil.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsUtil.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/SiteSettingsUtil.java
-@@ -35,6 +35,7 @@ public class SiteSettingsUtil {
-             ContentSettingsType.SOUND,
-             ContentSettingsType.MIDI_SYSEX,
-             ContentSettingsType.CLIPBOARD_READ_WRITE,
-+            ContentSettingsType.IMAGES,
-             ContentSettingsType.NFC,
-             ContentSettingsType.BLUETOOTH_SCANNING,
-             ContentSettingsType.VR,
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/Website.java
-@@ -214,6 +214,13 @@ public final class Website implements WebsiteEntry {
-                         /*isEmbargoed=*/false);
-                 setContentSettingException(type, exception);
-             }
-+        } else if (type == ContentSettingsType.IMAGES) {
-+            if (exception == null) {
-+                exception = new ContentSettingException(
-+                        ContentSettingsType.IMAGES, getAddress().getHost(), value, "",
-+                        /*isEmbargoed=*/false);
-+                setContentSettingException(type, exception);
-+            }
-         } else if (type == ContentSettingsType.JAVASCRIPT) {
-             // It is possible to set the permission without having an existing exception,
-             // because we show the javascript permission in Site Settings if javascript
-diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
---- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
-+++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/WebsitePermissionsFetcher.java
-@@ -71,6 +71,7 @@ public class WebsitePermissionsFetcher {
-             case ContentSettingsType.AUTOPLAY:
-             case ContentSettingsType.COOKIES:
-             case ContentSettingsType.FEDERATED_IDENTITY_API:
-+            case ContentSettingsType.IMAGES:
-             case ContentSettingsType.JAVASCRIPT:
-             case ContentSettingsType.JAVASCRIPT_JIT:
-             case ContentSettingsType.POPUPS:
-diff --git a/components/browser_ui/site_settings/android/website_preference_bridge.cc b/components/browser_ui/site_settings/android/website_preference_bridge.cc
---- a/components/browser_ui/site_settings/android/website_preference_bridge.cc
-+++ b/components/browser_ui/site_settings/android/website_preference_bridge.cc
-@@ -822,6 +822,7 @@ static void JNI_WebsitePreferenceBridge_SetContentSettingEnabled(
-       case ContentSettingsType::BACKGROUND_SYNC:
-       case ContentSettingsType::COOKIES:
-       case ContentSettingsType::FEDERATED_IDENTITY_API:
-+      case ContentSettingsType::IMAGES:
-       case ContentSettingsType::JAVASCRIPT:
-       case ContentSettingsType::JAVASCRIPT_JIT:
-       case ContentSettingsType::POPUPS:
-diff --git a/components/browser_ui/strings/android/site_settings.grdp b/components/browser_ui/strings/android/site_settings.grdp
---- a/components/browser_ui/strings/android/site_settings.grdp
-+++ b/components/browser_ui/strings/android/site_settings.grdp
-@@ -76,6 +76,9 @@
-   <message name="IDS_WEBSITE_SETTINGS_IDLE_DETECTION" desc="Title of the permission to detect user activity [CHAR_LIMIT=32]">
-     Your device use
-   </message>
-+  <message name="IDS_IMAGES_PERMISSION_TITLE" desc="Title of the permission to show images [CHAR-LIMIT=32]">
++    @Override
++    public ContentSettingsResources.ResourceItem getResourceItem() {
++        return new ContentSettingsResources.ResourceItem(
++            /*icon*/ R.drawable.permission_images,
++            /*title*/ R.string.images_permission_title,
++            /*defaultEnabledValue*/ getDefaultEnabledValue(),
++            /*defaultDisabledValue*/ getDefaultDisabledValue(),
++            /*enabledSummary*/ R.string.website_settings_category_images_enabled,
++            /*disabledSummary*/ R.string.website_settings_category_images_disabled);
++    }
++
++    @Override
++    public int getCategorySummary(@Nullable @ContentSettingValues int value) {
++        switch (value) {
++            case ContentSettingValues.ALLOW:
++                return R.string.website_settings_category_images_enabled;
++            case ContentSettingValues.BLOCK:
++                return R.string.website_settings_category_images_disabled;
++            default:
++                return 0;
++        }
++    }
++
++    @Override
++    public int getCategoryDescription() {
++        return 0;
++    }
++
++    @Override
++    public boolean requiresTriStateContentSetting() {
++        return false;
++    }
++
++    @Override
++    public boolean showOnlyDescriptions() {
++        return true;
++    }
++
++    @Override
++    public int getAddExceptionDialogMessage() {
++        return R.string.website_settings_category_images_enabled;
++    }
++
++    @Override
++    public @Nullable Boolean considerException(SiteSettingsCategory category, @ContentSettingValues int value) {
++        return value != ContentSettingValues.BLOCK;
++    }
++}
+diff --git a/components/browser_ui/strings/bromite_content_settings/images.grdp b/components/browser_ui/strings/bromite_content_settings/images.grdp
+new file mode 100644
+--- /dev/null
++++ b/components/browser_ui/strings/bromite_content_settings/images.grdp
+@@ -0,0 +1,23 @@
++<?xml version="1.0" encoding="utf-8"?>
++<grit-part>
++<if expr="is_android">
++  <message name="IDS_SITE_SETTINGS_TYPE_IMAGES" desc="The label used for images site settings controls." formatter_data="android_java">
 +    Images
 +  </message>
-   <message name="IDS_JAVASCRIPT_PERMISSION_TITLE" desc="Title of the permission to run javascript [CHAR_LIMIT=32]">
-     JavaScript
-   </message>
-@@ -266,6 +269,9 @@
-   <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_TOAST" desc="The toast shown when a new site has been added to the exception list.">
-     Site <ph name="SITE_NAME">%1$s<ex>google.com</ex></ph> added
-   </message>
-+  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_IMAGES" desc="The description for the allow Images on website dialog.">
++  <message name="IDS_SITE_SETTINGS_TYPE_IMAGES_MID_SENTENCE" desc="The label used for images site settings controls when used mid-sentence." formatter_data="android_java">
++    Images
++  </message>
++</if>
++  <message name="IDS_IMAGES_PERMISSION_TITLE" desc="Title of the permission to show images [CHAR-LIMIT=32]" formatter_data="android_java">
++    Images
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_DESCRIPTION_IMAGES" desc="The description for the allow Images on website dialog." formatter_data="android_java">
 +    Allow images on websites you specify while blocking them for the rest of the web
 +  </message>
-   <message name="IDS_WEBSITE_SETTINGS_ADD_SITE_SITE_URL" desc="The label for the input field where the user can type a website URL.">
-     Site URL
-   </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_IMAGES_ENABLED" desc="Summary text explaining that sites are allowed to load images." formatter_data="android_java">
++    Allow sites to load images
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_IMAGES_DISABLED" desc="Summary text explaining that sites are not allowed to load images." formatter_data="android_java">
++    Disallow sites to load images
++  </message>
++</grit-part>
+diff --git a/components/content_settings/core/browser/bromite_content_settings/images.inc b/components/content_settings/core/browser/bromite_content_settings/images.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/images.inc
+@@ -0,0 +1,7 @@
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::IMAGES)
++    ->set_show_into_info_page()
++    .set_is_renderer_content_setting()
++    .set_title_ui(IDS_SITE_SETTINGS_TYPE_IMAGES)
++    .set_mid_sentence_ui(IDS_SITE_SETTINGS_TYPE_IMAGES_MID_SENTENCE);
++
 diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
 --- a/components/content_settings/core/browser/content_settings_registry.cc
 +++ b/components/content_settings/core/browser/content_settings_registry.cc
-@@ -95,7 +95,8 @@ void ContentSettingsRegistry::Init() {
+@@ -96,7 +96,7 @@ void ContentSettingsRegistry::Init() {
             {kChromeUIScheme, kChromeDevToolsScheme, kExtensionScheme},
             /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
             WebsiteSettingsInfo::TOP_ORIGIN_WITH_RESOURCE_EXCEPTIONS_SCOPE,
 -           WebsiteSettingsRegistry::DESKTOP,
-+           WebsiteSettingsRegistry::DESKTOP |
-+               WebsiteSettingsRegistry::PLATFORM_ANDROID,
++           WebsiteSettingsRegistry::DESKTOP | WebsiteSettingsRegistry::PLATFORM_ANDROID,
             ContentSettingsInfo::INHERIT_IN_INCOGNITO,
             ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
  
 diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -134,12 +134,8 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
+@@ -146,12 +146,8 @@ void GetRendererContentSettingRules(const HostContentSettingsMap* map,
        ContentSettingToValue(CONTENT_SETTING_ALLOW), std::string(),
        map->IsOffTheRecord()));
  #else
@@ -406,94 +275,5 @@ diff --git a/components/content_settings/core/browser/content_settings_utils.cc 
    // In Android active mixed content is hard blocked, with no option to allow
    // it.
    rules->mixed_content_rules.push_back(ContentSettingPatternSource(
-diff --git a/components/page_info/android/page_info_controller_android.cc b/components/page_info/android/page_info_controller_android.cc
---- a/components/page_info/android/page_info_controller_android.cc
-+++ b/components/page_info/android/page_info_controller_android.cc
-@@ -225,6 +225,10 @@ absl::optional<ContentSetting> PageInfoControllerAndroid::GetSettingToDisplay(
-     // audio since last navigation.
-     if (web_contents_->WasEverAudible())
-       return permission.default_setting;
-+  } else if (permission.type == ContentSettingsType::IMAGES) {
-+    // The images content setting should show up if it is blocked globally
-+    // to give users an easy way to create exceptions.
-+    return permission.default_setting;
-   }
- 
-   // TODO(crbug.com/1077766): Also return permissions that are non
-diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.cc
---- a/components/page_info/page_info.cc
-+++ b/components/page_info/page_info.cc
-@@ -99,9 +99,7 @@ ContentSettingsType kPermissionType[] = {
-     ContentSettingsType::SENSORS,
-     ContentSettingsType::NOTIFICATIONS,
-     ContentSettingsType::JAVASCRIPT,
--#if !BUILDFLAG(IS_ANDROID)
-     ContentSettingsType::IMAGES,
--#endif
-     ContentSettingsType::POPUPS,
-     ContentSettingsType::WINDOW_MANAGEMENT,
-     ContentSettingsType::ADS,
-@@ -157,6 +155,11 @@ bool ShouldShowPermission(const PageInfo::PermissionInfo& info,
-      return true;
-   }
- 
-+  // Always show images when it has a site-specific override
-+  if (info.type == ContentSettingsType::IMAGES) {
-+     return true;
-+  }
-+
-   if (info.type == ContentSettingsType::SOUND) {
-     // The sound content setting should always show up when the tab has played
-     // audio.
-diff --git a/components/page_info/page_info_ui.cc b/components/page_info/page_info_ui.cc
---- a/components/page_info/page_info_ui.cc
-+++ b/components/page_info/page_info_ui.cc
-@@ -201,6 +201,8 @@ base::span<const PageInfoUI::PermissionUIInfo> GetContentSettingsUIInfo() {
-      IDS_SITE_SETTINGS_TYPE_FEDERATED_IDENTITY_API_MID_SENTENCE},
-     {ContentSettingsType::IDLE_DETECTION, IDS_SITE_SETTINGS_TYPE_IDLE_DETECTION,
-      IDS_SITE_SETTINGS_TYPE_IDLE_DETECTION_MID_SENTENCE},
-+    {ContentSettingsType::IMAGES, IDS_SITE_SETTINGS_TYPE_IMAGES,
-+     IDS_SITE_SETTINGS_TYPE_IMAGES_MID_SENTENCE},
- #if !BUILDFLAG(IS_ANDROID)
-     // Page Info Permissions that are not defined in Android.
-     {ContentSettingsType::FILE_SYSTEM_WRITE_GUARD,
-@@ -210,8 +212,6 @@ base::span<const PageInfoUI::PermissionUIInfo> GetContentSettingsUIInfo() {
-      IDS_SITE_SETTINGS_TYPE_FONT_ACCESS_MID_SENTENCE},
-     {ContentSettingsType::HID_GUARD, IDS_SITE_SETTINGS_TYPE_HID_DEVICES,
-      IDS_SITE_SETTINGS_TYPE_HID_DEVICES_MID_SENTENCE},
--    {ContentSettingsType::IMAGES, IDS_SITE_SETTINGS_TYPE_IMAGES,
--     IDS_SITE_SETTINGS_TYPE_IMAGES_MID_SENTENCE},
-     {ContentSettingsType::SERIAL_GUARD, IDS_SITE_SETTINGS_TYPE_SERIAL_PORTS,
-      IDS_SITE_SETTINGS_TYPE_SERIAL_PORTS_MID_SENTENCE},
-     {ContentSettingsType::WINDOW_MANAGEMENT,
-diff --git a/components/site_settings_strings.grdp b/components/site_settings_strings.grdp
---- a/components/site_settings_strings.grdp
-+++ b/components/site_settings_strings.grdp
-@@ -163,6 +163,12 @@
-   <message name="IDS_SITE_SETTINGS_TYPE_VR_MID_SENTENCE" desc="The label used for the VR site settings controls when used mid-sentence.">
-     virtual reality
-   </message>
-+  <message name="IDS_SITE_SETTINGS_TYPE_IMAGES" desc="The label used for images site settings controls.">
-+    Images
-+  </message>
-+  <message name="IDS_SITE_SETTINGS_TYPE_IMAGES_MID_SENTENCE" desc="The label used for images site settings controls when used mid-sentence.">
-+    images
-+  </message>
- 
-   <!-- Site Settings desktop-only -->
-   <if expr="not is_android">
-@@ -190,12 +196,6 @@
-   <message name="IDS_SITE_SETTINGS_TYPE_HID_DEVICES_MID_SENTENCE" desc="The label used for the HID site settings controls when used mid-sentence.">
-     HID devices
-   </message>
--  <message name="IDS_SITE_SETTINGS_TYPE_IMAGES" desc="The label used for images site settings controls.">
--    Images
--  </message>
--  <message name="IDS_SITE_SETTINGS_TYPE_IMAGES_MID_SENTENCE" desc="The label used for images site settings controls when used mid-sentence.">
--    images
--  </message>
-   <message name="IDS_SITE_SETTINGS_TYPE_INSECURE_CONTENT" desc="The label used for the insecure content site settings controls. This setting controls whether HTTP content will be displayed on HTTPS sites.">
-     Insecure content
-   </message>
 --
 2.25.1
