@@ -11,10 +11,10 @@ Subject: bromite build utils
  build/bromite/gyp/java_bromite_impl.py       | 94 ++++++++++++++++++++
  build/bromite/gyp/java_bromite_impl.pydeps   |  9 ++
  build/config/BUILDCONFIG.gn                  |  1 +
- build/config/android/rules.gni               |  4 +
+ build/config/android/rules.gni               |  6 +-
  tools/grit/grit/grd_reader.py                | 27 ++++--
  tools/grit/preprocess_if_expr.py             | 32 ++++++-
- 11 files changed, 328 insertions(+), 13 deletions(-)
+ 11 files changed, 329 insertions(+), 14 deletions(-)
  create mode 100644 build/bromite/bromite_utils.gni
  create mode 100644 build/bromite/gyp/cpp_bromite_include.py
  create mode 100644 build/bromite/gyp/cpp_bromite_include.pydeps
@@ -405,6 +405,15 @@ diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
 diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
 --- a/build/config/android/rules.gni
 +++ b/build/config/android/rules.gni
+@@ -575,7 +575,7 @@ if (enable_java_templates && is_android) {
+   #   }
+   template("java_cpp_enum") {
+     action_with_pydeps(target_name) {
+-      forward_variables_from(invoker, TESTONLY_AND_VISIBILITY + [ "sources" ])
++      forward_variables_from(invoker, TESTONLY_AND_VISIBILITY + [ "sources", "deps" ])
+ 
+       # The sources aren't compiled so don't check their dependencies.
+       check_includes = false
 @@ -586,6 +586,10 @@ if (enable_java_templates && is_android) {
        _rebased_sources = rebase_path(invoker.sources, root_build_dir)
  

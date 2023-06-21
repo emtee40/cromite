@@ -43,6 +43,7 @@ Require: bromite-build-utils.patch
  .../impl/include_all_directory.java           |   1 +
  ...miteCustomContentSettingImplBase.java.tmpl |  48 +++
  .../bromite_content_settings/placeholder.txt  |   2 +
+ components/content_settings/android/BUILD.gn  |   1 +
  .../content_settings/core/browser/BUILD.gn    |   7 +
  .../bromite_content_settings/placeholder.txt  |   1 +
  .../core/browser/content_settings_registry.cc |   3 +
@@ -50,7 +51,7 @@ Require: bromite-build-utils.patch
  .../core/browser/website_settings_info.h      |  35 ++
  .../core/browser/website_settings_registry.cc |   6 +
  .../core/browser/website_settings_registry.h  |   1 +
- .../content_settings/core/common/BUILD.gn     |   6 +
+ .../content_settings/core/common/BUILD.gn     |   7 +
  .../bromite_content_settings/placeholder.txt  |   1 +
  .../core/common/content_settings.cc           |  21 +-
  .../core/common/content_settings.h            |  10 +
@@ -71,7 +72,7 @@ Require: bromite-build-utils.patch
  .../execution_context/execution_context.cc    |  16 +
  .../execution_context/execution_context.h     |   5 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 60 files changed, 1320 insertions(+), 41 deletions(-)
+ 61 files changed, 1322 insertions(+), 41 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSetting.java
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSetting_README.md
@@ -1796,6 +1797,17 @@ new file mode 100644
 @@ -0,0 +1,2 @@
 +this file is intentionally empty
 +
+diff --git a/components/content_settings/android/BUILD.gn b/components/content_settings/android/BUILD.gn
+--- a/components/content_settings/android/BUILD.gn
++++ b/components/content_settings/android/BUILD.gn
+@@ -52,6 +52,7 @@ android_library("content_settings_enums_java") {
+ }
+ 
+ java_cpp_enum("content_settings_enums_javagen") {
++  deps = [ "//components/content_settings/core/common:bromite_content_settings" ]
+   sources = [
+     "../core/browser/cookie_settings.h",
+     "../core/common/content_settings.h",
 diff --git a/components/content_settings/core/browser/BUILD.gn b/components/content_settings/core/browser/BUILD.gn
 --- a/components/content_settings/core/browser/BUILD.gn
 +++ b/components/content_settings/core/browser/BUILD.gn
@@ -1950,7 +1962,7 @@ diff --git a/components/content_settings/core/browser/website_settings_registry.
 diff --git a/components/content_settings/core/common/BUILD.gn b/components/content_settings/core/common/BUILD.gn
 --- a/components/content_settings/core/common/BUILD.gn
 +++ b/components/content_settings/core/common/BUILD.gn
-@@ -48,6 +48,12 @@ static_library("common") {
+@@ -48,6 +48,13 @@ static_library("common") {
    if (use_blink) {
      deps += [ "//components/privacy_sandbox:features" ]
    }
@@ -1960,6 +1972,7 @@ diff --git a/components/content_settings/core/common/BUILD.gn b/components/conte
 +cpp_bromite_include("bromite_content_settings") {
 +  inputs = [ "bromite_content_settings/placeholder.txt" ]
 +  output_file = "bromite_content_settings.inc"
++  visibility = [ "*" ]
  }
  
  source_set("unit_tests") {
