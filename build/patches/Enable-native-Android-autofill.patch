@@ -25,7 +25,6 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/android/tab_android.h          |  2 +
  .../strings/android_chrome_strings.grd        |  6 ++
  .../ui/autofill/chrome_autofill_client.cc     |  8 +-
- chrome/browser/ui/tab_helpers.cc              |  3 +
  .../browser/android_autofill_manager.cc       |  2 +-
  .../browser/android_autofill_manager.h        |  4 +-
  .../browser/content_autofill_driver.cc        | 30 +++++++
@@ -37,7 +36,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../autofill/core/common/autofill_prefs.h     |  2 +
  .../embedder_support/view/ContentView.java    | 46 +++++++++++
  .../chromium/ui/base/ViewAndroidDelegate.java |  8 ++
- 22 files changed, 305 insertions(+), 9 deletions(-)
+ 21 files changed, 302 insertions(+), 9 deletions(-)
 
 diff --git a/android_webview/browser/aw_contents.cc b/android_webview/browser/aw_contents.cc
 --- a/android_webview/browser/aw_contents.cc
@@ -407,19 +406,6 @@ diff --git a/chrome/browser/ui/autofill/chrome_autofill_client.cc b/chrome/brows
        content::WebContentsObserver(web_contents),
        log_manager_(
            // TODO(crbug.com/928595): Replace the closure with a callback to the
-diff --git a/chrome/browser/ui/tab_helpers.cc b/chrome/browser/ui/tab_helpers.cc
---- a/chrome/browser/ui/tab_helpers.cc
-+++ b/chrome/browser/ui/tab_helpers.cc
-@@ -164,6 +164,9 @@
- #include "chrome/browser/ui/javascript_dialogs/javascript_tab_modal_dialog_manager_delegate_android.h"
- #include "chrome/browser/video_tutorials/video_tutorial_tab_helper.h"
- #include "content/public/common/content_features.h"
-+#include "components/android_autofill/browser/android_autofill_manager.h"
-+#include "components/android_autofill/browser/autofill_provider.h"
-+#include "components/android_autofill/browser/autofill_provider_android.h"
- #else
- #include "chrome/browser/banners/app_banner_manager_desktop.h"
- #include "chrome/browser/companion/core/features.h"
 diff --git a/components/android_autofill/browser/android_autofill_manager.cc b/components/android_autofill/browser/android_autofill_manager.cc
 --- a/components/android_autofill/browser/android_autofill_manager.cc
 +++ b/components/android_autofill/browser/android_autofill_manager.cc
