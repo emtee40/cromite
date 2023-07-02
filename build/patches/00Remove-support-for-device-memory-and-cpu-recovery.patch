@@ -1,0 +1,84 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Tue, 27 Jun 2023 11:11:53 +0000
+Subject: Remove support for device memory and cpu recovery
+
+---
+ .../common/device_memory/approximated_device_memory.cc    | 7 ++++++-
+ third_party/blink/common/features.cc                      | 4 ++--
+ .../renderer/core/frame/navigator_concurrent_hardware.cc  | 8 ++++++--
+ .../blink/renderer/core/timing/window_performance.cc      | 1 +
+ 4 files changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/third_party/blink/common/device_memory/approximated_device_memory.cc b/third_party/blink/common/device_memory/approximated_device_memory.cc
+--- a/third_party/blink/common/device_memory/approximated_device_memory.cc
++++ b/third_party/blink/common/device_memory/approximated_device_memory.cc
+@@ -4,13 +4,18 @@
+ 
+ #include "third_party/blink/public/common/device_memory/approximated_device_memory.h"
+ 
++#include "build/build_config.h"
+ #include "base/check_op.h"
+ #include "base/system/sys_info.h"
+ 
+ namespace blink {
+ 
+ // static
+-float ApproximatedDeviceMemory::approximated_device_memory_gb_ = 0.0;
++#if BUILDFLAG(IS_ANDROID)
++float ApproximatedDeviceMemory::approximated_device_memory_gb_ = 4.0;
++#else
++float ApproximatedDeviceMemory::approximated_device_memory_gb_ = 8.0;
++#endif
+ int64_t ApproximatedDeviceMemory::physical_memory_mb_ = 0;
+ 
+ // static
+diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
+--- a/third_party/blink/common/features.cc
++++ b/third_party/blink/common/features.cc
+@@ -418,8 +418,8 @@ BASE_FEATURE(kV8OptimizeWorkersForPerformance,
+ // Controls whether the implementation of the performance.measureMemory
+ // web API uses PerformanceManager or not.
+ BASE_FEATURE(kWebMeasureMemoryViaPerformanceManager,
+-             "WebMeasureMemoryViaPerformanceManager",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "WebMeasureMemoryViaPerformanceManager",  // need to be
++             base::FEATURE_DISABLED_BY_DEFAULT);       // disabled by default
+ 
+ // Enables negotiation of experimental multiplex codec in SDP.
+ BASE_FEATURE(kWebRtcMultiplexCodec,
+diff --git a/third_party/blink/renderer/core/frame/navigator_concurrent_hardware.cc b/third_party/blink/renderer/core/frame/navigator_concurrent_hardware.cc
+--- a/third_party/blink/renderer/core/frame/navigator_concurrent_hardware.cc
++++ b/third_party/blink/renderer/core/frame/navigator_concurrent_hardware.cc
+@@ -3,13 +3,17 @@
+ // found in the LICENSE file.
+ 
+ #include "third_party/blink/renderer/core/frame/navigator_concurrent_hardware.h"
+-
++#include "build/build_config.h"
+ #include "base/system/sys_info.h"
+ 
+ namespace blink {
+ 
+ unsigned NavigatorConcurrentHardware::hardwareConcurrency() const {
+-  return static_cast<unsigned>(base::SysInfo::NumberOfProcessors());
++#if BUILDFLAG(IS_ANDROID)
++  return static_cast<unsigned>(2);
++#else
++  return static_cast<unsigned>(8);
++#endif
+ }
+ 
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/timing/window_performance.cc b/third_party/blink/renderer/core/timing/window_performance.cc
+--- a/third_party/blink/renderer/core/timing/window_performance.cc
++++ b/third_party/blink/renderer/core/timing/window_performance.cc
+@@ -239,6 +239,7 @@ PerformanceNavigation* WindowPerformance::navigation() const {
+ }
+ 
+ MemoryInfo* WindowPerformance::memory(ScriptState* script_state) const {
++  if ((true)) return nullptr;
+   // The performance.memory() API has been improved so that we report precise
+   // values when the process is locked to a site. The intent (which changed
+   // course over time about what changes would be implemented) can be found at
+--
+2.25.1
