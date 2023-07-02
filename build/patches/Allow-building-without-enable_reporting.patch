@@ -18,12 +18,13 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  services/network/public/cpp/features.cc          |  6 +++---
  services/network/public/mojom/BUILD.gn           |  1 -
  .../network/public/mojom/network_context.mojom   |  2 ++
+ .../core/frame/csp/content_security_policy.cc    |  3 +++
  .../blink/renderer/core/frame/local_frame.cc     |  3 +++
  .../blink/renderer/core/frame/local_frame.h      |  6 +++---
  .../renderer/core/frame/reporting_context.cc     |  9 +++++++++
  .../renderer/core/frame/reporting_context.h      |  7 +++++--
  .../renderer/core/frame/reporting_observer.cc    |  3 +--
- 19 files changed, 56 insertions(+), 31 deletions(-)
+ 20 files changed, 59 insertions(+), 31 deletions(-)
 
 diff --git a/chrome/browser/net/chrome_report_sender.cc b/chrome/browser/net/chrome_report_sender.cc
 --- a/chrome/browser/net/chrome_report_sender.cc
@@ -333,6 +334,33 @@ diff --git a/services/network/public/mojom/network_context.mojom b/services/netw
    QueueSignedExchangeReport(SignedExchangeReport report,
                              NetworkAnonymizationKey network_anonymization_key);
  
+diff --git a/third_party/blink/renderer/core/frame/csp/content_security_policy.cc b/third_party/blink/renderer/core/frame/csp/content_security_policy.cc
+--- a/third_party/blink/renderer/core/frame/csp/content_security_policy.cc
++++ b/third_party/blink/renderer/core/frame/csp/content_security_policy.cc
+@@ -28,6 +28,7 @@
+ #include <memory>
+ #include <utility>
+ 
++#include "net/net_buildflags.h"
+ #include "base/containers/contains.h"
+ #include "base/debug/dump_without_crashing.h"
+ #include "services/network/public/cpp/web_sandbox_flags.h"
+@@ -1140,6 +1141,7 @@ void ContentSecurityPolicy::ReportViolation(
+     return;
+   }
+ 
++#if BUILDFLAG(ENABLE_REPORTING)
+   PostViolationReport(violation_data, context_frame, report_endpoints,
+                       use_reporting_api);
+ 
+@@ -1147,6 +1149,7 @@ void ContentSecurityPolicy::ReportViolation(
+   // `context_frame` (i.e. we're not processing 'frame-ancestors').
+   if (delegate_ && !context_frame)
+     delegate_->DispatchViolationEvent(*violation_data, element);
++#endif
+ 
+   AuditsIssue audits_issue = AuditsIssue::CreateContentSecurityPolicyIssue(
+       *violation_data, header_type == ContentSecurityPolicyType::kReport,
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
