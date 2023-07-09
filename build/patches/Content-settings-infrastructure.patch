@@ -65,14 +65,14 @@ Require: bromite-build-utils.patch
  .../PageInfoPermissionsController.java        |   9 +
  .../PermissionParamsListBuilder.java          |   1 +
  .../android/page_info_controller_android.cc   |  18 +
- components/page_info/page_info.cc             |  22 +-
+ components/page_info/page_info.cc             |  23 +-
  components/page_info/page_info_ui.cc          |  18 +
  components/site_settings_strings.grdp         |   1 +
  .../platform/web_content_settings_client.h    |   5 +
  .../execution_context/execution_context.cc    |  16 +
  .../execution_context/execution_context.h     |   5 +
  .../WebLayerSiteSettingsDelegate.java         |   3 +
- 61 files changed, 1321 insertions(+), 41 deletions(-)
+ 61 files changed, 1322 insertions(+), 41 deletions(-)
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSetting.java
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSettingImpl.java
  create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/BromiteCustomContentSetting_README.md
@@ -2338,7 +2338,7 @@ diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.
    // Note |ContentSettingsType::ADS| will show up regardless of its default
    // value when it has been activated on the current origin.
    if (info.type == ContentSettingsType::ADS) {
-@@ -1180,7 +1189,18 @@ void PageInfo::PresentSitePermissions() {
+@@ -1180,7 +1189,19 @@ void PageInfo::PresentSitePermissions() {
    PermissionInfo permission_info;
    HostContentSettingsMap* content_settings = GetContentSettings();
    DCHECK(web_contents_);
@@ -2350,7 +2350,8 @@ diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.
 +  content_settings::WebsiteSettingsRegistry* website_settings =
 +      content_settings::WebsiteSettingsRegistry::GetInstance();
 +  for (const content_settings::WebsiteSettingsInfo* info : *website_settings) {
-+    if (info->show_into_info_page()) {
++    if (info->show_into_info_page() &&
++          !base::Contains(permission_list, info->type())) {
 +      permission_list.push_back(info->type());
 +    }
 +  }
