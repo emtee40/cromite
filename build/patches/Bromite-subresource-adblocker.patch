@@ -31,7 +31,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/browser/chrome_browser_main.cc         |   3 +
  .../flags/android/cached_feature_flags.cc     |  11 +
  .../browser/flags/CachedFeatureFlags.java     |  10 +
- .../net/system_network_context_manager.cc     |   4 +
+ .../net/system_network_context_manager.cc     |   3 +
  .../sessions/session_restore_android.cc       |   6 +-
  .../strings/android_chrome_strings.grd        |  14 +
  chrome/common/pref_names.cc                   |   3 +
@@ -42,7 +42,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../adblock_updater_service.h                 |  98 +++++++
  .../download_filters_task.cc                  | 239 ++++++++++++++++
  .../component_updater/download_filters_task.h | 129 +++++++++
- ...ent_subresource_filter_throttle_manager.cc |  11 +
+ ...ent_subresource_filter_throttle_manager.cc |  15 +
+ ...tent_subresource_filter_throttle_manager.h |   2 +
  .../content/browser/ruleset_service.cc        |  42 ++-
  .../content/browser/ruleset_service.h         |   7 +-
  .../content/browser/ruleset_version.h         |   4 +
@@ -51,7 +52,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/subresource_filter_features.cc    | 116 +-------
  .../core/common/indexed_ruleset.cc            |   5 +-
  third_party/blink/common/features.cc          |  12 +-
- 39 files changed, 1184 insertions(+), 135 deletions(-)
+ 40 files changed, 1189 insertions(+), 135 deletions(-)
  create mode 100644 chrome/android/java/res/layout/adblock_editor.xml
  create mode 100644 chrome/android/java/res/xml/adblock_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/AdBlockEditor.java
@@ -621,20 +622,12 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -426,6 +426,8 @@ SystemNetworkContextManager::SystemNetworkContextManager(
-       ssl_config_service_manager_(local_state_),
-       proxy_config_monitor_(local_state_),
-       stub_resolver_config_reader_(local_state_) {
-+  local_state_->SetDefaultPrefValue(prefs::kAdBlockFiltersURL,
-+                                    base::Value("https://www.bromite.org/filters/filters.dat"));
- #if !BUILDFLAG(IS_ANDROID)
-   // QuicAllowed was not part of Android policy.
-   const base::Value* value =
-@@ -529,6 +531,8 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
+@@ -529,6 +529,9 @@ SystemNetworkContextManager::~SystemNetworkContextManager() {
  void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
    StubResolverConfigReader::RegisterPrefs(registry);
  
-+  registry->RegisterStringPref(prefs::kAdBlockFiltersURL, std::string());
++  registry->RegisterStringPref(prefs::kAdBlockFiltersURL,
++    "https://www.bromite.org/filters/filters.dat");
 +
    // Static auth params
    registry->RegisterStringPref(prefs::kAuthSchemes,
@@ -1498,13 +1491,31 @@ new file mode 100644
 diff --git a/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc b/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc
 --- a/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc
 +++ b/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.cc
-@@ -667,6 +667,17 @@ ContentSubresourceFilterThrottleManager::
+@@ -15,6 +15,9 @@
+ #include "base/trace_event/trace_conversion_helper.h"
+ #include "base/trace_event/trace_event.h"
+ #include "base/trace_event/traced_value.h"
++#include "components/content_settings/core/common/content_settings_types.h"
++#include "components/subresource_filter/content/browser/subresource_filter_content_settings_manager.h"
++#include "components/subresource_filter/content/browser/subresource_filter_profile_context.h"
+ #include "components/subresource_filter/content/browser/activation_state_computing_navigation_throttle.h"
+ #include "components/subresource_filter/content/browser/async_document_subresource_filter.h"
+ #include "components/subresource_filter/content/browser/content_subresource_filter_web_contents_helper.h"
+@@ -149,6 +152,7 @@ ContentSubresourceFilterThrottleManager::
+       profile_interaction_manager_(
+           std::make_unique<subresource_filter::ProfileInteractionManager>(
+               profile_context)),
++      profile_context_(profile_context),
+       web_contents_helper_(web_contents_helper) {}
+ 
+ ContentSubresourceFilterThrottleManager::
+@@ -667,6 +671,17 @@ ContentSubresourceFilterThrottleManager::
        throttle->NotifyPageActivationWithRuleset(EnsureRulesetHandle(),
                                                  ad_tagging_state);
      }
 +
-+    //TODO: could use same logic as in SubresourceFilterSafeBrowsingActivationThrottle::NotifyResult()
-+    {
++    const GURL& url(navigation_handle->GetURL());
++    if (profile_context_->settings_manager()->GetSitePermission(url) != CONTENT_SETTING_ALLOW) {
 +      subresource_filter::ActivationDecision ignored_decision;
 +      mojom::ActivationState ad_filtering_state;
 +      ad_filtering_state.activation_level = profile_interaction_manager_->OnPageActivationComputed(
@@ -1516,6 +1527,18 @@ diff --git a/components/subresource_filter/content/browser/content_subresource_f
      return throttle;
    }
  
+diff --git a/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.h b/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.h
+--- a/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.h
++++ b/components/subresource_filter/content/browser/content_subresource_filter_throttle_manager.h
+@@ -411,6 +411,8 @@ class ContentSubresourceFilterThrottleManager
+ 
+   std::unique_ptr<ProfileInteractionManager> profile_interaction_manager_;
+ 
++  raw_ptr<SubresourceFilterProfileContext> profile_context_;
++
+   // Unowned since the throttle manager cannot outlive the Page that owns it.
+   // The throttle manager is held as user data first on NavigationHandle, then
+   // transferred to Page once it is created. Once the Page is created and this
 diff --git a/components/subresource_filter/content/browser/ruleset_service.cc b/components/subresource_filter/content/browser/ruleset_service.cc
 --- a/components/subresource_filter/content/browser/ruleset_service.cc
 +++ b/components/subresource_filter/content/browser/ruleset_service.cc
