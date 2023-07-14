@@ -6,16 +6,16 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  chrome/android/BUILD.gn                                   | 5 -----
  chrome/android/chrome_java_sources.gni                    | 1 -
- .../browser/app/omnibox/ActionChipsDelegateImpl.java      | 3 ---
  .../chrome/browser/settings/SettingsActivity.java         | 8 --------
  .../chrome/browser/settings/SettingsLauncherImpl.java     | 5 +----
  chrome/browser/BUILD.gn                                   | 1 -
+ .../browser/omnibox/suggestions/action/OmniboxPedal.java  | 3 ---
  6 files changed, 1 insertion(+), 22 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -295,7 +295,6 @@ if (current_toolchain == default_toolchain) {
+@@ -362,7 +362,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/recent_tabs:factory_java",
        "//chrome/browser/recent_tabs:java",
        "//chrome/browser/safe_browsing/android:java",
@@ -23,7 +23,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/search_engines/android:java",
        "//chrome/browser/search_resumption:java",
        "//chrome/browser/segmentation_platform:factory_java",
-@@ -891,8 +890,6 @@ if (current_toolchain == default_toolchain) {
+@@ -957,8 +956,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/quick_delete:junit",
        "//chrome/browser/recent_tabs:java",
        "//chrome/browser/recent_tabs/internal:junit",
@@ -32,7 +32,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
        "//chrome/browser/search_engines/android:java",
        "//chrome/browser/search_resumption:junit",
        "//chrome/browser/segmentation_platform:factory_java",
-@@ -1452,8 +1449,6 @@ if (current_toolchain == default_toolchain) {
+@@ -1530,8 +1527,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/quick_delete:javatests",
        "//chrome/browser/safe_browsing/android:java",
        "//chrome/browser/safe_browsing/android:javatests",
@@ -44,7 +44,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -984,7 +984,6 @@ chrome_java_sources = [
+@@ -986,7 +986,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingPasswordReuseDialogBridge.java",
    "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingReferringAppBridge.java",
    "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingSettingsLauncher.java",
@@ -52,23 +52,10 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
    "java/src/org/chromium/chrome/browser/searchwidget/SearchActivity.java",
    "java/src/org/chromium/chrome/browser/searchwidget/SearchActivityLocationBarLayout.java",
    "java/src/org/chromium/chrome/browser/searchwidget/SearchBoxDataProvider.java",
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/omnibox/ActionChipsDelegateImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/app/omnibox/ActionChipsDelegateImpl.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/app/omnibox/ActionChipsDelegateImpl.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/app/omnibox/ActionChipsDelegateImpl.java
-@@ -75,9 +75,6 @@ public class ActionChipsDelegateImpl implements ActionChipsDelegate {
-                 mSettingsLauncher.launchSettingsActivity(
-                         mActivity, SettingsFragment.PAYMENT_METHODS);
-                 break;
--            case OmniboxPedalType.RUN_CHROME_SAFETY_CHECK:
--                mSettingsLauncher.launchSettingsActivity(mActivity, SettingsFragment.SAFETY_CHECK);
--                break;
-             case OmniboxPedalType.MANAGE_SITE_SETTINGS:
-                 mSettingsLauncher.launchSettingsActivity(mActivity, SettingsFragment.SITE);
-                 break;
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
-@@ -60,9 +60,6 @@ import org.chromium.chrome.browser.privacy_sandbox.AdMeasurementFragment;
+@@ -62,9 +62,6 @@ import org.chromium.chrome.browser.privacy_sandbox.AdMeasurementFragment;
  import org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxSettingsBaseFragment;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.profiles.ProfileManagerUtils;
@@ -78,7 +65,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/Settin
  import org.chromium.chrome.browser.search_engines.settings.SearchEngineSettings;
  import org.chromium.chrome.browser.signin.SyncConsentActivityLauncherImpl;
  import org.chromium.chrome.browser.site_settings.ChromeSiteSettingsDelegate;
-@@ -439,11 +436,6 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+@@ -448,11 +445,6 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
              fragmentHelpAndFeedbackLauncher.setHelpAndFeedbackLauncher(
                      HelpAndFeedbackLauncherImpl.getForProfile(mProfile));
          }
@@ -115,7 +102,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/Settin
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -3304,7 +3304,6 @@ static_library("browser") {
+@@ -3325,7 +3325,6 @@ static_library("browser") {
        "//chrome/browser/reading_list/android",
        "//chrome/browser/recent_tabs:jni_headers",
        "//chrome/browser/safe_browsing/android:safe_browsing_enums",
@@ -123,5 +110,18 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "//chrome/browser/search_resumption:jni_headers",
        "//chrome/browser/share/android:jni_headers",
        "//chrome/browser/share/core/crow:crow_configuration",
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java
+@@ -44,9 +44,6 @@ public class OmniboxPedal extends OmniboxAction {
+             case OmniboxPedalId.UPDATE_CREDIT_CARD:
+                 delegate.openSettingsPage(SettingsFragment.PAYMENT_METHODS);
+                 break;
+-            case OmniboxPedalId.RUN_CHROME_SAFETY_CHECK:
+-                delegate.openSettingsPage(SettingsFragment.SAFETY_CHECK);
+-                break;
+             case OmniboxPedalId.MANAGE_SITE_SETTINGS:
+                 delegate.openSettingsPage(SettingsFragment.SITE);
+                 break;
 --
 2.25.1

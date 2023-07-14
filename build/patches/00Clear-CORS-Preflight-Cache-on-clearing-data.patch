@@ -14,7 +14,7 @@ Subject: Clear CORS Preflight Cache on clearing data
 diff --git a/services/network/cors/preflight_cache.cc b/services/network/cors/preflight_cache.cc
 --- a/services/network/cors/preflight_cache.cc
 +++ b/services/network/cors/preflight_cache.cc
-@@ -151,6 +151,10 @@ void PreflightCache::MayPurgeForTesting(size_t max_entries, size_t purge_unit) {
+@@ -201,6 +201,10 @@ void PreflightCache::MayPurgeForTesting(size_t max_entries, size_t purge_unit) {
    MayPurge(max_entries, purge_unit);
  }
  
@@ -23,13 +23,13 @@ diff --git a/services/network/cors/preflight_cache.cc b/services/network/cors/pr
 +}
 +
  void PreflightCache::MayPurge(size_t max_entries, size_t purge_unit) {
-   if (cache_.size() <= max_entries)
+   if (cache_.size() <= max_entries) {
      return;
 diff --git a/services/network/cors/preflight_cache.h b/services/network/cors/preflight_cache.h
 --- a/services/network/cors/preflight_cache.h
 +++ b/services/network/cors/preflight_cache.h
-@@ -69,6 +69,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) PreflightCache final {
-   // for testing.
+@@ -78,6 +78,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) PreflightCache final {
+   // `max_entries` for testing.
    void MayPurgeForTesting(size_t max_entries, size_t purge_unit);
  
 +  void ClearAll();
@@ -40,8 +40,8 @@ diff --git a/services/network/cors/preflight_cache.h b/services/network/cors/pre
 diff --git a/services/network/cors/preflight_controller.cc b/services/network/cors/preflight_controller.cc
 --- a/services/network/cors/preflight_controller.cc
 +++ b/services/network/cors/preflight_controller.cc
-@@ -677,6 +677,10 @@ void PreflightController::PerformPreflightCheck(
-   (*emplaced_pair.first)->Request(loader_factory);
+@@ -674,6 +674,10 @@ void PreflightController::ClearCorsPreflightCache(
+   cache_.ClearCache(std::move(url_filter));
  }
  
 +void PreflightController::ClearCache() {
@@ -54,15 +54,15 @@ diff --git a/services/network/cors/preflight_controller.cc b/services/network/co
 diff --git a/services/network/cors/preflight_controller.h b/services/network/cors/preflight_controller.h
 --- a/services/network/cors/preflight_controller.h
 +++ b/services/network/cors/preflight_controller.h
-@@ -138,6 +138,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) PreflightController final {
+@@ -139,6 +139,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) PreflightController final {
        const net::NetLogWithSource& net_log,
        bool acam_preflight_spec_conformant);
  
-+ void ClearCache();
++  void ClearCache();
 +
-  private:
-   class PreflightLoader;
- 
+   // Clears the CORS preflight cache. The time range is always "all time" as
+   // the preflight cache max age is capped to 2hrs. in Chrome.
+   // It clears origins selectively when the url filter is not null, otherwise
 diff --git a/services/network/cors/preflight_result.cc b/services/network/cors/preflight_result.cc
 --- a/services/network/cors/preflight_result.cc
 +++ b/services/network/cors/preflight_result.cc
@@ -78,7 +78,7 @@ diff --git a/services/network/cors/preflight_result.cc b/services/network/cors/p
 diff --git a/services/network/network_context.cc b/services/network/network_context.cc
 --- a/services/network/network_context.cc
 +++ b/services/network/network_context.cc
-@@ -1038,6 +1038,8 @@ void NetworkContext::ClearHttpCache(base::Time start_time,
+@@ -1041,6 +1041,8 @@ void NetworkContext::ClearHttpCache(base::Time start_time,
        base::BindOnce(&NetworkContext::OnHttpCacheCleared,
                       base::Unretained(this), std::move(callback))));
  

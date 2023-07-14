@@ -31,7 +31,7 @@ Subject: Add setting to clear data on exit
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -291,6 +291,7 @@ chrome_java_sources = [
+@@ -292,6 +292,7 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragmentAdvanced.java",
    "java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragmentBasic.java",
    "java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataTabsFragment.java",
@@ -42,7 +42,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-@@ -137,6 +137,7 @@ import org.chromium.chrome.browser.profiles.ProfileManager;
+@@ -138,6 +138,7 @@ import org.chromium.chrome.browser.profiles.ProfileManager;
  import org.chromium.chrome.browser.quick_delete.QuickDeleteController;
  import org.chromium.chrome.browser.quick_delete.QuickDeleteDelegateImpl;
  import org.chromium.chrome.browser.quick_delete.QuickDeleteMetricsDelegate;
@@ -50,7 +50,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
  import org.chromium.chrome.browser.read_later.ReadingListBackPressHandler;
  import org.chromium.chrome.browser.read_later.ReadingListUtils;
  import org.chromium.chrome.browser.reengagement.ReengagementNotificationController;
-@@ -1294,7 +1295,11 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -1318,7 +1319,11 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
              Intent intent = getIntent();
  
              boolean hadCipherData =
@@ -66,7 +66,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java b/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragment.java
-@@ -413,6 +413,10 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
+@@ -417,6 +417,10 @@ public abstract class ClearBrowsingDataFragment extends PreferenceFragmentCompat
       */
      protected abstract @ClearBrowsingDataTab int getClearBrowsingDataTabType();
  
@@ -206,7 +206,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/browsing_data/C
 diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -2689,6 +2689,16 @@
+@@ -2694,6 +2694,16 @@
    <message name="IDS_SETTINGS_CLEAR_BROWSING_DATA" desc="Text for clear browsing data button in Privacy options">
      Clear browsing data
    </message>
@@ -238,7 +238,7 @@ diff --git a/chrome/browser/android/browsing_data/browsing_data_bridge.cc b/chro
 diff --git a/chrome/browser/browsing_data/chrome_browsing_data_lifetime_manager.cc b/chrome/browser/browsing_data/chrome_browsing_data_lifetime_manager.cc
 --- a/chrome/browser/browsing_data/chrome_browsing_data_lifetime_manager.cc
 +++ b/chrome/browser/browsing_data/chrome_browsing_data_lifetime_manager.cc
-@@ -286,8 +286,26 @@ void ChromeBrowsingDataLifetimeManager::Shutdown() {
+@@ -326,8 +326,25 @@ void ChromeBrowsingDataLifetimeManager::Shutdown() {
  
  void ChromeBrowsingDataLifetimeManager::ClearBrowsingDataForOnExitPolicy(
      bool keep_browser_alive) {
@@ -263,10 +263,17 @@ diff --git a/chrome/browser/browsing_data/chrome_browsing_data_lifetime_manager.
 +    data_types.Append(browsing_data::policy_data_types::kHostedAppData);
 +  if (profile_->GetPrefs()->GetBoolean(browsing_data::prefs::kDeleteSiteSettingsAtStart))
 +    data_types.Append(browsing_data::policy_data_types::kSiteSettings);
-+
-   if (!data_types.empty() && !SyncServiceFactory::IsSyncAllowed(profile_)) {
-     profile_->GetPrefs()->SetBoolean(
-         browsing_data::prefs::kClearBrowsingDataOnExitDeletionPending, true);
+ 
+   if (IsConditionSatisfiedForBrowsingDataRemoval(GetSyncTypesForPolicyPref(
+           profile_, browsing_data::prefs::kClearBrowsingDataOnExitList))) {
+@@ -426,6 +443,7 @@ void ChromeBrowsingDataLifetimeManager::StartScheduledBrowsingDataRemoval() {
+ bool ChromeBrowsingDataLifetimeManager::
+     IsConditionSatisfiedForBrowsingDataRemoval(
+         const syncer::UserSelectableTypeSet sync_types) {
++  if ((true)) return true;
+   bool sync_disabled = !SyncServiceFactory::IsSyncAllowed(profile_);
+   // Return the state of sync if
+   // `features::kDataRetentionPoliciesDisableSyncTypesNeeded` is disabled or if
 diff --git a/chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.cc b/chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.cc
 --- a/chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.cc
 +++ b/chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.cc
@@ -317,7 +324,7 @@ diff --git a/chrome/browser/browsing_data/chrome_browsing_data_remover_delegate.
 diff --git a/chrome/browser/extensions/api/settings_private/prefs_util.cc b/chrome/browser/extensions/api/settings_private/prefs_util.cc
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
-@@ -499,6 +499,23 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
+@@ -497,6 +497,23 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
    (*s_allowlist)[browsing_data::prefs::kLastClearBrowsingDataTab] =
        settings_api::PrefType::PREF_TYPE_NUMBER;
  
@@ -374,7 +381,7 @@ diff --git a/chrome/browser/profiles/android/profile_manager_utils.cc b/chrome/b
 diff --git a/chrome/browser/profiles/profile_manager.cc b/chrome/browser/profiles/profile_manager.cc
 --- a/chrome/browser/profiles/profile_manager.cc
 +++ b/chrome/browser/profiles/profile_manager.cc
-@@ -1442,6 +1442,19 @@ void ProfileManager::DoFinalInit(ProfileInfo* profile_info,
+@@ -1444,6 +1444,19 @@ void ProfileManager::DoFinalInit(ProfileInfo* profile_info,
    }
  }
  
@@ -409,7 +416,7 @@ diff --git a/chrome/browser/profiles/profile_manager.h b/chrome/browser/profiles
 diff --git a/chrome/browser/resources/settings/clear_browsing_data_dialog/clear_browsing_data_dialog.html b/chrome/browser/resources/settings/clear_browsing_data_dialog/clear_browsing_data_dialog.html
 --- a/chrome/browser/resources/settings/clear_browsing_data_dialog/clear_browsing_data_dialog.html
 +++ b/chrome/browser/resources/settings/clear_browsing_data_dialog/clear_browsing_data_dialog.html
-@@ -282,6 +282,50 @@
+@@ -285,6 +285,50 @@
                  disabled="[[clearingInProgress_]]" no-set-pref>
              </settings-checkbox>
            </div>
@@ -463,7 +470,7 @@ diff --git a/chrome/browser/resources/settings/clear_browsing_data_dialog/clear_
 diff --git a/chrome/browser/resources/settings/clear_browsing_data_dialog/clear_browsing_data_dialog.ts b/chrome/browser/resources/settings/clear_browsing_data_dialog/clear_browsing_data_dialog.ts
 --- a/chrome/browser/resources/settings/clear_browsing_data_dialog/clear_browsing_data_dialog.ts
 +++ b/chrome/browser/resources/settings/clear_browsing_data_dialog/clear_browsing_data_dialog.ts
-@@ -201,6 +201,7 @@ export class SettingsClearBrowsingDataDialogElement extends
+@@ -202,6 +202,7 @@ export class SettingsClearBrowsingDataDialogElement extends
          value: () =>
              [loadTimeData.getString('basicPageTitle'),
               loadTimeData.getString('advancedPageTitle'),
@@ -474,7 +481,7 @@ diff --git a/chrome/browser/resources/settings/clear_browsing_data_dialog/clear_
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -1540,6 +1540,9 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -1547,6 +1547,9 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_CLEAR_BROWSING_DATA_BASIC_TAB_TITLE" desc="The title of the tab showing the basic clear browsing data options.">
          Basic
        </message>
@@ -487,7 +494,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
 diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -1752,6 +1752,7 @@ void AddPrivacyStrings(content::WebUIDataSource* html_source,
+@@ -1716,6 +1716,7 @@ void AddPrivacyStrings(content::WebUIDataSource* html_source,
      {"clearedData", IDS_SETTINGS_CLEARED_DATA},
      {"clearBrowsingData", IDS_SETTINGS_CLEAR_BROWSING_DATA},
      {"clearBrowsingDataDescription", IDS_SETTINGS_CLEAR_DATA_DESCRIPTION},
@@ -554,7 +561,7 @@ diff --git a/components/browsing_data/core/clear_browsing_data_tab.h b/component
 diff --git a/components/browsing_data/core/pref_names.cc b/components/browsing_data/core/pref_names.cc
 --- a/components/browsing_data/core/pref_names.cc
 +++ b/components/browsing_data/core/pref_names.cc
-@@ -28,6 +28,16 @@ const char kClearBrowsingDataOnExitDeletionPending[] =
+@@ -26,6 +26,16 @@ const char kClearBrowsingDataOnExitDeletionPending[] =
  // delete just before browser shutdown.
  const char kClearBrowsingDataOnExitList[] = "browser.clear_data.clear_on_exit";
  
@@ -571,7 +578,7 @@ diff --git a/components/browsing_data/core/pref_names.cc b/components/browsing_d
  // Clear browsing data deletion time period.
  const char kDeleteTimePeriod[] = "browser.clear_data.time_period";
  const char kDeleteTimePeriodBasic[] = "browser.clear_data.time_period_basic";
-@@ -89,6 +99,23 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -85,6 +95,23 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterIntegerPref(
        kClearBrowsingDataHistoryNoticeShownTimes, 0);
  

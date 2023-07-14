@@ -21,7 +21,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -3402,6 +3402,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
+@@ -3358,6 +3358,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
      const url::Origin* source_origin,
      const url::Origin* destination_origin,
      const url::Origin* reporting_origin) {
@@ -34,12 +34,12 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
 diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 --- a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 +++ b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
-@@ -42,6 +42,7 @@ bool PrivacySandboxRestrictedByAccountCapability(Profile* profile) {
- }
+@@ -115,6 +115,7 @@ bool PrivacySandboxSettingsDelegate::HasAppropriateTopicsConsent() const {
  
- bool PrivacySandboxRestrictedNoticeRequired(Profile* profile) {
+ bool PrivacySandboxSettingsDelegate::PrivacySandboxRestrictedNoticeRequired()
+     const {
 +  if ((true)) return true;
-   auto* identity_manager = IdentityManagerFactory::GetForProfile(profile);
+   auto* identity_manager = IdentityManagerFactory::GetForProfile(profile_);
  
    if (!identity_manager ||
 diff --git a/components/history/core/browser/history_backend.cc b/components/history/core/browser/history_backend.cc
@@ -102,7 +102,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components
 diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/privacy_sandbox/privacy_sandbox_prefs.cc
 --- a/components/privacy_sandbox/privacy_sandbox_prefs.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_prefs.cc
-@@ -103,7 +103,7 @@ namespace privacy_sandbox {
+@@ -108,7 +108,7 @@ namespace privacy_sandbox {
  
  void RegisterProfilePrefs(PrefRegistrySimple* registry) {
    registry->RegisterBooleanPref(
@@ -114,7 +114,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/pr
 diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 --- a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
 +++ b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
-@@ -144,7 +144,8 @@ PrivacySandboxSettingsImpl::GetFinchDisabledTopics() {
+@@ -143,7 +143,8 @@ PrivacySandboxSettingsImpl::GetFinchDisabledTopics() {
    return finch_disabled_topics_;
  }
  
@@ -124,7 +124,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    // M1 specific
    if (base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings4)) {
      Status status = GetM1TopicAllowedStatus();
-@@ -187,7 +188,8 @@ bool PrivacySandboxSettingsImpl::IsTopicsAllowedForContext(
+@@ -195,7 +196,8 @@ bool PrivacySandboxSettingsImpl::IsTopicsAllowedForContext(
           IsPrivacySandboxEnabledForContext(top_frame_origin, url);
  }
  
@@ -134,7 +134,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    const auto& blocked_topics =
        pref_service_->GetList(prefs::kPrivacySandboxBlockedTopics);
  
-@@ -296,17 +298,7 @@ bool PrivacySandboxSettingsImpl::IsAttributionReportingEverAllowed() const {
+@@ -304,17 +306,7 @@ bool PrivacySandboxSettingsImpl::IsAttributionReportingEverAllowed() const {
  bool PrivacySandboxSettingsImpl::IsAttributionReportingAllowed(
      const url::Origin& top_frame_origin,
      const url::Origin& reporting_origin) const {
@@ -153,7 +153,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
  }
  
  bool PrivacySandboxSettingsImpl::MaySendAttributionReport(
-@@ -412,7 +404,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
+@@ -420,7 +412,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
  }
  
  bool PrivacySandboxSettingsImpl::IsFledgeJoiningAllowed(
@@ -163,7 +163,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    ScopedDictPrefUpdate scoped_pref_update(
        pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
    auto& pref_data = scoped_pref_update.Get();
-@@ -503,7 +496,9 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationAllowed(
+@@ -511,7 +504,9 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationAllowed(
                                             reporting_origin.GetURL());
  }
  
@@ -174,7 +174,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    PrivacySandboxSettingsImpl::Status status = GetPrivacySandboxAllowedStatus();
    if (!IsAllowed(status)) {
      return false;
-@@ -541,7 +536,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
+@@ -549,7 +544,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
    pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, false);
  }
  
@@ -184,7 +184,7 @@ diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/compo
    pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, enabled);
  }
  
-@@ -599,7 +595,10 @@ bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabledForContext(
+@@ -626,7 +622,10 @@ bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabledForContext(
        net::CookieSettingOverrides());
  }
  
