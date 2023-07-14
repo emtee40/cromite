@@ -27,7 +27,6 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../tab_management/TabSwitcherMediator.java   | 16 ++++
  .../ChromeAccessibilitySettingsDelegate.java  | 52 ++++++++++++
  .../chrome/browser/app/ChromeActivity.java    | 13 +++
- .../browser/app/flags/ChromeCachedFlags.java  |  1 +
  .../compositor/CompositorViewHolder.java      |  9 +++
  .../layouts/LayoutManagerChrome.java          | 18 ++++-
  .../layouts/LayoutManagerChromeTablet.java    |  4 +-
@@ -59,7 +58,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../flags/android/cached_feature_flags.cc     | 18 +++++
  .../flags/android/chrome_feature_list.cc      |  2 +
  .../browser/flags/CachedFeatureFlags.java     | 18 +++++
- .../browser/flags/ChromeFeatureList.java      |  4 +
+ .../chrome/browser/flags/CachedFlag.java      |  6 ++
+ .../browser/flags/ChromeFeatureList.java      |  5 ++
  chrome/browser/prefs/browser_prefs.cc         |  2 +-
  .../chrome/browser/ui/appmenu/AppMenu.java    | 31 +++++++
  .../ui/appmenu/AppMenuHandlerImpl.java        | 11 +++
@@ -88,7 +88,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../accessibility/AccessibilitySettings.java  | 16 ++++
  .../AccessibilitySettingsDelegate.java        |  6 ++
  .../render_widget_host_view_android.cc        |  3 +
- 76 files changed, 888 insertions(+), 63 deletions(-)
+ 76 files changed, 894 insertions(+), 63 deletions(-)
 
 diff --git a/cc/base/features.cc b/cc/base/features.cc
 --- a/cc/base/features.cc
@@ -737,17 +737,6 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
                  }
              }
              onInitialLayoutInflationComplete();
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
-@@ -72,6 +72,7 @@ public class ChromeCachedFlags {
-                 BrandingController.BRANDING_CADENCE_MS,
-                 ChromeFeatureList.sAllowUserCertificates,
-                 BrandingController.MAX_BLANK_TOOLBAR_TIMEOUT_MS,
-+                ChromeFeatureList.sMoveTopToolbarToBottom,
-                 BrandingController.USE_TEMPORARY_STORAGE,
-                 BrandingController.ANIMATE_TOOLBAR_ICON_TRANSITION, ChimeFeatures.ALWAYS_REGISTER,
-                 DeviceClassManager.GTS_ACCESSIBILITY_SUPPORT,
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/CompositorViewHolder.java
@@ -1808,11 +1797,11 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
 +    public static void setFlagEnabled(String featureName, String flagName, Boolean newValue) {
 +        CachedFeatureFlagsJni.get().setEnabled(flagName, newValue);
 +
-+        String preferenceName = getPrefForFeatureFlag(featureName);
++        CachedFlag cachedFlag = ChromeFeatureList.sAllCachedFlags.get(featureName);
++        String preferenceName = cachedFlag.getSharedPreferenceKey();
++
 +        SharedPreferencesManager.getInstance().writeBoolean(preferenceName, newValue);
-+        synchronized (sValuesReturned.boolValues) {
-+            sValuesReturned.boolValues.put(preferenceName, newValue);
-+        }
++        cachedFlag.setValueReturnedOverride(newValue);
 +    }
 +
      /**
@@ -1826,6 +1815,22 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
          boolean isNetworkServiceWarmUpEnabled();
          void setAdBlockFiltersURL(String url);
          String getAdBlockFiltersURL();
+diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFlag.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFlag.java
+--- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFlag.java
++++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFlag.java
+@@ -114,6 +114,12 @@ public class CachedFlag extends Flag {
+         }
+     }
+ 
++    public void setValueReturnedOverride(@Nullable Boolean value) {
++        synchronized (ValuesReturned.sBoolValues) {
++            ValuesReturned.sBoolValues.put(getSharedPreferenceKey(), value);
++        }
++    }
++
+     /**
+      * Caches the value of the feature from {@link ChromeFeatureList} to SharedPrefs.
+      */
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
@@ -1847,6 +1852,14 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final CachedFlag sOmniboxModernizeVisualUpdate =
              new CachedFlag(OMNIBOX_MODERNIZE_VISUAL_UPDATE, false);
      public static final CachedFlag sOmniboxMostVisitedTilesAddRecycledViewPool =
+@@ -646,6 +650,7 @@ public abstract class ChromeFeatureList {
+         sInstanceSwitcher,
+         sInstantStart,
+         sInterestFeedV2,
++        sMoveTopToolbarToBottom,
+         sOmniboxMatchToolbarAndStatusBarColor,
+         sOmniboxModernizeVisualUpdate,
+         sOmniboxMostVisitedTilesAddRecycledViewPool,
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc

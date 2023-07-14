@@ -80,7 +80,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../user_scripts/browser/user_script_loader.h | 168 ++++
  .../browser/user_script_pref_info.cc          |  34 +
  .../browser/user_script_pref_info.h           |  72 ++
- .../user_scripts/browser/user_script_prefs.cc | 274 ++++++
+ .../user_scripts/browser/user_script_prefs.cc | 275 ++++++
  .../user_scripts/browser/user_script_prefs.h  |  62 ++
  .../browser/userscripts_browser_client.cc     |  78 ++
  .../browser/userscripts_browser_client.h      |  62 ++
@@ -135,7 +135,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../renderer/web_ui_injection_host.h          |  27 +
  .../strings/userscripts_strings.grdp          |  54 ++
  tools/gritsettings/resource_ids.spec          |   6 +
- 108 files changed, 9434 insertions(+), 1 deletion(-)
+ 108 files changed, 9435 insertions(+), 1 deletion(-)
  create mode 100644 components/user_scripts/README.md
  create mode 100755 components/user_scripts/android/BUILD.gn
  create mode 100644 components/user_scripts/android/java/res/layout/accept_script_item.xml
@@ -3827,7 +3827,7 @@ diff --git a/components/user_scripts/browser/user_script_prefs.cc b/components/u
 new file mode 100644
 --- /dev/null
 +++ b/components/user_scripts/browser/user_script_prefs.cc
-@@ -0,0 +1,274 @@
+@@ -0,0 +1,275 @@
 +/*
 +    This file is part of Bromite.
 +
@@ -3916,7 +3916,7 @@ new file mode 100644
 +                      const std::string& key,
 +                      int64_t* value) {
 +  DCHECK(dict);
-+  const std::string* value_str = dict->FindStringKey(key);
++  const std::string* value_str = dict->GetDict().FindString(key);
 +  if (!value_str) {
 +    VLOG(2) << "Can't find key in local pref dictionary. Invalid key: " << key
 +            << ".";
@@ -4062,21 +4062,22 @@ new file mode 100644
 +  if (!script)
 +    return scriptInfo;
 +
-+  const std::string* name = script->FindStringKey(kScriptName);
-+  const std::string* description = script->FindStringKey(kScriptDescription);
-+  const std::string* version = script->FindStringKey(kScriptVersion);
-+  const std::string* file_path = script->FindStringKey(kScriptFilePath);
-+  const std::string* url_source = script->FindStringKey(kScriptUrlSource);
-+  const std::string* parser_error = script->FindStringKey(kScriptParserError);
++  const base::Value::Dict& dict = script->GetDict();
++  const std::string* name = dict.FindString(kScriptName);
++  const std::string* description = dict.FindString(kScriptDescription);
++  const std::string* version = dict.FindString(kScriptVersion);
++  const std::string* file_path = dict.FindString(kScriptFilePath);
++  const std::string* url_source = dict.FindString(kScriptUrlSource);
++  const std::string* parser_error = dict.FindString(kScriptParserError);
 +
 +  scriptInfo->set_name( name ? *name : "no name" );
 +  scriptInfo->set_description( description ? *description : "no description" );
 +  scriptInfo->set_version( version ? *version : "no version" );
-+  scriptInfo->enabled = script->FindBoolKey(kScriptIsEnabled).value_or(false);
++  scriptInfo->enabled = dict.FindBool(kScriptIsEnabled).value_or(false);
 +  scriptInfo->set_file_path( file_path ? *file_path : "no file path" );
 +  scriptInfo->set_url_source( url_source ? *url_source : "" );
 +  scriptInfo->set_parser_error( parser_error ? *parser_error : "" );
-+  scriptInfo->force_disabled = script->FindBoolKey(kScriptForceDisabled).value_or(false);
++  scriptInfo->force_disabled = dict.FindBool(kScriptForceDisabled).value_or(false);
 +
 +  int64_t time_interval = 0;
 +  if (GetInt64FromPref(script, kScriptInstallTime, &time_interval)) {
@@ -10443,10 +10444,10 @@ diff --git a/tools/gritsettings/resource_ids.spec b/tools/gritsettings/resource_
      "includes": [6220]
    },
 +  "components/user_scripts/renderer/resources/user_scripts_renderer_resources.grd": {
-+    "includes": [6000],
++    "includes": [7000],
 +  },
 +  "components/user_scripts/browser/resources/browser_resources.grd": {
-+    "includes": [6020],
++    "includes": [7020],
 +  },
    # END components/ section.
  

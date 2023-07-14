@@ -18,7 +18,7 @@ The feature is controlled by a feature flag (default enabled)
  .../blink/renderer/core/events/mouse_event.h  | 19 ++++-
  .../renderer/core/events/pointer_event.h      | 11 +++
  .../renderer/core/exported/web_view_impl.cc   |  2 +-
- .../renderer/core/frame/local_dom_window.cc   | 28 ++++++-
+ .../renderer/core/frame/local_dom_window.cc   | 32 +++++++-
  .../blink/renderer/core/frame/local_frame.cc  | 12 ++-
  .../blink/renderer/core/frame/local_frame.h   |  6 +-
  .../core/frame/screen_metrics_emulator.cc     | 18 ++++-
@@ -29,7 +29,7 @@ The feature is controlled by a feature flag (default enabled)
  third_party/blink/renderer/core/page/page.cc  | 76 +++++++++++++++++++
  third_party/blink/renderer/core/page/page.h   |  7 ++
  .../platform/runtime_enabled_features.json5   |  4 +-
- 22 files changed, 242 insertions(+), 19 deletions(-)
+ 22 files changed, 244 insertions(+), 21 deletions(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
@@ -238,30 +238,34 @@ diff --git a/third_party/blink/renderer/core/exported/web_view_impl.cc b/third_p
 diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_party/blink/renderer/core/frame/local_dom_window.cc
 --- a/third_party/blink/renderer/core/frame/local_dom_window.cc
 +++ b/third_party/blink/renderer/core/frame/local_dom_window.cc
-@@ -1516,6 +1516,11 @@ int LocalDOMWindow::outerHeight() const {
-   if (!page)
-     return 0;
- 
-+  // If screen is emulated and this frame is remote cross-origin
-+  // return innerWidth
-+  if (page->IsScreenEmulated() && frame->IsCrossOriginToOutermostMainFrame())
-+    return innerWidth();
-+
-   ChromeClient& chrome_client = page->GetChromeClient();
-   if (page->GetSettings().GetReportScreenSizeInPhysicalPixelsQuirk()) {
-     return static_cast<int>(
-@@ -1541,6 +1546,11 @@ int LocalDOMWindow::outerWidth() const {
-   if (!page)
-     return 0;
- 
+@@ -1511,7 +1511,12 @@ int LocalDOMWindow::outerHeight() const {
+   if (frame->IsInFencedFrameTree()) {
+     return innerHeight();
+   }
+-
 +  // If screen is emulated and this frame is remote cross-origin
 +  // return innerHeight
-+  if (page->IsScreenEmulated() && frame->IsCrossOriginToOutermostMainFrame())
++  if (frame->GetPage() && frame->GetPage()->IsScreenEmulated()
++        && frame->IsCrossOriginToOutermostMainFrame()) {
 +    return innerHeight();
-+
-   ChromeClient& chrome_client = page->GetChromeClient();
-   if (page->GetSettings().GetReportScreenSizeInPhysicalPixelsQuirk()) {
-     return static_cast<int>(
++  }
+   Page* page = frame->GetPage();
+   if (!page)
+     return 0;
+@@ -1536,7 +1541,12 @@ int LocalDOMWindow::outerWidth() const {
+   if (frame->IsInFencedFrameTree()) {
+     return innerWidth();
+   }
+-
++  // If screen is emulated and this frame is remote cross-origin
++  // return innerWidth
++  if (frame->GetPage() && frame->GetPage()->IsScreenEmulated()
++        && frame->IsCrossOriginToOutermostMainFrame()) {
++    return innerWidth();
++  }
+   Page* page = frame->GetPage();
+   if (!page)
+     return 0;
 @@ -1729,7 +1739,8 @@ double LocalDOMWindow::devicePixelRatio() const {
    if (!GetFrame())
      return 0.0;

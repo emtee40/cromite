@@ -85,7 +85,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/module_installer/android/BUILD.gn  |   4 -
  components/signin/public/android/BUILD.gn     |   3 -
  .../signin/AccountRenameChecker.java          |  16 -
- components/webauthn/android/BUILD.gn          |   9 -
+ components/webauthn/android/BUILD.gn          |  11 -
  .../webauthn/AuthenticatorImpl.java           |  83 +--
  .../webauthn/Fido2ApiCallHelper.java          |  21 -
  .../push_messaging/push_messaging_manager.cc  |   2 +-
@@ -102,7 +102,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../gms/ChromiumPlayServicesAvailability.java |  10 +-
  weblayer/browser/java/BUILD.gn                |   1 -
  weblayer/public/java/BUILD.gn                 |   1 -
- 78 files changed, 97 insertions(+), 1923 deletions(-)
+ 78 files changed, 97 insertions(+), 1925 deletions(-)
 
 diff --git a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected b/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
 --- a/android_webview/expectations/system_webview_bundle.AndroidManifest.expected
@@ -2984,15 +2984,16 @@ diff --git a/components/signin/public/android/java/src/org/chromium/components/s
 diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/BUILD.gn
 --- a/components/webauthn/android/BUILD.gn
 +++ b/components/webauthn/android/BUILD.gn
-@@ -6,7 +6,6 @@ import("//build/config/android/rules.gni")
+@@ -6,8 +6,6 @@ import("//build/config/android/rules.gni")
  
  generate_jni("jni_headers") {
    sources = [
 -    "java/src/org/chromium/components/webauthn/Fido2Api.java",
-     "java/src/org/chromium/components/webauthn/Fido2CredentialRequest.java",
+-    "java/src/org/chromium/components/webauthn/Fido2CredentialRequest.java",
      "java/src/org/chromium/components/webauthn/InternalAuthenticator.java",
      "java/src/org/chromium/components/webauthn/WebAuthnBrowserBridge.java",
-@@ -17,11 +16,7 @@ android_library("java") {
+   ]
+@@ -17,11 +15,7 @@ android_library("java") {
    sources = [
      "java/src/org/chromium/components/webauthn/AuthenticatorFactory.java",
      "java/src/org/chromium/components/webauthn/AuthenticatorImpl.java",
@@ -3004,7 +3005,7 @@ diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/
      "java/src/org/chromium/components/webauthn/GetAssertionResponseCallback.java",
      "java/src/org/chromium/components/webauthn/GetMatchingCredentialIdsResponseCallback.java",
      "java/src/org/chromium/components/webauthn/InternalAuthenticator.java",
-@@ -32,9 +27,6 @@ android_library("java") {
+@@ -32,9 +26,6 @@ android_library("java") {
    ]
    annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
    deps = [
@@ -3014,14 +3015,15 @@ diff --git a/components/webauthn/android/BUILD.gn b/components/webauthn/android/
      "//base:base_java",
      "//base:jni_java",
      "//build/android:build_java",
-@@ -84,7 +76,6 @@ android_library("test_support_java") {
+@@ -84,8 +75,6 @@ android_library("test_support_java") {
  
  source_set("android") {
    sources = [
 -    "fido2api_native_android.cc",
-     "fido2credentialrequest_native_android.cc",
+-    "fido2credentialrequest_native_android.cc",
      "internal_authenticator_android.cc",
      "internal_authenticator_android.h",
+     "webauthn_browser_bridge.cc",
 diff --git a/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java b/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
 --- a/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java
 +++ b/components/webauthn/android/java/src/org/chromium/components/webauthn/AuthenticatorImpl.java

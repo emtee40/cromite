@@ -6,15 +6,14 @@ Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../src/org/chromium/chrome/browser/app/ChromeActivity.java  | 3 +++
- .../chromium/chrome/browser/app/flags/ChromeCachedFlags.java | 1 +
  chrome/browser/about_flags.cc                                | 4 ++++
  chrome/browser/flag_descriptions.cc                          | 5 +++++
  chrome/browser/flag_descriptions.h                           | 3 +++
  chrome/browser/flags/android/chrome_feature_list.cc          | 5 +++++
  chrome/browser/flags/android/chrome_feature_list.h           | 1 +
- .../org/chromium/chrome/browser/flags/ChromeFeatureList.java | 3 +++
+ .../org/chromium/chrome/browser/flags/ChromeFeatureList.java | 4 ++++
  net/android/java/src/org/chromium/net/X509Util.java          | 5 +++++
- 9 files changed, 30 insertions(+)
+ 8 files changed, 30 insertions(+)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
@@ -36,17 +35,6 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
  
          // postDeferredStartupIfNeeded() is called in TabModelSelectorTabObsever#onLoadStopped(),
          // #onPageLoadFinished() and #onCrash(). If we are not actively loading a tab (e.g.
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/app/flags/ChromeCachedFlags.java
-@@ -70,6 +70,7 @@ public class ChromeCachedFlags {
- 
-         List<CachedFieldTrialParameter> fieldTrialsToCache = List.of(
-                 BrandingController.BRANDING_CADENCE_MS,
-+                ChromeFeatureList.sAllowUserCertificates,
-                 BrandingController.MAX_BLANK_TOOLBAR_TIMEOUT_MS,
-                 BrandingController.USE_TEMPORARY_STORAGE,
-                 BrandingController.ANIMATE_TOOLBAR_ICON_TRANSITION, ChimeFeatures.ALWAYS_REGISTER,
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
@@ -142,6 +130,14 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final CachedFlag sAppMenuMobileSiteOption =
              new CachedFlag(APP_MENU_MOBILE_SITE_OPTION, false);
      public static final CachedFlag sBackGestureActivityTabProvider =
+@@ -605,6 +608,7 @@ public abstract class ChromeFeatureList {
+ 
+     public static final List<CachedFlag> sFlagsCachedFullBrowser = List.of(
+             // clang-format off
++        sAllowUserCertificates,
+         sAppMenuMobileSiteOption,
+         sBackGestureActivityTabProvider,
+         sBackGestureRefactorActivityAndroid,
 diff --git a/net/android/java/src/org/chromium/net/X509Util.java b/net/android/java/src/org/chromium/net/X509Util.java
 --- a/net/android/java/src/org/chromium/net/X509Util.java
 +++ b/net/android/java/src/org/chromium/net/X509Util.java

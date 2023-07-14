@@ -325,17 +325,17 @@ diff --git a/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creat
  #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
  #include "third_party/blink/renderer/platform/graphics/unaccelerated_static_bitmap_image.h"
  #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
-@@ -209,6 +210,10 @@ CanvasAsyncBlobCreator::CanvasAsyncBlobCreator(
+@@ -208,6 +209,10 @@ CanvasAsyncBlobCreator::CanvasAsyncBlobCreator(
+                            std::min(info.height(), max_dimension));
          src_data_.reset(info, src_data_.addr(), src_data_.rowBytes());
        }
++      if (RuntimeEnabledFeatures::FingerprintingCanvasImageDataNoiseEnabled()) {
++        StaticBitmapImage::ShuffleSubchannelColorData(src_data_.writable_addr(),
++          src_data_.info(), 0, 0);
++      }
      }
-+    if (RuntimeEnabledFeatures::FingerprintingCanvasImageDataNoiseEnabled()) {
-+      StaticBitmapImage::ShuffleSubchannelColorData(src_data_.writable_addr(),
-+        src_data_.info(), 0, 0);
-+    }
    }
  
-   idle_task_status_ = kIdleTaskNotSupported;
 diff --git a/third_party/blink/renderer/core/html/canvas/text_metrics.cc b/third_party/blink/renderer/core/html/canvas/text_metrics.cc
 --- a/third_party/blink/renderer/core/html/canvas/text_metrics.cc
 +++ b/third_party/blink/renderer/core/html/canvas/text_metrics.cc

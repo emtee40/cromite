@@ -21,11 +21,13 @@ Subject: Add setting to clear data on exit
  .../clear_browsing_data_dialog.ts             |  1 +
  .../strings/android_chrome_strings.grd        |  3 +
  .../settings_localized_strings_provider.cc    |  1 +
+ .../core/browsing_data_policies_utils.cc      | 16 ++--
+ .../core/browsing_data_policies_utils.h       | 11 +++
  .../browsing_data/core/browsing_data_utils.cc | 34 +++++++++
  .../core/clear_browsing_data_tab.h            |  2 +-
  components/browsing_data/core/pref_names.cc   | 27 +++++++
  components/browsing_data/core/pref_names.h    |  9 +++
- 22 files changed, 297 insertions(+), 6 deletions(-)
+ 24 files changed, 316 insertions(+), 14 deletions(-)
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/browsing_data/ClearBrowsingDataFragmentAtStart.java
 
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
@@ -248,21 +250,21 @@ diff --git a/chrome/browser/browsing_data/chrome_browsing_data_lifetime_manager.
 +      browsing_data::prefs::kClearBrowsingDataOnExitList).Clone();
 +
 +  if (profile_->GetPrefs()->GetBoolean(browsing_data::prefs::kDeleteBrowsingHistoryAtStart))
-+    data_types.Append(browsing_data::policy_data_types::kBrowsingHistory);
++    data_types.Append(browsing_data::policy_data_types::kBrowsingHistoryName);
 +  if (profile_->GetPrefs()->GetBoolean(browsing_data::prefs::kDeleteDownloadHistoryAtStart))
-+    data_types.Append(browsing_data::policy_data_types::kDownloadHistory);
++    data_types.Append(browsing_data::policy_data_types::kDownloadHistoryName);
 +  if (profile_->GetPrefs()->GetBoolean(browsing_data::prefs::kDeleteCacheAtStart))
-+    data_types.Append(browsing_data::policy_data_types::kCachedImagesAndFiles);
++    data_types.Append(browsing_data::policy_data_types::kCachedImagesAndFilesName);
 +  if (profile_->GetPrefs()->GetBoolean(browsing_data::prefs::kDeleteCookiesAtStart))
-+    data_types.Append(browsing_data::policy_data_types::kCookiesAndOtherSiteData);
++    data_types.Append(browsing_data::policy_data_types::kCookiesAndOtherSiteDataName);
 +  if (profile_->GetPrefs()->GetBoolean(browsing_data::prefs::kDeletePasswordsAtStart))
-+    data_types.Append(browsing_data::policy_data_types::kPasswordSignin);
++    data_types.Append(browsing_data::policy_data_types::kPasswordSigninName);
 +  if (profile_->GetPrefs()->GetBoolean(browsing_data::prefs::kDeleteFormDataAtStart))
-+    data_types.Append(browsing_data::policy_data_types::kAutofill);
++    data_types.Append(browsing_data::policy_data_types::kAutofillName);
 +  if (profile_->GetPrefs()->GetBoolean(browsing_data::prefs::kDeleteHostedAppsDataAtStart))
-+    data_types.Append(browsing_data::policy_data_types::kHostedAppData);
++    data_types.Append(browsing_data::policy_data_types::kHostedAppDataName);
 +  if (profile_->GetPrefs()->GetBoolean(browsing_data::prefs::kDeleteSiteSettingsAtStart))
-+    data_types.Append(browsing_data::policy_data_types::kSiteSettings);
++    data_types.Append(browsing_data::policy_data_types::kSiteSettingsName);
  
    if (IsConditionSatisfiedForBrowsingDataRemoval(GetSyncTypesForPolicyPref(
            profile_, browsing_data::prefs::kClearBrowsingDataOnExitList))) {
@@ -502,6 +504,54 @@ diff --git a/chrome/browser/ui/webui/settings/settings_localized_strings_provide
      {"titleAndCount", IDS_SETTINGS_TITLE_AND_COUNT},
      {"safeBrowsingEnableExtendedReportingDesc",
       IDS_SETTINGS_SAFEBROWSING_ENABLE_REPORTING_DESC},
+diff --git a/components/browsing_data/core/browsing_data_policies_utils.cc b/components/browsing_data/core/browsing_data_policies_utils.cc
+--- a/components/browsing_data/core/browsing_data_policies_utils.cc
++++ b/components/browsing_data/core/browsing_data_policies_utils.cc
+@@ -19,15 +19,15 @@ namespace browsing_data {
+ 
+ namespace policy_data_types {
+ // Data retention policy types that require sync to be disabled.
+-const char kBrowsingHistoryName[] = "browsing_history";
+-const char kPasswordSigninName[] = "password_signin";
+-const char kAutofillName[] = "autofill";
+-const char kSiteSettingsName[] = "site_settings";
++extern const char kBrowsingHistoryName[] = "browsing_history";
++extern const char kPasswordSigninName[] = "password_signin";
++extern const char kAutofillName[] = "autofill";
++extern const char kSiteSettingsName[] = "site_settings";
+ // Data retention policy types that do not require sync to be disabled.
+-const char kHostedAppDataName[] = "hosted_app_data";
+-const char kDownloadHistoryName[] = "download_history";
+-const char kCookiesAndOtherSiteDataName[] = "cookies_and_other_site_data";
+-const char kCachedImagesAndFilesName[] = "cached_images_and_files";
++extern const char kHostedAppDataName[] = "hosted_app_data";
++extern const char kDownloadHistoryName[] = "download_history";
++extern const char kCookiesAndOtherSiteDataName[] = "cookies_and_other_site_data";
++extern const char kCachedImagesAndFilesName[] = "cached_images_and_files";
+ }  // namespace policy_data_types
+ 
+ namespace {
+diff --git a/components/browsing_data/core/browsing_data_policies_utils.h b/components/browsing_data/core/browsing_data_policies_utils.h
+--- a/components/browsing_data/core/browsing_data_policies_utils.h
++++ b/components/browsing_data/core/browsing_data_policies_utils.h
+@@ -12,6 +12,17 @@
+ 
+ namespace browsing_data {
+ 
++namespace policy_data_types {
++extern const char kBrowsingHistoryName[];
++extern const char kDownloadHistoryName[];
++extern const char kCookiesAndOtherSiteDataName[];
++extern const char kCachedImagesAndFilesName[];
++extern const char kPasswordSigninName[];
++extern const char kAutofillName[];
++extern const char kSiteSettingsName[];
++extern const char kHostedAppDataName[];
++}  // namespace policy_data_types
++
+ // The data types of the BrowsingDataSettings policy.
+ enum class PolicyDataType {
+   kBrowsingHistory = 0,
 diff --git a/components/browsing_data/core/browsing_data_utils.cc b/components/browsing_data/core/browsing_data_utils.cc
 --- a/components/browsing_data/core/browsing_data_utils.cc
 +++ b/components/browsing_data/core/browsing_data_utils.cc

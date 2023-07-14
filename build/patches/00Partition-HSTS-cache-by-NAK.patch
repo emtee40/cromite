@@ -5,7 +5,7 @@ Subject: Partition HSTS cache by NAK
 ---
  .../https_only_mode_upgrade_interceptor.cc    |  1 +
  .../browser/ssl/https_upgrades_interceptor.cc |  1 +
- .../webui/net_internals/net_internals_ui.cc   | 11 ++-
+ .../webui/net_internals/net_internals_ui.cc   | 14 ++-
  .../core/browser/hsts_query.cc                |  1 +
  net/http/transport_security_state.cc          | 98 +++++++++++++------
  net/http/transport_security_state.h           | 32 +++---
@@ -16,7 +16,7 @@ Subject: Partition HSTS cache by NAK
  services/network/network_context.cc           | 26 +++--
  services/network/network_context.h            | 11 ++-
  .../public/mojom/network_context.mojom        |  8 +-
- 13 files changed, 130 insertions(+), 83 deletions(-)
+ 13 files changed, 132 insertions(+), 84 deletions(-)
 
 diff --git a/chrome/browser/ssl/https_only_mode_upgrade_interceptor.cc b/chrome/browser/ssl/https_only_mode_upgrade_interceptor.cc
 --- a/chrome/browser/ssl/https_only_mode_upgrade_interceptor.cc
@@ -50,7 +50,7 @@ diff --git a/chrome/browser/ui/webui/net_internals/net_internals_ui.cc b/chrome/
 +  url::Origin unsafe_origin = url::Origin::CreateFromNormalizedTuple(
 +        "https", *domain, 443);
    GetNetworkContext()->DeleteDynamicDataForHost(
-+      net::NetworkAnonymizationKey::ToDoUseTopFrameOriginAsWell(unsafe_origin),
++      net::IsolationInfo::CreateForInternalRequest(unsafe_origin).network_anonymization_key(),
        *domain, base::BindOnce(&IgnoreBoolCallback));
  }
  
@@ -61,22 +61,25 @@ diff --git a/chrome/browser/ui/webui/net_internals/net_internals_ui.cc b/chrome/
 +  url::Origin unsafe_origin = url::Origin::CreateFromNormalizedTuple(
 +        "https", *domain, 443);
    GetNetworkContext()->GetHSTSState(
-+      net::NetworkAnonymizationKey::ToDoUseTopFrameOriginAsWell(unsafe_origin),
++      net::IsolationInfo::CreateForInternalRequest(unsafe_origin).network_anonymization_key(),
        *domain,
        base::BindOnce(&NetInternalsMessageHandler::ResolveCallbackWithResult,
                       weak_factory_.GetWeakPtr(), *callback_id));
-@@ -335,7 +341,10 @@ void NetInternalsMessageHandler::OnHSTSAdd(const base::Value::List& list) {
+@@ -335,8 +341,12 @@ void NetInternalsMessageHandler::OnHSTSAdd(const base::Value::List& list) {
    const bool sts_include_subdomains = list[1].GetBool();
  
    base::Time expiry = base::Time::Now() + base::Days(1000);
 -  GetNetworkContext()->AddHSTS(*domain, expiry, sts_include_subdomains,
+-                               base::DoNothing());
 +  url::Origin unsafe_origin = url::Origin::CreateFromNormalizedTuple(
 +        "https", *domain, 443);
-+  GetNetworkContext()->AddHSTS(net::NetworkAnonymizationKey::ToDoUseTopFrameOriginAsWell(unsafe_origin),
-+                              *domain, expiry, sts_include_subdomains,
-                                base::DoNothing());
++  GetNetworkContext()->AddHSTS(
++        net::IsolationInfo::CreateForInternalRequest(unsafe_origin).network_anonymization_key(),
++        *domain, expiry, sts_include_subdomains,
++        base::DoNothing());
  }
  
+ void NetInternalsMessageHandler::OnFlushSocketPools(
 diff --git a/components/password_manager/core/browser/hsts_query.cc b/components/password_manager/core/browser/hsts_query.cc
 --- a/components/password_manager/core/browser/hsts_query.cc
 +++ b/components/password_manager/core/browser/hsts_query.cc
@@ -84,7 +87,7 @@ diff --git a/components/password_manager/core/browser/hsts_query.cc b/components
    scoped_refptr<HSTSCallbackHelper> callback_helper =
        base::MakeRefCounted<HSTSCallbackHelper>(std::move(callback));
    network_context->IsHSTSActiveForHost(
-+      net::NetworkAnonymizationKey::ToDoUseTopFrameOriginAsWell(origin),
++      net::IsolationInfo::CreateForInternalRequest(origin).network_anonymization_key(),
        origin.host(),
        mojo::WrapCallbackWithDropHandler(
            base::BindOnce(&HSTSCallbackHelper::ReportResult, callback_helper),
