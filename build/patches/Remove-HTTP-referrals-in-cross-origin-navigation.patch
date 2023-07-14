@@ -38,7 +38,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -666,6 +666,8 @@ chrome_java_resources = [
+@@ -669,6 +669,8 @@ chrome_java_resources = [
    "java/res/xml/incognito_preferences.xml",
    "java/res/xml/privacy_preferences.xml",
    "java/res/xml/privacy_preferences_v2.xml",
@@ -50,7 +50,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -961,6 +961,8 @@ chrome_java_sources = [
+@@ -964,6 +964,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/privacy/settings/PrivacyPreferencesManagerImpl.java",
    "java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java",
    "java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java",
@@ -180,7 +180,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      private static final String PREF_CLEAR_BROWSING_DATA = "clear_browsing_data";
      private static final String PREF_PRIVACY_SANDBOX = "privacy_sandbox";
      private static final String PREF_PROXY_OPTIONS = "proxy";
-@@ -353,6 +355,10 @@ public class PrivacySettings extends PreferenceFragmentCompat
+@@ -359,6 +361,10 @@ public class PrivacySettings extends PreferenceFragmentCompat
                              : R.string.text_off);
          }
  
@@ -372,7 +372,7 @@ new file mode 100644
 diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/browser/net/system_network_context_manager.cc
 --- a/chrome/browser/net/system_network_context_manager.cc
 +++ b/chrome/browser/net/system_network_context_manager.cc
-@@ -482,6 +482,9 @@ SystemNetworkContextManager::SystemNetworkContextManager(
+@@ -471,6 +471,9 @@ SystemNetworkContextManager::SystemNetworkContextManager(
        base::BindRepeating(&SystemNetworkContextManager::UpdateReferrersEnabled,
                            base::Unretained(this)));
  
@@ -382,7 +382,7 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
    pref_change_registrar_.Add(
        prefs::kExplicitlyAllowedNetworkPorts,
        base::BindRepeating(
-@@ -574,6 +577,7 @@ void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
+@@ -562,6 +565,7 @@ void SystemNetworkContextManager::RegisterPrefs(PrefRegistrySimple* registry) {
    // the system NetworkContext, and the per-profile pref values are used for
    // the profile NetworkContexts.
    registry->RegisterBooleanPref(prefs::kEnableReferrers, true);
@@ -393,7 +393,7 @@ diff --git a/chrome/browser/net/system_network_context_manager.cc b/chrome/brows
 diff --git a/chrome/browser/renderer_preferences_util.cc b/chrome/browser/renderer_preferences_util.cc
 --- a/chrome/browser/renderer_preferences_util.cc
 +++ b/chrome/browser/renderer_preferences_util.cc
-@@ -114,6 +114,7 @@ void UpdateFromSystemSettings(blink::RendererPreferences* prefs,
+@@ -108,6 +108,7 @@ void UpdateFromSystemSettings(blink::RendererPreferences* prefs,
    prefs->accept_languages = GetLanguageListForProfile(
        profile, pref_service->GetString(language::prefs::kAcceptLanguages));
    prefs->enable_referrers = pref_service->GetBoolean(prefs::kEnableReferrers);
@@ -404,7 +404,7 @@ diff --git a/chrome/browser/renderer_preferences_util.cc b/chrome/browser/render
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -933,6 +933,30 @@ CHAR_LIMIT guidelines:
+@@ -937,6 +937,30 @@ CHAR_LIMIT guidelines:
  
  For example, some websites may respond to this request by showing you ads that aren’t based on other websites you’ve visited. Many websites will still collect and use your browsing data — for example to improve security, to provide content, ads and recommendations, and to generate reporting statistics.
        </message>
@@ -462,7 +462,7 @@ diff --git a/chrome/browser/ui/prefs/prefs_tab_helper.cc b/chrome/browser/ui/pre
 diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 --- a/chrome/common/pref_names.cc
 +++ b/chrome/common/pref_names.cc
-@@ -1331,6 +1331,9 @@ const char kEnableHyperlinkAuditing[] = "enable_a_ping";
+@@ -1341,6 +1341,9 @@ const char kEnableHyperlinkAuditing[] = "enable_a_ping";
  // Whether to enable sending referrers.
  const char kEnableReferrers[] = "enable_referrers";
  
@@ -475,7 +475,7 @@ diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -414,6 +414,7 @@ extern const char kPinnedTabs[];
+@@ -413,6 +413,7 @@ extern const char kPinnedTabs[];
  extern const char kDisable3DAPIs[];
  extern const char kEnableHyperlinkAuditing[];
  extern const char kEnableReferrers[];
@@ -486,7 +486,7 @@ diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
 --- a/content/browser/renderer_host/navigation_request.cc
 +++ b/content/browser/renderer_host/navigation_request.cc
-@@ -412,6 +412,14 @@ void AddAdditionalRequestHeaders(
+@@ -413,6 +413,14 @@ void AddAdditionalRequestHeaders(
          blink::mojom::Referrer(GURL(), network::mojom::ReferrerPolicy::kNever);
    }
  
@@ -504,7 +504,7 @@ diff --git a/content/browser/renderer_host/navigation_request.cc b/content/brows
 diff --git a/services/network/public/cpp/resource_request.h b/services/network/public/cpp/resource_request.h
 --- a/services/network/public/cpp/resource_request.h
 +++ b/services/network/public/cpp/resource_request.h
-@@ -134,7 +134,7 @@ struct COMPONENT_EXPORT(NETWORK_CPP_BASE) ResourceRequest {
+@@ -135,7 +135,7 @@ struct COMPONENT_EXPORT(NETWORK_CPP_BASE) ResourceRequest {
    std::vector<GURL> navigation_redirect_chain;
  
    GURL referrer;
@@ -516,7 +516,7 @@ diff --git a/services/network/public/cpp/resource_request.h b/services/network/p
 diff --git a/third_party/blink/public/common/renderer_preferences/renderer_preferences.h b/third_party/blink/public/common/renderer_preferences/renderer_preferences.h
 --- a/third_party/blink/public/common/renderer_preferences/renderer_preferences.h
 +++ b/third_party/blink/public/common/renderer_preferences/renderer_preferences.h
-@@ -40,6 +40,7 @@ struct BLINK_COMMON_EXPORT RendererPreferences {
+@@ -53,6 +53,7 @@ struct BLINK_COMMON_EXPORT RendererPreferences {
    absl::optional<base::TimeDelta> caret_blink_interval;
    bool use_custom_colors{true};
    bool enable_referrers{true};

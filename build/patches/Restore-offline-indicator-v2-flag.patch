@@ -20,15 +20,15 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineDetector.java b/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineDetector.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineDetector.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/indicator/OfflineDetector.java
-@@ -6,6 +6,7 @@ package org.chromium.chrome.browser.offlinepages.indicator;
- 
+@@ -8,6 +8,7 @@ import android.content.Context;
  import android.os.Handler;
  import android.os.SystemClock;
+ import android.provider.Settings;
 +import android.text.TextUtils;
  
  import androidx.annotation.VisibleForTesting;
  
-@@ -14,8 +15,10 @@ import org.chromium.base.ApplicationStatus;
+@@ -16,8 +17,10 @@ import org.chromium.base.ApplicationStatus;
  import org.chromium.base.Callback;
  import org.chromium.base.Log;
  import org.chromium.base.supplier.Supplier;
@@ -39,9 +39,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/in
  import org.chromium.components.version_info.VersionInfo;
  
  /**
-@@ -111,8 +114,9 @@ class OfflineDetector
-         mIsOfflineCallback = isOfflineCallback;
+@@ -125,8 +128,9 @@ class OfflineDetector
          mIsForegroundCallback = isForegroundCallback;
+         mContext = context;
          mHandler = new Handler();
 -        mStatusIndicatorWaitOnSwitchOnlineToOfflineDurationMs =
 -                STATUS_INDICATOR_WAIT_ON_SWITCH_ONLINE_TO_OFFLINE_DEFAULT_DURATION_MS;
@@ -51,9 +51,9 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/in
  
          mUpdateOfflineStatusIndicatorDelayedRunnable = () -> {
              if (sLoggingEnabled) {
-@@ -312,4 +316,34 @@ class OfflineDetector
-                 Math.max(Math.max(timeNeededForForeground, timeNeededForOffline),
-                         timeNeededAfterConnectionChangeFromOnlineToOffline));
+@@ -357,4 +361,34 @@ class OfflineDetector
+                                  timeNeededAfterConnectionChangeFromOnlineToOffline),
+                         timeNeededAfterConnectionChangeFromAirplaneToOffline));
      }
 +
 +    /**
@@ -89,7 +89,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/offlinepages/in
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedRootUiCoordinator.java
-@@ -828,7 +828,8 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -832,7 +832,8 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
      private void initStatusIndicatorCoordinator(LayoutManagerImpl layoutManager) {
          // TODO(crbug.com/1035584): Disable on tablets for now as we need to do one or two extra
          // things for tablets.
@@ -99,7 +99,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
              return;
          }
  
-@@ -850,6 +851,11 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
+@@ -854,6 +855,11 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
          mStatusIndicatorCoordinator.addObserver(mStatusIndicatorObserver);
          mStatusIndicatorCoordinator.addObserver(mStatusBarColorController);
  
@@ -114,7 +114,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/Tab
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -4894,6 +4894,9 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -5123,6 +5123,9 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kOfflinePagesLivePageSharingName,
       flag_descriptions::kOfflinePagesLivePageSharingDescription, kOsAndroid,
       FEATURE_VALUE_TYPE(offline_pages::kOfflinePagesLivePageSharingFeature)},
@@ -127,7 +127,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
 --- a/chrome/browser/flag-metadata.json
 +++ b/chrome/browser/flag-metadata.json
-@@ -5430,6 +5430,11 @@
+@@ -5471,6 +5471,11 @@
      "owners": [ "//components/search/OWNERS" ],
      "expiry_milestone": 118
    },
@@ -142,7 +142,7 @@ diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.js
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -4057,6 +4057,10 @@ const char kNotificationPermissionRationaleBottomSheetDescription[] =
+@@ -4029,6 +4029,10 @@ const char kNotificationPermissionRationaleBottomSheetDescription[] =
      "flow. "
      "Only works with builds targeting Android T+.";
  
@@ -156,7 +156,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -2358,6 +2358,9 @@ extern const char kNetworkServiceInProcessDescription[];
+@@ -2347,6 +2347,9 @@ extern const char kNetworkServiceInProcessDescription[];
  extern const char kNotificationPermissionRationaleName[];
  extern const char kNotificationPermissionRationaleDescription[];
  
@@ -169,7 +169,7 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -264,6 +264,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+@@ -248,6 +248,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
      &kLensOnQuickActionSearchWidget,
      &kNotificationPermissionVariant,
      &kNotificationPermissionBottomSheet,
@@ -177,7 +177,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
      &kPageAnnotationsService,
      &kPreconnectOnTabCreation,
      &kInlineUpdateFlow,
-@@ -799,6 +800,10 @@ BASE_FEATURE(kDrawEdgeToEdge,
+@@ -751,6 +752,10 @@ BASE_FEATURE(kDrawEdgeToEdge,
  
  BASE_FEATURE(kEmptyStates, "EmptyStates", base::FEATURE_DISABLED_BY_DEFAULT);
  
@@ -191,7 +191,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -120,6 +120,7 @@ BASE_DECLARE_FEATURE(kLanguagesPreference);
+@@ -113,6 +113,7 @@ BASE_DECLARE_FEATURE(kLanguagesPreference);
  BASE_DECLARE_FEATURE(kLensCameraAssistedSearch);
  BASE_DECLARE_FEATURE(kLensOnQuickActionSearchWidget);
  BASE_DECLARE_FEATURE(kLocationBarModelOptimizations);
@@ -202,7 +202,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -380,6 +380,7 @@ public abstract class ChromeFeatureList {
+@@ -307,6 +307,7 @@ public abstract class ChromeFeatureList {
      public static final String NOTIFICATION_PERMISSION_VARIANT = "NotificationPermissionVariant";
      public static final String NOTIFICATION_PERMISSION_BOTTOM_SHEET =
              "NotificationPermissionBottomSheet";

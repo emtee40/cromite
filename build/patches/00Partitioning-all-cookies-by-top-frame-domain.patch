@@ -22,8 +22,8 @@ samesite=none first-party cookies are sent in third-party contexts.
 diff --git a/net/base/features.cc b/net/base/features.cc
 --- a/net/base/features.cc
 +++ b/net/base/features.cc
-@@ -243,8 +243,8 @@ BASE_FEATURE(kSamePartyAttributeEnabled,
-              base::FEATURE_DISABLED_BY_DEFAULT);
+@@ -247,8 +247,8 @@ BASE_FEATURE(kWaitForFirstPartySetsInit,
+              base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kPartitionedCookies,
 -             "PartitionedCookies",
@@ -33,7 +33,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
  
  BASE_FEATURE(kNoncedPartitionedCookies,
               "NoncedPartitionedCookies",
-@@ -259,8 +259,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
+@@ -263,8 +263,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
               base::FEATURE_ENABLED_BY_DEFAULT);
  
  BASE_FEATURE(kCookieDomainRejectNonASCII,
@@ -47,7 +47,7 @@ diff --git a/net/base/features.cc b/net/base/features.cc
 diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
 --- a/net/cookies/canonical_cookie.cc
 +++ b/net/cookies/canonical_cookie.cc
-@@ -1446,8 +1446,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
+@@ -1575,8 +1575,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
    if (IsPartitioned()) {
      if (CookiePartitionKey::HasNonce(partition_key_))
        return true;
@@ -56,7 +56,7 @@ diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
    }
  
    return true;
-@@ -1690,15 +1688,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
+@@ -1850,15 +1848,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
                                                 bool secure,
                                                 bool is_partitioned,
                                                 bool partition_has_nonce) {
@@ -188,7 +188,7 @@ diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_init.idl b/t
 diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc b/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
 --- a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
 +++ b/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
-@@ -317,6 +317,10 @@ ScriptPromise CookieStore::set(ScriptState* script_state,
+@@ -321,6 +321,10 @@ ScriptPromise CookieStore::set(ScriptState* script_state,
    CookieInit* set_options = CookieInit::Create();
    set_options->setName(name);
    set_options->setValue(value);
@@ -199,7 +199,7 @@ diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc b/t
    return set(script_state, set_options, exception_state);
  }
  
-@@ -339,6 +343,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
+@@ -343,6 +347,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
    set_options->setName(name);
    set_options->setValue("deleted");
    set_options->setExpires(0);
@@ -210,7 +210,7 @@ diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc b/t
    return DoWrite(script_state, set_options, exception_state);
  }
  
-@@ -353,6 +361,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
+@@ -357,6 +365,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
    set_options->setPath(options->path());
    set_options->setSameSite("strict");
    set_options->setPartitioned(options->partitioned());

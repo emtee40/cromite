@@ -129,16 +129,16 @@ diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl
 diff --git a/chrome/browser/metrics/chrome_feature_list_creator.cc b/chrome/browser/metrics/chrome_feature_list_creator.cc
 --- a/chrome/browser/metrics/chrome_feature_list_creator.cc
 +++ b/chrome/browser/metrics/chrome_feature_list_creator.cc
-@@ -54,6 +54,8 @@
- #include "content/public/common/content_switch_dependent_feature_overrides.h"
+@@ -56,6 +56,8 @@
  #include "content/public/common/content_switches.h"
+ #include "services/network/public/cpp/network_switches.h"
  #include "ui/base/resource/resource_bundle.h"
 +#include "components/policy/core/common/policy_pref_names.h"
 +#include "components/policy/core/common/policy_switches.h"
  
  #if BUILDFLAG(IS_CHROMEOS_ASH)
  #include "chrome/browser/ash/policy/core/browser_policy_connector_ash.h"
-@@ -190,6 +192,16 @@ void ChromeFeatureListCreator::CreatePrefService() {
+@@ -197,6 +199,16 @@ void ChromeFeatureListCreator::CreatePrefService() {
    // ManagementService's cache.
    if (local_state_pref_store->ReadPrefs() ==
        JsonPrefStore::PREF_READ_ERROR_NONE) {
@@ -170,7 +170,7 @@ diff --git a/chrome/browser/policy/chrome_browser_policy_connector.cc b/chrome/b
 diff --git a/chrome/browser/policy/configuration_policy_handler_list_factory.cc b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 --- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
 +++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
-@@ -1918,9 +1918,9 @@ bool AreFuturePoliciesEnabledByDefault() {
+@@ -1922,9 +1922,9 @@ bool AreFuturePoliciesEnabledByDefault() {
    // Enable future policies for branded browser tests.
    if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kTestType))
      return true;
@@ -248,7 +248,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
  #include "components/policy/core/common/policy_scheduler.h"
  #include "components/policy/core/common/policy_types.h"
  #include "components/policy/core/common/remote_commands/remote_commands_service.h"
-@@ -168,6 +170,10 @@ void PolicyUIHandler::RegisterMessages() {
+@@ -167,6 +169,10 @@ void PolicyUIHandler::RegisterMessages() {
        "exportPoliciesJSON",
        base::BindRepeating(&PolicyUIHandler::HandleExportPoliciesJson,
                            base::Unretained(this)));
@@ -259,7 +259,7 @@ diff --git a/chrome/browser/ui/webui/policy/policy_ui_handler.cc b/chrome/browse
    web_ui()->RegisterMessageCallback(
        "listenPoliciesUpdates",
        base::BindRepeating(&PolicyUIHandler::HandleListenPoliciesUpdates,
-@@ -331,8 +337,102 @@ void PolicyUIHandler::SendPolicies() {
+@@ -330,8 +336,102 @@ void PolicyUIHandler::SendPolicies() {
        "policies-updated",
        base::Value(
            policy_value_and_status_aggregator_->GetAggregatedPolicyNames()),

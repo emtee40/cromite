@@ -23,7 +23,7 @@ under enable-log-dangling-attributes about flag
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -4819,7 +4819,10 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -5043,7 +5043,10 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kWebShareDescription, kOsWin | kOsCrOS | kOsMac,
       FEATURE_VALUE_TYPE(features::kWebShare)},
  #endif  // BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
@@ -38,7 +38,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
 --- a/third_party/blink/renderer/core/dom/document.cc
 +++ b/third_party/blink/renderer/core/dom/document.cc
-@@ -4460,6 +4460,14 @@ void Document::ProcessBaseElement() {
+@@ -4480,6 +4480,14 @@ void Document::ProcessBaseElement() {
    KURL base_element_url;
    if (href) {
      String stripped_href = StripLeadingAndTrailingHTMLSpaces(*href);
@@ -53,7 +53,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
      if (!stripped_href.empty())
        base_element_url = KURL(FallbackBaseURL(), stripped_href);
    }
-@@ -4478,6 +4486,14 @@ void Document::ProcessBaseElement() {
+@@ -4498,6 +4506,14 @@ void Document::ProcessBaseElement() {
          !GetExecutionContext()->GetSecurityOrigin()->CanRequest(
              base_element_url)) {
        UseCounter::Count(*this, WebFeature::kBaseWithCrossOriginHref);
@@ -68,7 +68,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
      }
    }
  
-@@ -4497,6 +4513,8 @@ void Document::ProcessBaseElement() {
+@@ -4517,6 +4533,8 @@ void Document::ProcessBaseElement() {
      if (target->Contains('<'))
        UseCounter::Count(*this, WebFeature::kBaseWithOpenBracketInTarget);
      base_target_ = *target;
@@ -80,7 +80,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/renderer/core/dom/element.cc
 --- a/third_party/blink/renderer/core/dom/element.cc
 +++ b/third_party/blink/renderer/core/dom/element.cc
-@@ -2529,8 +2529,26 @@ void Element::StripScriptingAttributes(
+@@ -2531,8 +2531,26 @@ void Element::StripScriptingAttributes(
    attribute_vector.Shrink(destination);
  }
  
@@ -152,7 +152,7 @@ diff --git a/third_party/blink/renderer/core/html/html_base_element.h b/third_pa
 diff --git a/third_party/blink/renderer/core/html/html_frame_element_base.cc b/third_party/blink/renderer/core/html/html_frame_element_base.cc
 --- a/third_party/blink/renderer/core/html/html_frame_element_base.cc
 +++ b/third_party/blink/renderer/core/html/html_frame_element_base.cc
-@@ -142,6 +142,16 @@ void HTMLFrameElementBase::ParseAttribute(
+@@ -119,6 +119,16 @@ void HTMLFrameElementBase::ParseAttribute(
      frame_name_ = value;
    } else if (name == html_names::kNameAttr) {
      frame_name_ = value;
@@ -250,7 +250,7 @@ diff --git a/third_party/blink/renderer/core/page/frame_tree.cc b/third_party/bl
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -1452,8 +1452,8 @@
+@@ -1493,8 +1493,8 @@
        // Experiment with preventing some instances of mutation XSS
        // by escaping "<" and ">" in attribute values.
        // See: crbug.com/1175016
@@ -261,9 +261,9 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
      },
      {
        // Non-standard API Event.path. Should be replaced by Event.composedPath.
-@@ -2150,6 +2150,12 @@
-       name: "LongAnimationFrameUKM",
-       status: "stable"
+@@ -2196,6 +2196,12 @@
+       // Use LongAnimationFrameMonitor to emit longtask entries
+       name: "LongTaskFromLongAnimationFrame"
      },
 +    {
 +      // Enables log of some dangling attributes

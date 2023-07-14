@@ -9,7 +9,7 @@ Subject: Always open browser controls in new tab
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabContextMenuItemDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabContextMenuItemDelegate.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabContextMenuItemDelegate.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabContextMenuItemDelegate.java
-@@ -19,6 +19,7 @@ import org.chromium.base.IntentUtils;
+@@ -20,6 +20,7 @@ import org.chromium.base.IntentUtils;
  import org.chromium.base.PackageManagerUtils;
  import org.chromium.base.metrics.RecordUserAction;
  import org.chromium.base.supplier.Supplier;
@@ -17,7 +17,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabContextM
  import org.chromium.chrome.browser.DefaultBrowserInfo;
  import org.chromium.chrome.browser.IntentHandler;
  import org.chromium.chrome.browser.bookmarks.BookmarkModel;
-@@ -33,6 +34,7 @@ import org.chromium.chrome.browser.multiwindow.MultiWindowUtils;
+@@ -34,6 +35,7 @@ import org.chromium.chrome.browser.multiwindow.MultiWindowUtils;
  import org.chromium.chrome.browser.offlinepages.OfflinePageBridge;
  import org.chromium.chrome.browser.offlinepages.RequestCoordinatorBridge;
  import org.chromium.chrome.browser.profiles.Profile;
@@ -25,15 +25,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabContextM
  import org.chromium.chrome.browser.tab.state.CriticalPersistedTabData;
  import org.chromium.chrome.browser.tabmodel.TabModelSelector;
  import org.chromium.chrome.browser.tabmodel.document.TabDelegate;
-@@ -201,6 +203,7 @@ public class TabContextMenuItemDelegate implements ContextMenuItemDelegate {
- 
+@@ -204,6 +206,7 @@ public class TabContextMenuItemDelegate implements ContextMenuItemDelegate {
      @Override
-     public void onOpenInNewTab(GURL url, Referrer referrer, boolean navigateToTab) {
+     public void onOpenInNewTab(
+             GURL url, Referrer referrer, boolean navigateToTab, @Nullable Impression impression) {
 +        TabBrowserControlsConstraintsHelper.get(mTab).update(BrowserControlsState.SHOWN, true);
          RecordUserAction.record("MobileNewTabOpened");
          RecordUserAction.record("LinkOpenedInNewTab");
          LoadUrlParams loadUrlParams = new LoadUrlParams(url.getSpec());
-@@ -213,6 +216,7 @@ public class TabContextMenuItemDelegate implements ContextMenuItemDelegate {
+@@ -217,6 +220,7 @@ public class TabContextMenuItemDelegate implements ContextMenuItemDelegate {
  
      @Override
      public void onOpenInNewTabInGroup(GURL url, Referrer referrer) {

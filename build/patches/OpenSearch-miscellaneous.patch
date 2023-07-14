@@ -240,15 +240,15 @@ diff --git a/components/search_engines/template_url_fetcher.cc b/components/sear
 diff --git a/components/search_engines/template_url_parser.cc b/components/search_engines/template_url_parser.cc
 --- a/components/search_engines/template_url_parser.cc
 +++ b/components/search_engines/template_url_parser.cc
-@@ -168,7 +168,7 @@ class SafeTemplateURLParser {
- void SafeTemplateURLParser::OnXmlParseComplete(
+@@ -171,7 +171,7 @@ void SafeTemplateURLParser::OnXmlParseComplete(
      data_decoder::DataDecoder::ValueOrError value_or_error) {
-   if (!value_or_error.has_value()) {
--    DLOG(ERROR) << "Failed to parse XML: " << value_or_error.error();
-+    LOG(ERROR) << "Failed to parse XML: " << value_or_error.error();
-     std::move(callback_).Run(nullptr);
-     return;
-   }
+   std::move(callback_).Run([&]() -> std::unique_ptr<TemplateURL> {
+     if (!value_or_error.has_value()) {
+-      DLOG(ERROR) << "Failed to parse XML: " << value_or_error.error();
++      LOG(ERROR) << "Failed to parse XML: " << value_or_error.error();
+       return nullptr;
+     }
+     const base::Value& root = *value_or_error;
 diff --git a/components/search_engines/template_url_service.h b/components/search_engines/template_url_service.h
 --- a/components/search_engines/template_url_service.h
 +++ b/components/search_engines/template_url_service.h

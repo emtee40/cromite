@@ -62,7 +62,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
  import org.chromium.chrome.browser.compositor.layouts.Layout;
  import org.chromium.chrome.browser.compositor.layouts.LayoutManagerChrome;
  import org.chromium.chrome.browser.compositor.layouts.LayoutManagerChromePhone;
-@@ -2229,6 +2230,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -2285,6 +2286,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
              CloseAllTabsDialog.show(this, getModalDialogManagerSupplier(),
                      () -> getTabModelSelector().closeAllTabs(), /*isIncognito=*/false);
              RecordUserAction.record("MobileMenuCloseAllTabs");
@@ -71,7 +71,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
          } else if (id == R.id.close_all_incognito_tabs_menu_id) {
              // Close only incognito tabs
              CloseAllTabsDialog.show(this, getModalDialogManagerSupplier(),
-@@ -2291,6 +2294,27 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
+@@ -2350,6 +2353,27 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
          mTabModalHandler.onOmniboxFocusChanged(hasFocus);
      }
  
@@ -102,15 +102,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkBridge.java
-@@ -28,6 +28,7 @@ import androidx.annotation.VisibleForTesting;
- import com.google.protobuf.InvalidProtocolBufferException;
+@@ -29,6 +29,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  
+ import org.chromium.base.Callback;
  import org.chromium.base.ContextUtils;
 +import org.chromium.base.Log;
  import org.chromium.base.ObserverList;
  import org.chromium.base.ThreadUtils;
  import org.chromium.base.annotations.CalledByNative;
-@@ -38,6 +39,10 @@ import org.chromium.chrome.browser.partnerbookmarks.PartnerBookmarksShim;
+@@ -39,6 +40,10 @@ import org.chromium.chrome.browser.partnerbookmarks.PartnerBookmarksShim;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.read_later.ReadingListUtils;
  import org.chromium.chrome.browser.tab.Tab;
@@ -121,7 +121,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
  import org.chromium.components.bookmarks.BookmarkId;
  import org.chromium.components.bookmarks.BookmarkItem;
  import org.chromium.components.bookmarks.BookmarkType;
-@@ -81,6 +86,8 @@ import java.io.File;
+@@ -82,6 +87,8 @@ import java.io.File;
   * bookmark model stored in native.
   */
  class BookmarkBridge {
@@ -130,7 +130,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      private long mNativeBookmarkBridge;
      private boolean mIsDestroyed;
      private boolean mIsDoingExtensiveChanges;
-@@ -370,6 +377,16 @@ class BookmarkBridge {
+@@ -381,6 +388,16 @@ class BookmarkBridge {
                  mNativeBookmarkBridge, BookmarkBridge.this);
      }
  
@@ -147,7 +147,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * @return Id representing the special "other" folder from bookmark model.
       */
-@@ -998,6 +1015,49 @@ class BookmarkBridge {
+@@ -1004,6 +1021,49 @@ class BookmarkBridge {
                  mNativeBookmarkBridge, BookmarkBridge.this, title, url);
      }
  
@@ -197,7 +197,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
      /**
       * @param url The URL of the reading list item.
       * @return The reading list item with the URL, or null if no such reading list item.
-@@ -1214,6 +1274,7 @@ class BookmarkBridge {
+@@ -1222,6 +1282,7 @@ class BookmarkBridge {
          void getAllFoldersWithDepths(long nativeBookmarkBridge, BookmarkBridge caller,
                  List<BookmarkId> folderList, List<Integer> depthList);
          BookmarkId getRootFolderId(long nativeBookmarkBridge, BookmarkBridge caller);
@@ -208,7 +208,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/BookmarkUtils.java
-@@ -569,6 +569,7 @@ public class BookmarkUtils {
+@@ -584,6 +584,7 @@ public class BookmarkUtils {
          List<BookmarkId> topLevelFolders = new ArrayList<>();
          BookmarkId desktopNodeId = bookmarkModel.getDesktopFolderId();
          BookmarkId mobileNodeId = bookmarkModel.getMobileFolderId();
@@ -216,7 +216,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
          BookmarkId othersNodeId = bookmarkModel.getOtherFolderId();
  
          List<BookmarkId> specialFoldersIds =
-@@ -594,6 +595,9 @@ public class BookmarkUtils {
+@@ -609,6 +610,9 @@ public class BookmarkUtils {
          if (bookmarkModel.isFolderVisible(mobileNodeId)) {
              topLevelFolders.add(mobileNodeId);
          }
@@ -229,7 +229,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browser/bookmarks/android/bookmark_bridge.cc
 --- a/chrome/browser/bookmarks/android/bookmark_bridge.cc
 +++ b/chrome/browser/bookmarks/android/bookmark_bridge.cc
-@@ -440,6 +440,11 @@ void BookmarkBridge::GetTopLevelFolderIds(
+@@ -476,6 +476,11 @@ void BookmarkBridge::GetTopLevelFolderIds(
          top_level_folders.push_back(node.get());
      }
  
@@ -241,7 +241,7 @@ diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browse
      for (const auto& node : bookmark_model_->bookmark_bar_node()->children()) {
        if (node->is_folder())
          top_level_folders.push_back(node.get());
-@@ -487,6 +492,7 @@ void BookmarkBridge::GetAllFoldersWithDepths(
+@@ -523,6 +528,7 @@ void BookmarkBridge::GetAllFoldersWithDepths(
    // Vector to temporarily contain all child bookmarks at same level for sorting
    std::vector<const BookmarkNode*> bookmarks = {
        bookmark_model_->mobile_node(),
@@ -249,7 +249,7 @@ diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browse
        bookmark_model_->bookmark_bar_node(),
        bookmark_model_->other_node(),
    };
-@@ -539,6 +545,17 @@ ScopedJavaLocalRef<jobject> BookmarkBridge::GetMobileFolderId(
+@@ -575,6 +581,17 @@ ScopedJavaLocalRef<jobject> BookmarkBridge::GetMobileFolderId(
    return folder_id_obj;
  }
  
@@ -270,7 +270,7 @@ diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browse
 diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.h b/chrome/browser/bookmarks/android/bookmark_bridge.h
 --- a/chrome/browser/bookmarks/android/bookmark_bridge.h
 +++ b/chrome/browser/bookmarks/android/bookmark_bridge.h
-@@ -125,6 +125,10 @@ class BookmarkBridge : public bookmarks::BaseBookmarkModelObserver,
+@@ -133,6 +133,10 @@ class BookmarkBridge : public bookmarks::BaseBookmarkModelObserver,
        JNIEnv* env,
        const base::android::JavaParamRef<jobject>& obj);
  
@@ -317,7 +317,7 @@ diff --git a/chrome/browser/bookmarks/bookmark_html_writer.cc b/chrome/browser/b
 diff --git a/chrome/browser/bookmarks/chrome_bookmark_client.cc b/chrome/browser/bookmarks/chrome_bookmark_client.cc
 --- a/chrome/browser/bookmarks/chrome_bookmark_client.cc
 +++ b/chrome/browser/bookmarks/chrome_bookmark_client.cc
-@@ -116,6 +116,8 @@ bool ChromeBookmarkClient::IsPermanentNodeVisibleWhenEmpty(
+@@ -106,6 +106,8 @@ bool ChromeBookmarkClient::IsPermanentNodeVisibleWhenEmpty(
        return !is_mobile;
      case bookmarks::BookmarkNode::MOBILE:
        return is_mobile;
@@ -350,7 +350,7 @@ diff --git a/chrome/browser/download/android/java/src/org/chromium/chrome/browse
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -3844,6 +3844,9 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -3788,6 +3788,9 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
        <message name="IDS_MENU_SELECT_TABS" desc="Menu item for bulk editing tabs. [CHAR_LIMIT=27]">
          Select tabs
        </message>
@@ -576,7 +576,7 @@ diff --git a/components/bookmarks/browser/bookmark_load_details.h b/components/b
 diff --git a/components/bookmarks/browser/bookmark_model.cc b/components/bookmarks/browser/bookmark_model.cc
 --- a/components/bookmarks/browser/bookmark_model.cc
 +++ b/components/bookmarks/browser/bookmark_model.cc
-@@ -733,7 +733,7 @@ bool BookmarkModel::HasBookmarks() {
+@@ -816,7 +816,7 @@ bool BookmarkModel::HasBookmarks() {
  bool BookmarkModel::HasNoUserCreatedBookmarksOrFolders() {
    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
    return bookmark_bar_node_->children().empty() &&
@@ -585,7 +585,7 @@ diff --git a/components/bookmarks/browser/bookmark_model.cc b/components/bookmar
  }
  
  bool BookmarkModel::IsBookmarked(const GURL& url) {
-@@ -1020,6 +1020,7 @@ void BookmarkModel::DoneLoading(std::unique_ptr<BookmarkLoadDetails> details) {
+@@ -1122,6 +1122,7 @@ void BookmarkModel::DoneLoading(std::unique_ptr<BookmarkLoadDetails> details) {
    bookmark_bar_node_ = details->bb_node();
    other_node_ = details->other_folder_node();
    mobile_node_ = details->mobile_folder_node();
@@ -596,7 +596,7 @@ diff --git a/components/bookmarks/browser/bookmark_model.cc b/components/bookmar
 diff --git a/components/bookmarks/browser/bookmark_model.h b/components/bookmarks/browser/bookmark_model.h
 --- a/components/bookmarks/browser/bookmark_model.h
 +++ b/components/bookmarks/browser/bookmark_model.h
-@@ -128,6 +128,12 @@ class BookmarkModel : public BookmarkUndoProvider,
+@@ -131,6 +131,12 @@ class BookmarkModel final : public BookmarkUndoProvider,
      return mobile_node_;
    }
  
@@ -609,7 +609,7 @@ diff --git a/components/bookmarks/browser/bookmark_model.h b/components/bookmark
    bool is_root_node(const BookmarkNode* node) const {
      DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
      return node == root_;
-@@ -452,6 +458,7 @@ class BookmarkModel : public BookmarkUndoProvider,
+@@ -489,6 +495,7 @@ class BookmarkModel final : public BookmarkUndoProvider,
        nullptr;
    raw_ptr<BookmarkPermanentNode, DanglingUntriaged> other_node_ = nullptr;
    raw_ptr<BookmarkPermanentNode, DanglingUntriaged> mobile_node_ = nullptr;
