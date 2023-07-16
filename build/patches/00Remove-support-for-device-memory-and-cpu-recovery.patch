@@ -3,11 +3,12 @@ Date: Tue, 27 Jun 2023 11:11:53 +0000
 Subject: Remove support for device memory and cpu recovery
 
 ---
- .../common/device_memory/approximated_device_memory.cc    | 7 ++++++-
- third_party/blink/common/features.cc                      | 4 ++--
- .../renderer/core/frame/navigator_concurrent_hardware.cc  | 8 ++++++--
- .../blink/renderer/core/timing/window_performance.cc      | 1 +
- 4 files changed, 15 insertions(+), 5 deletions(-)
+ .../device_memory/approximated_device_memory.cc    |  7 ++++++-
+ third_party/blink/common/features.cc               |  4 ++--
+ .../core/frame/navigator_concurrent_hardware.cc    |  8 ++++++--
+ .../blink/renderer/core/timing/memory_info.cc      | 14 +++++++++++---
+ .../renderer/core/timing/window_performance.cc     |  2 +-
+ 5 files changed, 26 insertions(+), 9 deletions(-)
 
 diff --git a/third_party/blink/common/device_memory/approximated_device_memory.cc b/third_party/blink/common/device_memory/approximated_device_memory.cc
 --- a/third_party/blink/common/device_memory/approximated_device_memory.cc
@@ -69,16 +70,54 @@ diff --git a/third_party/blink/renderer/core/frame/navigator_concurrent_hardware
  }
  
  }  // namespace blink
+diff --git a/third_party/blink/renderer/core/timing/memory_info.cc b/third_party/blink/renderer/core/timing/memory_info.cc
+--- a/third_party/blink/renderer/core/timing/memory_info.cc
++++ b/third_party/blink/renderer/core/timing/memory_info.cc
+@@ -34,6 +34,8 @@
+ 
+ #include "base/time/default_tick_clock.h"
+ #include "base/time/time.h"
++#include "base/rand_util.h"
++#include "build/build_config.h"
+ #include "third_party/blink/renderer/core/frame/settings.h"
+ #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+ #include "third_party/blink/renderer/platform/wtf/math_extras.h"
+@@ -43,15 +45,21 @@ namespace blink {
+ 
+ static constexpr base::TimeDelta kTwentyMinutes = base::Minutes(20);
+ static constexpr base::TimeDelta kFiftyMs = base::Milliseconds(50);
++#if BUILDFLAG(IS_ANDROID)
++static constexpr size_t heap_size_limit = 528744448;
++#else
++static constexpr size_t heap_size_limit = 4294705152;
++#endif
+ 
+ static void GetHeapSize(HeapInfo& info) {
+   v8::HeapStatistics heap_statistics;
+   v8::Isolate::GetCurrent()->GetHeapStatistics(&heap_statistics);
++  const double scale_factor = 1.0 + base::RandInt(-300, 300) / 10000.0;
+   info.used_js_heap_size =
+-      heap_statistics.used_heap_size() + heap_statistics.external_memory();
++      (heap_statistics.used_heap_size() + heap_statistics.external_memory()) * scale_factor;
+   info.total_js_heap_size =
+-      heap_statistics.total_physical_size() + heap_statistics.external_memory();
+-  info.js_heap_size_limit = heap_statistics.heap_size_limit();
++      (heap_statistics.total_physical_size() + heap_statistics.external_memory()) * scale_factor;
++  info.js_heap_size_limit = heap_size_limit;
+ }
+ 
+ class HeapSizeCache {
 diff --git a/third_party/blink/renderer/core/timing/window_performance.cc b/third_party/blink/renderer/core/timing/window_performance.cc
 --- a/third_party/blink/renderer/core/timing/window_performance.cc
 +++ b/third_party/blink/renderer/core/timing/window_performance.cc
-@@ -245,6 +245,7 @@ PerformanceNavigation* WindowPerformance::navigation() const {
- }
- 
- MemoryInfo* WindowPerformance::memory(ScriptState* script_state) const {
-+  if ((true)) return nullptr;
-   // The performance.memory() API has been improved so that we report precise
-   // values when the process is locked to a site. The intent (which changed
-   // course over time about what changes would be implemented) can be found at
+@@ -253,7 +253,7 @@ MemoryInfo* WindowPerformance::memory(ScriptState* script_state) const {
+   auto* memory_info = MakeGarbageCollected<MemoryInfo>(
+       Platform::Current()->IsLockedToSite()
+           ? MemoryInfo::Precision::kPrecise
+-          : MemoryInfo::Precision::kBucketized);
++          : MemoryInfo::Precision::kPrecise);
+   // Record Web Memory UKM.
+   const uint64_t kBytesInKB = 1024;
+   auto* execution_context = ExecutionContext::From(script_state);
 --
 2.25.1
