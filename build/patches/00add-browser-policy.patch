@@ -10,11 +10,11 @@ Subject: Add browser policy
  ...nfiguration_policy_handler_list_factory.cc |   6 +-
  .../account_consistency_mode_manager.cc       |   5 +-
  chrome/browser/signin/chrome_signin_client.cc |   7 +-
- .../ui/webui/policy/policy_ui_handler.cc      | 104 ++++++++++++++-
+ .../ui/webui/policy/policy_ui_handler.cc      | 104 +++++++++++++-
  .../ui/webui/policy/policy_ui_handler.h       |   2 +
  .../core/browser/browser_policy_connector.cc  |   3 +
  .../common/command_line_policy_provider.cc    |   3 +
- .../core/common/policy_loader_command_line.cc | 123 +++++++++++++++---
+ .../core/common/policy_loader_command_line.cc | 128 +++++++++++++++---
  .../policy/core/common/policy_pref_names.cc   |   3 +
  .../policy/core/common/policy_pref_names.h    |   1 +
  .../policy/core/common/policy_service_impl.cc |   3 +
@@ -26,7 +26,7 @@ Subject: Add browser policy
  components/policy_strings.grdp                |   4 +-
  .../gaia_cookie_manager_service.cc            |   4 +
  google_apis/gaia/gaia_auth_fetcher.cc         |   1 +
- 23 files changed, 280 insertions(+), 89 deletions(-)
+ 23 files changed, 285 insertions(+), 89 deletions(-)
 
 diff --git a/base/win/win_util.cc b/base/win/win_util.cc
 --- a/base/win/win_util.cc
@@ -437,7 +437,7 @@ diff --git a/components/policy/core/common/policy_loader_command_line.cc b/compo
  
  namespace policy {
  
-@@ -21,25 +46,91 @@ PolicyLoaderCommandLine::~PolicyLoaderCommandLine() = default;
+@@ -21,25 +46,96 @@ PolicyLoaderCommandLine::~PolicyLoaderCommandLine() = default;
  
  PolicyBundle PolicyLoaderCommandLine::Load() {
    PolicyBundle bundle;
@@ -515,7 +515,13 @@ diff --git a/components/policy/core/common/policy_loader_command_line.cc b/compo
 +  // Disable shopping list
 +  AddPolicy(disabled_policies_list, policy_map, policy::key::kShoppingListEnabled, base::Value(false));
 +
-+  // AddPolicy(disabled_policies_list, policy_map, policy::key::ShoppingListEnabled, base::Value(false));
++#if !BUILDFLAG(IS_ANDROID)
++  // Disable Google Search Side Panel
++  AddPolicy(disabled_policies_list, policy_map, policy::key::kGoogleSearchSidePanelEnabled, base::Value(false));
++#endif
++
++  // Disable automatic https upgrade
++  AddPolicy(disabled_policies_list, policy_map, policy::key::kHttpsUpgradesEnabled, base::Value(false));
 +
 +  // kFirstPartySetsEnabled
 +  // kLensCameraAssistedSearchEnabled
@@ -527,7 +533,6 @@ diff --git a/components/policy/core/common/policy_loader_command_line.cc b/compo
 +  // BrowsingDataLifetime ??
 +  // ClickToCallEnabled
 +  // UrlParamFilterEnabled
-+  // kShoppingListEnabled
 +  // kSSLErrorOverrideAllowed
 +  // kAdvancedProtectionAllowed
 +  // kUserFeedbackAllowed
