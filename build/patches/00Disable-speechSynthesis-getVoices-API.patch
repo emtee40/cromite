@@ -6,16 +6,19 @@ Adds flag disable-speechsynthesis-voice-list to disable
 SpeechSynthesis.getVoices() call.
 If not active the user must also set the system timezone override
 to enable it.
+Disable LiveCaption
 Require: Timezone-customization.patch
 ---
  chrome/browser/about_flags.cc                   |  5 +++++
+ .../renderer/chrome_content_renderer_client.cc  |  2 +-
  .../renderer/content_settings_agent_impl.cc     |  9 ++++++++-
  .../renderer/content_settings_agent_impl.h      |  2 ++
+ media/base/media_switches.cc                    |  8 ++++----
  third_party/blink/common/features.cc            |  4 ++++
  third_party/blink/public/common/features.h      |  2 ++
  .../platform/web_content_settings_client.h      |  2 ++
  .../renderer/modules/speech/speech_synthesis.cc | 17 ++++++++++++++---
- 7 files changed, 37 insertions(+), 4 deletions(-)
+ 9 files changed, 42 insertions(+), 9 deletions(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
@@ -32,6 +35,18 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
      {"strict-origin-isolation", flag_descriptions::kStrictOriginIsolationName,
       flag_descriptions::kStrictOriginIsolationDescription, kOsAll,
       FEATURE_VALUE_TYPE(features::kStrictOriginIsolation)},
+diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer/chrome_content_renderer_client.cc
+--- a/chrome/renderer/chrome_content_renderer_client.cc
++++ b/chrome/renderer/chrome_content_renderer_client.cc
+@@ -1585,7 +1585,7 @@ ChromeContentRendererClient::CreateWorkerContentSettingsClient(
+ std::unique_ptr<media::SpeechRecognitionClient>
+ ChromeContentRendererClient::CreateSpeechRecognitionClient(
+     content::RenderFrame* render_frame) {
+-  return std::make_unique<ChromeSpeechRecognitionClient>(render_frame);
++  return nullptr;
+ }
+ #endif  // BUILDFLAG(ENABLE_SPEECH_SERVICE)
+ 
 diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
 --- a/components/content_settings/renderer/content_settings_agent_impl.cc
 +++ b/components/content_settings/renderer/content_settings_agent_impl.cc
@@ -70,6 +85,31 @@ diff --git a/components/content_settings/renderer/content_settings_agent_impl.h 
   protected:
    // Allow this to be overridden by tests.
    virtual void BindContentSettingsManager(
+diff --git a/media/base/media_switches.cc b/media/base/media_switches.cc
+--- a/media/base/media_switches.cc
++++ b/media/base/media_switches.cc
+@@ -840,7 +840,7 @@ const base::FeatureParam<std::string> kMediaFoundationClearKeyCdmPathForTesting{
+ #endif  // BUILDFLAG(IS_WIN)
+ 
+ // Enables the Live Caption feature on supported devices.
+-BASE_FEATURE(kLiveCaption, "LiveCaption", base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kLiveCaption, "LiveCaption", base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Controls whether a "Share this tab instead" button should be shown for
+ // getDisplayMedia captures. Note: This flag does not control if the "Share this
+@@ -877,9 +877,9 @@ BASE_FEATURE(kLiveCaptionRightClick,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Enable or disable Live Caption support for WebAudio.
+-BASE_FEATURE(kLiveCaptionWebAudio,
+-             "LiveCaptionWebAudio",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kLiveCaptionWebAudio,               // disabled by
++             "LiveCaptionWebAudio",              // default
++             base::FEATURE_DISABLED_BY_DEFAULT); // in bromite
+ 
+ // Live Caption runs system-wide on ChromeOS, as opposed to just in the browser.
+ BASE_FEATURE(kLiveCaptionSystemWideOnChromeOS,
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
