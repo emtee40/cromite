@@ -1,0 +1,42 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Mon, 17 Jul 2023 15:24:16 +0000
+Subject: Keep Side Panel Companion disabled
+
+---
+ chrome/browser/companion/core/features.cc | 13 +++++++------
+ 1 file changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/chrome/browser/companion/core/features.cc b/chrome/browser/companion/core/features.cc
+--- a/chrome/browser/companion/core/features.cc
++++ b/chrome/browser/companion/core/features.cc
+@@ -19,14 +19,14 @@ namespace features {
+ namespace internal {
+ // This differs from the search companion by providing a separate WebUI that
+ // contains untrusted content in an iframe.
+-BASE_FEATURE(kSidePanelCompanion,
+-             "SidePanelCompanion",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kSidePanelCompanion,                           // keep
++             "SidePanelCompanion",                          // disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);            // in bromite
+ // Dynamically enables the search companion if the user has experiments
+ // enabled.
+-BASE_FEATURE(kCompanionEnabledByObservingExpsNavigations,
+-             "CompanionEnabledByObservingExpsNavigations",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kCompanionEnabledByObservingExpsNavigations,   // keep
++             "CompanionEnabledByObservingExpsNavigations",  // disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);            // in bromite
+ }  // namespace internal
+ 
+ }  // namespace features
+@@ -39,6 +39,7 @@ const char kDisableCheckUserPermissionsForCompanion[] =
+ const char kForceCompanionPinnedState[] = "force-companion-pinned-state";
+ 
+ bool ShouldOverrideCheckingUserPermissionsForCompanion() {
++  if ((true)) return false;
+   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
+   return command_line->HasSwitch(kDisableCheckUserPermissionsForCompanion);
+ }
+--
+2.25.1
