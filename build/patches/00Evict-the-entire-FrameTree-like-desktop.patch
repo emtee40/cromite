@@ -1,0 +1,37 @@
+From: Your Name <you@example.com>
+Date: Tue, 14 Feb 2023 16:23:08 +0000
+Subject: Evict the entire FrameTree like desktop
+
+---
+ components/viz/common/features.cc         | 2 +-
+ content/public/common/content_features.cc | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/components/viz/common/features.cc b/components/viz/common/features.cc
+--- a/components/viz/common/features.cc
++++ b/components/viz/common/features.cc
+@@ -233,7 +233,7 @@ BASE_FEATURE(kRendererAllocatesImages,
+ // evicts itself. This differs from Destkop platforms which evict the entire
+ // FrameTree along with the topmost viz::Surface. When this feature is enabled,
+ // Android will begin also evicting the entire FrameTree.
+-BASE_FEATURE(kEvictSubtree, "EvictSubtree", base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kEvictSubtree, "EvictSubtree", base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ // If enabled, CompositorFrameSinkClient::OnBeginFrame is also treated as the
+ // DidReceiveCompositorFrameAck. Both in providing the Ack for the previous
+diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
+--- a/content/public/common/content_features.cc
++++ b/content/public/common/content_features.cc
+@@ -569,8 +569,8 @@ BASE_FEATURE(kInMemoryCodeCache,
+ // frames. Otherwise only toplevel frames and OOPIF are handled, and other
+ // cases, e.g. PDF tiles are ignored. See https://crbug.com/1360351 for details.
+ BASE_FEATURE(kInnerFrameCompositorSurfaceEviction,
+-             "InnerFrameCompositorSurfaceEviction",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "InnerFrameCompositorSurfaceEviction",     // guard this
++             base::FEATURE_ENABLED_BY_DEFAULT);         // guard this
+ 
+ // Kill switch for the GetInstalledRelatedApps API.
+ BASE_FEATURE(kInstalledApp, "InstalledApp", base::FEATURE_ENABLED_BY_DEFAULT);
+--
+2.25.1

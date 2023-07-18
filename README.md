@@ -1,12 +1,16 @@
 # Bromite - Take back your browser
-
-<img src="https://www.bromite.org/release.svg" alt="current Bromite release" title="current Bromite release" /> <img src="https://www.bromite.org/license.svg" alt="GNU GPL v3" title="GNU VPL v3" />
-
-<img title="Bromite - take back your browser!" src="https://www.bromite.org/android-icon-192x192.png" width="96" alt="Bromite" />
+<a href="https://github.com/bromite/bromite/releases/latest">
+  <img src="https://www.bromite.org/release.svg" alt="current Bromite release" title="current Bromite release" /> </a>
+<a href="https://github.com/bromite/bromite/blob/master/LICENSE">
+  <img src="https://www.bromite.org/license.svg" alt="GNU GPL v3" title="GNU VPL v3" />
+</a> <br>
+<a href="https://www.bromite.org">
+  <img title="Bromite - take back your browser!" src="https://www.bromite.org/android-icon-192x192.png" width="96" alt="Bromite" />
+</a>
 
 Bromite is a [Chromium](https://www.chromium.org/Home) fork with support for ad blocking and enhanced privacy.
 
-Bromite is only available for Android Lollipop (v5.0, API level 21) and above.
+Bromite is only available for Android Marshmallow (v6.0, API level 23) and above.
 
 <img src="https://fdroid.bromite.org/fdroid/bromite_bromite_gh_downloads.svg" alt="Downloads on Github" title="Downloads on Github" />
 
@@ -25,21 +29,23 @@ Please donate to support development of Bromite and the costs for the build syst
 
 [&rarr; Support development with a donation](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=JP3XTQPVRNET2): [![paypal](https://www.bromite.org/assets/img/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=JP3XTQPVRNET2)
 
-<a href="bitcoin:bc1qmpyuqsvs3tz3uaysplmwjr33gg4rzu6cqweaq834ehc25vduxppqkrszel">BTC donations address</a>: `bc1qmpyuqsvs3tz3uaysplmwjr33gg4rzu6cqweaq834ehc25vduxppqkrszel`
+<a href="bitcoin:bc1qlx7h0lj9z88g2xfeuwsrtfs77sxuhrxf2t28sw">BTC donations address</a>: `bc1qlx7h0lj9z88g2xfeuwsrtfs77sxuhrxf2t28sw`
 
-ETH donations address: `0xf47ff39223d828f99fec5ab53bd068c5c0522042`
+ETH donations address: `0x5d392F8FBf3465afe05B1Adc575e248D33B891F6`
 
 # Features
 
 * customizable adblock filters via user-provided URL (see https://www.bromite.org/custom-filters)
+* automatically updated adblock filters
 * remove click-tracking and AMP from search results
 * DNS-over-HTTPS support with any valid IETF DoH endpoint
 * always-incognito mode
 * disable all field trials permanently
 * disable smart search by default, allow web search from incognito mode
-* always-visible cookies, javascript and ads site settings
+* always-visible cookies, javascript and ads site settings from address bar popup
 * remove Play integration binary blobs
 * use [CFI](https://en.wikipedia.org/wiki/Control-flow_integrity) on all architectures except x86
+* enable trivial auto var init
 * disable media router and remoting by default
 * disable dynamic module loading
 * show warnings for TLSv1.0/TLSv1.1 pages
@@ -53,7 +59,7 @@ ETH donations address: `0xf47ff39223d828f99fec5ab53bd068c5c0522042`
 * security enhancement patches from [GrapheneOS](https://github.com/GrapheneOS) project
 * disable scroll-to-text-fragment
 * reduced referer granularity
-* block gateway attacks via websockets
+* block gateway attacks via websockets (partial fix, see [this upstream issue](https://bugs.chromium.org/p/chromium/issues/detail?id=590714))
 * use 64-bit ABI for webview processes
 * make all favicon requests on-demand ([supercookie](https://supercookie.me/) mitigation)
 * enable all network isolation features (`PartitionConnectionsByNetworkIsolationKey`, `PartitionHttpServerPropertiesByNetworkIsolationKey`, `SplitHostCacheByNetworkIsolationKey`, `AppendFrameOriginToNetworkIsolationKey`, `SplitCacheByNetworkIsolationKey`, `UseRegistrableDomainInNetworkIsolationKey`, `PartitionSSLSessionsByNetworkIsolationKey`, `PartitionExpectCTStateByNetworkIsolationKey`, `PartitionDomainReliabilityByNetworkIsolationKey`)
@@ -61,13 +67,32 @@ ETH donations address: `0xf47ff39223d828f99fec5ab53bd068c5c0522042`
 * ask permission to play protected media
 * disable the DIAL repeating discovery
 * disable RTCGetCurrentBrowsingContextMedia by default
-* disable FLoC by default
+* disable FLoC and privacy sandbox by default
 * disable feeds
+* disable reporting of certificate errors
+* use pre-defined phone model for client hints and Javascript
+* allow forcing external links to open in incognito
+* disable AGSA by default
+* flag to enable Certificate Transparency
+* allow adding search engines from incognito mode
+* disable predictors
+* disable supervised users
+* disable safety check
+* disable capability to block `view-source:` URLs
+* disable `SegmentationPlatformFeature`, `OptimizationHints`, client hint headers
+* disable `AsyncDNS` by default
+* customize history expiration threshold
+* disable idle detection
+* HTTPS-only mode enabled by default
+* disable TLS resumption by default
+* partition DoH requests by top-frame NIK
+* strict site isolation and strict origin isolation
 
 ## Features not related to privacy
+* browser automatic updates, enabled by default
+* native Android autofill support
 * import/export bookmarks
 * bookmark all tabs from tabs regroup menu
-* flag to allow screenshots of incognito tabs
 * allow playing videos in background tabs and disable pause on switching tabs
 * all codecs included (proprietary, open H.264 etc.)
 * [AV1 codec support](https://github.com/bromite/bromite/wiki/AV1-support)
@@ -80,11 +105,18 @@ ETH donations address: `0xf47ff39223d828f99fec5ab53bd068c5c0522042`
 * adding an URL as bookmark will clear its blocked status for the NTP tiles
 * history support in incognito mode
 * view source of pages
-* timezone customization
 * sticky desktop mode setting
-* disable video autoplay by default, reintroduce site settings
 * mobile/desktop user agent customization
 * accessibility preference to force tablet UI
+* use Alt+D to focus address bar
+* allow sharing to Bromite
+* UI for crash information collection
+* allow OpenSearch search engine detection in incognito
+* allow OpenSearch search engine detection with paths
+* keyboard dictionary hints in address bar
+* always allow `view-source:` URLs
+* allow moving navigation bar to bottom
+* add option to use home page as NTP
 
 You can inspect all functionality/privacy changes by reading the [patches](https://github.com/bromite/bromite/tree/master/build/patches) and/or the [CHANGELOG](./CHANGELOG.md).
 
@@ -100,15 +132,15 @@ Flags which have been retired from upstream Chromium but are still available in 
 * `#num-raster-threads`
 * `#enable-image-reader`, enabled by default
 * `#enable-tab-groups` and `#enable-tab-groups-ui-improvements`
+* `#offline-indicator-v2`
 
 New flags:
 
 * `#fingerprinting-canvas-image-data-noise`, `#fingerprinting-client-rects-noise` and `#fingerprinting-canvas-measuretext-noise`, enabled by default
-* `#enable-incognito-snapshots-in-android-recents`, disabled by default
+* `#incognito-screenshot`, disabled by default
 * `#max-connections-per-host`
 * `#resume-background-video`
 * `#ipv6-probing`
-* `#disable-webgl`
 * `#enable-device-motion` and `#enable-device-orientation`
 * `#show-legacy-tls-warnings`
 * `#save-data-header`, disabled by default
@@ -116,7 +148,20 @@ New flags:
 * `#allow-user-certificates`, disabled by default
 * `#cleartext-permitted`, enabled by default, can be used to disable all cleartext-HTTP traffic
 * `#omnibox-autocomplete-filtering`, can be used to restrict omnibox autocomplete results
-* `#disable-external-intent-requests`
+* `#disable-external-intent-requests`, can be used to disable opening any external app for any URL
+* `#enable-userscripts-log`, see https://github.com/bromite/bromite/wiki/UserScripts#flags
+* `#certificate-transparency-enabled`, enabled by default; see https://chromium.googlesource.com/chromium/src/+/master/net/docs/certificate-transparency.md
+* `#move-top-toolbar-to-bottom`, disabled by default
+* `#site-engagement`, enabled by default, can be used to disable the automatically-generated icons for most visited sites on the NTP
+
+### Site settings
+
+* webGL, disabled by default
+* images, enabled by default
+* Javascript JIT, disabled by default
+* timezone customization override
+* autoplay, disabled by default
+* webRTC, disabled by default
 
 # Privacy limitations
 
@@ -128,8 +173,10 @@ All built versions are available as [releases](https://github.com/bromite/bromit
 
 Each tag corresponds to a Chromium Stable release tag.
 
-Bromite is currently built for ARM, ARM64 and x86 and for the Android SDK versions 19 and 21; [Bromite SystemWebView](https://www.bromite.org/system_web_view) is provided as well (SDK21+).
+Bromite is currently built for ARM, ARM64 and x86 and for the Android SDK version 23+; [Bromite SystemWebView](https://www.bromite.org/system_web_view) is provided as well (SDK23+).
 For every Bromite build you can always find a matching [vanilla Chromium](https://www.bromite.org/chromium) build which is used for example to verify which issues are specific to Bromite or not.
+
+You will automatically receive notifications about new updates (and be able to install them) via the auto updater functionality (enabled by default), see [related wiki page](https://github.com/bromite/bromite/wiki/AutomaticUpdates).
 
 All official releases are also available through the [official third-party F-Droid repository](https://www.bromite.org/fdroid).
 
@@ -160,7 +207,7 @@ The [Bromite main repository](https://github.com/bromite/bromite) contains tags 
 Please refer to [official Chromium build documentation](https://www.chromium.org/developers/how-tos/get-the-code) to get started on how to build Chromium; if you can build Chromium for Android, you can build Bromite.
 
 The Chromium version tag used as base for the patches is available here: [RELEASE](./build/RELEASE); this is always corresponding to the git tag for every release.
-The GN args used to build Bromite are available here: [GN_ARGS](./build/GN_ARGS).
+The GN args used to build Bromite are available here: [bromite.gn_args](./build/bromite.gn_args).
 The patches are to be applied second the order specified in the `bromite_patches_list.txt` file (you can use `git am`).
 
 ## How to build the filters

@@ -1,0 +1,39 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Tue, 2 May 2023 15:26:46 +0000
+Subject: Disable FirstPartySets and StorageAccessAPI
+
+---
+ components/privacy_sandbox/privacy_sandbox_prefs.cc | 2 +-
+ content/public/common/content_features.cc           | 6 +++---
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/privacy_sandbox/privacy_sandbox_prefs.cc
+--- a/components/privacy_sandbox/privacy_sandbox_prefs.cc
++++ b/components/privacy_sandbox/privacy_sandbox_prefs.cc
+@@ -155,7 +155,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterBooleanPref(
+       prefs::kPrivacySandboxFirstPartySetsDataAccessAllowedInitialized, false);
+   registry->RegisterBooleanPref(
+-      prefs::kPrivacySandboxFirstPartySetsEnabled, true,
++      prefs::kPrivacySandboxFirstPartySetsEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+ 
+   registry->RegisterBooleanPref(prefs::kPrivacySandboxTopicsConsentGiven,
+diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
+--- a/content/public/common/content_features.cc
++++ b/content/public/common/content_features.cc
+@@ -474,9 +474,9 @@ BASE_FEATURE(kWebIdentityMDocs,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Enables usage of First Party Sets to determine cookie availability.
+-BASE_FEATURE(kFirstPartySets,
+-             "FirstPartySets",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kFirstPartySets,                       // always
++             "FirstPartySets",                      // disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
+ 
+ // Controls whether to clear sites data on FPS transitions.
+ const base::FeatureParam<bool> kFirstPartySetsClearSiteDataOnChangedSets{
+--
+2.25.1

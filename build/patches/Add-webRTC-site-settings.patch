@@ -1,0 +1,264 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Fri, 6 May 2022 14:27:17 +0000
+Subject: Add webRTC site settings
+
+Requires patch: Content-settings-infrastructure.patch
+
+Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+---
+ .../impl/BromiteWebRTCContentSetting.java     | 93 +++++++++++++++++++
+ .../bromite_content_settings/webrtc.grdp      | 27 ++++++
+ .../bromite_content_settings/webrtc.inc       | 22 +++++
+ .../bromite_content_settings/WEBRTC.inc       |  1 +
+ .../peer_connection_dependency_factory.cc     |  6 ++
+ .../peerconnection/rtc_rtp_receiver.cc        | 10 ++
+ .../modules/peerconnection/rtc_rtp_sender.cc  | 10 ++
+ 7 files changed, 169 insertions(+)
+ create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebRTCContentSetting.java
+ create mode 100644 components/browser_ui/strings/bromite_content_settings/webrtc.grdp
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/webrtc.inc
+ create mode 100644 components/content_settings/core/common/bromite_content_settings/WEBRTC.inc
+
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebRTCContentSetting.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebRTCContentSetting.java
+new file mode 100644
+--- /dev/null
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteWebRTCContentSetting.java
+@@ -0,0 +1,93 @@
++/*
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++package org.chromium.components.browser_ui.site_settings.impl;
++
++import org.chromium.components.browser_ui.site_settings.R;
++
++import org.chromium.components.browser_ui.site_settings.BromiteCustomContentSetting;
++import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
++import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
++import org.chromium.components.content_settings.ContentSettingValues;
++import org.chromium.components.content_settings.ContentSettingsType;
++import org.chromium.content_public.browser.BrowserContextHandle;
++
++import androidx.annotation.Nullable;
++import androidx.preference.Preference;
++import androidx.preference.PreferenceScreen;
++
++import java.util.ArrayList;
++
++public class BromiteWebRTCContentSetting extends BromiteCustomContentSetting {
++    public BromiteWebRTCContentSetting() {
++        super(/*contentSettingsType*/ ContentSettingsType.WEBRTC,
++              /*defaultEnabledValue*/ ContentSettingValues.ALLOW,
++              /*defaultDisabledValue*/ ContentSettingValues.BLOCK,
++              /*allowException*/ true,
++              /*preferenceKey*/ "webrtc",
++              /*profilePrefKey*/ "webrtc");
++    }
++
++    @Override
++    public ContentSettingsResources.ResourceItem getResourceItem() {
++        return new ContentSettingsResources.ResourceItem(
++            /*icon*/ R.drawable.web_asset,
++            /*title*/ R.string.webrtc_permission_title,
++            /*defaultEnabledValue*/ getDefaultEnabledValue(),
++            /*defaultDisabledValue*/ getDefaultDisabledValue(),
++            /*enabledSummary*/ R.string.website_settings_category_webrtc_enabled,
++            /*disabledSummary*/ R.string.website_settings_category_webrtc_disabled);
++    }
++
++    @Override
++    public int getCategorySummary(@Nullable @ContentSettingValues int value) {
++        switch (value) {
++            case ContentSettingValues.ALLOW:
++                return R.string.website_settings_category_webrtc_enabled;
++            case ContentSettingValues.BLOCK:
++                return R.string.website_settings_category_webrtc_disabled;
++            default:
++                // this will cause a runtime exception
++                return 0;
++        }
++    }
++
++    @Override
++    public int getCategoryDescription() {
++        return R.string.settings_site_settings_webrtc_description;
++    }
++
++    @Override
++    public boolean requiresTriStateContentSetting() {
++        return false;
++    }
++
++    @Override
++    public boolean showOnlyDescriptions() {
++        return true;
++    }
++
++    @Override
++    public int getAddExceptionDialogMessage() {
++        return R.string.website_settings_category_webrtc_enabled;
++    }
++
++    @Override
++    public @Nullable Boolean considerException(SiteSettingsCategory category, @ContentSettingValues int value) {
++        return value != ContentSettingValues.BLOCK;
++    }
++}
+diff --git a/components/browser_ui/strings/bromite_content_settings/webrtc.grdp b/components/browser_ui/strings/bromite_content_settings/webrtc.grdp
+new file mode 100644
+--- /dev/null
++++ b/components/browser_ui/strings/bromite_content_settings/webrtc.grdp
+@@ -0,0 +1,27 @@
++<?xml version="1.0" encoding="utf-8"?>
++<grit-part>
++  <message name="IDS_SITE_SETTINGS_TYPE_WEBRTC" desc="The label used for webrtc site settings controls." formatter_data="android_java">
++    WebRTC
++  </message>
++  <message name="IDS_SITE_SETTINGS_TYPE_WEBRTC_MID_SENTENCE" desc="The label used for webrtc site settings controls when used mid-sentence." formatter_data="android_java">
++    webRTC
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBRTC_DESCRIPTION" desc="Description of the WebRTC content setting." formatter_data="android_java">
++    Enable WebRTC, a JavaScript API for real-time communication and direct peer-to-peer communication
++  </message>
++  <message name="IDS_WEBRTC_PERMISSION_TITLE" desc="Title of the permission to use webrtc [CHAR-LIMIT=32]" formatter_data="android_java">
++    WebRTC
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBRTC_ENABLED" desc="Summary text explaining that webrtc is full enabled." formatter_data="android_java">
++    Enabled
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_WEBRTC_DISABLED" desc="Summary text explaining that webrtc is full disabled." formatter_data="android_java">
++    Disabled
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBRTC_ALLOWED_EXCEPTIONS" desc="Label for the allowed exceptions site list of the WebRTC setting.">
++    Allowed to use WebRTC
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_WEBRTC_BLOCKED_EXCEPTIONS" desc="Label for the blocked exceptions site list of the WebRTC setting.">
++    Not allowed to use WebRTC
++  </message>
++</grit-part>
+diff --git a/components/content_settings/core/browser/bromite_content_settings/webrtc.inc b/components/content_settings/core/browser/bromite_content_settings/webrtc.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/webrtc.inc
+@@ -0,0 +1,22 @@
++  Register(ContentSettingsType::WEBRTC, "webrtc", CONTENT_SETTING_BLOCK,
++           WebsiteSettingsInfo::SYNCABLE,
++           /*allowlisted_schemes=*/{},
++           /*valid_settings=*/{CONTENT_SETTING_ALLOW,
++                               CONTENT_SETTING_BLOCK},
++           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
++           WebsiteSettingsRegistry::ALL_PLATFORMS,
++           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
++           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
++
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::WEBRTC)
++    ->set_show_into_info_page()
++    .set_desktop_ui()
++    .set_is_renderer_content_setting()
++    .set_title_ui(IDS_SITE_SETTINGS_TYPE_WEBRTC)
++    .set_description_ui(IDS_SETTINGS_SITE_SETTINGS_WEBRTC_DESCRIPTION)
++    .set_allowed_ui(IDS_WEBSITE_SETTINGS_CATEGORY_WEBRTC_ENABLED)
++    .set_blocked_ui(IDS_WEBSITE_SETTINGS_CATEGORY_WEBRTC_DISABLED)
++    .set_allowed_exceptions_ui(IDS_SETTINGS_SITE_SETTINGS_WEBRTC_ALLOWED_EXCEPTIONS)
++    .set_blocked_exceptions_ui(IDS_SETTINGS_SITE_SETTINGS_WEBRTC_BLOCKED_EXCEPTIONS)
++    .set_mid_sentence_ui(IDS_SITE_SETTINGS_TYPE_WEBRTC_MID_SENTENCE);
+diff --git a/components/content_settings/core/common/bromite_content_settings/WEBRTC.inc b/components/content_settings/core/common/bromite_content_settings/WEBRTC.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/common/bromite_content_settings/WEBRTC.inc
+@@ -0,0 +1 @@
++  WEBRTC,
+diff --git a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
+--- a/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
++++ b/third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc
+@@ -35,6 +35,7 @@
+ #include "third_party/blink/public/common/peerconnection/webrtc_ip_handling_policy.h"
+ #include "third_party/blink/public/platform/modules/webrtc/webrtc_logging.h"
+ #include "third_party/blink/public/platform/platform.h"
++#include "third_party/blink/public/platform/web_content_settings_client.h"
+ #include "third_party/blink/public/platform/web_url.h"
+ #include "third_party/blink/public/web/modules/mediastream/media_stream_video_source.h"
+ #include "third_party/blink/public/web/web_document.h"
+@@ -741,6 +742,11 @@ PeerConnectionDependencyFactory::CreatePortAllocator(
+       // origin.
+       WebRTCIPHandlingPolicy policy =
+           GetWebRTCIPHandlingPolicy(webrtc_ip_handling_policy);
++      blink::WebContentSettingsClient* settings = web_frame->GetContentSettingsClient();
++      if (settings && settings->AllowContentSetting(ContentSettingsType::WEBRTC, false)) {
++        policy = kDefault;
++      }
++
+       switch (policy) {
+         // TODO(guoweis): specify the flag of disabling local candidate
+         // collection when webrtc is updated.
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_receiver.cc
+@@ -11,6 +11,8 @@
+ #include "third_party/blink/public/common/privacy_budget/identifiability_study_settings.h"
+ #include "third_party/blink/public/common/privacy_budget/identifiable_surface.h"
+ #include "third_party/blink/public/common/privacy_budget/identifiable_token_builder.h"
++#include "third_party/blink/public/platform/web_content_settings_client.h"
++#include "third_party/blink/public/web/web_local_frame.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_insertable_streams.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_rtcp_parameters.h"
+@@ -256,6 +258,14 @@ RTCRtpCapabilities* RTCRtpReceiver::getCapabilities(ScriptState* state,
+   if (kind != "audio" && kind != "video")
+     return nullptr;
+ 
++  LocalDOMWindow* window = To<LocalDOMWindow>(ExecutionContext::From(state));
++  auto* web_frame =
++      static_cast<WebLocalFrame*>(WebFrame::FromCoreFrame(window->GetFrame()));
++  blink::WebContentSettingsClient* settings = web_frame->GetContentSettingsClient();
++  if (settings && !settings->AllowContentSetting(ContentSettingsType::WEBRTC, false)) {
++    return nullptr;
++  }
++
+   RTCRtpCapabilities* capabilities = RTCRtpCapabilities::Create();
+   capabilities->setCodecs(HeapVector<Member<RTCRtpCodecCapability>>());
+   capabilities->setHeaderExtensions(
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
+@@ -16,6 +16,8 @@
+ #include "third_party/blink/public/common/privacy_budget/identifiability_study_settings.h"
+ #include "third_party/blink/public/common/privacy_budget/identifiable_surface.h"
+ #include "third_party/blink/public/common/privacy_budget/identifiable_token_builder.h"
++#include "third_party/blink/public/platform/web_content_settings_client.h"
++#include "third_party/blink/public/web/web_local_frame.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_insertable_streams.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_rtcp_parameters.h"
+@@ -951,6 +953,14 @@ RTCRtpCapabilities* RTCRtpSender::getCapabilities(ScriptState* state,
+   if (kind != "audio" && kind != "video")
+     return nullptr;
+ 
++  LocalDOMWindow* window = To<LocalDOMWindow>(ExecutionContext::From(state));
++  auto* web_frame =
++      static_cast<WebLocalFrame*>(WebFrame::FromCoreFrame(window->GetFrame()));
++  blink::WebContentSettingsClient* settings = web_frame->GetContentSettingsClient();
++  if (settings && !settings->AllowContentSetting(ContentSettingsType::WEBRTC, false)) {
++    return nullptr;
++  }
++
+   RTCRtpCapabilities* capabilities = RTCRtpCapabilities::Create();
+   capabilities->setCodecs(HeapVector<Member<RTCRtpCodecCapability>>());
+   capabilities->setHeaderExtensions(
+--
+2.25.1

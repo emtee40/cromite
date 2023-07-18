@@ -1,0 +1,97 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Fri, 14 Apr 2023 13:55:58 +0000
+Subject: WIN Fix log to file
+
+Allows log activation without opening the console window.
+Log rotation enabled by default.
+---
+ chrome/common/logging_chrome.cc | 10 +++++++---
+ chrome/common/logging_chrome.h  |  6 ++++--
+ content/app/content_main.cc     |  6 +++++-
+ 3 files changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/chrome/common/logging_chrome.cc b/chrome/common/logging_chrome.cc
+--- a/chrome/common/logging_chrome.cc
++++ b/chrome/common/logging_chrome.cc
+@@ -185,7 +185,7 @@ LoggingDestination DetermineLoggingDestination(
+   return kDefaultLoggingMode;
+ }
+ 
+-#if BUILDFLAG(IS_CHROMEOS)
++#if BUILDFLAG(IS_WIN)
+ bool RotateLogFile(const base::FilePath& target_path) {
+   DCHECK(!target_path.empty());
+   // If the old log file doesn't exist, do nothing.
+@@ -230,7 +230,7 @@ bool RotateLogFile(const base::FilePath& target_path) {
+ 
+   return true;
+ }
+-#endif  // BUILDFLAG(IS_CHROMEOS)
++#endif  // BUILDFLAG(IS_WIN)
+ 
+ #if BUILDFLAG(IS_CHROMEOS_ASH)
+ base::FilePath SetUpSymlinkIfNeeded(const base::FilePath& symlink_path,
+@@ -392,6 +392,10 @@ void InitChromeLogging(const base::CommandLine& command_line,
+     // since that will remove the newly created link instead.
+     delete_old_log_file = APPEND_TO_OLD_LOG_FILE;
+ #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
++
++#if BUILDFLAG(IS_WIN)
++  RotateLogFile(log_path);
++#endif
+   } else {
+     log_locking_state = DONT_LOCK_LOG_FILE;
+   }
+@@ -546,7 +550,7 @@ bool DialogsAreSuppressed() {
+   return dialogs_are_suppressed_;
+ }
+ 
+-#if BUILDFLAG(IS_CHROMEOS)
++#if BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_WIN)
+ base::FilePath GenerateTimestampedName(const base::FilePath& base_path,
+                                        base::Time timestamp) {
+   base::Time::Exploded time_deets;
+diff --git a/chrome/common/logging_chrome.h b/chrome/common/logging_chrome.h
+--- a/chrome/common/logging_chrome.h
++++ b/chrome/common/logging_chrome.h
+@@ -41,10 +41,12 @@ LoggingDestination DetermineLoggingDestination(
+ // write new logs to the latest log file. Otherwise, we reuse the existing file
+ // if exists.
+ base::FilePath SetUpLogFile(const base::FilePath& target_path, bool new_log);
++#endif  // BUILDFLAG(IS_CHROMEOS)
+ 
++#if BUILDFLAG(IS_WIN)
+ // Allow external calls to the internal method for testing.
+ bool RotateLogFile(const base::FilePath& target_path);
+-#endif  // BUILDFLAG(IS_CHROMEOS)
++#endif  // BUILDFLAG(IS_WIN)
+ 
+ #if BUILDFLAG(IS_CHROMEOS_ASH)
+ #if defined(UNIT_TEST)
+@@ -76,7 +78,7 @@ base::FilePath GetLogFileName(const base::CommandLine& command_line);
+ // otherwise.
+ bool DialogsAreSuppressed();
+ 
+-#if BUILDFLAG(IS_CHROMEOS)
++#if BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_WIN)
+ // Inserts timestamp before file extension (if any) in the form
+ // "_yymmdd-hhmmss".
+ base::FilePath GenerateTimestampedName(const base::FilePath& base_path,
+diff --git a/content/app/content_main.cc b/content/app/content_main.cc
+--- a/content/app/content_main.cc
++++ b/content/app/content_main.cc
+@@ -308,7 +308,11 @@ RunContentProcess(ContentMainParams params,
+     // Route stdio to parent console (if any) or create one.
+     if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+             switches::kEnableLogging)) {
+-      base::RouteStdioToConsole(true);
++      std::string logging_destination =
++        base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(switches::kEnableLogging);
++      if (logging_destination == "stderr") {
++        base::RouteStdioToConsole(true);
++      }
+     }
+ #endif
+ 
+--
+2.25.1

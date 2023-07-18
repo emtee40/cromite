@@ -1,0 +1,235 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Mon, 9 Jan 2023 12:02:05 +0000
+Subject: Partitioning all cookies by top frame domain
+
+Enables cookie partitioning by top frame etld, respecting the
+user's possible wish to disable all third-party cookies.
+Disabling the flag via the ui restores the normal mode, where
+samesite=none first-party cookies are sent in third-party contexts.
+---
+ net/base/features.cc                                 |  8 ++++----
+ net/cookies/canonical_cookie.cc                      | 12 +-----------
+ net/cookies/cookie_deletion_info.cc                  |  3 ++-
+ net/cookies/parsed_cookie.h                          |  7 ++++++-
+ net/extras/sqlite/sqlite_persistent_cookie_store.cc  | 10 ++++++++++
+ services/network/cookie_settings.cc                  | 12 ++++++++++--
+ services/network/restricted_cookie_manager.cc        |  3 +++
+ .../renderer/modules/cookie_store/cookie_init.idl    |  2 +-
+ .../renderer/modules/cookie_store/cookie_store.cc    | 12 ++++++++++++
+ .../cookie_store/cookie_store_delete_options.idl     |  2 +-
+ 10 files changed, 50 insertions(+), 21 deletions(-)
+
+diff --git a/net/base/features.cc b/net/base/features.cc
+--- a/net/base/features.cc
++++ b/net/base/features.cc
+@@ -247,8 +247,8 @@ BASE_FEATURE(kWaitForFirstPartySetsInit,
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kPartitionedCookies,
+-             "PartitionedCookies",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "PartitionedCookies",                  // guard this
++             base::FEATURE_ENABLED_BY_DEFAULT);     // guard this
+ 
+ BASE_FEATURE(kNoncedPartitionedCookies,
+              "NoncedPartitionedCookies",
+@@ -263,8 +263,8 @@ BASE_FEATURE(kStaticKeyPinningEnforcement,
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kCookieDomainRejectNonASCII,
+-             "CookieDomainRejectNonASCII",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "CookieDomainRejectNonASCII",          // guard this
++             base::FEATURE_ENABLED_BY_DEFAULT);     // guard this
+ 
+ BASE_FEATURE(kBlockSetCookieHeader,
+              "BlockSetCookieHeader",
+diff --git a/net/cookies/canonical_cookie.cc b/net/cookies/canonical_cookie.cc
+--- a/net/cookies/canonical_cookie.cc
++++ b/net/cookies/canonical_cookie.cc
+@@ -1575,8 +1575,6 @@ bool CanonicalCookie::IsCanonicalForFromStorage() const {
+   if (IsPartitioned()) {
+     if (CookiePartitionKey::HasNonce(partition_key_))
+       return true;
+-    if (!secure_)
+-      return false;
+   }
+ 
+   return true;
+@@ -1850,15 +1848,7 @@ bool CanonicalCookie::IsCookiePartitionedValid(const GURL& url,
+                                                bool secure,
+                                                bool is_partitioned,
+                                                bool partition_has_nonce) {
+-  if (!is_partitioned)
+-    return true;
+-  if (partition_has_nonce)
+-    return true;
+-  CookieAccessScheme scheme = cookie_util::ProvisionalAccessScheme(url);
+-  bool result = (scheme != CookieAccessScheme::kNonCryptographic) && secure;
+-  DLOG_IF(WARNING, !result)
+-      << "CanonicalCookie has invalid Partitioned attribute";
+-  return result;
++  return true;
+ }
+ 
+ CookieAndLineWithAccessResult::CookieAndLineWithAccessResult() = default;
+diff --git a/net/cookies/cookie_deletion_info.cc b/net/cookies/cookie_deletion_info.cc
+--- a/net/cookies/cookie_deletion_info.cc
++++ b/net/cookies/cookie_deletion_info.cc
+@@ -131,7 +131,8 @@ bool CookieDeletionInfo::Matches(const CanonicalCookie& cookie,
+     return false;
+   }
+ 
+-  if (cookie.IsPartitioned() &&
++  // opened bug https://bugs.chromium.org/p/chromium/issues/detail?id=1405772
++  if (cookie.IsPartitioned() && !cookie_partition_key_collection.IsEmpty() &&
+       !cookie_partition_key_collection.Contains(*cookie.PartitionKey())) {
+     return false;
+   }
+diff --git a/net/cookies/parsed_cookie.h b/net/cookies/parsed_cookie.h
+--- a/net/cookies/parsed_cookie.h
++++ b/net/cookies/parsed_cookie.h
+@@ -11,6 +11,7 @@
+ #include <utility>
+ #include <vector>
+ 
++#include "net/base/features.h"
+ #include "net/base/net_export.h"
+ #include "net/cookies/cookie_constants.h"
+ 
+@@ -83,7 +84,11 @@ class NET_EXPORT ParsedCookie {
+       CookieSameSiteString* samesite_string = nullptr) const;
+   CookiePriority Priority() const;
+   bool IsSameParty() const { return same_party_index_ != 0; }
+-  bool IsPartitioned() const { return partitioned_index_ != 0; }
++  bool IsPartitioned() const {
++    if (base::FeatureList::IsEnabled(net::features::kPartitionedCookies))
++      return true;
++     return partitioned_index_ != 0;
++  }
+   bool HasInternalHtab() const { return internal_htab_; }
+   TruncatingCharacterInCookieStringType
+   GetTruncatingCharacterInCookieStringType() const {
+diff --git a/net/extras/sqlite/sqlite_persistent_cookie_store.cc b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+--- a/net/extras/sqlite/sqlite_persistent_cookie_store.cc
++++ b/net/extras/sqlite/sqlite_persistent_cookie_store.cc
+@@ -864,6 +864,16 @@ bool SQLitePersistentCookieStore::Backend::DoInitializeDatabase() {
+   if (!restore_old_session_cookies_)
+     DeleteSessionCookiesOnStartup();
+ 
++  // Since there is no automatic transition to partitioned cookies
++  // (the information would be missing), we clean the current ones
++  // present because they would otherwise be sent in third-party contexts
++  // even if the flag is active.
++  if (base::FeatureList::IsEnabled(features::kPartitionedCookies)) {
++    if (!db()->Execute("DELETE FROM cookies WHERE top_frame_site_key = ''")) {
++      LOG(WARNING) << "Unable to delete unpartitioned cookies.";
++    }
++  }
++
+   return true;
+ }
+ 
+diff --git a/services/network/cookie_settings.cc b/services/network/cookie_settings.cc
+--- a/services/network/cookie_settings.cc
++++ b/services/network/cookie_settings.cc
+@@ -35,6 +35,11 @@ bool IsExplicitSetting(const ContentSettingPatternSource& setting) {
+          !setting.secondary_pattern.MatchesAllHosts();
+ }
+ 
++bool IsThirdPartyAllowed(const ContentSettingPatternSource& setting) {
++  return setting.primary_pattern.MatchesAllHosts() &&
++         !setting.secondary_pattern.MatchesAllHosts();
++}
++
+ const ContentSettingPatternSource* FindMatchingSetting(
+     const GURL& primary_url,
+     const GURL& secondary_url,
+@@ -193,11 +198,14 @@ net::NetworkDelegate::PrivacySetting CookieSettings::IsPrivacyModeEnabled(
+ 
+ CookieSettings::ThirdPartyBlockingScope
+ CookieSettings::GetThirdPartyBlockingScope(const GURL& first_party_url) const {
+-  // If cookies are allowed for the first-party URL then we allow
++  // If cookies are allowed for the thirdy-party URL then we allow
+   // partitioned cross-site cookies.
++  // partitioned are the default for all cookies, so we allow all cookies
++  // if the user want so.
+   if (const ContentSettingPatternSource* match = FindMatchingSetting(
+           first_party_url, first_party_url, content_settings_);
+-      !match || match->GetContentSetting() == CONTENT_SETTING_ALLOW) {
++      match && IsThirdPartyAllowed(*match) &&
++      match->GetContentSetting() == CONTENT_SETTING_ALLOW) {
+     return ThirdPartyBlockingScope::kUnpartitionedOnly;
+   }
+   return ThirdPartyBlockingScope::kUnpartitionedAndPartitioned;
+diff --git a/services/network/restricted_cookie_manager.cc b/services/network/restricted_cookie_manager.cc
+--- a/services/network/restricted_cookie_manager.cc
++++ b/services/network/restricted_cookie_manager.cc
+@@ -773,6 +773,9 @@ void RestrictedCookieManager::SetCookieFromString(
+   std::move(callback).Run(site_for_cookies_ok, top_frame_origin_ok);
+   callback = base::DoNothing();
+ 
++  // https://bugs.chromium.org/p/chromium/issues/detail?id=911299
++  if (!site_for_cookies_ok || !top_frame_origin_ok) return;
++
+   net::CookieInclusionStatus status;
+   std::unique_ptr<net::CanonicalCookie> parsed_cookie =
+       net::CanonicalCookie::Create(url, cookie, base::Time::Now(),
+diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_init.idl b/third_party/blink/renderer/modules/cookie_store/cookie_init.idl
+--- a/third_party/blink/renderer/modules/cookie_store/cookie_init.idl
++++ b/third_party/blink/renderer/modules/cookie_store/cookie_init.idl
+@@ -17,5 +17,5 @@ dictionary CookieInit {
+   USVString path = "/";
+   DOMHighResTimeStamp? expires = null;
+   CookieSameSite sameSite = "strict";
+-  [RuntimeEnabled=PartitionedCookies] boolean partitioned = false;
++  [RuntimeEnabled=PartitionedCookies] boolean partitioned = true;
+ };
+diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc b/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
+--- a/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
++++ b/third_party/blink/renderer/modules/cookie_store/cookie_store.cc
+@@ -321,6 +321,10 @@ ScriptPromise CookieStore::set(ScriptState* script_state,
+   CookieInit* set_options = CookieInit::Create();
+   set_options->setName(name);
+   set_options->setValue(value);
++  if (RuntimeEnabledFeatures::PartitionedCookiesEnabled(
++      CurrentExecutionContext(script_state->GetIsolate()))) {
++    set_options->setPartitioned(true);
++  }
+   return set(script_state, set_options, exception_state);
+ }
+ 
+@@ -343,6 +347,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
+   set_options->setName(name);
+   set_options->setValue("deleted");
+   set_options->setExpires(0);
++  if (RuntimeEnabledFeatures::PartitionedCookiesEnabled(
++      CurrentExecutionContext(script_state->GetIsolate()))) {
++    set_options->setPartitioned(true);
++  }
+   return DoWrite(script_state, set_options, exception_state);
+ }
+ 
+@@ -357,6 +365,10 @@ ScriptPromise CookieStore::Delete(ScriptState* script_state,
+   set_options->setPath(options->path());
+   set_options->setSameSite("strict");
+   set_options->setPartitioned(options->partitioned());
++  if (RuntimeEnabledFeatures::PartitionedCookiesEnabled(
++      CurrentExecutionContext(script_state->GetIsolate()))) {
++    set_options->setPartitioned(true);
++  }
+   return DoWrite(script_state, set_options, exception_state);
+ }
+ 
+diff --git a/third_party/blink/renderer/modules/cookie_store/cookie_store_delete_options.idl b/third_party/blink/renderer/modules/cookie_store/cookie_store_delete_options.idl
+--- a/third_party/blink/renderer/modules/cookie_store/cookie_store_delete_options.idl
++++ b/third_party/blink/renderer/modules/cookie_store/cookie_store_delete_options.idl
+@@ -8,5 +8,5 @@ dictionary CookieStoreDeleteOptions {
+   required USVString name;
+   USVString? domain = null;
+   USVString path = "/";
+-  [RuntimeEnabled=PartitionedCookies] boolean partitioned = false;
++  [RuntimeEnabled=PartitionedCookies] boolean partitioned = true;
+ };
+--
+2.25.1

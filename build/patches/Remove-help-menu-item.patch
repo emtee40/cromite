@@ -2,6 +2,7 @@ From: csagan5 <32685696+csagan5@users.noreply.github.com>
 Date: Wed, 27 Jun 2018 01:32:28 +0200
 Subject: Remove help menu item
 
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  chrome/android/java/res/menu/main_menu.xml             |  3 ---
  .../org/chromium/chrome/browser/KeyboardShortcuts.java |  3 ---
@@ -13,25 +14,25 @@ Subject: Remove help menu item
 diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/res/menu/main_menu.xml
 --- a/chrome/android/java/res/menu/main_menu.xml
 +++ b/chrome/android/java/res/menu/main_menu.xml
-@@ -113,9 +113,6 @@
+@@ -150,9 +150,6 @@ found in the LICENSE file.
          <item android:id="@+id/preferences_id"
              android:title="@string/menu_settings"
              android:icon="@drawable/settings_cog" />
 -        <item android:id="@+id/help_id"
 -            android:title="@string/menu_help"
 -            android:icon="@drawable/help_outline" />
-         <item android:id="@+id/enter_vr_id"
-             android:title="@string/enter_vr"
-             android:icon="@drawable/gm_filled_cardboard_24" />
+         <item android:id="@+id/managed_by_divider_line_id"
+             android:title="@null" />
+         <item android:id="@+id/managed_by_menu_id"
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/KeyboardShortcuts.java b/chrome/android/java/src/org/chromium/chrome/browser/KeyboardShortcuts.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/KeyboardShortcuts.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/KeyboardShortcuts.java
-@@ -343,9 +343,6 @@ public class KeyboardShortcuts {
-                     tab = activity.getActivityTab();
-                     if (tab != null && tab.canGoForward()) tab.goForward();
+@@ -358,9 +358,6 @@ public class KeyboardShortcuts {
+                 case KeyEvent.KEYCODE_BUTTON_START:
+                     if (currentTab != null && currentTab.canGoForward()) currentTab.goForward();
                      return true;
 -                case CTRL | SHIFT | KeyEvent.KEYCODE_SLASH:  // i.e. Ctrl+?
--                    activity.onMenuOrKeyboardAction(R.id.help_id, false);
+-                    menuOrKeyboardActionController.onMenuOrKeyboardAction(R.id.help_id, false);
 -                    return true;
              }
          }
@@ -39,7 +40,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/KeyboardShortcu
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActivity.java
-@@ -2210,16 +2210,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
+@@ -2410,16 +2410,6 @@ public abstract class ChromeActivity<C extends ChromeActivityComponent>
  
          final Tab currentTab = getActivityTab();
  
@@ -59,7 +60,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/ChromeActiv
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/BaseCustomTabActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/BaseCustomTabActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/customtabs/BaseCustomTabActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/customtabs/BaseCustomTabActivity.java
-@@ -500,7 +500,7 @@ public abstract class BaseCustomTabActivity extends ChromeActivity<BaseCustomTab
+@@ -568,7 +568,7 @@ public abstract class BaseCustomTabActivity extends ChromeActivity<BaseCustomTab
      @Override
      public boolean onMenuOrKeyboardAction(int id, boolean fromMenu) {
          // Disable creating new tabs, bookmark, history, print, help, focus_url, etc.
@@ -87,6 +88,5 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/directactions/M
          availableItemIds.add(R.id.new_tab_menu_id);
          availableItemIds.add(R.id.preferences_id);
  
--- 
-2.17.1
-
+--
+2.25.1

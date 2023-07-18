@@ -1,0 +1,72 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Sat, 15 Apr 2023 10:25:33 +0000
+Subject: WIN minimum data to enable install extensions
+
+The amount of information sent is minimized without disabling
+the ability to install extensions (which is under user control)
+---
+ chrome/browser/extensions/webstore_install_helper.cc      | 2 +-
+ chrome/browser/extensions/webstore_installer.cc           | 2 +-
+ .../update_client/chrome_update_query_params_delegate.cc  | 8 ++++----
+ components/update_client/update_query_params.cc           | 5 ++---
+ 4 files changed, 8 insertions(+), 9 deletions(-)
+
+diff --git a/chrome/browser/extensions/webstore_install_helper.cc b/chrome/browser/extensions/webstore_install_helper.cc
+--- a/chrome/browser/extensions/webstore_install_helper.cc
++++ b/chrome/browser/extensions/webstore_install_helper.cc
+@@ -46,7 +46,7 @@ void WebstoreInstallHelper::Start(
+   data_decoder::DataDecoder::ParseJsonIsolated(
+       manifest_, base::BindOnce(&WebstoreInstallHelper::OnJSONParsed, this));
+ 
+-  if (icon_url_.is_empty()) {
++  if ((true) || icon_url_.is_empty()) {
+     icon_decode_complete_ = true;
+   } else {
+     // No existing |icon_fetcher_| to avoid unbalanced AddRef().
+diff --git a/chrome/browser/extensions/webstore_installer.cc b/chrome/browser/extensions/webstore_installer.cc
+--- a/chrome/browser/extensions/webstore_installer.cc
++++ b/chrome/browser/extensions/webstore_installer.cc
+@@ -640,7 +640,7 @@ void WebstoreInstaller::StartDownload(const std::string& extension_id,
+       download_url_, render_process_host_id, render_frame_host->GetRoutingID(),
+       traffic_annotation));
+   params->set_file_path(file);
+-  if (controller.GetVisibleEntry()) {
++  if ((false) && controller.GetVisibleEntry()) {
+     content::Referrer referrer = content::Referrer::SanitizeForRequest(
+         download_url_,
+         content::Referrer(controller.GetVisibleEntry()->GetURL(),
+diff --git a/chrome/browser/update_client/chrome_update_query_params_delegate.cc b/chrome/browser/update_client/chrome_update_query_params_delegate.cc
+--- a/chrome/browser/update_client/chrome_update_query_params_delegate.cc
++++ b/chrome/browser/update_client/chrome_update_query_params_delegate.cc
+@@ -30,10 +30,10 @@ ChromeUpdateQueryParamsDelegate::GetInstance() {
+ }
+ 
+ std::string ChromeUpdateQueryParamsDelegate::GetExtraParams() {
+-  return base::StrCat({"&prodchannel=",
+-                       chrome::GetChannelName(chrome::WithExtendedStable(true)),
+-                       "&prodversion=", version_info::GetVersionNumber(),
+-                       "&lang=", GetLang()});
++  return base::StrCat({
++      "&prodversion=",
++      version_info::GetMajorVersionNumber().c_str(),
++      ".0.0.0"});
+ }
+ 
+ // static
+diff --git a/components/update_client/update_query_params.cc b/components/update_client/update_query_params.cc
+--- a/components/update_client/update_query_params.cc
++++ b/components/update_client/update_query_params.cc
+@@ -88,9 +88,8 @@ UpdateQueryParamsDelegate* g_delegate = nullptr;
+ // static
+ std::string UpdateQueryParams::Get(ProdId prod) {
+   return base::StringPrintf(
+-      "os=%s&arch=%s&os_arch=%s&nacl_arch=%s&prod=%s%s&acceptformat=crx3,puff",
+-      kOs, kArch, base::SysInfo().OperatingSystemArchitecture().c_str(),
+-      GetNaclArch(), GetProdIdString(prod),
++      "prod=%s%s&acceptformat=crx3",
++      GetProdIdString(prod),
+       g_delegate ? g_delegate->GetExtraParams().c_str() : "");
+ }
+ 
+--
+2.25.1

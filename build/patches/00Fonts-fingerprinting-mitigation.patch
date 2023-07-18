@@ -1,0 +1,620 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Wed, 1 Mar 2023 15:37:55 +0000
+Subject: Fonts fingerprinting mitigation
+
+The patch disables the use of non-standard fonts by blink,
+used for device fingerprinting.
+Access to local fonts and downloading fonts via Android
+Downloadable Fonts API is disabled.
+In windows, the patch exposes only fonts from the default
+installation based on the user language exposed to the websites,
+eliminating the ability to retrieve fonts handled differently
+by gdi and directwrite.
+It is possible to restore the original behavior via the
+fonts-fingerprint-mitigation flag, which is active by default.
+---
+ chrome/browser/about_flags.cc                 |   5 +
+ chrome/browser/flag_descriptions.cc           |   5 +
+ chrome/browser/flag_descriptions.h            |   3 +
+ content/public/common/content_features.cc     |   4 +-
+ skia/ext/skia_utils_win.cc                    |  20 ++
+ skia/ext/skia_utils_win.h                     |   3 +
+ third_party/blink/common/features.cc          |   6 +-
+ third_party/blink/public/common/features.h    |   3 +
+ third_party/blink/renderer/platform/BUILD.gn  |   1 +
+ .../renderer/platform/fonts/font_cache.h      |   2 +-
+ .../fonts/skia/bromite_allowed_fonts.h        | 270 ++++++++++++++++++
+ .../platform/fonts/skia/font_cache_skia.cc    |  44 ++-
+ .../platform/fonts/win/font_cache_skia_win.cc |   7 +-
+ 13 files changed, 361 insertions(+), 12 deletions(-)
+ create mode 100644 third_party/blink/renderer/platform/fonts/skia/bromite_allowed_fonts.h
+
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -9992,6 +9992,11 @@ const FeatureEntry kFeatureEntries[] = {
+      flag_descriptions::kClipboardUnsanitizedContentDescription, kOsAll,
+      FEATURE_VALUE_TYPE(blink::features::kClipboardUnsanitizedContent)},
+ 
++    {"fonts-fingerprint-mitigation",
++     flag_descriptions::kFontsFingerprintMitigationName,
++     flag_descriptions::kFontsFingerprintMitigationDescription, kOsAll,
++     FEATURE_VALUE_TYPE(blink::features::kFontsFingerprintMitigation)},
++
+ #if BUILDFLAG(IS_CHROMEOS_ASH)
+     {"enable-media-dynamic-cgroup", flag_descriptions::kMediaDynamicCgroupName,
+      flag_descriptions::kMediaDynamicCgroupDescription, kOsCrOS,
+diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
+--- a/chrome/browser/flag_descriptions.cc
++++ b/chrome/browser/flag_descriptions.cc
+@@ -135,6 +135,11 @@ const char kClipboardUnsanitizedContentDescription[] =
+     "Allows reading/writing unsanitized content from/to the clipboard. "
+     "Currently, it is only applicable to HTML format. See crbug.com/1268679.";
+ 
++const char kFontsFingerprintMitigationName[] =
++    "Enable fonts fingerprint mitigation";
++const char kFontsFingerprintMitigationDescription[] =
++    "Filters the list of fonts allowing only standard ones to be used.";
++
+ const char kChromeRootStoreEnabledName[] = "Chrome Root Store";
+ const char kChromeRootStoreEnabledDescription[] =
+     "Enable use of Chrome Root Store over platform roots. "
+diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
+--- a/chrome/browser/flag_descriptions.h
++++ b/chrome/browser/flag_descriptions.h
+@@ -112,6 +112,9 @@ extern const char kClickToCallDescription[];
+ extern const char kClipboardUnsanitizedContentName[];
+ extern const char kClipboardUnsanitizedContentDescription[];
+ 
++extern const char kFontsFingerprintMitigationName[];
++extern const char kFontsFingerprintMitigationDescription[];
++
+ extern const char kContentLanguagesInLanguagePickerName[];
+ extern const char kContentLanguagesInLanguagePickerDescription[];
+ 
+diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
+--- a/content/public/common/content_features.cc
++++ b/content/public/common/content_features.cc
+@@ -27,7 +27,7 @@ BASE_FEATURE(kAllowContentInitiatedDataUrlNavigations,
+ // the service implemented on the Java side.
+ BASE_FEATURE(kAndroidDownloadableFontsMatching,
+              "AndroidDownloadableFontsMatching",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ #if BUILDFLAG(IS_ANDROID)
+ // Use chromim's implementation of selection magnifier built using surface
+@@ -506,7 +506,7 @@ const base::FeatureParam<base::TimeDelta>
+ // enables a font indexer on Android which we need to test in the field first.
+ BASE_FEATURE(kFontSrcLocalMatching,
+              "FontSrcLocalMatching",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ #if !BUILDFLAG(IS_ANDROID)
+ // Feature controlling whether or not memory pressure signals will be forwarded
+diff --git a/skia/ext/skia_utils_win.cc b/skia/ext/skia_utils_win.cc
+--- a/skia/ext/skia_utils_win.cc
++++ b/skia/ext/skia_utils_win.cc
+@@ -364,6 +364,26 @@ void CreateBitmapHeaderForXRGB888(int width,
+   CreateBitmapHeaderWithColorDepth(width, height, 32, hdr);
+ }
+ 
++void DWriteFontTypeface_GetGDIFamilyName(SkTypeface* typeface, SkString* familyName) {
++  DWriteFontTypeface* tf = reinterpret_cast<DWriteFontTypeface*>(typeface);
++  SkString localSkGDIName;
++  SkTScopedComPtr<IDWriteLocalizedStrings> familyNames;
++  BOOL exists = FALSE;
++  if (FAILED(tf->fDWriteFont->GetInformationalStrings(
++                  DWRITE_INFORMATIONAL_STRING_WIN32_FAMILY_NAMES,
++                  &familyNames,
++                  &exists)) ||
++      !exists ||
++      FAILED(sk_get_locale_string(familyNames.get(), nullptr, &localSkGDIName)))
++  {
++      HRV(tf->fDWriteFontFamily->GetFamilyNames(&familyNames));
++      sk_get_locale_string(familyNames.get(), nullptr/*fMgr->fLocaleName.get()*/, familyName);
++  }
++  if (familyName) {
++      *familyName = localSkGDIName;
++  }
++}
++
+ base::win::ScopedBitmap CreateHBitmapXRGB8888(int width,
+                                               int height,
+                                               HANDLE shared_section,
+diff --git a/skia/ext/skia_utils_win.h b/skia/ext/skia_utils_win.h
+--- a/skia/ext/skia_utils_win.h
++++ b/skia/ext/skia_utils_win.h
+@@ -13,6 +13,7 @@
+ #include "third_party/skia/include/core/SkImageInfo.h"
+ #include "third_party/skia/include/core/SkMatrix.h"
+ #include "third_party/skia/include/core/SkRefCnt.h"
++#include "third_party/skia/src/ports/SkTypeface_win_dw.h"
+ 
+ #include "build/build_config.h"
+ #include <windows.h>
+@@ -113,6 +114,8 @@ SK_API void CreateBitmapHeaderForXRGB888(int width,
+                                          int height,
+                                          BITMAPINFOHEADER* hdr);
+ 
++SK_API void DWriteFontTypeface_GetGDIFamilyName(SkTypeface* tf, SkString* familyName);
++
+ // Creates an HBITMAP backed by 32-bits-per-pixel RGB data (the high bits are
+ // unused in each pixel).
+ SK_API base::win::ScopedBitmap CreateHBitmapXRGB8888(
+diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
+--- a/third_party/blink/common/features.cc
++++ b/third_party/blink/common/features.cc
+@@ -151,7 +151,7 @@ BASE_FEATURE(kExcludeLowEntropyImagesFromLCP,
+ const base::FeatureParam<double> kMinimumEntropyForLCP{
+     &kExcludeLowEntropyImagesFromLCP, "min_bpp", 2};
+ 
+-BASE_FEATURE(kGMSCoreEmoji, "GMSCoreEmoji", base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kGMSCoreEmoji, "GMSCoreEmoji", base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Enable defer commits to avoid flash of unstyled content, for same origin
+ // navigation only.
+@@ -1619,6 +1619,10 @@ BASE_FEATURE(kClipboardUnsanitizedContent,
+              "ClipboardUnsanitizedContent",
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
++BASE_FEATURE(kFontsFingerprintMitigation,
++             "FontsFingerprintMitigation",
++             base::FEATURE_ENABLED_BY_DEFAULT);
++
+ BASE_FEATURE(kWebRtcEncoderAsyncEncode,
+              "WebRtcEncoderAsyncEncode",
+              base::FEATURE_ENABLED_BY_DEFAULT);
+diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
+--- a/third_party/blink/public/common/features.h
++++ b/third_party/blink/public/common/features.h
+@@ -840,6 +840,9 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kCheckHTMLParserBudgetLessOften);
+ // it is only applicable to HTML format. See crbug.com/1268679.
+ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kClipboardUnsanitizedContent);
+ 
++// Filter the list of fonts allowing the use of only standard fonts
++BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kFontsFingerprintMitigation);
++
+ // Make RTCVideoEncoder::Encode() asynchronous.
+ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kWebRtcEncoderAsyncEncode);
+ 
+diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/renderer/platform/BUILD.gn
+--- a/third_party/blink/renderer/platform/BUILD.gn
++++ b/third_party/blink/renderer/platform/BUILD.gn
+@@ -724,6 +724,7 @@ component("platform") {
+     "fonts/simple_font_data.cc",
+     "fonts/simple_font_data.h",
+     "fonts/skia/font_cache_skia.cc",
++    "fonts/skia/bromite_allowed_fonts.h",
+     "fonts/skia/skia_text_metrics.cc",
+     "fonts/skia/skia_text_metrics.h",
+     "fonts/skia/sktypeface_factory.cc",
+diff --git a/third_party/blink/renderer/platform/fonts/font_cache.h b/third_party/blink/renderer/platform/fonts/font_cache.h
+--- a/third_party/blink/renderer/platform/fonts/font_cache.h
++++ b/third_party/blink/renderer/platform/fonts/font_cache.h
+@@ -355,7 +355,7 @@ class PLATFORM_EXPORT FontCache final {
+ 
+   sk_sp<SkTypeface> CreateTypeface(const FontDescription&,
+                                    const FontFaceCreationParams&,
+-                                   std::string& name);
++                                   std::string& name, std::string& original_name);
+ 
+ #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+   static AtomicString GetFamilyNameForCharacter(SkFontMgr*,
+diff --git a/third_party/blink/renderer/platform/fonts/skia/bromite_allowed_fonts.h b/third_party/blink/renderer/platform/fonts/skia/bromite_allowed_fonts.h
+new file mode 100644
+--- /dev/null
++++ b/third_party/blink/renderer/platform/fonts/skia/bromite_allowed_fonts.h
+@@ -0,0 +1,270 @@
++/*
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++#include "base/logging.h"
++#include "base/command_line.h"
++#include "ui/base/ui_base_switches.h"
++#include "base/strings/string_util.h"
++
++namespace blink {
++
++const char16_t* kAllowedFontNames[] = {
++    u"Sans",     u"Arial",   u"MS UI Gothic",    u"Microsoft Sans Serif",
++    u"Segoe UI", u"Calibri", u"Times New Roman", u"Courier New",
++    // also used
++    u"Monospace",
++#if BUILDFLAG(IS_ANDROID)
++    u"default", u"sans-serif", u"serif", u"cursive", u"fantasy",
++    u"Courier", u"Courier 10 Pitch", u"Courier New"
++#endif
++#if BUILDFLAG(IS_WIN)
++    // see https://learn.microsoft.com/en-us/typography/fonts/windows_11_font_list
++    u"Arial", u"Arial Italic", u"Arial Bold", u"Arial Bold Italic", u"Arial Black",
++    u"Bahnschrift", u"Bahnschrift Light", u"Bahnschrift SemiBold",
++    u"Calibri Light", u"Calibri Light Italic", u"Calibri", u"Calibri Italic",
++    u"Calibri Bold", u"Calibri Bold Italic", u"Cambria", u"Cambria Italic",
++    u"Cambria Bold", u"Cambria Bold Italic", u"Cambria Math", u"Candara Light",
++    u"Candara Light Italic", u"Candara", u"Candara Italic", u"Candara Bold",
++    u"Candara Bold Italic", u"Cascadia Code ExtraLight", u"Cascadia Code ExtraLight Italic",
++    u"Cascadia Code Light", u"Cascadia Code Light Italic", u"Cascadia Code SemiLight",
++    u"Cascadia Code SemiLight Italic", u"Cascadia Code Regular", u"Cascadia Code Italic",
++    u"Cascadia Code SemiBold", u"Cascadia Code SemiBold Italic", u"Cascadia Code Bold",
++    u"Cascadia Code Bold Italic", u"Cascadia Mono ExtraLight", u"Cascadia Mono ExtraLight Italic",
++    u"Cascadia Mono Light", u"Cascadia Mono Light Italic", u"Cascadia Mono SemiLight",
++    u"Cascadia Mono SemiLight Italic", u"Cascadia Mono Regular", u"Cascadia Mono Italic",
++    u"Cascadia Mono SemiBold", u"Cascadia Mono SemiBold Italic", u"Cascadia Mono Bold",
++    u"Cascadia Mono Bold Italic", u"Comic Sans MS", u"Comic Sans MS Italic", u"Comic Sans MS Bold",
++    u"Comic Sans MS Bold Italic", u"Consolas", u"Consolas Italic", u"Consolas Bold",
++    u"Consolas Bold Italic", u"Constantia", u"Constantia Italic", u"Constantia Bold",
++    u"Constantia Bold Italic", u"Corbel Light", u"Corbel Light Italic", u"Corbel",
++    u"Corbel Italic", u"Corbel Bold", u"Corbel Bold Italic", u"Courier New",
++    u"Courier New Italic", u"Courier New Bold", u"Courier New Bold Italic", u"Ebrima",
++    u"Ebrima Bold", u"Franklin Gothic", u"Franklin Gothic Medium", u"Franklin Gothic Medium Italic",
++    u"Gabriola", u"Gadugi", u"Gadugi Bold", u"Georgia", u"Georgia Italic",
++    u"Georgia Bold", u"Georgia Bold Italic", u"HoloLens MDL2 Assets", u"Impact",
++    u"Ink Free", u"Javanese Text", u"Leelawadee UI", u"Leelawadee UI Semilight",
++    u"Leelawadee UI Bold", u"Lucida Console", u"Lucida Sans Unicode", u"Malgun Gothic",
++    u"Malgun Gothic Bold", u"Malgun Gothic Semilight", u"Marlett", u"Microsoft Himalaya",
++    u"Microsoft JhengHei Light", u"Microsoft JhengHei", u"Microsoft JhengHei Bold",
++    u"Microsoft JhengHei UI Light", u"Microsoft JhengHei UI", u"Microsoft JhengHei UI Bold",
++    u"Microsoft New Tai Lue", u"Microsoft New Tai Lue Bold", u"Microsoft PhagsPa",
++    u"Microsoft PhagsPa Bold", u"Microsoft Sans Serif", u"Microsoft Tai Le",
++    u"Microsoft Tai Le Bold", u"Microsoft YaHei Light", u"Microsoft YaHei",
++    u"Microsoft YaHei Bold", u"Microsoft YaHei UI Light", u"Microsoft YaHei UI",
++    u"Microsoft YaHei UI Bold", u"Microsoft Yi Baiti", u"MingLiU-ExtB",
++    u"PMingLiU-ExtB", u"MingLiU_HKSCS-ExtB", u"Mongolian Baiti", u"MS Gothic",
++    u"MS PGothic", u"MS UI Gothic", u"MV Boli", u"Myanmar Text", u"Myanmar Text Bold",
++    u"Nirmala UI Semilight", u"Nirmala UI", u"Nirmala UI Bold", u"Palatino Linotype",
++    u"Palatino Linotype Italic", u"Palatino Linotype Bold", u"Palatino Linotype Bold Italic",
++    u"Segoe Fluent Icons", u"Segoe MDL2 Assets", u"Segoe Print", u"Segoe Print Bold",
++    u"Segoe Script", u"Segoe Script Bold", u"Segoe UI Light", u"Segoe UI Light Italic",
++    u"Segoe UI Semilight", u"Segoe UI Semilight Italic", u"Segoe UI", u"Segoe UI Italic",
++    u"Segoe UI Semibold", u"Segoe UI Semibold Italic", u"Segoe UI Bold", u"Segoe UI Bold Italic",
++    u"Segoe UI Black", u"Segoe UI Black Italic", u"Segoe UI Emoji", u"Segoe UI Historic",
++    u"Segoe UI Symbol", u"Segoe UI Variable Display Light", u"Segoe UI Variable Display Semilight",
++    u"Segoe UI Variable Display Regular", u"Segoe UI Variable Display Semibold",
++    u"Segoe UI Variable Display Bold", u"Segoe UI Variable Small Light",
++    u"Segoe UI Variable Small Semilight", u"Segoe UI Variable Small Regular",
++    u"Segoe UI Variable Small Semibold", u"Segoe UI Variable Small Bold",
++    u"Segoe UI Variable Text Light", u"Segoe UI Variable Text Semilight",
++    u"Segoe UI Variable Text Regular", u"Segoe UI Variable Text Semibold",
++    u"Segoe UI Variable Text Bold", u"SimSun", u"NSimSun", u"SimSun-ExtB", u"Sitka Banner",
++    u"Sitka Banner Italic", u"Sitka Banner Semibold", u"Sitka Banner Semibold Italic",
++    u"Sitka Banner Bold", u"Sitka Banner Bold Italic", u"Sitka Display", u"Sitka Display Italic",
++    u"Sitka Display Semibold", u"Sitka Display Semibold Italic", u"Sitka Display Bold",
++    u"Sitka Display Bold Italic", u"Sitka Small", u"Sitka Small Italic", u"Sitka Small Semibold",
++    u"Sitka Small Semibold Italic", u"Sitka Small Bold", u"Sitka Small Bold Italic", u"Sitka Heading",
++    u"Sitka Heading Italic",  u"Sitka Heading Semibold", u"Sitka Heading Semibold Italic",
++    u"Sitka Heading Bold", u"Sitka Heading Bold Italic", u"Sitka Subheading",
++    u"Sitka Subheading Italic", u"Sitka Subheading Semibold", u"Sitka Subheading Semibold Italic",
++    u"Sitka Subheading Bold", u"Sitka Subheading Bold Italic", u"Sitka Text",
++    u"Sitka Text Italic", u"Sitka Text Semibold", u"Sitka Text Semibold Italic",
++    u"Sitka Text Bold", u"Sitka Text Bold Italic", u"Sylfaen", u"Symbol",
++    u"Tahoma", u"Tahoma Bold", u"Times New Roman", u"Times New Roman Italic", u"Times New Roman Bold",
++    u"Times New Roman Bold Italic", u"Trebuchet MS", u"Trebuchet MS Italic", u"Trebuchet MS Bold",
++    u"Trebuchet MS Bold Italic", u"Verdana", u"Verdana Italic", u"Verdana Bold",
++    u"Verdana Bold Italic", u"Webdings", u"Wingdings", u"Yu Gothic", u"Yu Gothic Light",
++    u"Yu Gothic Regular", u"Yu Gothic Medium", u"Yu Gothic Bold", u"Yu Gothic UI", u"Yu Gothic UI Light",
++    u"Yu Gothic UI Semilight", u"Yu Gothic UI Regular", u"Yu Gothic UI Semibold", u"Yu Gothic UI Bold",
++#endif
++};
++
++#if BUILDFLAG(IS_WIN)
++
++// List from https://learn.microsoft.com/en-us/windows/deployment/windows-10-missing-fonts
++// and https://learn.microsoft.com/en-us/typography/fonts/windows_11_font_list
++// https://unicode-org.github.io/cldr-staging/charts/37/supplemental/locale_coverage.html
++
++// Languages using Arabic script; e.g., Arabic, Persian, Urdu.
++const char16_t* kAllowedFontNames_ar_fa_ur[] = {
++    u"Aldhabi", u"Andalus", u"Arabic Typesetting", u"Microsoft Uighur",
++    u"Sakkal Majalla", u"Simplified Arabic", u"Traditional Arabic",
++    u"Urdu Typesetting"};
++// Languages using Bangla script; e.g., Assamese, Bangla.
++const char16_t* kAllowedFontNames_as_bn[] = {
++    u"Shonar Bangla", u"Vrinda"};
++// Languages using Canadian Syllabics script; e.g., Inuktitut.
++const char16_t* kAllowedFontNames_iu[] = {
++    u"Euphemia"};
++// Cherokee.
++const char16_t* kAllowedFontNames_chr[] = {
++    u"Plantagenet Cherokee"};
++// Language using Devanagari script; e.g., Hindi, Konkani, Marathi.
++const char16_t* kAllowedFontNames_hi_kok_mr[] = {
++    u"Aparajita", u"Kokila", u"Mangal", u"Sanskrit Text",
++    u"Utsaah"};
++// Languages using Ethiopic script; e.g., Amharic, Tigrinya.
++const char16_t* kAllowedFontNames_am_ti[] = {
++    u"Nyala"};
++// Gujarati; any other language using Gujurati script.
++const char16_t* kAllowedFontNames_gu[] = {
++    u"Shruti"};
++// Panjabi; any other language using Gurmukhi script
++const char16_t* kAllowedFontNames_pa[] = {
++    u"Raavi"};
++// Chinese
++const char16_t* kAllowedFontNames_zh[] = {
++    // Simplified Chinese
++    u"DengXian", u"FangSong", u"KaiTi", u"SimHei",
++    // Traditional Chinese
++    u"DFKai-SB", u"MingLiU"};
++// Hebrew
++const char16_t* kAllowedFontNames_he[] = {
++    u"Aharoni Bold", u"David", u"FrankRuehl", u"Gisha",
++    u"Levenim MT", u"Miriam", u"Narkisim", u"Rod"};
++// Japanese
++const char16_t* kAllowedFontNames_ja[] = {
++    u"BIZ UDGothic", u"BIZ UDMincho Medium", u"Meiryo", u"MS Mincho",
++    u"UD Digi Kyokasho", u"Yu Mincho"};
++// Kannada; any other language using Kannada script.
++const char16_t* kAllowedFontNames_kn[] = {
++    u"Tunga"};
++// Cambodian; any other language using Khmer script.
++const char16_t* kAllowedFontNames_km[] = {
++    u"DaunPenh", u"Khmer UI", u"MoolBoran"};
++// Korean
++const char16_t* kAllowedFontNames_ko[] = {
++    u"Batang", u"Dotum", u"Gulim", u"Gungsuh"};
++// Lao; any other language using Lao script.
++const char16_t* kAllowedFontNames_lo[] = {
++    u"DokChampa", u"Lao UI"};
++// Malayalam; any other language using Malayalam script.
++const char16_t* kAllowedFontNames_ml[] = {
++    u"Kartika"};
++// Odia; any other language using Odia script.
++const char16_t* kAllowedFontNames_or[] = {
++    u"Kalinga"};
++// Sinhala; any other language using Sinhala script.
++const char16_t* kAllowedFontNames_si[] = {
++    u"Iskoola Pota"};
++// Languages using Syriac script.
++const char16_t* kAllowedFontNames_syr[] = {
++    u"Estrangelo Edessa"};
++// Tamil; any other language using Tamil script.
++const char16_t* kAllowedFontNames_ta[] = {
++    u"Latha", u"Vijaya"};
++// Telugu; any other language using Telugu script.
++const char16_t* kAllowedFontNames_te[] = {
++    u"Gautami", u"Vani"};
++// Thai; any other language using Thai script.
++const char16_t* kAllowedFontNames_th[] = {
++    u"Angsana New", u"AngsanaUPC", u"Browallia New", u"BrowalliaUPC",
++    u"Cordia New", u"CordiaUPC", u"DilleniaUPC", u"EucrosiaUPC",
++    u"FreesiaUPC", u"IrisUPC", u"JasmineUPC", u"KodchiangUPC",
++    u"Leelawadee", u"LilyUPC"};
++
++#endif
++
++template<int N>
++bool IsInList(const std::u16string& font_name, const char16_t*(&list)[N]) {
++  for(int t = 0; t < N; ++t)
++    if (base::EqualsCaseInsensitiveASCII(font_name, list[t]))
++      return true;
++  return false;
++}
++
++bool IsFontAllowed(const std::u16string& font_name) {
++  for (const char16_t* last_resort_font_name : kAllowedFontNames) {
++    if (base::EqualsCaseInsensitiveASCII(font_name, last_resort_font_name))
++      return true;
++  }
++
++#if BUILDFLAG(IS_ANDROID)
++  // allow synthetic family names (used for emoji)
++  if (base::EndsWith(font_name, u"##fallback", base::CompareCase::INSENSITIVE_ASCII))
++    return true;
++#endif
++
++#if BUILDFLAG(IS_WIN)
++  // check fonts against locale
++  const base::CommandLine& command_line = *base::CommandLine::ForCurrentProcess();
++  if (command_line.HasSwitch(switches::kLang)) {
++    std::string locale = command_line.GetSwitchValueASCII(::switches::kLang);
++
++    if (locale == "ar" || locale == "fa" || locale == "ur")
++      return IsInList(font_name, kAllowedFontNames_ar_fa_ur);
++    else if (locale == "as" || locale == "bn")
++      return IsInList(font_name, kAllowedFontNames_as_bn);
++    else if (locale == "iu")
++      return IsInList(font_name, kAllowedFontNames_iu);
++    else if (locale == "chr")
++      return IsInList(font_name, kAllowedFontNames_chr);
++    else if (locale == "hi" || locale == "kok" || locale == "mr")
++      return IsInList(font_name, kAllowedFontNames_hi_kok_mr);
++    else if (locale == "am" || locale == "ti")
++      return IsInList(font_name, kAllowedFontNames_am_ti);
++    else if (locale == "gu")
++      return IsInList(font_name, kAllowedFontNames_gu);
++    else if (locale == "pa")
++      return IsInList(font_name, kAllowedFontNames_pa);
++    else if (locale == "zh")
++      return IsInList(font_name, kAllowedFontNames_zh);
++    else if (locale == "he")
++      return IsInList(font_name, kAllowedFontNames_he);
++    else if (locale == "ja")
++      return IsInList(font_name, kAllowedFontNames_ja);
++    else if (locale == "kn")
++      return IsInList(font_name, kAllowedFontNames_kn);
++    else if (locale == "km")
++      return IsInList(font_name, kAllowedFontNames_km);
++    else if (locale == "ko")
++      return IsInList(font_name, kAllowedFontNames_ko);
++    else if (locale == "lo")
++      return IsInList(font_name, kAllowedFontNames_lo);
++    else if (locale == "ml")
++      return IsInList(font_name, kAllowedFontNames_ml);
++    else if (locale == "or")
++      return IsInList(font_name, kAllowedFontNames_or);
++    else if (locale == "si")
++      return IsInList(font_name, kAllowedFontNames_si);
++    else if (locale == "syr")
++      return IsInList(font_name, kAllowedFontNames_syr);
++    else if (locale == "ta")
++      return IsInList(font_name, kAllowedFontNames_ta);
++    else if (locale == "te")
++      return IsInList(font_name, kAllowedFontNames_te);
++    else if (locale == "th")
++      return IsInList(font_name, kAllowedFontNames_th);
++  }
++#endif
++
++  //LOG(INFO) << "---not allowed " << font_name;
++
++  return false;
++}
++
++}
+diff --git a/third_party/blink/renderer/platform/fonts/skia/font_cache_skia.cc b/third_party/blink/renderer/platform/fonts/skia/font_cache_skia.cc
+--- a/third_party/blink/renderer/platform/fonts/skia/font_cache_skia.cc
++++ b/third_party/blink/renderer/platform/fonts/skia/font_cache_skia.cc
+@@ -58,12 +58,35 @@
+ #error This file should not be used by MacOS.
+ #endif
+ 
++#include "base/feature_list.h"
++#include "base/strings/utf_string_conversions.h"
++#include "third_party/blink/public/common/features.h"
++#include "bromite_allowed_fonts.h"
++#if BUILDFLAG(IS_WIN)
++#include "skia/ext/skia_utils_win.h"
++#endif
++
+ namespace blink {
+ 
+ AtomicString ToAtomicString(const SkString& str) {
+   return AtomicString::FromUTF8(str.c_str(), str.size());
+ }
+ 
++sk_sp<SkTypeface> ReturnIfAllowed(sk_sp<SkTypeface> typeface, bool check_fonts) {
++  if (!check_fonts) return typeface;
++#if BUILDFLAG(IS_WIN)
++  if (!typeface) return nullptr;
++
++  SkString skia_family_name;
++  skia::DWriteFontTypeface_GetGDIFamilyName(typeface.get(), &skia_family_name);
++  const AtomicString& family = ToAtomicString(skia_family_name);
++  std::string name = family.Utf8();
++  if (!IsFontAllowed(base::UTF8ToUTF16(name)))
++    return nullptr;
++#endif // BUILDFLAG(IS_WIN)
++  return typeface;
++}
++
+ #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+ // This function is called on android or when we are emulating android fonts on
+ // linux and the embedder has overriden the default fontManager with
+@@ -201,7 +224,7 @@ scoped_refptr<SimpleFontData> FontCache::GetLastResortFallbackFont(
+ sk_sp<SkTypeface> FontCache::CreateTypeface(
+     const FontDescription& font_description,
+     const FontFaceCreationParams& creation_params,
+-    std::string& name) {
++    std::string& name, std::string& original_name) {
+ #if !BUILDFLAG(IS_WIN) && !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_FUCHSIA)
+   // TODO(fuchsia): Revisit this and other font code for Fuchsia.
+ 
+@@ -219,6 +242,16 @@ sk_sp<SkTypeface> FontCache::CreateTypeface(
+   DCHECK_NE(family, font_family_names::kSystemUi);
+   // convert the name to utf8
+   name = family.Utf8();
++  if (original_name.empty()) original_name = name;
++
++  bool check_fonts = base::FeatureList::IsEnabled(features::kFontsFingerprintMitigation);
++  if (check_fonts) {
++    if (!IsFontAllowed(base::UTF8ToUTF16(name))) {
++      return nullptr;
++    } else if (!IsFontAllowed(base::UTF8ToUTF16(original_name))) {
++      return nullptr;
++    }
++  }
+ 
+ #if BUILDFLAG(IS_ANDROID)
+   // If this is a locale-specific family, try looking up locale-specific
+@@ -226,15 +259,15 @@ sk_sp<SkTypeface> FontCache::CreateTypeface(
+   if (const char* locale_family = GetLocaleSpecificFamilyName(family)) {
+     if (sk_sp<SkTypeface> typeface =
+             CreateLocaleSpecificTypeface(font_description, locale_family))
+-      return typeface;
++      return ReturnIfAllowed(typeface, check_fonts);
+   }
+ #endif  // BUILDFLAG(IS_ANDROID)
+ 
+   // TODO(https://crbug.com/1425390: Assign FontCache::font_manager_ in the
+   // ctor.
+   auto font_manager = font_manager_ ? font_manager_ : SkFontMgr::RefDefault();
+-  return sk_sp<SkTypeface>(font_manager->matchFamilyStyle(
+-      name.empty() ? nullptr : name.c_str(), font_description.SkiaFontStyle()));
++  return ReturnIfAllowed(sk_sp<SkTypeface>(font_manager->matchFamilyStyle(
++      name.empty() ? nullptr : name.c_str(), font_description.SkiaFontStyle())), check_fonts);
+ }
+ 
+ #if !BUILDFLAG(IS_WIN)
+@@ -244,6 +277,7 @@ std::unique_ptr<FontPlatformData> FontCache::CreateFontPlatformData(
+     float font_size,
+     AlternateFontName alternate_name) {
+   std::string name;
++  std::string original_name;
+ 
+   sk_sp<SkTypeface> typeface;
+ #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+@@ -264,7 +298,7 @@ std::unique_ptr<FontPlatformData> FontCache::CreateFontPlatformData(
+        noto_color_emoji_from_gmscore)) {
+     typeface = CreateTypefaceFromUniqueName(creation_params);
+   } else {
+-    typeface = CreateTypeface(font_description, creation_params, name);
++    typeface = CreateTypeface(font_description, creation_params, name, original_name);
+   }
+ #else
+   typeface = CreateTypeface(font_description, creation_params, name);
+diff --git a/third_party/blink/renderer/platform/fonts/win/font_cache_skia_win.cc b/third_party/blink/renderer/platform/fonts/win/font_cache_skia_win.cc
+--- a/third_party/blink/renderer/platform/fonts/win/font_cache_skia_win.cc
++++ b/third_party/blink/renderer/platform/fonts/win/font_cache_skia_win.cc
+@@ -497,6 +497,7 @@ std::unique_ptr<FontPlatformData> FontCache::CreateFontPlatformData(
+   sk_sp<SkTypeface> typeface;
+ 
+   std::string name;
++  std::string original_name;
+ 
+   if (alternate_font_name == AlternateFontName::kLocalUniqueFace &&
+       RuntimeEnabledFeatures::FontSrcLocalMatchingEnabled()) {
+@@ -508,7 +509,7 @@ std::unique_ptr<FontPlatformData> FontCache::CreateFontPlatformData(
+       return nullptr;
+ 
+   } else {
+-    typeface = CreateTypeface(font_description, creation_params, name);
++    typeface = CreateTypeface(font_description, creation_params, name, original_name);
+ 
+     // For a family match, Windows will always give us a valid pointer here,
+     // even if the face name is non-existent. We have to double-check and see if
+@@ -542,7 +543,7 @@ std::unique_ptr<FontPlatformData> FontCache::CreateFontPlatformData(
+         FontDescription adjusted_font_description = font_description;
+         adjusted_font_description.SetWeight(variant_weight);
+         typeface =
+-            CreateTypeface(adjusted_font_description, adjusted_params, name);
++            CreateTypeface(adjusted_font_description, adjusted_params, name, original_name);
+         if (!typeface ||
+             !TypefacesMatchesFamily(typeface.get(), adjusted_name)) {
+           return nullptr;
+@@ -554,7 +555,7 @@ std::unique_ptr<FontPlatformData> FontCache::CreateFontPlatformData(
+         FontDescription adjusted_font_description = font_description;
+         adjusted_font_description.SetStretch(variant_stretch);
+         typeface =
+-            CreateTypeface(adjusted_font_description, adjusted_params, name);
++            CreateTypeface(adjusted_font_description, adjusted_params, name, original_name);
+         if (!typeface ||
+             !TypefacesMatchesFamily(typeface.get(), adjusted_name)) {
+           return nullptr;
+--
+2.25.1

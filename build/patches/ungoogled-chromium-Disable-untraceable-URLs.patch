@@ -3,15 +3,14 @@ Date: Mon, 12 Feb 2018 21:28:11 +0100
 Subject: ungoogled-chromium: Disable untraceable URLs
 
 Disable additional URLs that are not caught by the "trk" scheme
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/browser/android/rlz/rlz_ping_handler.cc              | 2 +-
- chrome/browser/plugins/plugins_resource_service.cc          | 5 +----
- .../content/browser/client_side_model_loader.cc             | 6 ++----
- .../content/browser/client_side_model_loader.h              | 1 -
- rlz/lib/financial_ping.cc                                   | 4 ++--
- rlz/lib/lib_values.cc                                       | 1 -
- rlz/lib/lib_values.h                                        | 1 -
- 7 files changed, 6 insertions(+), 14 deletions(-)
+ chrome/browser/android/rlz/rlz_ping_handler.cc | 2 +-
+ rlz/lib/financial_ping.cc                      | 4 ++--
+ rlz/lib/lib_values.cc                          | 1 -
+ rlz/lib/lib_values.h                           | 1 -
+ 4 files changed, 3 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/android/rlz/rlz_ping_handler.cc b/chrome/browser/android/rlz/rlz_ping_handler.cc
 --- a/chrome/browser/android/rlz/rlz_ping_handler.cc
@@ -25,69 +24,6 @@ diff --git a/chrome/browser/android/rlz/rlz_ping_handler.cc b/chrome/browser/and
    request_url = net::AppendQueryParameter(
        request_url, rlz_lib::kProductSignatureCgiVariable, "chrome");
    request_url =
-diff --git a/chrome/browser/plugins/plugins_resource_service.cc b/chrome/browser/plugins/plugins_resource_service.cc
---- a/chrome/browser/plugins/plugins_resource_service.cc
-+++ b/chrome/browser/plugins/plugins_resource_service.cc
-@@ -53,9 +53,6 @@ const int kStartResourceFetchDelayMs = 60 * 1000;
- // Delay between calls to update the cache 1 day and 2 minutes in testing mode.
- const int kCacheUpdateDelayMs = 24 * 60 * 60 * 1000;
- 
--const char kPluginsServerUrl[] =
--    "https://www.gstatic.com/chrome/config/plugins_3/";
--
- GURL GetPluginsServerURL() {
-   std::string filename;
- #if defined(OS_WIN)
-@@ -70,7 +67,7 @@ GURL GetPluginsServerURL() {
- #error Unknown platform
- #endif
- 
--  return GURL(kPluginsServerUrl + filename);
-+  return GURL("about:blank");
- }
- 
- }  // namespace
-diff --git a/components/safe_browsing/content/browser/client_side_model_loader.cc b/components/safe_browsing/content/browser/client_side_model_loader.cc
---- a/components/safe_browsing/content/browser/client_side_model_loader.cc
-+++ b/components/safe_browsing/content/browser/client_side_model_loader.cc
-@@ -60,8 +60,6 @@ std::string ReadFileIntoString(base::FilePath path) {
- // Model Loader strings
- const size_t ModelLoader::kMaxModelSizeBytes = 150 * 1024;
- const int ModelLoader::kClientModelFetchIntervalMs = 3600 * 1000;
--const char ModelLoader::kClientModelUrlPrefix[] =
--    "https://ssl.gstatic.com/safebrowsing/csd/";
- const char ModelLoader::kClientModelNamePattern[] =
-     "client_model_v5%s_variation_%d.pb";
- #if !BUILDFLAG(FULL_SAFE_BROWSING)
-@@ -124,7 +122,7 @@ ModelLoader::ModelLoader(
-     scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory,
-     bool is_extended_reporting)
-     : name_(FillInModelName(is_extended_reporting, GetModelNumber())),
--      url_(kClientModelUrlPrefix + name_),
-+      url_("about:blank"),
-       update_renderers_callback_(update_renderers_callback),
-       url_loader_factory_(url_loader_factory),
-       last_client_model_status_(ClientModelStatus::MODEL_NEVER_FETCHED) {
-@@ -137,7 +135,7 @@ ModelLoader::ModelLoader(
-     scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory,
-     const std::string& model_name)
-     : name_(model_name),
--      url_(kClientModelUrlPrefix + name_),
-+      url_("about:blank"),
-       update_renderers_callback_(update_renderers_callback),
-       url_loader_factory_(url_loader_factory),
-       last_client_model_status_(ClientModelStatus::MODEL_NEVER_FETCHED) {
-diff --git a/components/safe_browsing/content/browser/client_side_model_loader.h b/components/safe_browsing/content/browser/client_side_model_loader.h
---- a/components/safe_browsing/content/browser/client_side_model_loader.h
-+++ b/components/safe_browsing/content/browser/client_side_model_loader.h
-@@ -42,7 +42,6 @@ class ModelLoader {
-   static const int kClientModelFetchIntervalMs;
-   static const char kClientModelFinchExperiment[];
-   static const char kClientModelFinchParam[];
--  static const char kClientModelUrlPrefix[];
-   static const char kClientModelNamePattern[];
- 
-   // Enum used to keep stats about why we fail to get the client model. This
 diff --git a/rlz/lib/financial_ping.cc b/rlz/lib/financial_ping.cc
 --- a/rlz/lib/financial_ping.cc
 +++ b/rlz/lib/financial_ping.cc
@@ -131,6 +67,5 @@ diff --git a/rlz/lib/lib_values.h b/rlz/lib/lib_values.h
  
  extern const int kFinancialPort;
  
--- 
-2.17.1
-
+--
+2.25.1

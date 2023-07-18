@@ -1,0 +1,186 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Thu, 20 Apr 2023 15:03:13 +0000
+Subject: Disable speechSynthesis getVoices API
+
+Adds flag disable-speechsynthesis-voice-list to disable
+SpeechSynthesis.getVoices() call.
+If not active the user must also set the system timezone override
+to enable it.
+Disable LiveCaption
+Require: Timezone-customization.patch
+---
+ chrome/browser/about_flags.cc                   |  5 +++++
+ .../renderer/chrome_content_renderer_client.cc  |  2 +-
+ .../renderer/content_settings_agent_impl.cc     |  9 ++++++++-
+ .../renderer/content_settings_agent_impl.h      |  2 ++
+ media/base/media_switches.cc                    |  8 ++++----
+ third_party/blink/common/features.cc            |  4 ++++
+ third_party/blink/public/common/features.h      |  2 ++
+ .../platform/web_content_settings_client.h      |  2 ++
+ .../renderer/modules/speech/speech_synthesis.cc | 17 ++++++++++++++---
+ 9 files changed, 42 insertions(+), 9 deletions(-)
+
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -7444,6 +7444,11 @@ const FeatureEntry kFeatureEntries[] = {
+      flag_descriptions::kFileHandlingIconsDescription, kOsDesktop,
+      FEATURE_VALUE_TYPE(blink::features::kFileHandlingIcons)},
+ 
++    {"disable-speechsynthesis-voice-list",
++     "Disable speechSynthesis.getVoices()",
++     "Disables access to the list of items installed on the device", kOsAll,
++     FEATURE_VALUE_TYPE(blink::features::kDisableSpeechSynthesisVoiceList)},
++
+     {"strict-origin-isolation", flag_descriptions::kStrictOriginIsolationName,
+      flag_descriptions::kStrictOriginIsolationDescription, kOsAll,
+      FEATURE_VALUE_TYPE(features::kStrictOriginIsolation)},
+diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer/chrome_content_renderer_client.cc
+--- a/chrome/renderer/chrome_content_renderer_client.cc
++++ b/chrome/renderer/chrome_content_renderer_client.cc
+@@ -1585,7 +1585,7 @@ ChromeContentRendererClient::CreateWorkerContentSettingsClient(
+ std::unique_ptr<media::SpeechRecognitionClient>
+ ChromeContentRendererClient::CreateSpeechRecognitionClient(
+     content::RenderFrame* render_frame) {
+-  return std::make_unique<ChromeSpeechRecognitionClient>(render_frame);
++  return nullptr;
+ }
+ #endif  // BUILDFLAG(ENABLE_SPEECH_SERVICE)
+ 
+diff --git a/components/content_settings/renderer/content_settings_agent_impl.cc b/components/content_settings/renderer/content_settings_agent_impl.cc
+--- a/components/content_settings/renderer/content_settings_agent_impl.cc
++++ b/components/content_settings/renderer/content_settings_agent_impl.cc
+@@ -496,6 +496,14 @@ bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
+   return false;
+ }
+ 
++bool ContentSettingsAgentImpl::IsTimezoneChanged() {
++  if (!content_setting_rules_)
++    return false;
++  // CONTENT_SETTING_ALLOW = use system time
++  return CONTENT_SETTING_ALLOW != GetContentSetting(
++             ContentSettingsType::TIMEZONE_OVERRIDE, CONTENT_SETTING_ALLOW);
++}
++
+ bool ContentSettingsAgentImpl::UpdateOverrides() {
+   // Evaluate the content setting rules
+   ContentSetting setting = CONTENT_SETTING_ALLOW;
+@@ -506,7 +514,6 @@ bool ContentSettingsAgentImpl::UpdateOverrides() {
+   }
+   return UpdateTimeZoneOverride(
+       setting, content_setting_rules_->timezone_override_value);
+-  //&& UpdateLocaleOverride(setting);
+ }
+ 
+ bool ContentSettingsAgentImpl::UpdateTimeZoneOverride(
+diff --git a/components/content_settings/renderer/content_settings_agent_impl.h b/components/content_settings/renderer/content_settings_agent_impl.h
+--- a/components/content_settings/renderer/content_settings_agent_impl.h
++++ b/components/content_settings/renderer/content_settings_agent_impl.h
+@@ -117,6 +117,8 @@ class ContentSettingsAgentImpl
+   void SetRendererContentSettingRulesForTest(
+       const RendererContentSettingRules& rules);
+ 
++  bool IsTimezoneChanged() override;
++
+  protected:
+   // Allow this to be overridden by tests.
+   virtual void BindContentSettingsManager(
+diff --git a/media/base/media_switches.cc b/media/base/media_switches.cc
+--- a/media/base/media_switches.cc
++++ b/media/base/media_switches.cc
+@@ -840,7 +840,7 @@ const base::FeatureParam<std::string> kMediaFoundationClearKeyCdmPathForTesting{
+ #endif  // BUILDFLAG(IS_WIN)
+ 
+ // Enables the Live Caption feature on supported devices.
+-BASE_FEATURE(kLiveCaption, "LiveCaption", base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kLiveCaption, "LiveCaption", base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Controls whether a "Share this tab instead" button should be shown for
+ // getDisplayMedia captures. Note: This flag does not control if the "Share this
+@@ -877,9 +877,9 @@ BASE_FEATURE(kLiveCaptionRightClick,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Enable or disable Live Caption support for WebAudio.
+-BASE_FEATURE(kLiveCaptionWebAudio,
+-             "LiveCaptionWebAudio",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kLiveCaptionWebAudio,               // disabled by
++             "LiveCaptionWebAudio",              // default
++             base::FEATURE_DISABLED_BY_DEFAULT); // in bromite
+ 
+ // Live Caption runs system-wide on ChromeOS, as opposed to just in the browser.
+ BASE_FEATURE(kLiveCaptionSystemWideOnChromeOS,
+diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
+--- a/third_party/blink/common/features.cc
++++ b/third_party/blink/common/features.cc
+@@ -1611,6 +1611,10 @@ BASE_FEATURE(kStylusPointerAdjustment,
+              "StylusPointerAdjustment",
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
++BASE_FEATURE(kDisableSpeechSynthesisVoiceList,
++             "DisableSpeechSynthesisVoiceList",
++             base::FEATURE_ENABLED_BY_DEFAULT);
++
+ BASE_FEATURE(kDisableArrayBufferSizeLimitsForTesting,
+              "DisableArrayBufferSizeLimitsForTesting",
+              base::FEATURE_DISABLED_BY_DEFAULT);
+diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
+--- a/third_party/blink/public/common/features.h
++++ b/third_party/blink/public/common/features.h
+@@ -823,6 +823,8 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kAndroidExtendedKeyboardShortcuts);
+ // enabling functions like writing into a nearby input element.
+ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kStylusPointerAdjustment);
+ 
++BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDisableSpeechSynthesisVoiceList);
++
+ // TODO(https://crbug.com/1201109): temporary flag to disable new ArrayBuffer
+ // size limits, so that tests can be written against code receiving these
+ // buffers. Remove when the bindings code instituting these limits is removed.
+diff --git a/third_party/blink/public/platform/web_content_settings_client.h b/third_party/blink/public/platform/web_content_settings_client.h
+--- a/third_party/blink/public/platform/web_content_settings_client.h
++++ b/third_party/blink/public/platform/web_content_settings_client.h
+@@ -119,6 +119,8 @@ class WebContentSettingsClient {
+   // frame.
+   virtual bool ShouldAutoupgradeMixedContent() { return true; }
+ 
++  virtual bool IsTimezoneChanged() { return false; }
++
+   // Controls whether the ViewTransition callback needs to be larger than
+   // default.
+   virtual bool IncreaseViewTransitionCallbackTimeout() const { return false; }
+diff --git a/third_party/blink/renderer/modules/speech/speech_synthesis.cc b/third_party/blink/renderer/modules/speech/speech_synthesis.cc
+--- a/third_party/blink/renderer/modules/speech/speech_synthesis.cc
++++ b/third_party/blink/renderer/modules/speech/speech_synthesis.cc
+@@ -35,6 +35,7 @@
+ #include "third_party/blink/public/common/privacy_budget/identifiable_token_builder.h"
+ #include "third_party/blink/public/common/thread_safe_browser_interface_broker_proxy.h"
+ #include "third_party/blink/public/platform/platform.h"
++#include "third_party/blink/public/platform/web_content_settings_client.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_speech_synthesis_error_event_init.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_speech_synthesis_event_init.h"
+ #include "third_party/blink/renderer/core/dom/document.h"
+@@ -93,9 +94,19 @@ SpeechSynthesis::SpeechSynthesis(LocalDOMWindow& window)
+ void SpeechSynthesis::OnSetVoiceList(
+     Vector<mojom::blink::SpeechSynthesisVoicePtr> mojom_voices) {
+   voice_list_.clear();
+-  for (auto& mojom_voice : mojom_voices) {
+-    voice_list_.push_back(
+-        MakeGarbageCollected<SpeechSynthesisVoice>(std::move(mojom_voice)));
++  bool allowed = !base::FeatureList::IsEnabled(features::kDisableSpeechSynthesisVoiceList);
++  if (allowed) {
++    auto* frame = GetSupplementable()->GetFrame();
++    if (frame) {
++      blink::WebContentSettingsClient* settings = frame->GetContentSettingsClient();
++      if (settings) allowed = !settings->IsTimezoneChanged();
++    }
++  }
++  if (allowed) {
++    for (auto& mojom_voice : mojom_voices) {
++      voice_list_.push_back(
++          MakeGarbageCollected<SpeechSynthesisVoice>(std::move(mojom_voice)));
++    }
+   }
+   VoicesDidChange();
+ }
+--
+2.25.1

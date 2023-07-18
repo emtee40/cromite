@@ -2,27 +2,35 @@ From: uazo <uazo@users.noreply.github.com>
 Date: Mon, 17 May 2021 12:30:12 +0000
 Subject: Add support for ISupportHelpAndFeedback
 
+Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../chrome/browser/settings/SettingsActivity.java      | 10 +++++++---
- .../components/browser_ui/settings/SettingsUtils.java  |  4 ++++
- 2 files changed, 11 insertions(+), 3 deletions(-)
+ .../chrome/browser/settings/SettingsActivity.java        | 9 +++++++--
+ .../components/browser_ui/settings/SettingsUtils.java    | 4 ++++
+ 2 files changed, 11 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
-@@ -282,9 +282,13 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+@@ -78,6 +78,7 @@ import org.chromium.components.browser_ui.settings.CustomDividerFragment;
+ import org.chromium.components.browser_ui.settings.FragmentSettingsLauncher;
+ import org.chromium.components.browser_ui.settings.PaddedDividerItemDecoration;
+ import org.chromium.components.browser_ui.settings.SettingsLauncher;
++import org.chromium.components.browser_ui.settings.SettingsUtils;
+ import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
+ import org.chromium.components.browser_ui.site_settings.SiteSettingsPreferenceFragment;
+ import org.chromium.components.browser_ui.util.TraceEventVectorDrawableCompat;
+@@ -393,8 +394,12 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
              finish();
              return true;
          } else if (item.getItemId() == R.id.menu_id_general_help) {
--            HelpAndFeedbackLauncherImpl.getInstance().show(this,
--                    getString(R.string.help_context_settings), Profile.getLastUsedRegularProfile(),
--                    null);
+-            HelpAndFeedbackLauncherImpl.getForProfile(mProfile).show(
+-                    this, getString(R.string.help_context_settings), null);
 +            if (mainFragment instanceof SettingsUtils.ISupportHelpAndFeedback) {
 +                ((SettingsUtils.ISupportHelpAndFeedback)mainFragment).onHelpAndFeebackPressed();
 +            } else {
-+                HelpAndFeedbackLauncherImpl.getInstance().show(this,
-+                        getString(R.string.help_context_settings), Profile.getLastUsedRegularProfile(),
-+                        null);
++                HelpAndFeedbackLauncherImpl.getForProfile(mProfile).show(
++                        this, getString(R.string.help_context_settings), null);
 +            }
              return true;
          }
@@ -30,15 +38,14 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/Settin
 diff --git a/components/browser_ui/settings/android/java/src/org/chromium/components/browser_ui/settings/SettingsUtils.java b/components/browser_ui/settings/android/java/src/org/chromium/components/browser_ui/settings/SettingsUtils.java
 --- a/components/browser_ui/settings/android/java/src/org/chromium/components/browser_ui/settings/SettingsUtils.java
 +++ b/components/browser_ui/settings/android/java/src/org/chromium/components/browser_ui/settings/SettingsUtils.java
-@@ -126,4 +126,8 @@ public class SettingsUtils {
-         ImageView imageButton = (ImageView) button;
-         return imageButton.getDrawable() == parentMenu.getOverflowIcon();
+@@ -97,4 +97,8 @@ public class SettingsUtils {
+         ToolbarUtils.setOverflowMenuVisibility(toolbar, visibility);
+         return true;
      }
 +
 +    public interface ISupportHelpAndFeedback {
 +        void onHelpAndFeebackPressed();
 +    }
  }
--- 
-2.17.1
-
+--
+2.25.1

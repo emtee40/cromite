@@ -1,0 +1,37 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Wed, 19 Apr 2023 06:53:19 +0000
+Subject: Remove auth header upon cross origin redirect
+
+---
+ .../blink/renderer/platform/loader/fetch/resource_loader.cc    | 3 +++
+ .../platform/loader/fetch/url_loader/sync_load_context.cc      | 3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/third_party/blink/renderer/platform/loader/fetch/resource_loader.cc b/third_party/blink/renderer/platform/loader/fetch/resource_loader.cc
+--- a/third_party/blink/renderer/platform/loader/fetch/resource_loader.cc
++++ b/third_party/blink/renderer/platform/loader/fetch/resource_loader.cc
+@@ -837,6 +837,9 @@ bool ResourceLoader::WillFollowRedirect(
+                                      new_url)) {
+     fetcher_->GetUseCounter().CountUse(
+         mojom::WebFeature::kAuthorizationCrossOrigin);
++    if (removed_headers) {
++      removed_headers->push_back(net::HttpRequestHeaders::kAuthorization);
++    }
+   }
+ 
+   if (removed_headers) {
+diff --git a/third_party/blink/renderer/platform/loader/fetch/url_loader/sync_load_context.cc b/third_party/blink/renderer/platform/loader/fetch/url_loader/sync_load_context.cc
+--- a/third_party/blink/renderer/platform/loader/fetch/url_loader/sync_load_context.cc
++++ b/third_party/blink/renderer/platform/loader/fetch/url_loader/sync_load_context.cc
+@@ -172,6 +172,9 @@ bool SyncLoadContext::OnReceivedRedirect(
+   if (has_authorization_header_ &&
+       !url::IsSameOriginWith(response_->url, redirect_info.new_url)) {
+     response_->has_authorization_header_between_cross_origin_redirect_ = true;
++    if (removed_headers) {
++      removed_headers->push_back(net::HttpRequestHeaders::kAuthorization);
++    }
+   }
+ 
+   if (removed_headers) {
+--
+2.25.1

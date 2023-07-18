@@ -2,22 +2,21 @@ From: csagan5 <32685696+csagan5@users.noreply.github.com>
 Date: Fri, 24 Jan 2020 19:17:22 +0100
 Subject: Disable smart selection by default
 
-Allow web search in incognito mode (reverts
-commit 48d4ae54f7565c429bf29cd63806aee5d7e93e69)
+Allow web search in incognito mode; Smart Selection still
+disabled in incognito as per upstream.
 
 Partial revert of da1d809c003749846cb4ade8c11b6d038e44416b to restore
 the ChromeSmartSelection feature flag.
 
-Notice that re-enabling smart selection would make incognito mode potentially
-leak information through the TextClassifier set by OEM, if any
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../contextualsearch/SelectionClientManager.java  |  4 +++-
- .../browser/flags/android/chrome_feature_list.cc  |  4 ++++
+ .../browser/flags/android/chrome_feature_list.cc  |  5 +++++
  .../browser/flags/android/chrome_feature_list.h   |  1 +
  .../chrome/browser/flags/ChromeFeatureList.java   |  1 +
  .../selection/SelectionPopupControllerImpl.java   |  2 +-
  testing/variations/fieldtrial_testing_config.json | 15 +++++++++++++++
- 6 files changed, 25 insertions(+), 2 deletions(-)
+ 6 files changed, 26 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/contextualsearch/SelectionClientManager.java b/chrome/android/java/src/org/chromium/chrome/browser/contextualsearch/SelectionClientManager.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/contextualsearch/SelectionClientManager.java
@@ -27,10 +26,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/contextualsearc
  import androidx.annotation.VisibleForTesting;
  
 +import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.content_public.browser.SelectAroundCaretResult;
  import org.chromium.content_public.browser.SelectionClient;
  import org.chromium.content_public.browser.SelectionEventProcessor;
- import org.chromium.content_public.browser.SelectionPopupController;
-@@ -44,7 +45,8 @@ public class SelectionClientManager {
+@@ -45,7 +46,8 @@ public class SelectionClientManager {
       * @param webContents The {@link WebContents} that will show popups for this client.
       */
      SelectionClientManager(WebContents webContents) {
@@ -43,50 +42,51 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/contextualsearc
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -164,6 +164,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
-     &kCCTRedirectPreconnect,
-     &kCCTRemoveRemoteViewIds,
-     &kCCTReportParallelRequestStatus,
+@@ -183,6 +183,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+     &kCCTClientDataHeader,
+     &kCCTFeatureUsage,
+     &kCCTIncognito,
 +    &kChromeSmartSelection,
-     &kCCTResourcePrefetch,
-     &kDarkenWebsitesCheckboxInThemesSetting,
-     &kDontAutoHideBrowserControls,
-@@ -460,6 +461,9 @@ const base::Feature kChromeStartupDelegate{"ChromeStartupDelegate",
- const base::Feature kChromeSurveyNextAndroid{"ChromeSurveyNextAndroid",
-                                              base::FEATURE_DISABLED_BY_DEFAULT};
+     &kCCTIncognitoAvailableToThirdParty,
+     &kCCTIntentFeatureOverrides,
+     &kCCTNewDownloadTab,
+@@ -1015,6 +1016,10 @@ BASE_FEATURE(kDiscoverFeedMultiColumn,
+              "DiscoverFeedMultiColumn",
+              base::FEATURE_ENABLED_BY_DEFAULT);
  
-+const base::Feature kChromeSmartSelection{"ChromeSmartSelection",
-+                                          base::FEATURE_DISABLED_BY_DEFAULT};
++BASE_FEATURE(kChromeSmartSelection,
++             "ChromeSmartSelection",
++             base::FEATURE_DISABLED_BY_DEFAULT);
 +
- const base::Feature kCommandLineOnNonRooted{"CommandLineOnNonRooted",
-                                             base::FEATURE_DISABLED_BY_DEFAULT};
- 
+ BASE_FEATURE(kTabStripRedesign,
+              "TabStripRedesign",
+              base::FEATURE_DISABLED_BY_DEFAULT);
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -50,6 +50,7 @@ extern const base::Feature kChromeShareLongScreenshot;
- extern const base::Feature kChromeShareScreenshot;
- extern const base::Feature kChromeSharingHub;
- extern const base::Feature kChromeStartupDelegate;
-+extern const base::Feature kChromeSmartSelection;
- extern const base::Feature kChromeSurveyNextAndroid;
- extern const base::Feature kCommandLineOnNonRooted;
- extern const base::Feature kConditionalTabStripAndroid;
+@@ -66,6 +66,7 @@ BASE_DECLARE_FEATURE(kCCTToolbarCustomizations);
+ BASE_DECLARE_FEATURE(kDontAutoHideBrowserControls);
+ BASE_DECLARE_FEATURE(kCacheDeprecatedSystemLocationSetting);
+ BASE_DECLARE_FEATURE(kChromeNewDownloadTab);
++BASE_DECLARE_FEATURE(kChromeSmartSelection);
+ BASE_DECLARE_FEATURE(kChromeShareScreenshot);
+ BASE_DECLARE_FEATURE(kChromeSharingHub);
+ BASE_DECLARE_FEATURE(kChromeSharingHubLaunchAdjacent);
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -275,6 +275,7 @@ public abstract class ChromeFeatureList {
-     public static final String CHROME_SHARE_LONG_SCREENSHOT = "ChromeShareLongScreenshot";
-     public static final String CHROME_SHARE_SCREENSHOT = "ChromeShareScreenshot";
-     public static final String CHROME_SHARING_HUB = "ChromeSharingHub";
+@@ -172,6 +172,7 @@ public abstract class ChromeFeatureList {
+     public static final String CCT_REAL_TIME_ENGAGEMENT_SIGNALS_ALTERNATIVE_IMPL =
+             "CCTRealTimeEngagementSignalsAlternativeImpl";
+     public static final String CCT_REDIRECT_PRECONNECT = "CCTRedirectPreconnect";
 +    public static final String CHROME_SMART_SELECTION = "ChromeSmartSelection";
-     public static final String CHROME_STARTUP_DELEGATE = "ChromeStartupDelegate";
-     public static final String CLEAR_OLD_BROWSING_DATA = "ClearOldBrowsingData";
-     public static final String COMMAND_LINE_ON_NON_ROOTED = "CommandLineOnNonRooted";
+     public static final String CCT_REMOVE_REMOTE_VIEW_IDS = "CCTRemoveRemoteViewIds";
+     public static final String CCT_REPORT_PARALLEL_REQUEST_STATUS =
+             "CCTReportParallelRequestStatus";
 diff --git a/content/public/android/java/src/org/chromium/content/browser/selection/SelectionPopupControllerImpl.java b/content/public/android/java/src/org/chromium/content/browser/selection/SelectionPopupControllerImpl.java
 --- a/content/public/android/java/src/org/chromium/content/browser/selection/SelectionPopupControllerImpl.java
 +++ b/content/public/android/java/src/org/chromium/content/browser/selection/SelectionPopupControllerImpl.java
-@@ -830,7 +830,7 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
+@@ -851,7 +851,7 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
              menu.removeItem(R.id.select_action_menu_share);
          }
  
@@ -98,7 +98,7 @@ diff --git a/content/public/android/java/src/org/chromium/content/browser/select
 diff --git a/testing/variations/fieldtrial_testing_config.json b/testing/variations/fieldtrial_testing_config.json
 --- a/testing/variations/fieldtrial_testing_config.json
 +++ b/testing/variations/fieldtrial_testing_config.json
-@@ -1828,6 +1828,21 @@
+@@ -3398,6 +3398,21 @@
              ]
          }
      ],
@@ -117,9 +117,8 @@ diff --git a/testing/variations/fieldtrial_testing_config.json b/testing/variati
 +            ]
 +        }
 +    ],
-     "ChromeStart": [
+     "CommerceHintAndroid": [
          {
              "platforms": [
--- 
-2.17.1
-
+--
+2.25.1

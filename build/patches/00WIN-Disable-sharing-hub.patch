@@ -1,0 +1,59 @@
+From: Your Name <you@example.com>
+Date: Fri, 17 Feb 2023 16:22:00 +0000
+Subject: WIN Disable sharing hub
+
+---
+ chrome/browser/sharing_hub/sharing_hub_features.cc        | 2 +-
+ chrome/browser/ui/browser_command_controller.cc           | 8 ++++----
+ .../qrcode_generator_bubble_controller.cc                 | 5 +----
+ 3 files changed, 6 insertions(+), 9 deletions(-)
+
+diff --git a/chrome/browser/sharing_hub/sharing_hub_features.cc b/chrome/browser/sharing_hub/sharing_hub_features.cc
+--- a/chrome/browser/sharing_hub/sharing_hub_features.cc
++++ b/chrome/browser/sharing_hub/sharing_hub_features.cc
+@@ -73,7 +73,7 @@ BASE_FEATURE(kDesktopScreenshots,
+ 
+ #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS)
+ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+-  registry->RegisterBooleanPref(prefs::kDesktopSharingHubEnabled, true);
++  registry->RegisterBooleanPref(prefs::kDesktopSharingHubEnabled, false);
+ }
+ #endif
+ 
+diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
+--- a/chrome/browser/ui/browser_command_controller.cc
++++ b/chrome/browser/ui/browser_command_controller.cc
+@@ -1638,12 +1638,12 @@ void BrowserCommandController::UpdateCommandsForFullscreenMode() {
+   command_updater_.UpdateCommandEnabled(IDC_CHROME_TIPS, show_main_ui);
+   command_updater_.UpdateCommandEnabled(IDC_CHROME_WHATS_NEW, show_main_ui);
+ #endif
+-  command_updater_.UpdateCommandEnabled(IDC_QRCODE_GENERATOR, show_main_ui);
++  command_updater_.UpdateCommandEnabled(IDC_QRCODE_GENERATOR, false);
+   command_updater_.UpdateCommandEnabled(IDC_CONTENT_CONTEXT_SHARING_SUBMENU,
+-                                        show_main_ui);
+-  command_updater_.UpdateCommandEnabled(IDC_SHARING_HUB, show_main_ui);
++                                        false);
++  command_updater_.UpdateCommandEnabled(IDC_SHARING_HUB, false);
+   command_updater_.UpdateCommandEnabled(IDC_SHARING_HUB_SCREENSHOT,
+-                                        show_main_ui);
++                                        false);
+   command_updater_.UpdateCommandEnabled(IDC_SHOW_APP_MENU, show_main_ui);
+   command_updater_.UpdateCommandEnabled(IDC_SEND_TAB_TO_SELF, show_main_ui);
+   command_updater_.UpdateCommandEnabled(IDC_SHOW_MANAGEMENT_PAGE, true);
+diff --git a/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc b/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc
+--- a/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc
++++ b/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc
+@@ -23,10 +23,7 @@ QRCodeGeneratorBubbleController::~QRCodeGeneratorBubbleController() {
+ 
+ // static
+ bool QRCodeGeneratorBubbleController::IsGeneratorAvailable(const GURL& url) {
+-  if (!url.SchemeIsHTTPOrHTTPS())
+-    return false;
+-
+-  return true;
++  return false;
+ }
+ 
+ // static
+--
+2.25.1

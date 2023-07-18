@@ -1,0 +1,107 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Mon, 21 Feb 2022 01:24:11 +0100
+Subject: Allow building without supervised users
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+---
+ chrome/android/BUILD.gn                   | 1 -
+ chrome/android/chrome_java_sources.gni    | 1 -
+ chrome/browser/BUILD.gn                   | 6 ------
+ chrome/browser/about_flags.cc             | 4 ++++
+ components/supervised_user/buildflags.gni | 6 +-----
+ 5 files changed, 5 insertions(+), 13 deletions(-)
+
+diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
+--- a/chrome/android/BUILD.gn
++++ b/chrome/android/BUILD.gn
+@@ -3394,7 +3394,6 @@ generate_jni("chrome_jni_headers") {
+     "java/src/org/chromium/chrome/browser/suggestions/mostvisited/MostVisitedSites.java",
+     "java/src/org/chromium/chrome/browser/suggestions/mostvisited/MostVisitedSitesBridge.java",
+     "java/src/org/chromium/chrome/browser/supervised_user/ChildAccountFeedbackReporter.java",
+-    "java/src/org/chromium/chrome/browser/supervised_user/ChildAccountService.java",
+     "java/src/org/chromium/chrome/browser/sync/TrustedVaultClient.java",
+     "java/src/org/chromium/chrome/browser/tab/TabBrowserControlsConstraintsHelper.java",
+     "java/src/org/chromium/chrome/browser/tab/TabFavicon.java",
+diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
+--- a/chrome/android/chrome_java_sources.gni
++++ b/chrome/android/chrome_java_sources.gni
+@@ -1060,7 +1060,6 @@ chrome_java_sources = [
+   "java/src/org/chromium/chrome/browser/suggestions/tile/TileRenderer.java",
+   "java/src/org/chromium/chrome/browser/suggestions/tile/TopSitesTileView.java",
+   "java/src/org/chromium/chrome/browser/supervised_user/ChildAccountFeedbackReporter.java",
+-  "java/src/org/chromium/chrome/browser/supervised_user/ChildAccountService.java",
+   "java/src/org/chromium/chrome/browser/survey/ChromeSurveyController.java",
+   "java/src/org/chromium/chrome/browser/survey/SurveyController.java",
+   "java/src/org/chromium/chrome/browser/sync/SyncErrorNotifier.java",
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -3022,8 +3022,6 @@ static_library("browser") {
+       "feed/android/refresh_task_scheduler_impl.cc",
+       "feed/android/refresh_task_scheduler_impl.h",
+       "feed/android/web_feed_bridge.cc",
+-      "feedback/android/family_info_feedback_source.cc",
+-      "feedback/android/family_info_feedback_source.h",
+       "file_select_helper_contacts_android.cc",
+       "file_select_helper_contacts_android.h",
+       "first_run/android/first_run_prefs.cc",
+@@ -3228,10 +3226,6 @@ static_library("browser") {
+       "ssl/chrome_security_state_model_delegate.h",
+       "ssl/known_interception_disclosure_infobar.cc",
+       "ssl/known_interception_disclosure_infobar.h",
+-      "supervised_user/android/favicon_fetcher.cc",
+-      "supervised_user/android/favicon_fetcher.h",
+-      "supervised_user/android/supervised_user_web_content_handler_impl.cc",
+-      "supervised_user/android/supervised_user_web_content_handler_impl.h",
+       "sync/android/sync_service_android_bridge.cc",
+       "sync/android/sync_service_android_bridge.h",
+       "sync/glue/synced_tab_delegate_android.cc",
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -1492,6 +1492,7 @@ const FeatureEntry::FeatureVariation kJourneysLabelsVariations[] = {
+ };
+ 
+ #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_ANDROID)
++#if BUILDFLAG(ENABLE_SUPERVISED_USERS)
+ const FeatureEntry::FeatureParam kLocalWebApprovalsPreferLocalParams[] = {
+     {"preferred_button", "local"}};
+ const FeatureEntry::FeatureParam kLocalWebApprovalsPreferRemoteParams[] = {
+@@ -1503,6 +1504,7 @@ const FeatureEntry::FeatureVariation kLocalWebApprovalsVariations[] = {
+      std::size(kLocalWebApprovalsPreferRemoteParams), nullptr},
+ };
+ #endif
++#endif
+ 
+ const FeatureEntry::FeatureParam kChromeRefresh2023Level1[] = {{"level", "1"}};
+ 
+@@ -7689,11 +7691,13 @@ const FeatureEntry kFeatureEntries[] = {
+ #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+ 
+ #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_ANDROID)
++#if BUILDFLAG(ENABLE_SUPERVISED_USERS)
+     {"enable-local-web-approvals", flag_descriptions::kLocalWebApprovalsName,
+      flag_descriptions::kLocalWebApprovalsDescription, kOsCrOS | kOsAndroid,
+      FEATURE_WITH_PARAMS_VALUE_TYPE(supervised_user::kLocalWebApprovals,
+                                     kLocalWebApprovalsVariations,
+                                     "LocalWebApprovals")},
++#endif
+ #endif  // BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_ANDROID)
+ 
+ #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
+diff --git a/components/supervised_user/buildflags.gni b/components/supervised_user/buildflags.gni
+--- a/components/supervised_user/buildflags.gni
++++ b/components/supervised_user/buildflags.gni
+@@ -4,9 +4,5 @@
+ 
+ declare_args() {
+   # Enables supervision for Family Link users.
+-  enable_supervised_users =
+-      # Platforms which fully support supervision features:
+-      is_android || is_chromeos ||
+-      # Platforms for which support is currently in development:
+-      is_ios || is_linux || is_mac || is_win
++  enable_supervised_users = false
+ }
+--
+2.25.1

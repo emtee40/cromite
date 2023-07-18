@@ -1,0 +1,221 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Fri, 16 Jun 2023 15:56:35 +0000
+Subject: Viewport Protection Site Setting
+
+Require: Content-settings-infrastructure.patch
+---
+ .../impl/BromiteViewportContentSetting.java   | 93 +++++++++++++++++++
+ .../bromite_content_settings/viewport.grdp    | 27 ++++++
+ .../bromite_content_settings/viewport.inc     | 22 +++++
+ .../bromite_content_settings/VIEWPORT.inc     |  1 +
+ third_party/blink/common/features.cc          |  2 +-
+ .../renderer/core/frame/local_dom_window.cc   |  2 +
+ third_party/blink/renderer/core/page/page.cc  |  3 +
+ 7 files changed, 149 insertions(+), 1 deletion(-)
+ create mode 100644 components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java
+ create mode 100644 components/browser_ui/strings/bromite_content_settings/viewport.grdp
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/viewport.inc
+ create mode 100644 components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc
+
+diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java
+new file mode 100644
+--- /dev/null
++++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/impl/BromiteViewportContentSetting.java
+@@ -0,0 +1,93 @@
++/*
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++package org.chromium.components.browser_ui.site_settings.impl;
++
++import org.chromium.components.browser_ui.site_settings.R;
++
++import org.chromium.components.browser_ui.site_settings.BromiteCustomContentSetting;
++import org.chromium.components.browser_ui.site_settings.ContentSettingsResources;
++import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
++import org.chromium.components.content_settings.ContentSettingValues;
++import org.chromium.components.content_settings.ContentSettingsType;
++import org.chromium.content_public.browser.BrowserContextHandle;
++
++import androidx.annotation.Nullable;
++import androidx.preference.Preference;
++import androidx.preference.PreferenceScreen;
++
++import java.util.ArrayList;
++
++public class BromiteViewportContentSetting extends BromiteCustomContentSetting {
++    public BromiteViewportContentSetting() {
++        super(/*contentSettingsType*/ ContentSettingsType.VIEWPORT,
++              /*defaultEnabledValue*/ ContentSettingValues.ALLOW,
++              /*defaultDisabledValue*/ ContentSettingValues.BLOCK,
++              /*allowException*/ true,
++              /*preferenceKey*/ "viewport",
++              /*profilePrefKey*/ "viewport");
++    }
++
++    @Override
++    public ContentSettingsResources.ResourceItem getResourceItem() {
++        return new ContentSettingsResources.ResourceItem(
++            /*icon*/ R.drawable.web_asset,
++            /*title*/ R.string.viewport_permission_title,
++            /*defaultEnabledValue*/ getDefaultEnabledValue(),
++            /*defaultDisabledValue*/ getDefaultDisabledValue(),
++            /*enabledSummary*/ R.string.website_settings_category_viewport_enabled,
++            /*disabledSummary*/ R.string.website_settings_category_viewport_disabled);
++    }
++
++    @Override
++    public int getCategorySummary(@Nullable @ContentSettingValues int value) {
++        switch (value) {
++            case ContentSettingValues.ALLOW:
++                return R.string.website_settings_category_viewport_enabled;
++            case ContentSettingValues.BLOCK:
++                return R.string.website_settings_category_viewport_disabled;
++            default:
++                // this will cause a runtime exception
++                return 0;
++        }
++    }
++
++    @Override
++    public int getCategoryDescription() {
++        return R.string.settings_site_settings_viewport_protection_description;
++    }
++
++    @Override
++    public boolean requiresTriStateContentSetting() {
++        return false;
++    }
++
++    @Override
++    public boolean showOnlyDescriptions() {
++        return true;
++    }
++
++    @Override
++    public int getAddExceptionDialogMessage() {
++        return R.string.website_settings_category_viewport_enabled;
++    }
++
++    @Override
++    public @Nullable Boolean considerException(SiteSettingsCategory category, @ContentSettingValues int value) {
++        return value != ContentSettingValues.BLOCK;
++    }
++}
+diff --git a/components/browser_ui/strings/bromite_content_settings/viewport.grdp b/components/browser_ui/strings/bromite_content_settings/viewport.grdp
+new file mode 100644
+--- /dev/null
++++ b/components/browser_ui/strings/bromite_content_settings/viewport.grdp
+@@ -0,0 +1,27 @@
++<?xml version="1.0" encoding="utf-8"?>
++<grit-part>
++  <message name="IDS_SITE_SETTINGS_TYPE_VIEWPORT" desc="The label used for viewport size change site settings controls." formatter_data="android_java">
++    Viewport Size Protection
++  </message>
++  <message name="IDS_VIEWPORT_PERMISSION_TITLE" desc="Title of the permission to use viewport size change [CHAR-LIMIT=32]" formatter_data="android_java">
++    Viewport Size Protection
++  </message>
++  <message name="IDS_SITE_SETTINGS_TYPE_VIEWPORT_MID_SENTENCE" desc="The label used for viewport size change site settings controls when used mid-sentence." formatter_data="android_java">
++    Viewport Size Protection
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_DESCRIPTION" desc="Description of the viewport protection content setting." formatter_data="android_java">
++    Hides the screen size by randomly changing the values for each website
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_VIEWPORT_ENABLED" desc="Summary text explaining that viewport size change is full enabled." formatter_data="android_java">
++    Enabled
++  </message>
++  <message name="IDS_WEBSITE_SETTINGS_CATEGORY_VIEWPORT_DISABLED" desc="Summary text explaining that viewport size change is full disabled." formatter_data="android_java">
++    Disabled
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_ALLOWED_EXCEPTIONS" desc="Label for the allowed exceptions site list of the viewport protection setting.">
++    Viewport Protection is enabled with these websites
++  </message>
++  <message name="IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_BLOCKED_EXCEPTIONS" desc="Label for the blocked exceptions site list of the viewport protection setting.">
++    Not allowed to use Viewport Protection
++  </message>
++</grit-part>
+diff --git a/components/content_settings/core/browser/bromite_content_settings/viewport.inc b/components/content_settings/core/browser/bromite_content_settings/viewport.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/viewport.inc
+@@ -0,0 +1,22 @@
++  Register(ContentSettingsType::VIEWPORT, "viewport", CONTENT_SETTING_ALLOW,
++           WebsiteSettingsInfo::SYNCABLE,
++           /*allowlisted_schemes=*/{},
++           /*valid_settings=*/{CONTENT_SETTING_ALLOW,
++                               CONTENT_SETTING_BLOCK},
++           WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
++           WebsiteSettingsRegistry::ALL_PLATFORMS,
++           ContentSettingsInfo::INHERIT_IN_INCOGNITO,
++           ContentSettingsInfo::EXCEPTIONS_ON_SECURE_AND_INSECURE_ORIGINS);
++
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::VIEWPORT)
++    ->set_show_into_info_page()
++    .set_desktop_ui()
++    .set_is_renderer_content_setting()
++    .set_title_ui(IDS_SITE_SETTINGS_TYPE_VIEWPORT)
++    .set_description_ui(IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_DESCRIPTION)
++    .set_allowed_ui(IDS_WEBSITE_SETTINGS_CATEGORY_VIEWPORT_ENABLED)
++    .set_blocked_ui(IDS_WEBSITE_SETTINGS_CATEGORY_VIEWPORT_DISABLED)
++    .set_allowed_exceptions_ui(IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_ALLOWED_EXCEPTIONS)
++    .set_blocked_exceptions_ui(IDS_SETTINGS_SITE_SETTINGS_VIEWPORT_PROTECTION_BLOCKED_EXCEPTIONS)
++    .set_mid_sentence_ui(IDS_SITE_SETTINGS_TYPE_VIEWPORT_MID_SENTENCE);
+diff --git a/components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc b/components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/common/bromite_content_settings/VIEWPORT.inc
+@@ -0,0 +1 @@
++  VIEWPORT,
+diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
+--- a/third_party/blink/common/features.cc
++++ b/third_party/blink/common/features.cc
+@@ -222,7 +222,7 @@ BASE_FEATURE(kPath2DPaintCache,
+ 
+ BASE_FEATURE(kViewportProtection,
+              "ViewportProtection",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kPrivacySandboxAdsAPIs,
+              "PrivacySandboxAdsAPIs",               // disabled by default
+diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_party/blink/renderer/core/frame/local_dom_window.cc
+--- a/third_party/blink/renderer/core/frame/local_dom_window.cc
++++ b/third_party/blink/renderer/core/frame/local_dom_window.cc
+@@ -2305,6 +2305,8 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
+     //     var w = window.open()
+     //     var not_emulated_screen_info = w.screen
+     bool protection_enabled = base::FeatureList::IsEnabled(features::kViewportProtection);
++    protection_enabled |= GetFrame()->GetContentSettingsClient()->AllowContentSetting(
++        ContentSettingsType::VIEWPORT, false);
+     result.frame->GetPage()->CalculateEmulatedScreenSetting(
+       To<LocalFrame>(result.frame),
+       /*force*/ protection_enabled);
+diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
+--- a/third_party/blink/renderer/core/page/page.cc
++++ b/third_party/blink/renderer/core/page/page.cc
+@@ -888,6 +888,9 @@ void Page::UpdateAcceleratedCompositingSettings() {
+ 
+ void Page::CalculateEmulatedScreenSetting(LocalFrame* frame, bool force) {
+   bool isEnabled = base::FeatureList::IsEnabled(features::kViewportProtection);
++  blink::WebContentSettingsClient* settings = frame->GetContentSettingsClient();
++  isEnabled |= (settings && settings->AllowContentSetting(
++        ContentSettingsType::VIEWPORT, /*default_value*/ false));
+   if (isEnabled || force) {
+     // this is the maximum (and minimum) value which in percentage
+     // corresponds to +- 0.03%
+--
+2.25.1

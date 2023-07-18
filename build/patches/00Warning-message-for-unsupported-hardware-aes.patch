@@ -1,0 +1,209 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Fri, 24 Mar 2023 07:50:59 +0000
+Subject: Warning message for unsupported hardware aes
+
+In boringssl the lack of support for native aes instructions in the cpu
+leads to a change in the order of the encryption methods in the
+tls1.3 stack and thus to an additional fingerprint bit.
+The use of software aes is discouraged due to possible side channel
+attacks, so it is better to warn the user of the presence of an
+unsupported device.
+you can remove the message by going to chrome://flags/#no-hw-aes-warning
+---
+ base/base_switches.cc                                  |  2 ++
+ base/base_switches.h                                   |  1 +
+ chrome/BUILD.gn                                        |  3 +++
+ chrome/app/chrome_main_delegate.cc                     | 10 ++++++++++
+ chrome/app/generated_resources.grd                     |  4 ++++
+ chrome/browser/about_flags.cc                          |  4 ++++
+ chrome/browser/flag_descriptions.cc                    |  4 ++++
+ chrome/browser/flag_descriptions.h                     |  3 +++
+ chrome/browser/ui/startup/bad_flags_prompt.cc          |  9 +++++++++
+ .../browser/renderer_host/render_process_host_impl.cc  |  1 +
+ content/public/common/content_features.cc              |  5 +++++
+ content/public/common/content_features.h               |  1 +
+ 12 files changed, 47 insertions(+)
+
+diff --git a/base/base_switches.cc b/base/base_switches.cc
+--- a/base/base_switches.cc
++++ b/base/base_switches.cc
+@@ -176,6 +176,8 @@ extern const char kEnableCrashpad[] = "enable-crashpad";
+ 
+ const char kDesktopModeViewportMetaEnabled[] = "dm-viewport-meta-enabled";
+ 
++const char kNoAESHardware[] = "no-aes-hardware";
++
+ #if BUILDFLAG(IS_CHROMEOS)
+ // Override the default scheduling boosting value for urgent tasks.
+ // This can be adjusted if a specific chromeos device shows better perf/power
+diff --git a/base/base_switches.h b/base/base_switches.h
+--- a/base/base_switches.h
++++ b/base/base_switches.h
+@@ -35,6 +35,7 @@ extern const char kTraceToFileName[];
+ extern const char kV[];
+ extern const char kVModule[];
+ extern const char kWaitForDebugger[];
++extern const char kNoAESHardware[];
+ 
+ #if BUILDFLAG(IS_WIN)
+ extern const char kDisableHighResTimer[];
+diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
+--- a/chrome/BUILD.gn
++++ b/chrome/BUILD.gn
+@@ -452,6 +452,7 @@ if (is_win) {
+       "//components/policy:generated",
+       "//content/public/app",
+       "//crypto",
++      "//third_party/boringssl",
+       "//headless:headless_non_renderer",
+       "//headless:headless_shell_browser_lib",
+       "//net:net_resources",
+@@ -1696,6 +1697,8 @@ if (is_android) {
+       "//chrome/common/profiler",
+       "//chrome/gpu",
+       "//chrome/renderer",
++      "//crypto",
++      "//third_party/boringssl",
+       "//components/minidump_uploader",
+       "//components/safe_browsing:buildflags",
+       "//components/safe_browsing/android:safe_browsing_api_handler",
+diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegate.cc
+--- a/chrome/app/chrome_main_delegate.cc
++++ b/chrome/app/chrome_main_delegate.cc
+@@ -104,6 +104,9 @@
+ #include "ui/base/resource/resource_bundle.h"
+ #include "ui/base/resource/scoped_startup_resource_bundle.h"
+ #include "ui/base/ui_base_switches.h"
++#include "base/base_switches.h"
++#include "crypto/openssl_util.h"
++#include "third_party/boringssl/src/include/openssl/ssl.h"
+ 
+ #if BUILDFLAG(IS_WIN)
+ #include <malloc.h>
+@@ -1070,6 +1073,13 @@ absl::optional<int> ChromeMainDelegate::BasicStartupComplete() {
+     return chrome::RESULT_CODE_INVALID_SANDBOX_STATE;
+ #endif
+ 
++if (!command_line.HasSwitch(switches::kProcessType)) {
++  crypto::EnsureOpenSSLInit();
++  if (EVP_has_aes_hardware() == 0) {
++    base::CommandLine::ForCurrentProcess()->AppendSwitch(switches::kNoAESHardware);
++  }
++}
++
+ #if BUILDFLAG(IS_MAC)
+   // Give the browser process a longer treadmill, since crashes
+   // there have more impact.
+diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
+--- a/chrome/app/generated_resources.grd
++++ b/chrome/app/generated_resources.grd
+@@ -6489,6 +6489,10 @@ Keep your key file in a safe place. You will need it to create new versions of y
+         You are using an unsupported feature flag: <ph name="BAD_FLAG">$1<ex>SignedHTTPExchange</ex></ph>. Stability and security will suffer.
+       </message>
+ 
++      <message name="IDS_UNSUPPORTED_AES_HARDWARE" desc="Message shown when an unsupported hardware">
++        Your device does not support hardware aes, so it is easier to track you at the network level.
++      </message>
++
+       <!-- Bad Environment Variables Infobar-->
+       <message name="IDS_BAD_ENVIRONMENT_VARIABLES_WARNING_MESSAGE" desc="Message shown when an unsupported environment variable is used [Keep it short so it fits in the infobar.]">
+         You are using an unsupported environment variable: <ph name="BAD_VAR">$1<ex>SSLKEYLOGFILE</ex></ph>. Stability and security will suffer.
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -7888,6 +7888,10 @@ const FeatureEntry kFeatureEntries[] = {
+      flag_descriptions::kDevicePostureDescription, kOsAll,
+      FEATURE_VALUE_TYPE(features::kDevicePosture)},
+ 
++    {"no-hw-aes-warning", flag_descriptions::kNoAESHardwareMessageName,
++     flag_descriptions::kNoAESHardwareMessageDescription, kOsDesktop | kOsAndroid,
++     FEATURE_VALUE_TYPE(features::kNoAESHardwareMessage)},
++
+ #if BUILDFLAG(IS_CHROMEOS_ASH)
+     {"device-force-scheduled-reboot",
+      flag_descriptions::kDeviceForceScheduledRebootName,
+diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
+--- a/chrome/browser/flag_descriptions.cc
++++ b/chrome/browser/flag_descriptions.cc
+@@ -774,6 +774,10 @@ const char kDevicePostureName[] = "Device Posture API";
+ const char kDevicePostureDescription[] =
+     "Enables Device Posture API (foldable devices)";
+ 
++const char kNoAESHardwareMessageName[] = "Enable no aes warning message";
++const char kNoAESHardwareMessageDescription[] =
++    "Displays a warning message if the device does not have aes support in the hardware";
++
+ const char kDiscountConsentV2Name[] = "Discount Consent V2";
+ const char kDiscountConsentV2Description[] = "Enables Discount Consent V2";
+ 
+diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
+--- a/chrome/browser/flag_descriptions.h
++++ b/chrome/browser/flag_descriptions.h
+@@ -582,6 +582,9 @@ extern const char kDeviceForceScheduledRebootDescription[];
+ extern const char kDevicePostureName[];
+ extern const char kDevicePostureDescription[];
+ 
++extern const char kNoAESHardwareMessageName[];
++extern const char kNoAESHardwareMessageDescription[];
++
+ extern const char kEnablePreinstalledWebAppDuplicationFixerName[];
+ extern const char kEnablePreinstalledWebAppDuplicationFixerDescription[];
+ 
+diff --git a/chrome/browser/ui/startup/bad_flags_prompt.cc b/chrome/browser/ui/startup/bad_flags_prompt.cc
+--- a/chrome/browser/ui/startup/bad_flags_prompt.cc
++++ b/chrome/browser/ui/startup/bad_flags_prompt.cc
+@@ -221,6 +221,15 @@ void ShowBadFlagsPrompt(content::WebContents* web_contents) {
+       return;
+     }
+   }
++
++  if (base::FeatureList::IsEnabled(features::kNoAESHardwareMessage) &&
++        base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kNoAESHardware)) {
++    CreateSimpleAlertInfoBar(
++        infobars::ContentInfoBarManager::FromWebContents(web_contents),
++        infobars::InfoBarDelegate::BAD_FLAGS_INFOBAR_DELEGATE, nullptr,
++        l10n_util::GetStringUTF16(IDS_UNSUPPORTED_AES_HARDWARE),
++        /*auto_expire=*/false, /*should_animate=*/false);
++  }
+ }
+ 
+ void ShowBadFlagsInfoBar(content::WebContents* web_contents,
+diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content/browser/renderer_host/render_process_host_impl.cc
+--- a/content/browser/renderer_host/render_process_host_impl.cc
++++ b/content/browser/renderer_host/render_process_host_impl.cc
+@@ -3633,6 +3633,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+     switches::kLacrosUseChromeosProtectedAv1,
+ #endif
+     switches::kDesktopModeViewportMetaEnabled,
++    switches::kNoAESHardware,
+   };
+   renderer_cmd->CopySwitchesFrom(browser_cmd, kSwitchNames,
+                                  std::size(kSwitchNames));
+diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
+--- a/content/public/common/content_features.cc
++++ b/content/public/common/content_features.cc
+@@ -776,6 +776,11 @@ BASE_FEATURE(kNoStatePrefetchHoldback,
+              "NoStatePrefetchHoldback",
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
++// Show a warning message to user if aes hardware is not found
++BASE_FEATURE(kNoAESHardwareMessage,
++             "NoAESHardwareMessage",
++             base::FEATURE_ENABLED_BY_DEFAULT);
++
+ // Controls the Origin-Agent-Cluster header. Tracking bug
+ // https://crbug.com/1042415; flag removal bug (for when this is fully launched)
+ // https://crbug.com/1148057.
+diff --git a/content/public/common/content_features.h b/content/public/common/content_features.h
+--- a/content/public/common/content_features.h
++++ b/content/public/common/content_features.h
+@@ -172,6 +172,7 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kNetworkServiceInProcess);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kNotificationContentImage);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kNotificationTriggers);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kNoStatePrefetchHoldback);
++CONTENT_EXPORT BASE_DECLARE_FEATURE(kNoAESHardwareMessage);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kOriginIsolationHeader);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kOverscrollHistoryNavigation);
+ CONTENT_EXPORT BASE_DECLARE_FEATURE(kPeriodicBackgroundSync);
+--
+2.25.1

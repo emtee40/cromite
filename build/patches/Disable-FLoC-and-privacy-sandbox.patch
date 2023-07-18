@@ -1,0 +1,200 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Sat, 13 Nov 2021 09:17:06 +0000
+Subject: Disable FLoC and privacy sandbox
+
+Remove UI from the settings and set the flags to inactive
+Permanently removes FLoC support, disabling the download of LSH clusters,
+the marking the history navigation and the javascript API and permission policies.
+Also added the disabling of blink features through the DisabledForBromite tag
+
+Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+---
+ .../browser/chrome_content_browser_client.cc  |  3 ++
+ .../privacy_sandbox_settings_delegate.cc      |  1 +
+ .../history/core/browser/history_backend.cc   | 13 +-------
+ .../privacy_sandbox_features.cc               | 10 +++---
+ .../privacy_sandbox/privacy_sandbox_prefs.cc  |  2 +-
+ .../privacy_sandbox_settings_impl.cc          | 33 +++++++++----------
+ 6 files changed, 27 insertions(+), 35 deletions(-)
+
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -3358,6 +3358,9 @@ bool ChromeContentBrowserClient::IsAttributionReportingOperationAllowed(
+     const url::Origin* source_origin,
+     const url::Origin* destination_origin,
+     const url::Origin* reporting_origin) {
++  // make sure that this is always disabled in Bromite even if privacy sandbox is already disabled in the prefs
++  if ((true))
++    return false;
+   Profile* profile = Profile::FromBrowserContext(browser_context);
+ 
+   auto* privacy_sandbox_settings =
+diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
+--- a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
++++ b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
+@@ -115,6 +115,7 @@ bool PrivacySandboxSettingsDelegate::HasAppropriateTopicsConsent() const {
+ 
+ bool PrivacySandboxSettingsDelegate::PrivacySandboxRestrictedNoticeRequired()
+     const {
++  if ((true)) return true;
+   auto* identity_manager = IdentityManagerFactory::GetForProfile(profile_);
+ 
+   if (!identity_manager ||
+diff --git a/components/history/core/browser/history_backend.cc b/components/history/core/browser/history_backend.cc
+--- a/components/history/core/browser/history_backend.cc
++++ b/components/history/core/browser/history_backend.cc
+@@ -668,18 +668,7 @@ void HistoryBackend::SetBrowsingTopicsAllowed(ContextID context_id,
+   if (!visit_id)
+     return;
+ 
+-  // Only add to the annotations table if the visit_id exists in the visits
+-  // table.
+-  VisitContentAnnotations annotations;
+-  if (db_->GetContentAnnotationsForVisit(visit_id, &annotations)) {
+-    annotations.annotation_flags |=
+-        VisitContentAnnotationFlag::kBrowsingTopicsEligible;
+-    db_->UpdateContentAnnotationsForVisit(visit_id, annotations);
+-  } else {
+-    annotations.annotation_flags |=
+-        VisitContentAnnotationFlag::kBrowsingTopicsEligible;
+-    db_->AddContentAnnotationsForVisit(visit_id, annotations);
+-  }
++  // in Bromite disallow marking anything in history related to topics
+   ScheduleCommit();
+ }
+ 
+diff --git a/components/privacy_sandbox/privacy_sandbox_features.cc b/components/privacy_sandbox/privacy_sandbox_features.cc
+--- a/components/privacy_sandbox/privacy_sandbox_features.cc
++++ b/components/privacy_sandbox/privacy_sandbox_features.cc
+@@ -7,8 +7,8 @@
+ namespace privacy_sandbox {
+ 
+ BASE_FEATURE(kPrivacySandboxSettings4,
+-             "PrivacySandboxSettings4",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivacySandboxSettings4",          // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT); // in bromite
+ 
+ const char kPrivacySandboxSettings4ConsentRequiredName[] = "consent-required";
+ const char kPrivacySandboxSettings4NoticeRequiredName[] = "notice-required";
+@@ -61,8 +61,8 @@ const base::FeatureParam<bool> kPrivacySandboxSettings4ShowSampleDataForTesting{
+     kPrivacySandboxSettings4ShowSampleDataForTestingName, false};
+ 
+ BASE_FEATURE(kPrivacySandboxSettings3,
+-             "PrivacySandboxSettings3",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "PrivacySandboxSettings3",          // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT); // in bromite
+ const base::FeatureParam<bool> kPrivacySandboxSettings3ConsentRequired{
+     &kPrivacySandboxSettings3, "consent-required", false};
+ const base::FeatureParam<bool> kPrivacySandboxSettings3NoticeRequired{
+@@ -85,7 +85,7 @@ BASE_FEATURE(kOverridePrivacySandboxSettingsLocalTesting,
+ 
+ BASE_FEATURE(kDisablePrivacySandboxPrompts,
+              "DisablePrivacySandboxPrompts",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kPrivacySandboxFirstPartySetsUI,
+              "PrivacySandboxFirstPartySetsUI",
+diff --git a/components/privacy_sandbox/privacy_sandbox_prefs.cc b/components/privacy_sandbox/privacy_sandbox_prefs.cc
+--- a/components/privacy_sandbox/privacy_sandbox_prefs.cc
++++ b/components/privacy_sandbox/privacy_sandbox_prefs.cc
+@@ -108,7 +108,7 @@ namespace privacy_sandbox {
+ 
+ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterBooleanPref(
+-      prefs::kPrivacySandboxApisEnabled, true,
++      prefs::kPrivacySandboxApisEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   registry->RegisterBooleanPref(prefs::kPrivacySandboxApisEnabledV2, false);
+   registry->RegisterBooleanPref(prefs::kPrivacySandboxM1ConsentDecisionMade,
+diff --git a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
+--- a/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
++++ b/components/privacy_sandbox/privacy_sandbox_settings_impl.cc
+@@ -143,7 +143,8 @@ PrivacySandboxSettingsImpl::GetFinchDisabledTopics() {
+   return finch_disabled_topics_;
+ }
+ 
+-bool PrivacySandboxSettingsImpl::IsTopicsAllowed() const {
++bool PrivacySandboxSettingsImpl::IsTopicsAllowed() const { // disabled in Bromite
++  if ((true)) return false;
+   // M1 specific
+   if (base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings4)) {
+     Status status = GetM1TopicAllowedStatus();
+@@ -195,7 +196,8 @@ bool PrivacySandboxSettingsImpl::IsTopicsAllowedForContext(
+          IsPrivacySandboxEnabledForContext(top_frame_origin, url);
+ }
+ 
+-bool PrivacySandboxSettingsImpl::IsTopicAllowed(const CanonicalTopic& topic) {
++bool PrivacySandboxSettingsImpl::IsTopicAllowed(const CanonicalTopic& topic) { // disabled in Bromite
++  if ((true)) return false;
+   const auto& blocked_topics =
+       pref_service_->GetList(prefs::kPrivacySandboxBlockedTopics);
+ 
+@@ -304,17 +306,7 @@ bool PrivacySandboxSettingsImpl::IsAttributionReportingEverAllowed() const {
+ bool PrivacySandboxSettingsImpl::IsAttributionReportingAllowed(
+     const url::Origin& top_frame_origin,
+     const url::Origin& reporting_origin) const {
+-  // M1 specific
+-  if (base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings4)) {
+-    Status status = GetM1AttributionReportingAllowedStatus(top_frame_origin,
+-                                                           reporting_origin);
+-    base::UmaHistogramEnumeration(
+-        "PrivacySandbox.IsAttributionReportingAllowed", status);
+-    return IsAllowed(status);
+-  }
+-
+-  return IsPrivacySandboxEnabledForContext(top_frame_origin,
+-                                           reporting_origin.GetURL());
++  return false;
+ }
+ 
+ bool PrivacySandboxSettingsImpl::MaySendAttributionReport(
+@@ -420,7 +412,8 @@ void PrivacySandboxSettingsImpl::ClearFledgeJoiningAllowedSettings(
+ }
+ 
+ bool PrivacySandboxSettingsImpl::IsFledgeJoiningAllowed(
+-    const url::Origin& top_frame_origin) const {
++    const url::Origin& top_frame_origin) const { // disabled in Bromite
++  if ((true)) return false;
+   ScopedDictPrefUpdate scoped_pref_update(
+       pref_service_, prefs::kPrivacySandboxFledgeJoinBlocked);
+   auto& pref_data = scoped_pref_update.Get();
+@@ -511,7 +504,9 @@ bool PrivacySandboxSettingsImpl::IsPrivateAggregationAllowed(
+                                            reporting_origin.GetURL());
+ }
+ 
+-bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabled() const {
++bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabled() const { // disabled in Bromite
++  if ((true))
++    return false;
+   PrivacySandboxSettingsImpl::Status status = GetPrivacySandboxAllowedStatus();
+   if (!IsAllowed(status)) {
+     return false;
+@@ -549,7 +544,8 @@ void PrivacySandboxSettingsImpl::SetTopicsBlockedForTesting() {
+   pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, false);
+ }
+ 
+-void PrivacySandboxSettingsImpl::SetPrivacySandboxEnabled(bool enabled) {
++void PrivacySandboxSettingsImpl::SetPrivacySandboxEnabled(bool enabled) { // disabled in Bromite
++  enabled = false;
+   pref_service_->SetBoolean(prefs::kPrivacySandboxApisEnabledV2, enabled);
+ }
+ 
+@@ -626,7 +622,10 @@ bool PrivacySandboxSettingsImpl::IsPrivacySandboxEnabledForContext(
+       net::CookieSettingOverrides());
+ }
+ 
+-void PrivacySandboxSettingsImpl::SetTopicsDataAccessibleFromNow() const {
++void PrivacySandboxSettingsImpl::SetTopicsDataAccessibleFromNow() const { // disabled in Bromite
++  pref_service_->ClearPref(prefs::kPrivacySandboxTopicsDataAccessibleSince);
++  if ((true)) return;
++
+   pref_service_->SetTime(prefs::kPrivacySandboxTopicsDataAccessibleSince,
+                          base::Time::Now());
+ 
+--
+2.25.1

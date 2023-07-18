@@ -2,51 +2,52 @@ From: csagan5 <32685696+csagan5@users.noreply.github.com>
 Date: Sun, 18 Nov 2018 13:06:49 +0100
 Subject: Add flag to disable IPv6 probes
 
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/browser/about_flags.cc                            | 5 +++++
- chrome/browser/flag_descriptions.cc                      | 4 ++++
- chrome/browser/flag_descriptions.h                       | 3 +++
- components/subresource_filter/tools/BUILD.gn             | 6 ++++++
- .../url_formatter/spoof_checks/top_domains/BUILD.gn      | 3 ++-
- net/dns/host_resolver_manager.cc                         | 9 ++++++++-
- services/network/public/cpp/features.cc                  | 4 ++++
- services/network/public/cpp/features.h                   | 2 ++
- 8 files changed, 34 insertions(+), 2 deletions(-)
+ chrome/browser/about_flags.cc           |  4 ++++
+ chrome/browser/flag_descriptions.cc     |  4 ++++
+ chrome/browser/flag_descriptions.h      |  3 +++
+ net/BUILD.gn                            |  1 +
+ net/base/features.cc                    |  4 ++++
+ net/base/features.h                     |  3 +++
+ net/dns/host_resolver_manager.cc        | 11 +++++++++++
+ services/network/public/cpp/features.cc |  5 +++++
+ services/network/public/cpp/features.h  |  1 +
+ 9 files changed, 36 insertions(+)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -4760,6 +4760,11 @@ const FeatureEntry kFeatureEntries[] = {
- #endif  // defined(OS_WIN) || defined(OS_MAC) || defined(OS_LINUX) ||
-         // defined(OS_CHROMEOS)
- 
+@@ -6477,6 +6477,10 @@ const FeatureEntry kFeatureEntries[] = {
+     {"enable-reader-mode-in-cct", flag_descriptions::kReaderModeInCCTName,
+      flag_descriptions::kReaderModeInCCTDescription, kOsAndroid,
+      FEATURE_VALUE_TYPE(chrome::android::kReaderModeInCCT)},
 +    {"ipv6-probing",
 +     flag_descriptions::kIPv6ProbingName,
 +     flag_descriptions::kIPv6ProbingDescription, kOsAll,
-+     FEATURE_VALUE_TYPE(network::features::kIPv6Probing)},
-+
- #if !defined(OS_ANDROID)
-     {"ntp-cache-one-google-bar", flag_descriptions::kNtpCacheOneGoogleBarName,
-      flag_descriptions::kNtpCacheOneGoogleBarDescription, kOsDesktop,
++     FEATURE_VALUE_TYPE(net::features::kIPv6Probing)},
+ #endif  // BUILDFLAG(IS_ANDROID)
+ 
+     {"shopping-list", commerce::flag_descriptions::kShoppingListName,
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -3003,6 +3003,10 @@ const char kContextualSearchRankerQueryDescription[] =
+@@ -3760,6 +3760,10 @@ const char kCCTTextFragmentLookupApiEnabledName[] =
+ const char kCCTTextFragmentLookupApiEnabledDescription[] =
+     "Enable CCT API to lookup text fragments";
  
- const char kContextualSearchSecondTapName[] =
-     "Contextual Search second tap triggering";
 +const char kIPv6ProbingName[] = "Enable IPv6 probing.";
 +const char kIPv6ProbingDescription[] =
 +    "Send IPv6 probes to a RIPE DNS address to verify IPv6 connectivity.";
 +
- const char kContextualSearchSecondTapDescription[] =
-     "Enables triggering on a second tap gesture even when Ranker would "
-     "normally suppress that tap.";
+ const char kChimeAlwaysShowNotificationDescription[] =
+     "A debug flag to always show Chime notification after receiving a payload.";
+ const char kChimeAlwaysShowNotificationName[] =
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -688,6 +688,9 @@ extern const char kEnableWasmSimdName[];
- extern const char kEnableWasmSimdDescription[];
+@@ -804,6 +804,9 @@ extern const char kEnableWasmStringrefName[];
+ extern const char kEnableWasmStringrefDescription[];
  
  extern const char kEnableWasmTieringName[];
 +extern const char kIPv6ProbingName[];
@@ -55,86 +56,90 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
  extern const char kEnableWasmTieringDescription[];
  
  extern const char kEvDetailsInPageInfoName[];
-diff --git a/components/subresource_filter/tools/BUILD.gn b/components/subresource_filter/tools/BUILD.gn
---- a/components/subresource_filter/tools/BUILD.gn
-+++ b/components/subresource_filter/tools/BUILD.gn
-@@ -50,6 +50,8 @@ if (!is_ios) {
-     deps = [
-       ":tools_lib",
-       "//base",
-+      "//components/network_session_configurator/common",
-+      "//services/network/public/cpp"
-     ]
-   }
- 
-@@ -61,6 +63,8 @@ if (!is_ios) {
-       ":tools_lib",
-       "../core/common",
-       "//base",
-+      "//components/network_session_configurator/common",
-+      "//services/network/public/cpp",
-     ]
-   }
- 
-@@ -70,6 +74,8 @@ if (!is_ios) {
-       "ruleset_converter:support",
-       "//base",
-       "//third_party/protobuf:protobuf_lite",
-+      "//components/network_session_configurator/common",
-+      "//services/network/public/cpp"
-     ]
-   }
- 
-diff --git a/components/url_formatter/spoof_checks/top_domains/BUILD.gn b/components/url_formatter/spoof_checks/top_domains/BUILD.gn
---- a/components/url_formatter/spoof_checks/top_domains/BUILD.gn
-+++ b/components/url_formatter/spoof_checks/top_domains/BUILD.gn
-@@ -73,7 +73,8 @@ executable("make_top_domain_list_variables") {
-     "//base:i18n",
-     "//components/url_formatter/spoof_checks/common_words:common",
-     "//third_party/icu",
--    "//components/network_session_configurator/common"
-+    "//components/network_session_configurator/common",
-+    "//services/network/public/cpp",
+diff --git a/net/BUILD.gn b/net/BUILD.gn
+--- a/net/BUILD.gn
++++ b/net/BUILD.gn
+@@ -1083,6 +1083,7 @@ component("net") {
+     "//build:chromeos_buildflags",
+     "//net/data/ssl/chrome_root_store:gen_root_store_inc",
+     "//net/http:transport_security_state_generated_files",
++    "//components/network_session_configurator/common"
    ]
-   if (is_ios) {
-     frameworks = [ "UIKit.framework" ]
+ 
+   public_deps = [
+diff --git a/net/base/features.cc b/net/base/features.cc
+--- a/net/base/features.cc
++++ b/net/base/features.cc
+@@ -40,6 +40,10 @@ BASE_FEATURE(kUseDnsHttpsSvcb,
+ const base::FeatureParam<bool> kUseDnsHttpsSvcbEnforceSecureResponse{
+     &kUseDnsHttpsSvcb, "UseDnsHttpsSvcbEnforceSecureResponse", false};
+ 
++BASE_FEATURE(kIPv6Probing,
++             "IPv6Probing",
++             base::FEATURE_ENABLED_BY_DEFAULT);
++
+ const base::FeatureParam<base::TimeDelta> kUseDnsHttpsSvcbInsecureExtraTimeMax{
+     &kUseDnsHttpsSvcb, "UseDnsHttpsSvcbInsecureExtraTimeMax",
+     base::Milliseconds(50)};
+diff --git a/net/base/features.h b/net/base/features.h
+--- a/net/base/features.h
++++ b/net/base/features.h
+@@ -52,6 +52,9 @@ NET_EXPORT BASE_DECLARE_FEATURE(kUseDnsHttpsSvcb);
+ NET_EXPORT extern const base::FeatureParam<bool>
+     kUseDnsHttpsSvcbEnforceSecureResponse;
+ 
++// Enable IPv6 ping probes to RIPE DNS.
++NET_EXPORT BASE_DECLARE_FEATURE(kIPv6Probing);
++
+ // If we are still waiting for an HTTPS transaction after all the
+ // other transactions in an insecure DnsTask have completed, we will compute a
+ // timeout for the remaining transaction. The timeout will be
 diff --git a/net/dns/host_resolver_manager.cc b/net/dns/host_resolver_manager.cc
 --- a/net/dns/host_resolver_manager.cc
 +++ b/net/dns/host_resolver_manager.cc
-@@ -95,6 +95,7 @@
+@@ -108,6 +108,7 @@
  #include "net/log/net_log_event_type.h"
  #include "net/log/net_log_source.h"
  #include "net/log/net_log_source_type.h"
 +#include "services/network/public/cpp/features.h"
  #include "net/log/net_log_with_source.h"
  #include "net/socket/client_socket_factory.h"
- #include "net/socket/datagram_client_socket.h"
-@@ -3366,8 +3367,14 @@ bool HostResolverManager::IsIPv6Reachable(const NetLogWithSource& net_log) {
-   if (last_ipv6_probe_time_.is_null() ||
-       (tick_clock_->NowTicks() - last_ipv6_probe_time_).InMilliseconds() >
-           kIPv6ProbePeriodMs) {
--    SetLastIPv6ProbeResult(
-+
-+    if (!base::FeatureList::IsEnabled(network::features::kIPv6Probing)) {
-+      // pretend IPv6 connectivy probe is successful when probing is disabled
-+      SetLastIPv6ProbeResult(true);
-+    } else {
-+      SetLastIPv6ProbeResult(
-         IsGloballyReachable(IPAddress(kIPv6ProbeAddress), net_log));
+ #include "net/url_request/url_request_context.h"
+@@ -725,6 +726,9 @@ class HostResolverManager::RequestImpl
+     // request source is LOCAL_ONLY. This is due to LOCAL_ONLY requiring a
+     // synchronous response, so it cannot wait on an async probe result and
+     // cannot make assumptions about reachability.
++    if (!base::FeatureList::IsEnabled(features::kIPv6Probing)) {
++      return OK;
 +    }
-     cached = false;
+     if (parameters_.source == HostResolverSource::LOCAL_ONLY) {
+       int rv = resolver_->StartIPv6ReachabilityCheck(
+           source_net_log_, base::DoNothingAs<void(int)>());
+@@ -3944,6 +3948,13 @@ int HostResolverManager::StartIPv6ReachabilityCheck(
+     return OK;
    }
-   net_log.AddEvent(
+ 
++  if (!base::FeatureList::IsEnabled(net::features::kIPv6Probing)) {
++    probing_ipv6_ = false;
++    last_ipv6_probe_result_ = false;
++    last_ipv6_probe_time_ = base::TimeTicks();
++    return OK;
++  }
++
+   if (probing_ipv6_) {
+     ipv6_request_callbacks_.push_back(std::move(callback));
+     return ERR_IO_PENDING;
 diff --git a/services/network/public/cpp/features.cc b/services/network/public/cpp/features.cc
 --- a/services/network/public/cpp/features.cc
 +++ b/services/network/public/cpp/features.cc
-@@ -40,6 +40,10 @@ const base::Feature kReporting{"Reporting", base::FEATURE_ENABLED_BY_DEFAULT};
- const base::Feature kThrottleDelayable{"ThrottleDelayable",
-                                        base::FEATURE_ENABLED_BY_DEFAULT};
+@@ -31,6 +31,11 @@ BASE_FEATURE(kThrottleDelayable,
+              "ThrottleDelayable",
+              base::FEATURE_ENABLED_BY_DEFAULT);
  
 +// Enable IPv6 ping probes to RIPE DNS.
-+const base::Feature kIPv6Probing{"IPv6Probing",
-+                                       base::FEATURE_ENABLED_BY_DEFAULT};
++BASE_FEATURE(kIPv6Probing,
++             "IPv6Probing",
++             base::FEATURE_ENABLED_BY_DEFAULT);
 +
  // When kPriorityRequestsDelayableOnSlowConnections is enabled, HTTP
  // requests fetched from a SPDY/QUIC/H2 proxies can be delayed by the
@@ -142,15 +147,13 @@ diff --git a/services/network/public/cpp/features.cc b/services/network/public/c
 diff --git a/services/network/public/cpp/features.h b/services/network/public/cpp/features.h
 --- a/services/network/public/cpp/features.h
 +++ b/services/network/public/cpp/features.h
-@@ -19,6 +19,8 @@ extern const base::Feature kNetworkErrorLogging;
+@@ -17,6 +17,7 @@ namespace features {
+ COMPONENT_EXPORT(NETWORK_CPP) BASE_DECLARE_FEATURE(kNetworkErrorLogging);
+ COMPONENT_EXPORT(NETWORK_CPP) BASE_DECLARE_FEATURE(kReporting);
+ COMPONENT_EXPORT(NETWORK_CPP) BASE_DECLARE_FEATURE(kThrottleDelayable);
++COMPONENT_EXPORT(NETWORK_CPP) BASE_DECLARE_FEATURE(kIPv6Probing);
  COMPONENT_EXPORT(NETWORK_CPP)
- extern const base::Feature kNetworkService;
+ BASE_DECLARE_FEATURE(kDelayRequestsOnMultiplexedConnections);
  COMPONENT_EXPORT(NETWORK_CPP)
-+extern const base::Feature kIPv6Probing;
-+COMPONENT_EXPORT(NETWORK_CPP)
- extern const base::Feature kReporting;
- COMPONENT_EXPORT(NETWORK_CPP)
- extern const base::Feature kThrottleDelayable;
--- 
-2.17.1
-
+--
+2.25.1

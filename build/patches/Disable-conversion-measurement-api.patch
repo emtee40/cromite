@@ -1,0 +1,605 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Mon, 15 Nov 2021 09:43:29 +0000
+Subject: Disable conversion measurement api
+
+Disable Conversion Measurement API by disabling the flag and removing
+support for the AttributionReporting provider. it also removes
+the handling of attributions via intents between apps.
+This patch enforces the deactivation by preventing the report from
+being sent and being saved to disk, although it is currently in uncalled code.
+
+Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+---
+ chrome/android/java/AndroidManifest.xml       |   1 -
+ .../origin_trials/features.cc                 |   8 +-
+ .../render_view_context_menu_base.cc          |   3 -
+ .../aggregatable_report_sender.cc             |  15 +-
+ .../aggregation_service_features.cc           |   4 +-
+ .../attribution_data_host_manager_impl.cc     |   5 +
+ .../attribution_reporting/attribution_host.cc |   1 +
+ .../attribution_os_level_manager.cc           |   1 +
+ .../attribution_report_network_sender.cc      |   9 ++
+ .../attribution_storage_sql.cc                |   8 +-
+ content/browser/storage_partition_impl.cc     |   8 +-
+ content/public/android/BUILD.gn               |   2 -
+ .../browser/AttributionOsLevelManager.java    | 149 +-----------------
+ .../public/browser/navigation_controller.cc   |   1 -
+ content/public/common/content_features.cc     |   4 +-
+ content/renderer/render_thread_impl.cc        |   5 +-
+ .../network/public/cpp/attribution_utils.cc   |   3 +
+ third_party/blink/common/features.cc          |  16 +-
+ .../platform/runtime_enabled_features.json5   |   7 +
+ ui/base/ui_base_features.cc                   |   2 +-
+ 20 files changed, 65 insertions(+), 187 deletions(-)
+
+diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
+--- a/chrome/android/java/AndroidManifest.xml
++++ b/chrome/android/java/AndroidManifest.xml
+@@ -39,7 +39,6 @@ by a child template that "extends" this file.
+         <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+     {% endif %}
+ 
+-    <uses-permission-sdk-23 android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" />
+     <uses-permission-sdk-23 android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
+     <uses-permission-sdk-23 android:name="android.permission.BLUETOOTH_CONNECT"/>
+     <!--
+diff --git a/components/embedder_support/origin_trials/features.cc b/components/embedder_support/origin_trials/features.cc
+--- a/components/embedder_support/origin_trials/features.cc
++++ b/components/embedder_support/origin_trials/features.cc
+@@ -14,11 +14,11 @@ namespace embedder_support {
+ // Users from control group will have the feature disabled, excluding them
+ // from the origin trial.
+ BASE_FEATURE(kOriginTrialsSampleAPIThirdPartyAlternativeUsage,
+-             "OriginTrialsSampleAPIThirdPartyAlternativeUsage",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "OriginTrialsSampleAPIThirdPartyAlternativeUsage",   // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);                  // in Bromite
+ 
+ BASE_FEATURE(kConversionMeasurementAPIAlternativeUsage,
+-             "ConversionMeasurementAPIAlternativeUsage",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "ConversionMeasurementAPIAlternativeUsage",          // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);                  // in Bromite
+ 
+ }  // namespace embedder_support
+diff --git a/components/renderer_context_menu/render_view_context_menu_base.cc b/components/renderer_context_menu/render_view_context_menu_base.cc
+--- a/components/renderer_context_menu/render_view_context_menu_base.cc
++++ b/components/renderer_context_menu/render_view_context_menu_base.cc
+@@ -507,9 +507,6 @@ RenderViewContextMenuBase::GetOpenURLParamsWithExtraHeaders(
+ 
+   open_url_params.source_site_instance = site_instance_;
+ 
+-  if (disposition != WindowOpenDisposition::OFF_THE_RECORD)
+-    open_url_params.impression = params_.impression;
+-
+   return open_url_params;
+ }
+ 
+diff --git a/content/browser/aggregation_service/aggregatable_report_sender.cc b/content/browser/aggregation_service/aggregatable_report_sender.cc
+--- a/content/browser/aggregation_service/aggregatable_report_sender.cc
++++ b/content/browser/aggregation_service/aggregatable_report_sender.cc
+@@ -136,19 +136,18 @@ void AggregatableReportSender::SendReport(const GURL& url,
+   // Allow bodies of non-2xx responses to be returned.
+   simple_url_loader_ptr->SetAllowHttpErrorResults(true);
+ 
+-  // Unretained is safe because the URLLoader is owned by `this` and will be
+-  // deleted before `this`.
+-  simple_url_loader_ptr->DownloadHeadersOnly(
+-      url_loader_factory_.get(),
+-      base::BindOnce(&AggregatableReportSender::OnReportSent,
+-                     base::Unretained(this), std::move(it),
+-                     std::move(callback)));
++  // this is never called on Bromite but nothing would be sent if it were
++  OnReportSent(std::move(it), std::move(callback), nullptr);
+ }
+ 
+ void AggregatableReportSender::OnReportSent(
+     UrlLoaderList::iterator it,
+     ReportSentCallback callback,
+-    scoped_refptr<net::HttpResponseHeaders> headers) {
++    scoped_refptr<net::HttpResponseHeaders> headers) { // disable in Bromite
++  if ((true)) {
++    std::move(callback).Run(RequestStatus::kOk);
++    return;
++  }
+   RequestStatus status;
+ 
+   absl::optional<int> http_response_code;
+diff --git a/content/browser/aggregation_service/aggregation_service_features.cc b/content/browser/aggregation_service/aggregation_service_features.cc
+--- a/content/browser/aggregation_service/aggregation_service_features.cc
++++ b/content/browser/aggregation_service/aggregation_service_features.cc
+@@ -8,8 +8,8 @@ namespace content {
+ 
+ // Enables the Aggregation Service. See crbug.com/1207974.
+ BASE_FEATURE(kPrivacySandboxAggregationService,
+-             "PrivacySandboxAggregationService",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "PrivacySandboxAggregationService",   // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);   // in bromite
+ 
+ const base::FeatureParam<std::string>
+     kPrivacySandboxAggregationServiceTrustedServerUrlAwsParam{
+diff --git a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
+--- a/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
++++ b/content/browser/attribution_reporting/attribution_data_host_manager_impl.cc
+@@ -471,6 +471,11 @@ void AttributionDataHostManagerImpl::ParseSource(
+     RegistrarAndHeader header) {
+   DCHECK(it != registrations_.end());
+ 
++  if ((true)) {
++    MaybeOnRegistrationsFinished(it);
++    return;
++  }
++
+   switch (header.registrar) {
+     case Registrar::kWeb:
+       if (!network::HasAttributionWebSupport(
+diff --git a/content/browser/attribution_reporting/attribution_host.cc b/content/browser/attribution_reporting/attribution_host.cc
+--- a/content/browser/attribution_reporting/attribution_host.cc
++++ b/content/browser/attribution_reporting/attribution_host.cc
+@@ -335,6 +335,7 @@ void AttributionHost::RegisterNavigationDataHost(
+     return;
+   }
+ 
++  if ((true)) return;
+   AttributionManager* attribution_manager =
+       AttributionManager::FromWebContents(web_contents());
+   DCHECK(attribution_manager);
+diff --git a/content/browser/attribution_reporting/attribution_os_level_manager.cc b/content/browser/attribution_reporting/attribution_os_level_manager.cc
+--- a/content/browser/attribution_reporting/attribution_os_level_manager.cc
++++ b/content/browser/attribution_reporting/attribution_os_level_manager.cc
+@@ -48,6 +48,7 @@ ApiState GetApiState() {
+ 
+ // static
+ network::mojom::AttributionSupport AttributionOsLevelManager::GetSupport() {
++  if ((true)) return network::mojom::AttributionSupport::kNone;
+   bool is_web_allowed =
+       GetContentClient()->browser()->IsWebAttributionReportingAllowed();
+   switch (GetApiState()) {
+diff --git a/content/browser/attribution_reporting/attribution_report_network_sender.cc b/content/browser/attribution_reporting/attribution_report_network_sender.cc
+--- a/content/browser/attribution_reporting/attribution_report_network_sender.cc
++++ b/content/browser/attribution_reporting/attribution_report_network_sender.cc
+@@ -88,6 +88,9 @@ void AttributionReportNetworkSender::SendReport(GURL url,
+                                                 const std::string& body,
+                                                 net::HttpRequestHeaders headers,
+                                                 UrlLoaderCallback callback) {
++  // this is never called on Bromite but nothing would be sent if it were
++  if ((true)) return;
++
+   auto resource_request = std::make_unique<network::ResourceRequest>();
+   resource_request->url = std::move(url);
+   resource_request->headers = std::move(headers);
+@@ -161,6 +164,12 @@ void AttributionReportNetworkSender::OnReportSent(
+     ReportSentCallback sent_callback,
+     UrlLoaderList::iterator it,
+     scoped_refptr<net::HttpResponseHeaders> headers) {
++  if ((true)) {
++    std::move(sent_callback)
++        .Run(std::move(report),
++           SendResult(SendResult::Status::kSent, headers ? headers->response_code() : 200));
++    return;
++  }
+   network::SimpleURLLoader* loader = it->get();
+ 
+   // Consider a non-200 HTTP code as a non-internal error.
+diff --git a/content/browser/attribution_reporting/attribution_storage_sql.cc b/content/browser/attribution_reporting/attribution_storage_sql.cc
+--- a/content/browser/attribution_reporting/attribution_storage_sql.cc
++++ b/content/browser/attribution_reporting/attribution_storage_sql.cc
+@@ -609,14 +609,16 @@ base::FilePath DatabasePath(const base::FilePath& user_data_directory) {
+   return user_data_directory.Append(kDatabasePath);
+ }
+ 
++bool g_run_in_memory = true;
++
+ }  // namespace
+ 
+ AttributionStorageSql::AttributionStorageSql(
+     const base::FilePath& user_data_directory,
+     std::unique_ptr<AttributionStorageDelegate> delegate)
+-    : path_to_database_(user_data_directory.empty()
+-                            ? base::FilePath()
+-                            : DatabasePath(user_data_directory)),
++    : path_to_database_(user_data_directory.empty() || g_run_in_memory
++                             ? base::FilePath()
++                             : DatabasePath(user_data_directory)),
+       db_(sql::DatabaseOptions{.exclusive_locking = true,
+                                .page_size = 4096,
+                                .cache_size = 32}),
+diff --git a/content/browser/storage_partition_impl.cc b/content/browser/storage_partition_impl.cc
+--- a/content/browser/storage_partition_impl.cc
++++ b/content/browser/storage_partition_impl.cc
+@@ -1426,13 +1426,7 @@ void StoragePartitionImpl::Initialize(
+ 
+   bucket_manager_ = std::make_unique<BucketManager>(this);
+ 
+-  if (base::FeatureList::IsEnabled(blink::features::kConversionMeasurement)) {
+-    // The Conversion Measurement API is not available in Incognito mode, but
+-    // this is enforced by the `AttributionManagerImpl` itself for better error
+-    // reporting and metrics.
+-    attribution_manager_ = std::make_unique<AttributionManagerImpl>(
+-        this, path, special_storage_policy_);
+-  }
++  // The Conversion Measurement API is not available in Bromite.
+ 
+   if (base::FeatureList::IsEnabled(blink::features::kInterestGroupStorage)) {
+     // Auction worklets on non-Android use dedicated processes; on Android due
+diff --git a/content/public/android/BUILD.gn b/content/public/android/BUILD.gn
+--- a/content/public/android/BUILD.gn
++++ b/content/public/android/BUILD.gn
+@@ -168,8 +168,6 @@ android_library("content_full_java") {
+     "//third_party/androidx:androidx_annotation_annotation_java",
+     "//third_party/androidx:androidx_collection_collection_java",
+     "//third_party/androidx:androidx_core_core_java",
+-    "//third_party/androidx:androidx_privacysandbox_ads_ads_adservices_java",
+-    "//third_party/androidx:androidx_privacysandbox_ads_ads_adservices_java_java",
+     "//third_party/blink/public:blink_headers_java",
+     "//third_party/blink/public/common:common_java",
+     "//third_party/blink/public/mojom:android_mojo_bindings_java",
+diff --git a/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java b/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java
+--- a/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java
++++ b/content/public/android/java/src/org/chromium/content/browser/AttributionOsLevelManager.java
+@@ -10,16 +10,7 @@ import android.os.Build;
+ import android.os.Process;
+ import android.view.MotionEvent;
+ 
+-import androidx.privacysandbox.ads.adservices.java.measurement.MeasurementManagerFutures;
+-import androidx.privacysandbox.ads.adservices.measurement.DeletionRequest;
+-import androidx.privacysandbox.ads.adservices.measurement.WebSourceParams;
+-import androidx.privacysandbox.ads.adservices.measurement.WebSourceRegistrationRequest;
+-import androidx.privacysandbox.ads.adservices.measurement.WebTriggerParams;
+-import androidx.privacysandbox.ads.adservices.measurement.WebTriggerRegistrationRequest;
+-
+ import com.google.common.collect.ImmutableList;
+-import com.google.common.util.concurrent.FutureCallback;
+-import com.google.common.util.concurrent.Futures;
+ import com.google.common.util.concurrent.ListenableFuture;
+ 
+ import org.chromium.base.ContextUtils;
+@@ -39,6 +30,8 @@ import java.util.Arrays;
+  */
+ @JNINamespace("content")
+ public class AttributionOsLevelManager {
++    private class MeasurementManagerFutures {}
++
+     private static final String TAG = "AttributionManager";
+     // TODO: replace with constant in android.Manifest.permission once it becomes available in U.
+     private static final String PERMISSION_ACCESS_ADSERVICES_ATTRIBUTION =
+@@ -52,12 +45,7 @@ public class AttributionOsLevelManager {
+     }
+ 
+     private MeasurementManagerFutures getManager() {
+-        if (mManager != null) return mManager;
+-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+-            return null;
+-        }
+-        mManager = MeasurementManagerFutures.from(ContextUtils.getApplicationContext());
+-        return mManager;
++        return null;
+     }
+ 
+     private void onRegistrationCompleted(int requestId, boolean success) {
+@@ -67,23 +55,6 @@ public class AttributionOsLevelManager {
+         }
+     }
+ 
+-    private void addRegistrationFutureCallback(int requestId, ListenableFuture<?> future) {
+-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+-            return;
+-        }
+-        Futures.addCallback(future, new FutureCallback<Object>() {
+-            @Override
+-            public void onSuccess(Object result) {
+-                onRegistrationCompleted(requestId, /*success=*/true);
+-            }
+-            @Override
+-            public void onFailure(Throwable thrown) {
+-                Log.w(TAG, "Failed to register", thrown);
+-                onRegistrationCompleted(requestId, /*success=*/false);
+-            }
+-        }, ContextUtils.getApplicationContext().getMainExecutor());
+-    }
+-
+     /**
+      * Registers a web attribution source with native, see `registerWebSourceAsync()`:
+      * https://developer.android.com/reference/androidx/privacysandbox/ads/adservices/java/measurement/MeasurementManagerFutures.
+@@ -100,13 +71,6 @@ public class AttributionOsLevelManager {
+             onRegistrationCompleted(requestId, /*success=*/false);
+             return;
+         }
+-        ListenableFuture<?> future = mm.registerWebSourceAsync(new WebSourceRegistrationRequest(
+-                Arrays.asList(new WebSourceParams(
+-                        Uri.parse(registrationUrl.getSpec()), isDebugKeyAllowed)),
+-                Uri.parse(topLevelOrigin.getSpec()), /*inputEvent=*/event,
+-                /*appDestination=*/null, /*webDestination=*/null,
+-                /*verifiedDestination=*/null));
+-        addRegistrationFutureCallback(requestId, future);
+     }
+ 
+     /**
+@@ -124,9 +88,7 @@ public class AttributionOsLevelManager {
+             onRegistrationCompleted(requestId, /*success=*/false);
+             return;
+         }
+-        ListenableFuture<?> future =
+-                mm.registerSourceAsync(Uri.parse(registrationUrl.getSpec()), event);
+-        addRegistrationFutureCallback(requestId, future);
++        onRegistrationCompleted(requestId, /*success=*/false);
+     }
+ 
+     /**
+@@ -146,11 +108,6 @@ public class AttributionOsLevelManager {
+             onRegistrationCompleted(requestId, /*success=*/false);
+             return;
+         }
+-        ListenableFuture<?> future = mm.registerWebTriggerAsync(new WebTriggerRegistrationRequest(
+-                Arrays.asList(new WebTriggerParams(
+-                        Uri.parse(registrationUrl.getSpec()), isDebugKeyAllowed)),
+-                Uri.parse(topLevelOrigin.getSpec())));
+-        addRegistrationFutureCallback(requestId, future);
+     }
+ 
+     private void onDataDeletionCompleted(int requestId) {
+@@ -175,77 +132,7 @@ public class AttributionOsLevelManager {
+             onDataDeletionCompleted(requestId);
+             return;
+         }
+-
+-        // Currently Android and Chromium have different matching behaviors when both
+-        // `origins` and `domains` are empty.
+-        // Chromium: Delete -> Delete nothing; Preserve -> Delete all.
+-        // Android: Delete -> Delete all; Preserve -> Delete nothing.
+-        // Android may fix the behavior in the future. As a workaround, Chromium will
+-        // not call Android if it's to delete nothing (no-op), and call Android with
+-        // both Delete and Preserve modes if it's to delete all. These two modes will
+-        // be one no-op and one delete all in Android releases with and without the
+-        // fix. See crbug.com/1442967.
+-
+-        ImmutableList<Integer> matchBehaviors = null;
+-
+-        if (origins.length == 0 && domains.length == 0) {
+-            switch (matchBehavior) {
+-                case DeletionRequest.MATCH_BEHAVIOR_DELETE:
+-                    onDataDeletionCompleted(requestId);
+-                    return;
+-                case DeletionRequest.MATCH_BEHAVIOR_PRESERVE:
+-                    matchBehaviors = ImmutableList.of(DeletionRequest.MATCH_BEHAVIOR_DELETE,
+-                            DeletionRequest.MATCH_BEHAVIOR_PRESERVE);
+-                    break;
+-                default:
+-                    Log.e(TAG, "Received invalid match behavior: ", matchBehavior);
+-                    onDataDeletionCompleted(requestId);
+-                    return;
+-            }
+-        } else {
+-            matchBehaviors = ImmutableList.of(matchBehavior);
+-        }
+-
+-        ArrayList<Uri> originUris = new ArrayList<Uri>(origins.length);
+-        for (GURL origin : origins) {
+-            originUris.add(Uri.parse(origin.getSpec()));
+-        }
+-
+-        ArrayList<Uri> domainUris = new ArrayList<Uri>(domains.length);
+-        for (String domain : domains) {
+-            domainUris.add(Uri.parse(domain));
+-        }
+-
+-        int numCalls = matchBehaviors.size();
+-
+-        FutureCallback<Object> callback = new FutureCallback<Object>() {
+-            private int mNumPendingCalls = numCalls;
+-
+-            private void onCall() {
+-                if (--mNumPendingCalls == 0) {
+-                    onDataDeletionCompleted(requestId);
+-                }
+-            }
+-
+-            @Override
+-            public void onSuccess(Object result) {
+-                onCall();
+-            }
+-            @Override
+-            public void onFailure(Throwable thrown) {
+-                Log.w(TAG, "Failed to delete measurement API data", thrown);
+-                onCall();
+-            }
+-        };
+-
+-        for (int currMatchBehavior : matchBehaviors) {
+-            ListenableFuture<?> future = mm.deleteRegistrationsAsync(new DeletionRequest(
+-                    deletionMode, currMatchBehavior, Instant.ofEpochMilli(startMs),
+-                    Instant.ofEpochMilli(endMs), originUris, domainUris));
+-
+-            Futures.addCallback(
+-                    future, callback, ContextUtils.getApplicationContext().getMainExecutor());
+-        }
++        onDataDeletionCompleted(requestId);
+     }
+ 
+     /**
+@@ -270,32 +157,6 @@ public class AttributionOsLevelManager {
+             AttributionOsLevelManagerJni.get().onMeasurementStateReturned(0);
+             return;
+         }
+-
+-        ListenableFuture<Integer> future = null;
+-        try {
+-            future = mm.getMeasurementApiStatusAsync();
+-        } catch (IllegalStateException ex) {
+-            // An illegal state exception may be thrown for some versions of the underlying
+-            // Privacy Sandbox SDK.
+-            Log.i(TAG, "Failed to get measurement API status", ex);
+-        }
+-
+-        if (future == null) {
+-            AttributionOsLevelManagerJni.get().onMeasurementStateReturned(0);
+-            return;
+-        }
+-
+-        Futures.addCallback(future, new FutureCallback<Integer>() {
+-            @Override
+-            public void onSuccess(Integer status) {
+-                AttributionOsLevelManagerJni.get().onMeasurementStateReturned(status);
+-            }
+-            @Override
+-            public void onFailure(Throwable thrown) {
+-                Log.w(TAG, "Failed to get measurement API status", thrown);
+-                AttributionOsLevelManagerJni.get().onMeasurementStateReturned(0);
+-            }
+-        }, ContextUtils.getApplicationContext().getMainExecutor());
+     }
+ 
+     @CalledByNative
+diff --git a/content/public/browser/navigation_controller.cc b/content/public/browser/navigation_controller.cc
+--- a/content/public/browser/navigation_controller.cc
++++ b/content/public/browser/navigation_controller.cc
+@@ -40,7 +40,6 @@ NavigationController::LoadURLParams::LoadURLParams(const OpenURLParams& input)
+       blob_url_loader_factory(input.blob_url_loader_factory),
+       href_translate(input.href_translate),
+       reload_type(input.reload_type),
+-      impression(input.impression),
+       is_pdf(input.is_pdf) {
+ #if DCHECK_IS_ON()
+   DCHECK(input.Valid());
+diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
+--- a/content/public/common/content_features.cc
++++ b/content/public/common/content_features.cc
+@@ -882,8 +882,8 @@ BASE_FEATURE(kPrivacySandboxAdsAPIsM1Override,
+ // FLEDGE, Topics, along with a number of other features actively in development
+ // within these APIs.
+ BASE_FEATURE(kPrivacySandboxAdsAPIsOverride,
+-             "PrivacySandboxAdsAPIsOverride",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivacySandboxAdsAPIsOverride",       // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
+ 
+ // Enables Private Network Access checks for all types of web workers.
+ //
+diff --git a/content/renderer/render_thread_impl.cc b/content/renderer/render_thread_impl.cc
+--- a/content/renderer/render_thread_impl.cc
++++ b/content/renderer/render_thread_impl.cc
+@@ -939,6 +939,9 @@ void RenderThreadImpl::InitializeRenderer(
+   reduced_user_agent_ = WebString::FromUTF8(reduced_user_agent);
+   user_agent_metadata_ = user_agent_metadata;
+   cors_exempt_header_list_ = cors_exempt_header_list;
++#if BUILDFLAG(IS_ANDROID)
++  attribution_support = network::mojom::AttributionSupport::kNone;
++#endif
+   attribution_support_ = attribution_support;
+ 
+   blink::WebVector<blink::WebString> web_cors_exempt_header_list(
+@@ -1858,7 +1861,7 @@ RenderThreadImpl::GetAttributionReportingSupport() {
+ 
+ void RenderThreadImpl::SetAttributionReportingSupport(
+     network::mojom::AttributionSupport attribution_support) {
+-  attribution_support_ = attribution_support;
++  attribution_support_ = network::mojom::AttributionSupport::kNone;
+ }
+ 
+ std::unique_ptr<CodecFactory> RenderThreadImpl::CreateMediaCodecFactory(
+diff --git a/services/network/public/cpp/attribution_utils.cc b/services/network/public/cpp/attribution_utils.cc
+--- a/services/network/public/cpp/attribution_utils.cc
++++ b/services/network/public/cpp/attribution_utils.cc
+@@ -16,6 +16,7 @@ namespace network {
+ 
+ std::string GetAttributionSupportHeader(
+     mojom::AttributionSupport attribution_support) {
++  if ((true)) return "";
+   std::vector<net::structured_headers::DictionaryMember> registrars;
+   const auto add_registrar = [&registrars](std::string registrar) {
+     registrars.emplace_back(std::move(registrar),
+@@ -39,6 +40,7 @@ std::string GetAttributionSupportHeader(
+ }
+ 
+ bool HasAttributionOsSupport(mojom::AttributionSupport attribution_support) {
++  if ((true)) return false;
+   switch (attribution_support) {
+     case mojom::AttributionSupport::kOs:
+     case mojom::AttributionSupport::kWebAndOs:
+@@ -50,6 +52,7 @@ bool HasAttributionOsSupport(mojom::AttributionSupport attribution_support) {
+ }
+ 
+ bool HasAttributionWebSupport(mojom::AttributionSupport attribution_support) {
++  if ((true)) return false;
+   switch (attribution_support) {
+     case mojom::AttributionSupport::kWeb:
+     case mojom::AttributionSupport::kWebAndOs:
+diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
+--- a/third_party/blink/common/features.cc
++++ b/third_party/blink/common/features.cc
+@@ -23,8 +23,8 @@ namespace features {
+ // feature flag allows Chrome developers to restrict the access to the first
+ // fully supported version.
+ BASE_FEATURE(kAnonymousIframeOriginTrial,
+-             "AnonymousIframeOriginTrial",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "AnonymousIframeOriginTrial",     // must be disabled
++             base::FEATURE_ENABLED_BY_DEFAULT);    // in bromite
+ 
+ // If enabled, whenever form controls are removed from the DOM, the ChromeClient
+ // is informed about this. This enables Autofill to trigger a reparsing of
+@@ -136,8 +136,8 @@ BASE_FEATURE(kBlockingDownloadsInAdFrameWithoutUserActivation,
+ 
+ // Controls whether the Conversion Measurement API infrastructure is enabled.
+ BASE_FEATURE(kConversionMeasurement,
+-             "ConversionMeasurement",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "ConversionMeasurement",                 // must be disabled
++             base::FEATURE_DISABLED_BY_DEFAULT);      // in Bromite
+ 
+ // Controls whether LCP calculations should exclude low-entropy images. If
+ // enabled, then the associated parameter sets the cutoff, expressed as the
+@@ -221,8 +221,8 @@ BASE_FEATURE(kPath2DPaintCache,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kPrivacySandboxAdsAPIs,
+-             "PrivacySandboxAdsAPIs",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivacySandboxAdsAPIs",               // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
+ 
+ // When enabled, pages that don't specify a layout width will default to the
+ // window width rather than the traditional mobile fallback width of 980px.
+@@ -277,8 +277,8 @@ BASE_FEATURE(kFencedFrames, "FencedFrames", base::FEATURE_DISABLED_BY_DEFAULT);
+ // `kPrivacySandboxAggregationService` to be enabled to successfully send
+ // reports.
+ BASE_FEATURE(kPrivateAggregationApi,
+-             "PrivateAggregationApi",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "PrivateAggregationApi",               // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);    // in bromite
+ 
+ // Selectively allows the JavaScript API to be disabled in just one of the
+ // contexts.
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -215,6 +215,13 @@
+   },
+ 
+   data: [
++    {
++      // disable by default features by marking as
++      // depends_on: ["DisabledForBromite"]
++      // to work is needed to remove "origin_trial_feature_name"
++      // and "origin_trial_allows_third_party"
++      name: "DisabledForBromite",
++    },
+     {
+       name: "AbortSignalAny",
+       status: "experimental",
+diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
+--- a/ui/base/ui_base_features.cc
++++ b/ui/base/ui_base_features.cc
+@@ -527,6 +527,6 @@ BASE_FEATURE(kCr2023MacFontSmoothing,
+ 
+ BASE_FEATURE(kUseNanosecondsForMotionEvent,
+              "UseNanosecondsForMotionEvent",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ }  // namespace features
+--
+2.25.1

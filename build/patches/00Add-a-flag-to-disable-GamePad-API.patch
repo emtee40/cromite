@@ -1,0 +1,78 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Fri, 21 Apr 2023 13:10:20 +0000
+Subject: Add a flag to disable GamePad API
+
+Adds restrict-gamepad-access flag (default active) to disable GamePad API.
+---
+ chrome/browser/flag-metadata.json                           | 4 ++--
+ chrome/browser/flag_descriptions.cc                         | 2 +-
+ device/gamepad/public/cpp/gamepad_features.cc               | 4 ++--
+ .../blink/renderer/modules/gamepad/navigator_gamepad.cc     | 6 ++++++
+ 4 files changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
+--- a/chrome/browser/flag-metadata.json
++++ b/chrome/browser/flag-metadata.json
+@@ -6657,9 +6657,9 @@
+     "expiry_milestone": 120
+   },
+   {
+-    "name": "restrict-gamepad-access",
++    "name": "restrict-gamepad-access", // restrict-gamepad-access"
+     "owners": [ "//device/gamepad/OWNERS", "jameshollyer@chromium.org" ],
+-    "expiry_milestone": 96
++    "expiry_milestone": -1
+   },
+   {
+     "name": "revamped-password-management-bubble",
+diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
+--- a/chrome/browser/flag_descriptions.cc
++++ b/chrome/browser/flag_descriptions.cc
+@@ -2882,7 +2882,7 @@ const char kReduceAcceptLanguageDescription[] =
+ 
+ const char kRestrictGamepadAccessName[] = "Restrict gamepad access";
+ const char kRestrictGamepadAccessDescription[] =
+-    "Enables Permissions Policy and Secure Context restrictions on the Gamepad "
++    "Disable the Gamepad "
+     "API";
+ 
+ const char kRoundedDisplay[] = "Rounded display";
+diff --git a/device/gamepad/public/cpp/gamepad_features.cc b/device/gamepad/public/cpp/gamepad_features.cc
+--- a/device/gamepad/public/cpp/gamepad_features.cc
++++ b/device/gamepad/public/cpp/gamepad_features.cc
+@@ -27,8 +27,8 @@ BASE_FEATURE(kEnableWindowsGamingInputDataFetcher,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kRestrictGamepadAccess,
+-             "RestrictGamepadAccess",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "RestrictGamepadAccess",             // enabled
++             base::FEATURE_ENABLED_BY_DEFAULT);   // in bromite
+ 
+ // Enables gamepad multitouch
+ BASE_FEATURE(kEnableGamepadMultitouch,
+diff --git a/third_party/blink/renderer/modules/gamepad/navigator_gamepad.cc b/third_party/blink/renderer/modules/gamepad/navigator_gamepad.cc
+--- a/third_party/blink/renderer/modules/gamepad/navigator_gamepad.cc
++++ b/third_party/blink/renderer/modules/gamepad/navigator_gamepad.cc
+@@ -113,6 +113,10 @@ void RecordGamepadsForIdentifiabilityStudy(
+ HeapVector<Member<Gamepad>> NavigatorGamepad::getGamepads(
+     Navigator& navigator,
+     ExceptionState& exception_state) {
++  if (base::FeatureList::IsEnabled(::features::kRestrictGamepadAccess)) {
++    exception_state.ThrowSecurityError("Access to the feature \"gamepad\" is denied");
++    return HeapVector<Member<Gamepad>>();
++  }
+   if (!navigator.DomWindow()) {
+     // Using an existing NavigatorGamepad if one exists, but don't create one
+     // for a detached window, as its subclasses depend on a non-null window.
+@@ -430,6 +434,8 @@ void NavigatorGamepad::SampleAndCompareGamepadState() {
+ 
+ void NavigatorGamepad::DispatchGamepadEvent(const AtomicString& event_name,
+                                             Gamepad* gamepad) {
++  if (base::FeatureList::IsEnabled(::features::kRestrictGamepadAccess))
++    return;
+   // Ensure that we're blocking re-entrancy.
+   DCHECK(processing_events_);
+   DCHECK(has_connection_event_listener_);
+--
+2.25.1

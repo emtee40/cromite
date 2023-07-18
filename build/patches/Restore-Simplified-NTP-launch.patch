@@ -3,6 +3,8 @@ Date: Sat, 7 Nov 2020 23:51:29 +0100
 Subject: Restore Simplified NTP launch
 
 This reverts commit 4d0e4483c5f77c66a8b6193e8a3bec5d0624d6ad.
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  chrome/android/chrome_java_resources.gni      |  1 +
  chrome/android/chrome_java_sources.gni        |  1 +
@@ -12,35 +14,33 @@ This reverts commit 4d0e4483c5f77c66a8b6193e8a3bec5d0624d6ad.
  .../feedback/SimplifiedNtpFeedbackSource.java | 38 +++++++++++
  .../NativePageNavigationDelegateImpl.java     |  4 +-
  .../chrome/browser/ntp/NewTabPageLayout.java  | 30 ++++++++-
- .../suggestions/SuggestionsConfig.java        |  4 +-
  .../SuggestionsNavigationDelegate.java        | 17 +++++
  chrome/browser/about_flags.cc                 |  3 +
  chrome/browser/flag_descriptions.cc           |  3 +
  chrome/browser/flag_descriptions.h            |  3 +
- .../flags/android/chrome_feature_list.cc      |  4 ++
+ .../flags/android/chrome_feature_list.cc      |  5 ++
  .../flags/android/chrome_feature_list.h       |  1 +
  .../browser/flags/ChromeFeatureList.java      |  1 +
- components/ntp_snippets/features.cc           |  6 +-
  .../variations/fieldtrial_testing_config.json | 18 +++++
- 18 files changed, 201 insertions(+), 6 deletions(-)
+ 16 files changed, 194 insertions(+), 4 deletions(-)
  create mode 100644 chrome/android/java/res/layout/ntp_shortcuts.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/feedback/SimplifiedNtpFeedbackSource.java
 
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -794,6 +794,7 @@ chrome_java_resources = [
-   "java/res/layout/new_tab_page_multi_feed_header.xml",
-   "java/res/layout/new_tab_page_section_tab.xml",
+@@ -564,6 +564,7 @@ chrome_java_resources = [
+   "java/res/layout/new_tab_page_incognito.xml",
+   "java/res/layout/new_tab_page_layout.xml",
    "java/res/layout/new_tab_page_tile_grid_placeholder.xml",
 +  "java/res/layout/ntp_shortcuts.xml",
-   "java/res/layout/omnibox_answer_suggestion.xml",
-   "java/res/layout/omnibox_basic_suggestion.xml",
-   "java/res/layout/omnibox_entity_suggestion.xml",
+   "java/res/layout/optional_toolbar_button.xml",
+   "java/res/layout/os_version_unsupported_text.xml",
+   "java/res/layout/other_forms_of_history_dialog.xml",
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -590,6 +590,7 @@ chrome_java_sources = [
+@@ -600,6 +600,7 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/feedback/FeedFeedbackCollector.java",
    "java/src/org/chromium/chrome/browser/feedback/HelpAndFeedbackLauncherImpl.java",
    "java/src/org/chromium/chrome/browser/feedback/ScreenshotTask.java",
@@ -51,7 +51,7 @@ diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java
 diff --git a/chrome/android/java/res/layout/new_tab_page_layout.xml b/chrome/android/java/res/layout/new_tab_page_layout.xml
 --- a/chrome/android/java/res/layout/new_tab_page_layout.xml
 +++ b/chrome/android/java/res/layout/new_tab_page_layout.xml
-@@ -51,6 +51,13 @@
+@@ -44,6 +44,13 @@ found in the LICENSE file.
          android:layout_marginTop="16dp"
          android:visibility="gone"/>
  
@@ -108,7 +108,7 @@ new file mode 100644
 +            android:textAppearance="@style/TextAppearance.TextSmall.Secondary"
 +            app:drawableHeight="20sp"
 +            app:drawableWidth="20sp"
-+            app:chromeDrawableTint="@color/default_icon_color"  />
++            app:chromeDrawableTint="@color/default_icon_color_light"  />
 +    </FrameLayout>
 +
 +    <FrameLayout
@@ -132,20 +132,20 @@ new file mode 100644
 +            android:textAppearance="@style/TextAppearance.TextSmall.Secondary"
 +            app:drawableHeight="20sp"
 +            app:drawableWidth="20sp"
-+            app:chromeDrawableTint="@color/default_icon_color"  />
++            app:chromeDrawableTint="@color/default_icon_color_light"  />
 +    </FrameLayout>
 +</LinearLayout>
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/feedback/ChromeFeedbackCollector.java b/chrome/android/java/src/org/chromium/chrome/browser/feedback/ChromeFeedbackCollector.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/feedback/ChromeFeedbackCollector.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/feedback/ChromeFeedbackCollector.java
-@@ -56,6 +56,7 @@ public class ChromeFeedbackCollector
+@@ -58,6 +58,7 @@ public class ChromeFeedbackCollector
          sources.add(new LowEndDeviceFeedbackSource());
          sources.add(new IMEFeedbackSource());
          sources.add(new PermissionFeedbackSource());
 +        sources.add(new SimplifiedNtpFeedbackSource());
          sources.add(new FeedbackContextFeedbackSource(initParams.feedbackContext));
- 
-         return sources;
+         sources.add(
+                 new AutoDarkFeedbackSource(initParams.profile, activity, new GURL(initParams.url)));
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/feedback/SimplifiedNtpFeedbackSource.java b/chrome/android/java/src/org/chromium/chrome/browser/feedback/SimplifiedNtpFeedbackSource.java
 new file mode 100644
 --- /dev/null
@@ -207,15 +207,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/native_page/Nat
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPageLayout.java b/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPageLayout.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPageLayout.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPageLayout.java
-@@ -35,6 +35,7 @@ import org.chromium.chrome.browser.cryptids.ProbabilisticCryptidRenderer;
- import org.chromium.chrome.browser.explore_sites.ExperimentalExploreSitesSection;
- import org.chromium.chrome.browser.explore_sites.ExploreSitesBridge;
+@@ -37,6 +37,7 @@ import org.chromium.chrome.browser.cryptids.ProbabilisticCryptidRenderer;
+ import org.chromium.chrome.browser.feed.FeedSurfaceScrollDelegate;
+ import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.lens.LensEntryPoint;
 +import org.chromium.chrome.browser.flags.ChromeFeatureList;
  import org.chromium.chrome.browser.lens.LensMetrics;
  import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
- import org.chromium.chrome.browser.native_page.ContextMenuManager;
-@@ -107,6 +108,8 @@ public class NewTabPageLayout extends LinearLayout implements TileGroup.Observer
+ import org.chromium.chrome.browser.logo.LogoBridge.Logo;
+@@ -101,6 +102,8 @@ public class NewTabPageLayout extends LinearLayout {
      private UiConfig mUiConfig;
      private CallbackController mCallbackController = new CallbackController();
  
@@ -224,34 +224,40 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPageL
      /**
       * Whether the tiles shown in the layout have finished loading.
       * With {@link #mHasShownView}, it's one of the 2 flags used to track initialisation progress.
-@@ -271,6 +274,7 @@ public class NewTabPageLayout extends LinearLayout implements TileGroup.Observer
-         }
-         mNoSearchLogoSpacer = findViewById(R.id.no_search_logo_spacer);
- 
+@@ -228,6 +231,7 @@ public class NewTabPageLayout extends LinearLayout {
+         initializeMostVisitedTilesCoordinator(profile, lifecycleDispatcher, tileGroupDelegate,
+                 touchEnabledDelegate, isScrollableMvtEnabled(), searchProviderIsGoogle);
+         initializeSearchBoxBackground();
 +        initializeShortcuts();
          initializeSearchBoxTextView();
          initializeVoiceSearchButton();
          initializeLensButton();
-@@ -562,10 +566,16 @@ public class NewTabPageLayout extends LinearLayout implements TileGroup.Observer
-      * Updates the padding for the tile grid based on what is shown above it.
-      */
-     private void updateTileGridPadding() {
--        // Set a bit more top padding on the tile grid if there is no logo.
--        int paddingTop = getResources().getDimensionPixelSize(shouldShowLogo()
-+        int paddingTop;
-+        if (mShortcutsView != null) {
-+            // If the shortcuts view is visible, padding will be built into that view.
-+            paddingTop = 0;
-+        } else {
-+            // Set a bit more top padding on the tile grid if there is no logo.
-+             paddingTop = getResources().getDimensionPixelSize(shouldShowLogo()
-                         ? R.dimen.tile_grid_layout_padding_top
-                         : R.dimen.tile_grid_layout_no_logo_padding_top);
-+        }
-         mSiteSectionViewHolder.itemView.setPadding(
-                 0, paddingTop, 0, mSiteSectionViewHolder.itemView.getPaddingBottom());
-     }
-@@ -950,6 +960,22 @@ public class NewTabPageLayout extends LinearLayout implements TileGroup.Observer
+@@ -573,16 +577,22 @@ public class NewTabPageLayout extends LinearLayout {
+                 marginLayoutParams.leftMargin = lateralPaddingsForNTP;
+                 marginLayoutParams.rightMargin = lateralPaddingsForNTP;
+             }
+-            marginLayoutParams.topMargin = getResources().getDimensionPixelSize(shouldShowLogo()
++            // when simplified NTP is enabled the top marging is included in its view's padding
++            if (mShortcutsView == null) {
++                marginLayoutParams.topMargin = getResources().getDimensionPixelSize(shouldShowLogo()
+                             ? R.dimen.tile_grid_layout_top_margin
+                             : R.dimen.tile_grid_layout_no_logo_top_margin);
++            }
+             marginLayoutParams.bottomMargin = getResources().getDimensionPixelOffset(
+                     R.dimen.tile_carousel_layout_bottom_margin);
+         } else {
+             // Set a bit more top padding on the tile grid if there is no logo.
+             ViewGroup.LayoutParams layoutParams = mMvTilesContainerLayout.getLayoutParams();
+             layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+-            marginLayoutParams.topMargin = getGridMvtTopMargin();
++            // when simplified NTP is enabled the top marging is included in its view's padding
++            if (mShortcutsView == null) {
++                marginLayoutParams.topMargin = getGridMvtTopMargin();
++            }
+             marginLayoutParams.bottomMargin = getGridMvtBottomMargin();
+         }
+         if (mIsNtpAsHomeSurfaceEnabled) {
+@@ -885,6 +895,22 @@ public class NewTabPageLayout extends LinearLayout {
          return iphCommandBuilder;
      }
  
@@ -274,26 +280,12 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ntp/NewTabPageL
      /**
       * Makes the Search Box and Logo as wide as Most Visited.
       */
-diff --git a/chrome/android/java/src/org/chromium/chrome/browser/suggestions/SuggestionsConfig.java b/chrome/android/java/src/org/chromium/chrome/browser/suggestions/SuggestionsConfig.java
---- a/chrome/android/java/src/org/chromium/chrome/browser/suggestions/SuggestionsConfig.java
-+++ b/chrome/android/java/src/org/chromium/chrome/browser/suggestions/SuggestionsConfig.java
-@@ -51,7 +51,9 @@ public final class SuggestionsConfig {
-         // The scroll to load feature does not work well for users who require accessibility mode.
-         if (ChromeAccessibilityUtil.get().isAccessibilityEnabled()) return false;
- 
--        return ChromeFeatureList.isEnabled(ChromeFeatureList.CONTENT_SUGGESTIONS_SCROLL_TO_LOAD);
-+        return ChromeFeatureList.isEnabled(ChromeFeatureList.SIMPLIFIED_NTP)
-+                && ChromeFeatureList.isEnabled(
-+                           ChromeFeatureList.CONTENT_SUGGESTIONS_SCROLL_TO_LOAD);
-     }
- 
-     /**
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/suggestions/SuggestionsNavigationDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/suggestions/SuggestionsNavigationDelegate.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/suggestions/SuggestionsNavigationDelegate.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/suggestions/SuggestionsNavigationDelegate.java
-@@ -16,6 +16,11 @@ import org.chromium.content_public.browser.LoadUrlParams;
+@@ -14,6 +14,11 @@ import org.chromium.chrome.browser.ui.native_page.NativePageHost;
+ import org.chromium.content_public.browser.LoadUrlParams;
  import org.chromium.ui.base.PageTransition;
- import org.chromium.ui.mojom.WindowOpenDisposition;
  
 +import org.chromium.chrome.browser.bookmarks.BookmarkUtils;
 +import org.chromium.chrome.browser.download.DownloadUtils;
@@ -303,8 +295,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/suggestions/Sug
  /**
   * Extension of {@link NativePageNavigationDelegate} with suggestions-specific methods.
   */
-@@ -35,6 +40,18 @@ public class SuggestionsNavigationDelegate extends NativePageNavigationDelegateI
-                 new LoadUrlParams(NEW_TAB_URL_HELP, PageTransition.AUTO_BOOKMARK));
+@@ -25,6 +30,18 @@ public class SuggestionsNavigationDelegate extends NativePageNavigationDelegateI
+         super(activity, profile, host, tabModelSelector, tab);
      }
  
 +    public void navigateToBookmarks() {
@@ -325,7 +317,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/suggestions/Sug
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -3913,6 +3913,9 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -5220,6 +5220,9 @@ const FeatureEntry kFeatureEntries[] = {
       SINGLE_VALUE_TYPE_AND_VALUE(
           switches::kForceShowUpdateMenuItemCustomSummary,
           "Custom Summary")},
@@ -338,9 +330,9 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -3419,6 +3419,9 @@ const char kStartSurfaceAndroidDescription[] =
-     "Enable showing the start surface when launching Chrome via the "
-     "launcher.";
+@@ -4282,6 +4282,9 @@ const char kStartSurfaceWithAccessibilityName[] =
+ const char kStartSurfaceWithAccessibilityDescription[] =
+     "Enable Start Surface with Accessibility.";
  
 +const char kSimplifiedNtpName[] = "Simplified NTP";
 +const char kSimplifiedNtpDescription[] = "Show a simplified New Tab Page.";
@@ -351,7 +343,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -1967,6 +1967,9 @@ extern const char kSiteIsolationForPasswordSitesDescription[];
+@@ -2475,6 +2475,9 @@ extern const char kSlimCompositorDescription[];
  extern const char kSmartSuggestionForLargeDownloadsName[];
  extern const char kSmartSuggestionForLargeDownloadsDescription[];
  
@@ -364,72 +356,51 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -202,6 +202,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
-     &kEnhancedProtectionPromoCard,
-     &kExperimentsForAgsa,
-     &kExploreSites,
+@@ -239,6 +239,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+     &kIncognitoReauthenticationForAndroid,
+     &kIncognitoScreenshot,
+     &kInfobarScrollOptimization,
 +    &kSimplifiedNTP,
-     &kFocusOmniboxInIncognitoTabIntents,
-     &kGoogleLensSdkIntent,
-     &kHandleMediaIntents,
-@@ -601,6 +602,9 @@ const base::Feature kOfflineIndicatorV2{"OfflineIndicatorV2",
- const base::Feature kOfflineMeasurementsBackgroundTask{
-     "OfflineMeasurementsBackgroundTask", base::FEATURE_DISABLED_BY_DEFAULT};
+     &kInstanceSwitcher,
+     &kInstantStart,
+     &kLensCameraAssistedSearch,
+@@ -783,6 +784,10 @@ BASE_FEATURE(kInstanceSwitcher,
+              "InstanceSwitcher",
+              base::FEATURE_ENABLED_BY_DEFAULT);
  
-+const base::Feature kSimplifiedNTP{"SimplifiedNTP",
-+                                   base::FEATURE_ENABLED_BY_DEFAULT};
++BASE_FEATURE(kSimplifiedNTP,
++             "SimplifiedNTP",
++             base::FEATURE_ENABLED_BY_DEFAULT);
 +
- const base::Feature kOmniboxSpareRenderer{"OmniboxSpareRenderer",
-                                           base::FEATURE_ENABLED_BY_DEFAULT};
- 
+ BASE_FEATURE(kPageAnnotationsService,
+              "PageAnnotationsService",
+              base::FEATURE_DISABLED_BY_DEFAULT);
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -101,6 +101,7 @@ extern const base::Feature kNewWindowAppMenu;
- extern const base::Feature kOfflineIndicatorV2;
- extern const base::Feature kOfflineMeasurementsBackgroundTask;
- extern const base::Feature kOmniboxSpareRenderer;
-+extern const base::Feature kSimplifiedNTP;
- extern const base::Feature kPageAnnotationsService;
- extern const base::Feature kPwaUpdateDialogForNameAndIcon;
- extern const base::Feature kProbabilisticCryptidRenderer;
+@@ -122,6 +122,7 @@ BASE_DECLARE_FEATURE(kOmniboxModernizeVisualUpdate);
+ BASE_DECLARE_FEATURE(kOmniboxWarmRecycledViewPool);
+ BASE_DECLARE_FEATURE(kOptimizeGeolocationHeaderGeneration);
+ BASE_DECLARE_FEATURE(kPageAnnotationsService);
++BASE_DECLARE_FEATURE(kSimplifiedNTP);
+ BASE_DECLARE_FEATURE(kPreconnectOnTabCreation);
+ BASE_DECLARE_FEATURE(kBookmarksImprovedSaveFlow);
+ BASE_DECLARE_FEATURE(kBookmarksRefresh);
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -370,6 +370,7 @@ public abstract class ChromeFeatureList {
+@@ -295,6 +295,7 @@ public abstract class ChromeFeatureList {
      public static final String LOOKALIKE_NAVIGATION_URL_SUGGESTIONS_UI =
              "LookalikeUrlNavigationSuggestionsUI";
-     public static final String MARK_HTTP_AS = "MarkHttpAs";
+     public static final String MESSAGES_FOR_ANDROID_ADS_BLOCKED = "MessagesForAndroidAdsBlocked";
 +    public static final String SIMPLIFIED_NTP = "SimplifiedNTP";
      public static final String MESSAGES_FOR_ANDROID_INFRASTRUCTURE =
              "MessagesForAndroidInfrastructure";
-     public static final String MOBILE_IDENTITY_CONSISTENCY = "MobileIdentityConsistency";
-diff --git a/components/ntp_snippets/features.cc b/components/ntp_snippets/features.cc
---- a/components/ntp_snippets/features.cc
-+++ b/components/ntp_snippets/features.cc
-@@ -13,13 +13,17 @@
- #include "components/ntp_snippets/category_rankers/constant_category_ranker.h"
- #include "components/variations/variations_associated_data.h"
- 
-+#if defined(OS_ANDROID)
-+#include "chrome/browser/flags/android/chrome_feature_list.h"
-+#endif  // OS_ANDROID
-+
- namespace ntp_snippets {
- 
- namespace {
- // All platforms proxy for whether the simplified NTP is enabled.
- bool IsSimplifiedNtpEnabled() {
- #if defined(OS_ANDROID)
--  return true;
-+  return base::FeatureList::IsEnabled(chrome::android::kSimplifiedNTP);
- #else
-   return false;
- #endif  // OS_ANDROID
+     public static final String MESSAGES_FOR_ANDROID_PERMISSION_UPDATE =
 diff --git a/testing/variations/fieldtrial_testing_config.json b/testing/variations/fieldtrial_testing_config.json
 --- a/testing/variations/fieldtrial_testing_config.json
 +++ b/testing/variations/fieldtrial_testing_config.json
-@@ -7640,6 +7640,24 @@
+@@ -6706,6 +6706,24 @@
              ]
          }
      ],
@@ -451,9 +422,8 @@ diff --git a/testing/variations/fieldtrial_testing_config.json b/testing/variati
 +            ]
 +        }
 +    ],
-     "TabGroupsYourTabsTogether": [
+     "HelpAppLauncherSearch": [
          {
              "platforms": [
--- 
-2.17.1
-
+--
+2.25.1

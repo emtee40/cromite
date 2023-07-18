@@ -1,0 +1,91 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Wed, 19 Apr 2023 09:59:18 +0000
+Subject: Clear CORS Preflight Cache on clearing data
+
+---
+ services/network/cors/preflight_cache.cc      | 4 ++++
+ services/network/cors/preflight_cache.h       | 2 ++
+ services/network/cors/preflight_controller.cc | 4 ++++
+ services/network/cors/preflight_controller.h  | 2 ++
+ services/network/cors/preflight_result.cc     | 2 +-
+ services/network/network_context.cc           | 2 ++
+ 6 files changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/services/network/cors/preflight_cache.cc b/services/network/cors/preflight_cache.cc
+--- a/services/network/cors/preflight_cache.cc
++++ b/services/network/cors/preflight_cache.cc
+@@ -201,6 +201,10 @@ void PreflightCache::MayPurgeForTesting(size_t max_entries, size_t purge_unit) {
+   MayPurge(max_entries, purge_unit);
+ }
+ 
++void PreflightCache::ClearAll() {
++  cache_.clear();
++}
++
+ void PreflightCache::MayPurge(size_t max_entries, size_t purge_unit) {
+   if (cache_.size() <= max_entries) {
+     return;
+diff --git a/services/network/cors/preflight_cache.h b/services/network/cors/preflight_cache.h
+--- a/services/network/cors/preflight_cache.h
++++ b/services/network/cors/preflight_cache.h
+@@ -78,6 +78,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) PreflightCache final {
+   // `max_entries` for testing.
+   void MayPurgeForTesting(size_t max_entries, size_t purge_unit);
+ 
++  void ClearAll();
++
+  private:
+   void MayPurge(size_t max_entries, size_t purge_unit);
+ 
+diff --git a/services/network/cors/preflight_controller.cc b/services/network/cors/preflight_controller.cc
+--- a/services/network/cors/preflight_controller.cc
++++ b/services/network/cors/preflight_controller.cc
+@@ -674,6 +674,10 @@ void PreflightController::ClearCorsPreflightCache(
+   cache_.ClearCache(std::move(url_filter));
+ }
+ 
++void PreflightController::ClearCache() {
++  cache_.ClearAll();
++}
++
+ void PreflightController::RemoveLoader(PreflightLoader* loader) {
+   auto it = loaders_.find(loader);
+   DCHECK(it != loaders_.end());
+diff --git a/services/network/cors/preflight_controller.h b/services/network/cors/preflight_controller.h
+--- a/services/network/cors/preflight_controller.h
++++ b/services/network/cors/preflight_controller.h
+@@ -139,6 +139,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) PreflightController final {
+       const net::NetLogWithSource& net_log,
+       bool acam_preflight_spec_conformant);
+ 
++  void ClearCache();
++
+   // Clears the CORS preflight cache. The time range is always "all time" as
+   // the preflight cache max age is capped to 2hrs. in Chrome.
+   // It clears origins selectively when the url filter is not null, otherwise
+diff --git a/services/network/cors/preflight_result.cc b/services/network/cors/preflight_result.cc
+--- a/services/network/cors/preflight_result.cc
++++ b/services/network/cors/preflight_result.cc
+@@ -37,7 +37,7 @@ constexpr base::TimeDelta kDefaultTimeout = base::Seconds(5);
+ // Maximum cache expiry time. Even if a CORS-preflight response contains
+ // Access-Control-Max-Age header that specifies a longer expiry time, this
+ // maximum time is applied.
+-constexpr base::TimeDelta kMaxTimeout = base::Hours(2);
++constexpr base::TimeDelta kMaxTimeout = base::Seconds(600);
+ 
+ // Holds TickClock instance to overwrite TimeTicks::Now() for testing.
+ const base::TickClock* tick_clock_for_testing = nullptr;
+diff --git a/services/network/network_context.cc b/services/network/network_context.cc
+--- a/services/network/network_context.cc
++++ b/services/network/network_context.cc
+@@ -1041,6 +1041,8 @@ void NetworkContext::ClearHttpCache(base::Time start_time,
+       base::BindOnce(&NetworkContext::OnHttpCacheCleared,
+                      base::Unretained(this), std::move(callback))));
+ 
++  cors_preflight_controller_.ClearCache();
++
+   NetworkServiceMemoryCache* memory_cache = GetMemoryCache();
+   if (memory_cache)
+     memory_cache->Clear();
+--
+2.25.1

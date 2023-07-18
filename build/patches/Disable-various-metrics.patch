@@ -1,0 +1,210 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Wed, 25 Apr 2018 10:23:51 +0200
+Subject: Disable various metrics
+
+Disable metrics on all I/O threads
+Set initial metrics opt-out
+Disable metrics collection for NTP tiles
+Fix startup crash for debug builds (uazo)
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+---
+ .../browser/firstrun/FirstRunActivityBase.java  |  2 +-
+ .../android/ntp/most_visited_sites_bridge.cc    | 17 -----------------
+ chrome/browser/browser_process_impl.cc          |  2 +-
+ chrome/browser/chrome_content_browser_client.cc | 15 ---------------
+ .../chrome_metrics_services_manager_client.cc   |  8 ++++----
+ components/ntp_tiles/BUILD.gn                   |  3 ---
+ components/ntp_tiles/most_visited_sites.cc      |  2 --
+ services/metrics/public/cpp/ukm_recorder.cc     |  2 +-
+ 8 files changed, 7 insertions(+), 44 deletions(-)
+
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunActivityBase.java
+@@ -56,7 +56,7 @@ public abstract class FirstRunActivityBase
+     static final String SHOW_SEARCH_ENGINE_PAGE = "ShowSearchEnginePage";
+     static final String SHOW_SYNC_CONSENT_PAGE = "ShowSyncConsent";
+ 
+-    public static final boolean DEFAULT_METRICS_AND_CRASH_REPORTING = true;
++    public static final boolean DEFAULT_METRICS_AND_CRASH_REPORTING = false;
+ 
+     private static PolicyLoadListenerFactory sPolicyLoadListenerFactory;
+ 
+diff --git a/chrome/browser/android/ntp/most_visited_sites_bridge.cc b/chrome/browser/android/ntp/most_visited_sites_bridge.cc
+--- a/chrome/browser/android/ntp/most_visited_sites_bridge.cc
++++ b/chrome/browser/android/ntp/most_visited_sites_bridge.cc
+@@ -26,7 +26,6 @@
+ #include "chrome/browser/profiles/profile_android.h"
+ #include "components/favicon_base/favicon_types.h"
+ #include "components/history/core/browser/history_service.h"
+-#include "components/ntp_tiles/metrics.h"
+ #include "components/ntp_tiles/most_visited_sites.h"
+ #include "components/ntp_tiles/section_type.h"
+ #include "ui/gfx/android/java_bitmap.h"
+@@ -46,7 +45,6 @@ using ntp_tiles::NTPTilesVector;
+ using ntp_tiles::SectionType;
+ using ntp_tiles::TileTitleSource;
+ using ntp_tiles::TileSource;
+-using ntp_tiles::TileVisualType;
+ 
+ namespace {
+ 
+@@ -233,7 +231,6 @@ void MostVisitedSitesBridge::RecordPageImpression(
+     JNIEnv* env,
+     const JavaParamRef<jobject>& obj,
+     jint jtiles_count) {
+-  ntp_tiles::metrics::RecordPageImpression(jtiles_count);
+ }
+ 
+ void MostVisitedSitesBridge::RecordTileImpression(
+@@ -245,15 +242,6 @@ void MostVisitedSitesBridge::RecordTileImpression(
+     jint jtitle_source,
+     jint jsource,
+     const JavaParamRef<jobject>& jurl) {
+-  std::unique_ptr<GURL> url = url::GURLAndroid::ToNativeGURL(env, jurl);
+-  TileTitleSource title_source = static_cast<TileTitleSource>(jtitle_source);
+-  TileSource source = static_cast<TileSource>(jsource);
+-  TileVisualType visual_type = static_cast<TileVisualType>(jvisual_type);
+-  favicon_base::IconType icon_type =
+-      static_cast<favicon_base::IconType>(jicon_type);
+-
+-  ntp_tiles::metrics::RecordTileImpression(ntp_tiles::NTPTileImpression(
+-      jindex, source, title_source, visual_type, icon_type, *url));
+ }
+ 
+ void MostVisitedSitesBridge::RecordOpenedMostVisitedItem(
+@@ -263,11 +251,6 @@ void MostVisitedSitesBridge::RecordOpenedMostVisitedItem(
+     jint tile_type,
+     jint title_source,
+     jint source) {
+-  ntp_tiles::metrics::RecordTileClick(ntp_tiles::NTPTileImpression(
+-      index, static_cast<TileSource>(source),
+-      static_cast<TileTitleSource>(title_source),
+-      static_cast<TileVisualType>(tile_type), favicon_base::IconType::kInvalid,
+-      /*url_for_rappor=*/GURL()));
+ }
+ 
+ static jlong JNI_MostVisitedSitesBridge_Init(
+diff --git a/chrome/browser/browser_process_impl.cc b/chrome/browser/browser_process_impl.cc
+--- a/chrome/browser/browser_process_impl.cc
++++ b/chrome/browser/browser_process_impl.cc
+@@ -1042,7 +1042,7 @@ void BrowserProcessImpl::RegisterPrefs(PrefRegistrySimple* registry) {
+ #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+ 
+   registry->RegisterBooleanPref(metrics::prefs::kMetricsReportingEnabled,
+-                                GoogleUpdateSettings::GetCollectStatsConsent());
++                                false);
+   registry->RegisterBooleanPref(prefs::kDevToolsRemoteDebuggingAllowed, true);
+ }
+ 
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -76,7 +76,6 @@
+ #include "chrome/browser/hid/chrome_hid_delegate.h"
+ #include "chrome/browser/interstitials/enterprise_util.h"
+ #include "chrome/browser/lifetime/browser_shutdown.h"
+-#include "chrome/browser/lookalikes/lookalike_url_navigation_throttle.h"
+ #include "chrome/browser/media/audio_service_util.h"
+ #include "chrome/browser/media/router/media_router_feature.h"
+ #include "chrome/browser/media/webrtc/audio_debug_recordings_handler.h"
+@@ -4852,16 +4851,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
+     content::NavigationHandle* handle) {
+   std::vector<std::unique_ptr<content::NavigationThrottle>> throttles;
+ 
+-  // MetricsNavigationThrottle requires that it runs before NavigationThrottles
+-  // that may delay or cancel navigations, so only NavigationThrottles that
+-  // don't delay or cancel navigations (e.g. throttles that are only observing
+-  // callbacks without affecting navigation behavior) should be added before
+-  // MetricsNavigationThrottle.
+-  if (handle->IsInMainFrame()) {
+-    throttles.push_back(
+-        page_load_metrics::MetricsNavigationThrottle::Create(handle));
+-  }
+-
+ #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
+   MaybeAddThrottle(
+       SupervisedUserNavigationThrottle::MaybeCreateThrottleFor(handle),
+@@ -4940,10 +4929,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
+     throttle_manager->MaybeAppendNavigationThrottles(handle, &throttles);
+   }
+ 
+-  MaybeAddThrottle(
+-      LookalikeUrlNavigationThrottle::MaybeCreateNavigationThrottle(handle),
+-      &throttles);
+-
+   MaybeAddThrottle(PDFIFrameNavigationThrottle::MaybeCreateThrottleFor(handle),
+                    &throttles);
+ #if BUILDFLAG(ENABLE_PDF)
+diff --git a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
+--- a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
++++ b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
+@@ -75,8 +75,8 @@ namespace internal {
+ // recording and reporting are enabled. If the feature is enabled, but no
+ // consent is given, then there will be no recording or reporting.
+ BASE_FEATURE(kMetricsReportingFeature,
+-             "MetricsReporting",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "MetricsReporting",                  // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
+ 
+ #if BUILDFLAG(IS_ANDROID)
+ // Same as |kMetricsReportingFeature|, but this feature is associated with a
+@@ -85,8 +85,8 @@ BASE_FEATURE(kMetricsReportingFeature,
+ // the fix to not affect the overall sampling rate, this new feature was
+ // created. See crbug/1306481.
+ BASE_FEATURE(kPostFREFixMetricsReportingFeature,
+-             "PostFREFixMetricsReporting",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "PostFREFixMetricsReporting",        // disabled by deault
++             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
+ #endif  // BUILDFLAG(IS_ANDROID)
+ 
+ // Name of the variations param that defines the sampling rate.
+diff --git a/components/ntp_tiles/BUILD.gn b/components/ntp_tiles/BUILD.gn
+--- a/components/ntp_tiles/BUILD.gn
++++ b/components/ntp_tiles/BUILD.gn
+@@ -23,8 +23,6 @@ static_library("ntp_tiles") {
+     "icon_cacher.h",
+     "icon_cacher_impl.cc",
+     "icon_cacher_impl.h",
+-    "metrics.cc",
+-    "metrics.h",
+     "most_visited_sites.cc",
+     "most_visited_sites.h",
+     "ntp_tile.cc",
+@@ -93,7 +91,6 @@ source_set("unit_tests") {
+     "custom_links_manager_impl_unittest.cc",
+     "custom_links_store_unittest.cc",
+     "icon_cacher_impl_unittest.cc",
+-    "metrics_unittest.cc",
+     "most_visited_sites_unittest.cc",
+     "popular_sites_impl_unittest.cc",
+   ]
+diff --git a/components/ntp_tiles/most_visited_sites.cc b/components/ntp_tiles/most_visited_sites.cc
+--- a/components/ntp_tiles/most_visited_sites.cc
++++ b/components/ntp_tiles/most_visited_sites.cc
+@@ -703,8 +703,6 @@ void MostVisitedSites::SaveTilesAndNotify(
+                                    : new_tiles;
+ 
+   if (fixed_tiles.size() != new_tiles.size()) {
+-    metrics::RecordsMigratedDefaultAppDeleted(
+-        DeletedTileType::kMostVisitedSite);
+   }
+   if (!current_tiles_.has_value() || (*current_tiles_ != fixed_tiles)) {
+     current_tiles_.emplace(std::move(fixed_tiles));
+diff --git a/services/metrics/public/cpp/ukm_recorder.cc b/services/metrics/public/cpp/ukm_recorder.cc
+--- a/services/metrics/public/cpp/ukm_recorder.cc
++++ b/services/metrics/public/cpp/ukm_recorder.cc
+@@ -14,7 +14,7 @@
+ 
+ namespace ukm {
+ 
+-BASE_FEATURE(kUkmFeature, "Ukm", base::FEATURE_ENABLED_BY_DEFAULT);
++BASE_FEATURE(kUkmFeature, "Ukm", base::FEATURE_DISABLED_BY_DEFAULT); // disabled in Bromite
+ 
+ BASE_FEATURE(kUkmReduceAddEntryIPC,
+              "UkmReduceAddEntryIPC",
+--
+2.25.1

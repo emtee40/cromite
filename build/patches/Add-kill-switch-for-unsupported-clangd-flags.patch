@@ -1,0 +1,43 @@
+From: Your Name <you@example.com>
+Date: Thu, 20 Oct 2022 09:34:48 +0000
+Subject: Add kill switch for unsupported clangd flags
+
+Allows build with clangd by suppressing unsupported parameters
+
+Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+---
+ build/config/compiler/BUILD.gn | 5 +++++
+ build_overrides/build.gni      | 3 +++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -1748,6 +1748,11 @@ config("default_warnings") {
+           # TODO(crbug.com/1412713) Evaluate and possibly enable.
+           "-Wno-deprecated-this-capture",
+         ]
++        if (skip_clangd_unsupported_options) {
++          cflags -= [
++            "-Wno-deprecated-builtins",
++          ]
++        }
+       }
+     }
+   }
+diff --git a/build_overrides/build.gni b/build_overrides/build.gni
+--- a/build_overrides/build.gni
++++ b/build_overrides/build.gni
+@@ -58,6 +58,9 @@ declare_args() {
+   # Allows third-party repositories to use C++17 for MSVC builds
+   # TODO(https://crbug.com/pdfium/1932) Remove once pdfium builds on MSVC C++20
+   msvc_use_cxx17 = false
++
++  # Allows clangd builds by suppressing unsupported parameters
++  skip_clangd_unsupported_options = false
+ }
+ 
+ # Allows different projects to specify their own suppression/ignore lists for
+--
+2.25.1

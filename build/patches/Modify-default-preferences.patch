@@ -2,28 +2,61 @@ From: csagan5 <32685696+csagan5@users.noreply.github.com>
 Date: Sat, 2 May 2020 00:25:25 +0200
 Subject: Modify default preferences
 
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/browser/background/background_mode_manager.cc          | 2 +-
- chrome/browser/chrome_content_browser_client.cc               | 2 +-
- chrome/browser/net/prediction_options.cc                      | 2 +-
- chrome/browser/net/prediction_options.h                       | 2 +-
- chrome/browser/profiles/profile.cc                            | 2 +-
- .../resources/settings/reset_page/reset_profile_dialog.html   | 2 +-
- chrome/browser/ui/browser_ui_prefs.cc                         | 4 ++--
- chrome/service/cloud_print/connector_settings.cc              | 2 +-
- components/autofill/core/browser/browser_autofill_manager.h   | 4 ++--
- components/autofill/core/common/autofill_prefs.cc             | 2 +-
- components/bookmarks/browser/bookmark_utils.cc                | 4 ++--
- components/safe_browsing/core/common/safe_browsing_prefs.cc   | 4 ++--
- 12 files changed, 16 insertions(+), 16 deletions(-)
+ chrome/browser/about_flags.cc                  |  6 ++++++
+ .../background/background_mode_manager.cc      |  2 +-
+ .../browser/chrome_content_browser_client.cc   |  2 +-
+ chrome/browser/flag_descriptions.cc            |  4 ++++
+ chrome/browser/flag_descriptions.h             |  3 +++
+ chrome/browser/prefetch/prefetch_prefs.h       |  2 +-
+ chrome/browser/profiles/profile.cc             |  2 +-
+ .../reset_page/reset_profile_dialog.html       |  2 +-
+ chrome/browser/ui/browser_ui_prefs.cc          |  6 +++---
+ components/bookmarks/browser/BUILD.gn          |  2 ++
+ components/bookmarks/browser/bookmark_utils.cc |  7 +++++--
+ components/bookmarks/browser/features.cc       | 16 ++++++++++++++++
+ components/bookmarks/browser/features.h        | 18 ++++++++++++++++++
+ .../core/browser/content_settings_registry.cc  |  4 ++--
+ .../core/browser/cookie_settings.cc            |  2 +-
+ components/payments/core/payment_prefs.cc      |  2 +-
+ .../core/common/safe_browsing_prefs.cc         |  4 ++--
+ .../primary_account_manager.cc                 |  4 ++--
+ third_party/blink/common/features.cc           |  4 ++--
+ 19 files changed, 72 insertions(+), 20 deletions(-)
+ create mode 100644 components/bookmarks/browser/features.cc
+ create mode 100644 components/bookmarks/browser/features.h
 
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -76,6 +76,7 @@
+ #include "components/autofill/core/common/autofill_payments_features.h"
+ #include "components/autofill/core/common/autofill_switches.h"
+ #include "components/autofill/core/common/autofill_util.h"
++#include "components/bookmarks/browser/features.h"
+ #include "components/browser_sync/browser_sync_switches.h"
+ #include "components/browser_ui/site_settings/android/features.h"
+ #include "components/browsing_data/core/features.h"
+@@ -6386,6 +6387,11 @@ const FeatureEntry kFeatureEntries[] = {
+      FEATURE_VALUE_TYPE(features::kQuickSettingsPWANotifications)},
+ #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+ 
++    {"apps-shortcut-default-off",
++     flag_descriptions::kAppsShortcutDefaultOffName,
++     flag_descriptions::kAppsShortcutDefaultOffDescription, kOsDesktop,
++     FEATURE_VALUE_TYPE(bookmarks::features::kAppsShortcutDefaultOff)},
++
+     {"tab-groups-save", flag_descriptions::kTabGroupsSaveName,
+      flag_descriptions::kTabGroupsSaveDescription, kOsDesktop,
+      FEATURE_VALUE_TYPE(features::kTabGroupsSave)},
 diff --git a/chrome/browser/background/background_mode_manager.cc b/chrome/browser/background/background_mode_manager.cc
 --- a/chrome/browser/background/background_mode_manager.cc
 +++ b/chrome/browser/background/background_mode_manager.cc
-@@ -373,7 +373,7 @@ void BackgroundModeManager::RegisterPrefs(PrefRegistrySimple* registry) {
-   registry->RegisterBooleanPref(prefs::kChromeCreatedLoginItem, false);
-   registry->RegisterBooleanPref(prefs::kMigratedLoginItemPref, false);
- #endif
+@@ -363,7 +363,7 @@ BackgroundModeManager::~BackgroundModeManager() {
+ 
+ // static
+ void BackgroundModeManager::RegisterPrefs(PrefRegistrySimple* registry) {
 -  registry->RegisterBooleanPref(prefs::kBackgroundModeEnabled, true);
 +  registry->RegisterBooleanPref(prefs::kBackgroundModeEnabled, false);
  }
@@ -32,7 +65,7 @@ diff --git a/chrome/browser/background/background_mode_manager.cc b/chrome/brows
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -1312,7 +1312,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
+@@ -1593,7 +1593,7 @@ void ChromeContentBrowserClient::RegisterLocalStatePrefs(
  void ChromeContentBrowserClient::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kDisable3DAPIs, false);
@@ -41,46 +74,61 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    // Register user prefs for mapping SitePerProcess and IsolateOrigins in
    // user policy in addition to the same named ones in Local State (which are
    // used for mapping the command-line flags).
-diff --git a/chrome/browser/net/prediction_options.cc b/chrome/browser/net/prediction_options.cc
---- a/chrome/browser/net/prediction_options.cc
-+++ b/chrome/browser/net/prediction_options.cc
-@@ -31,7 +31,7 @@ NetworkPredictionStatus CanPrefetchAndPrerender(
-       }
-       return NetworkPredictionStatus::DISABLED_DUE_TO_NETWORK;
-     default:
--      DCHECK_EQ(NETWORK_PREDICTION_NEVER, network_prediction_options);
-+      //DCHECK_EQ(NETWORK_PREDICTION_NEVER, network_prediction_options);
-       return NetworkPredictionStatus::DISABLED_ALWAYS;
-   }
- }
-diff --git a/chrome/browser/net/prediction_options.h b/chrome/browser/net/prediction_options.h
---- a/chrome/browser/net/prediction_options.h
-+++ b/chrome/browser/net/prediction_options.h
-@@ -22,7 +22,7 @@ enum NetworkPredictionOptions {
-   NETWORK_PREDICTION_ALWAYS,
-   NETWORK_PREDICTION_WIFI_ONLY,
-   NETWORK_PREDICTION_NEVER,
--  NETWORK_PREDICTION_DEFAULT = NETWORK_PREDICTION_WIFI_ONLY,
-+  NETWORK_PREDICTION_DEFAULT = NETWORK_PREDICTION_NEVER,
+diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
+--- a/chrome/browser/flag_descriptions.cc
++++ b/chrome/browser/flag_descriptions.cc
+@@ -3140,6 +3140,10 @@ const char kTabGroupsContinuationAndroidName[] = "Tab Groups Continuation";
+ const char kTabGroupsContinuationAndroidDescription[] =
+     "Allows users to access continuation features in Tab Group on phones.";
+ 
++const char kAppsShortcutDefaultOffName[] = "Apps Shortcut Default Off";
++const char kAppsShortcutDefaultOffDescription[] =
++    "Changes the apps shortcut on the bookmarks bar to default to off.";
++
+ const char kTabGroupsSaveName[] = "Tab Groups Save";
+ const char kTabGroupsSaveDescription[] =
+     "Enables users to explicitly save and recall tab groups.";
+diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
+--- a/chrome/browser/flag_descriptions.h
++++ b/chrome/browser/flag_descriptions.h
+@@ -1783,6 +1783,9 @@ extern const char kCommerceMerchantViewerAndroidDescription[];
+ extern const char kTabGroupsContinuationAndroidName[];
+ extern const char kTabGroupsContinuationAndroidDescription[];
+ 
++extern const char kAppsShortcutDefaultOffName[];
++extern const char kAppsShortcutDefaultOffDescription[];
++
+ extern const char kTabGroupsSaveName[];
+ extern const char kTabGroupsSaveDescription[];
+ 
+diff --git a/chrome/browser/prefetch/prefetch_prefs.h b/chrome/browser/prefetch/prefetch_prefs.h
+--- a/chrome/browser/prefetch/prefetch_prefs.h
++++ b/chrome/browser/prefetch/prefetch_prefs.h
+@@ -28,7 +28,7 @@ enum class NetworkPredictionOptions {
+   kWifiOnlyDeprecated = 1,
+   kDisabled = 2,
+   kExtended = 3,
+-  kDefault = kWifiOnlyDeprecated,
++  kDefault = kDisabled,
  };
  
- enum class NetworkPredictionStatus {
+ // Enum representing possible values of the Preload Pages opt-in state. These
 diff --git a/chrome/browser/profiles/profile.cc b/chrome/browser/profiles/profile.cc
 --- a/chrome/browser/profiles/profile.cc
 +++ b/chrome/browser/profiles/profile.cc
-@@ -280,7 +280,7 @@ const char Profile::kProfileKey[] = "__PROFILE__";
+@@ -310,7 +310,7 @@ const char Profile::kProfileKey[] = "__PROFILE__";
  void Profile::RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(
        prefs::kSearchSuggestEnabled,
 -      true,
 +      false,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
- #if defined(OS_ANDROID)
+ #if BUILDFLAG(IS_ANDROID)
    registry->RegisterStringPref(
 diff --git a/chrome/browser/resources/settings/reset_page/reset_profile_dialog.html b/chrome/browser/resources/settings/reset_page/reset_profile_dialog.html
 --- a/chrome/browser/resources/settings/reset_page/reset_profile_dialog.html
 +++ b/chrome/browser/resources/settings/reset_page/reset_profile_dialog.html
-@@ -36,7 +36,7 @@
+@@ -34,7 +34,7 @@
          </cr-button>
        </div>
        <div slot="footer">
@@ -92,92 +140,203 @@ diff --git a/chrome/browser/resources/settings/reset_page/reset_profile_dialog.h
 diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_ui_prefs.cc
 --- a/chrome/browser/ui/browser_ui_prefs.cc
 +++ b/chrome/browser/ui/browser_ui_prefs.cc
-@@ -72,11 +72,11 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+@@ -75,11 +75,11 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(prefs::kWebAppCreateInAppsMenu, true);
    registry->RegisterBooleanPref(prefs::kWebAppCreateInQuickLaunchBar, true);
    registry->RegisterBooleanPref(
--      prefs::kOfferTranslateEnabled, true,
-+      prefs::kOfferTranslateEnabled, false,
+-      translate::prefs::kOfferTranslateEnabled, true,
++      translate::prefs::kOfferTranslateEnabled, false,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterStringPref(prefs::kCloudPrintEmail, std::string());
-   registry->RegisterBooleanPref(prefs::kCloudPrintProxyEnabled, true);
+-  registry->RegisterBooleanPref(prefs::kCloudPrintProxyEnabled, true);
 -  registry->RegisterBooleanPref(prefs::kCloudPrintSubmitEnabled, true);
++  registry->RegisterBooleanPref(prefs::kCloudPrintProxyEnabled, false);
 +  registry->RegisterBooleanPref(prefs::kCloudPrintSubmitEnabled, false);
    registry->RegisterDictionaryPref(prefs::kBrowserWindowPlacement);
    registry->RegisterDictionaryPref(prefs::kBrowserWindowPlacementPopup);
    registry->RegisterDictionaryPref(prefs::kAppWindowPlacement);
-diff --git a/chrome/service/cloud_print/connector_settings.cc b/chrome/service/cloud_print/connector_settings.cc
---- a/chrome/service/cloud_print/connector_settings.cc
-+++ b/chrome/service/cloud_print/connector_settings.cc
-@@ -60,7 +60,7 @@ void ConnectorSettings::InitFrom(ServiceProcessPrefs* prefs) {
-   DCHECK(server_url_.is_valid());
- 
-   connect_new_printers_ = prefs->GetBoolean(
--      prefs::kCloudPrintConnectNewPrinters, true);
-+      prefs::kCloudPrintConnectNewPrinters, false);
- 
-   xmpp_ping_enabled_ = prefs->GetBoolean(
-       prefs::kCloudPrintXmppPingEnabled, false);
-diff --git a/components/autofill/core/browser/browser_autofill_manager.h b/components/autofill/core/browser/browser_autofill_manager.h
---- a/components/autofill/core/browser/browser_autofill_manager.h
-+++ b/components/autofill/core/browser/browser_autofill_manager.h
-@@ -670,9 +670,9 @@ class BrowserAutofillManager
-   std::unique_ptr<CreditCardFormEventLogger> credit_card_form_event_logger_;
- 
-   // Have we logged whether Autofill is enabled for this page load?
--  bool has_logged_autofill_enabled_ = false;
-+  bool has_logged_autofill_enabled_ = true;
-   // Have we logged an address suggestions count metric for this page?
--  bool has_logged_address_suggestions_count_ = false;
-+  bool has_logged_address_suggestions_count_ = true;
-   // Have we shown Autofill suggestions at least once?
-   bool did_show_suggestions_ = false;
-   // Has the user manually edited at least one form field among the autofillable
-diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/autofill/core/common/autofill_prefs.cc
---- a/components/autofill/core/common/autofill_prefs.cc
-+++ b/components/autofill/core/common/autofill_prefs.cc
-@@ -154,7 +154,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
-       prefs::kAutofillLastVersionDisusedAddressesDeleted, 0,
-       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
-   registry->RegisterBooleanPref(
--      prefs::kAutofillCreditCardEnabled, true,
-+      prefs::kAutofillCreditCardEnabled, false,
-       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
-   registry->RegisterStringPref(
-       prefs::kAutofillProfileValidity, "",
+diff --git a/components/bookmarks/browser/BUILD.gn b/components/bookmarks/browser/BUILD.gn
+--- a/components/bookmarks/browser/BUILD.gn
++++ b/components/bookmarks/browser/BUILD.gn
+@@ -19,6 +19,7 @@ static_library("browser") {
+     "bookmark_storage.h",
+     "bookmark_undo_provider.h",
+     "bookmark_utils.h",
++    "features.h",
+     "history_bookmark_model.h",
+     "model_loader.h",
+     "scoped_group_bookmark_actions.h",
+@@ -40,6 +41,7 @@ static_library("browser") {
+     "bookmark_node_data.cc",
+     "bookmark_storage.cc",
+     "bookmark_utils.cc",
++    "features.cc",
+     "model_loader.cc",
+     "scoped_group_bookmark_actions.cc",
+     "titled_url_index.cc",
 diff --git a/components/bookmarks/browser/bookmark_utils.cc b/components/bookmarks/browser/bookmark_utils.cc
 --- a/components/bookmarks/browser/bookmark_utils.cc
 +++ b/components/bookmarks/browser/bookmark_utils.cc
-@@ -440,12 +440,12 @@ bool DoesBookmarkContainWords(const std::u16string& title,
+@@ -26,6 +26,7 @@
+ #include "build/build_config.h"
+ #include "components/bookmarks/browser/bookmark_client.h"
+ #include "components/bookmarks/browser/bookmark_model.h"
++#include "components/bookmarks/browser/features.h"
+ #include "components/bookmarks/browser/scoped_group_bookmark_actions.h"
+ #include "components/bookmarks/common/bookmark_pref_names.h"
+ #include "components/pref_registry/pref_registry_syncable.h"
+@@ -480,11 +481,13 @@ bool DoesBookmarkContainWords(const std::u16string& title,
+ 
  void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
    registry->RegisterBooleanPref(
-       prefs::kShowBookmarkBar,
--      false,
-+      true,
+-      prefs::kShowBookmarkBar, false,
++      prefs::kShowBookmarkBar, true,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterBooleanPref(prefs::kEditBookmarksEnabled, true);
    registry->RegisterBooleanPref(
-       prefs::kShowAppsShortcutInBookmarkBar,
--      true,
-+      false,
+-      prefs::kShowAppsShortcutInBookmarkBar, false,
++      prefs::kShowAppsShortcutInBookmarkBar,
++      base::FeatureList::IsEnabled(features::kAppsShortcutDefaultOff) ? false
++                                                                      : true,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterBooleanPref(
-       prefs::kShowReadingListInBookmarkBar, true,
+       prefs::kShowManagedBookmarksInBookmarkBar, true,
+diff --git a/components/bookmarks/browser/features.cc b/components/bookmarks/browser/features.cc
+new file mode 100644
+--- /dev/null
++++ b/components/bookmarks/browser/features.cc
+@@ -0,0 +1,16 @@
++// Copyright 2021 The Chromium Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "components/bookmarks/browser/features.h"
++
++namespace bookmarks {
++namespace features {
++
++// Changes the apps shortcut on the bookmarks bar to default to off.
++// https://crbug.com/1236793
++const base::Feature kAppsShortcutDefaultOff{"AppsShortcutDefaultOff",
++                                            base::FEATURE_ENABLED_BY_DEFAULT};
++
++}  // namespace features
++}  // namespace bookmarks
+diff --git a/components/bookmarks/browser/features.h b/components/bookmarks/browser/features.h
+new file mode 100644
+--- /dev/null
++++ b/components/bookmarks/browser/features.h
+@@ -0,0 +1,18 @@
++// Copyright 2021 The Chromium Authors. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef COMPONENTS_BOOKMARKS_BROWSER_FEATURES_H_
++#define COMPONENTS_BOOKMARKS_BROWSER_FEATURES_H_
++
++#include "base/feature_list.h"
++
++namespace bookmarks {
++namespace features {
++
++extern const base::Feature kAppsShortcutDefaultOff;
++
++}  // namespace features
++}  // namespace bookmarks
++
++#endif  // COMPONENTS_BOOKMARKS_BROWSER_FEATURES_H_
+diff --git a/components/content_settings/core/browser/content_settings_registry.cc b/components/content_settings/core/browser/content_settings_registry.cc
+--- a/components/content_settings/core/browser/content_settings_registry.cc
++++ b/components/content_settings/core/browser/content_settings_registry.cc
+@@ -224,7 +224,7 @@ void ContentSettingsRegistry::Init() {
+            ContentSettingsInfo::EXCEPTIONS_ON_SECURE_ORIGINS_ONLY);
+ 
+   Register(ContentSettingsType::BACKGROUND_SYNC, "background-sync",
+-           CONTENT_SETTING_ALLOW, WebsiteSettingsInfo::UNSYNCABLE,
++           CONTENT_SETTING_BLOCK, WebsiteSettingsInfo::UNSYNCABLE,
+            /*allowlisted_schemes=*/{},
+            /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
+            WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
+@@ -315,7 +315,7 @@ void ContentSettingsRegistry::Init() {
+   // TODO(crbug.com/904439): Update this to "SECURE_ONLY" once
+   // DeviceOrientationEvents and DeviceMotionEvents are only fired in secure
+   // contexts.
+-  Register(ContentSettingsType::SENSORS, "sensors", CONTENT_SETTING_ALLOW,
++  Register(ContentSettingsType::SENSORS, "sensors", CONTENT_SETTING_BLOCK,
+            WebsiteSettingsInfo::UNSYNCABLE, /*allowlisted_schemes=*/{},
+            /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
+            WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
+diff --git a/components/content_settings/core/browser/cookie_settings.cc b/components/content_settings/core/browser/cookie_settings.cc
+--- a/components/content_settings/core/browser/cookie_settings.cc
++++ b/components/content_settings/core/browser/cookie_settings.cc
+@@ -70,7 +70,7 @@ void CookieSettings::RegisterProfilePrefs(
+     user_prefs::PrefRegistrySyncable* registry) {
+   registry->RegisterIntegerPref(
+       prefs::kCookieControlsMode,
+-      static_cast<int>(CookieControlsMode::kIncognitoOnly),
++      static_cast<int>(CookieControlsMode::kBlockThirdParty), // this is the default in Bromite, overridden from kIncognitoOnly
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+ }
+ 
+diff --git a/components/payments/core/payment_prefs.cc b/components/payments/core/payment_prefs.cc
+--- a/components/payments/core/payment_prefs.cc
++++ b/components/payments/core/payment_prefs.cc
+@@ -16,7 +16,7 @@ const char kCanMakePaymentEnabled[] = "payments.can_make_payment_enabled";
+ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+   registry->RegisterBooleanPref(kPaymentsFirstTransactionCompleted, false);
+   registry->RegisterBooleanPref(
+-      kCanMakePaymentEnabled, true,
++      kCanMakePaymentEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+ }
+ 
 diff --git a/components/safe_browsing/core/common/safe_browsing_prefs.cc b/components/safe_browsing/core/common/safe_browsing_prefs.cc
 --- a/components/safe_browsing/core/common/safe_browsing_prefs.cc
 +++ b/components/safe_browsing/core/common/safe_browsing_prefs.cc
-@@ -190,9 +190,9 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+@@ -233,13 +233,13 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
    registry->RegisterBooleanPref(
        prefs::kSafeBrowsingSawInterstitialScoutReporting, false);
    registry->RegisterBooleanPref(
 -      prefs::kSafeBrowsingExtendedReportingOptInAllowed, true);
 +      prefs::kSafeBrowsingExtendedReportingOptInAllowed, false);
+   registry->RegisterTimePref(
+       prefs::kSafeBrowsingEsbProtegoPingWithTokenLastLogTime, base::Time());
+   registry->RegisterTimePref(
+       prefs::kSafeBrowsingEsbProtegoPingWithoutTokenLastLogTime, base::Time());
    registry->RegisterBooleanPref(
 -      prefs::kSafeBrowsingEnabled, true,
 +      prefs::kSafeBrowsingEnabled, false,
        user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
    registry->RegisterBooleanPref(prefs::kSafeBrowsingEnhanced, false);
    registry->RegisterBooleanPref(prefs::kSafeBrowsingProceedAnywayDisabled,
--- 
-2.17.1
-
+diff --git a/components/signin/internal/identity_manager/primary_account_manager.cc b/components/signin/internal/identity_manager/primary_account_manager.cc
+--- a/components/signin/internal/identity_manager/primary_account_manager.cc
++++ b/components/signin/internal/identity_manager/primary_account_manager.cc
+@@ -146,9 +146,9 @@ void PrimaryAccountManager::RegisterProfilePrefs(PrefRegistrySimple* registry) {
+                                std::string());
+   registry->RegisterStringPref(prefs::kGoogleServicesAccountId, std::string());
+   registry->RegisterBooleanPref(prefs::kGoogleServicesConsentedToSync, false);
+-  registry->RegisterBooleanPref(prefs::kAutologinEnabled, true);
++  registry->RegisterBooleanPref(prefs::kAutologinEnabled, false);
+   registry->RegisterListPref(prefs::kReverseAutologinRejectedEmailList);
+-  registry->RegisterBooleanPref(prefs::kSigninAllowed, true);
++  registry->RegisterBooleanPref(prefs::kSigninAllowed, false);
+   registry->RegisterBooleanPref(prefs::kSignedInWithCredentialProvider, false);
+ }
+ 
+diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
+--- a/third_party/blink/common/features.cc
++++ b/third_party/blink/common/features.cc
+@@ -1729,8 +1729,8 @@ BASE_FEATURE(kWebRtcSendPacketBatch,
+ // the attribute. Note: At present, only iframes with origin-restricted
+ // sandboxes are isolated.
+ BASE_FEATURE(kIsolateSandboxedIframes,
+-             "IsolateSandboxedIframes",
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             "IsolateSandboxedIframes",          // enabled by default
++             base::FEATURE_ENABLED_BY_DEFAULT);  // in Bromite
+ const base::FeatureParam<IsolateSandboxedIframesGrouping>::Option
+     isolated_sandboxed_iframes_grouping_types[] = {
+         {IsolateSandboxedIframesGrouping::kPerSite, "per-site"},
+--
+2.25.1

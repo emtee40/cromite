@@ -1,0 +1,239 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Mon, 11 Apr 2022 23:29:29 +0200
+Subject: autofill: miscellaneous
+
+Make sure that autofill is disabled by default (Jan Engelhardt <jengelh@inai.de>)
+Disable autofill download manager (Jan Engelhardt <jengelh@inai.de>)
+Disable autofill assistant and CC (csagan5)
+Disable autofill server communication by default (Daniel Micay <danielmicay@gmail.com>)
+Do not skip google.com domains for password generation (csagan5)
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+---
+ chrome/browser/prefs/browser_prefs.cc         |  6 +--
+ .../ui/autofill/chrome_autofill_client.cc     |  7 +--
+ .../core/browser/autofill_download_manager.cc | 49 +++----------------
+ .../core/browser/autofill_download_manager.h  |  2 -
+ .../core/browser/browser_autofill_manager.h   |  4 +-
+ .../autofill/core/common/autofill_features.cc |  4 +-
+ .../autofill/core/common/autofill_prefs.cc    |  8 +--
+ .../password_generation_frame_helper.cc       |  4 --
+ 8 files changed, 19 insertions(+), 65 deletions(-)
+
+diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -1062,11 +1062,11 @@ void RegisterProfilePrefsForMigration(
+                                    PrefRegistry::LOSSY_PREF);
+ 
+   // Deprecated 11/2022.
+-  registry->RegisterBooleanPref(kAutofillAssistantEnabled, true);
++  registry->RegisterBooleanPref(kAutofillAssistantEnabled, false);
+   registry->RegisterBooleanPref(kAutofillAssistantConsent, false);
+-  registry->RegisterBooleanPref(kAutofillAssistantTriggerScriptsEnabled, true);
++  registry->RegisterBooleanPref(kAutofillAssistantTriggerScriptsEnabled, false);
+   registry->RegisterBooleanPref(kAutofillAssistantTriggerScriptsIsFirstTimeUser,
+-                                true);
++                                false);
+ 
+   // Deprecated 12/2022.
+   registry->RegisterBooleanPref(kAutofillWalletImportStorageCheckboxState,
+diff --git a/chrome/browser/ui/autofill/chrome_autofill_client.cc b/chrome/browser/ui/autofill/chrome_autofill_client.cc
+--- a/chrome/browser/ui/autofill/chrome_autofill_client.cc
++++ b/chrome/browser/ui/autofill/chrome_autofill_client.cc
+@@ -181,12 +181,7 @@ ChromeAutofillClient::GetURLLoaderFactory() {
+ }
+ 
+ AutofillDownloadManager* ChromeAutofillClient::GetDownloadManager() {
+-  if (!download_manager_) {
+-    // Lazy initialization to avoid virtual function calls in the constructor.
+-    download_manager_ = std::make_unique<AutofillDownloadManager>(
+-        this, GetChannel(), GetLogManager());
+-  }
+-  return download_manager_.get();
++  return nullptr;
+ }
+ 
+ AutofillOptimizationGuide* ChromeAutofillClient::GetAutofillOptimizationGuide()
+diff --git a/components/autofill/core/browser/autofill_download_manager.cc b/components/autofill/core/browser/autofill_download_manager.cc
+--- a/components/autofill/core/browser/autofill_download_manager.cc
++++ b/components/autofill/core/browser/autofill_download_manager.cc
+@@ -472,35 +472,6 @@ bool GetUploadPayloadForApi(const AutofillUploadContents& upload,
+   return upload_request.SerializeToString(payload);
+ }
+ 
+-// Gets an API method URL given its type (query or upload), an optional
+-// resource ID, and the HTTP method to be used.
+-// Example usage:
+-// * GetAPIMethodUrl(REQUEST_QUERY, "1234", "GET") will return "/v1/pages/1234".
+-// * GetAPIMethodUrl(REQUEST_QUERY, "1234", "POST") will return "/v1/pages:get".
+-// * GetAPIMethodUrl(REQUEST_UPLOAD, "", "POST") will return "/v1/forms:vote".
+-std::string GetAPIMethodUrl(AutofillDownloadManager::RequestType type,
+-                            base::StringPiece resource_id,
+-                            base::StringPiece method) {
+-  const char* api_method_url;
+-  if (type == AutofillDownloadManager::REQUEST_QUERY) {
+-    if (method == "POST") {
+-      api_method_url = "/v1/pages:get";
+-    } else {
+-      api_method_url = "/v1/pages";
+-    }
+-  } else if (type == AutofillDownloadManager::REQUEST_UPLOAD) {
+-    api_method_url = "/v1/forms:vote";
+-  } else {
+-    // This should not be reached, but we never know.
+-    NOTREACHED() << "Request of type " << type << " is invalid";
+-    return "";
+-  }
+-  if (resource_id.empty()) {
+-    return std::string(api_method_url);
+-  }
+-  return base::StrCat({api_method_url, "/", resource_id});
+-}
+-
+ // Gets HTTP body payload for API POST request.
+ bool GetAPIBodyPayload(const std::string& payload,
+                        AutofillDownloadManager::RequestType type,
+@@ -539,18 +510,7 @@ bool IsRawMetadataUploadingEnabled(version_info::Channel channel) {
+ }
+ 
+ std::string GetAPIKeyForUrl(version_info::Channel channel) {
+-  // First look if we can get API key from command line flag.
+-  const base::CommandLine& command_line =
+-      *base::CommandLine::ForCurrentProcess();
+-  if (command_line.HasSwitch(switches::kAutofillAPIKey)) {
+-    return command_line.GetSwitchValueASCII(switches::kAutofillAPIKey);
+-  }
+-
+-  // Get the API key from Chrome baked keys.
+-  if (channel == version_info::Channel::STABLE) {
+-    return google_apis::GetAPIKey();
+-  }
+-  return google_apis::GetNonStableAPIKey();
++  return std::string();
+ }
+ 
+ }  // namespace
+@@ -766,6 +726,7 @@ std::tuple<GURL, std::string> AutofillDownloadManager::GetRequestURLAndMethod(
+   // ID of the resource to add to the API request URL. Nothing will be added if
+   // |resource_id| is empty.
+   std::string resource_id;
++#if 0
+   std::string method = "POST";
+ 
+   if (request_data.request_type == AutofillDownloadManager::REQUEST_QUERY) {
+@@ -786,11 +747,15 @@ std::tuple<GURL, std::string> AutofillDownloadManager::GetRequestURLAndMethod(
+ 
+   // Add the query parameter to set the response format to a serialized proto.
+   url = net::AppendQueryParameter(url, "alt", "proto");
+-
++#else
++  std::string method("GET");
++  GURL url = GURL("about:blank");
++#endif
+   return std::make_tuple(std::move(url), std::move(method));
+ }
+ 
+ bool AutofillDownloadManager::StartRequest(FormRequestData request_data) {
++  if ((true)) return false;
+   // REQUEST_UPLOADs take no IsolationInfo because Password Manager uploads when
+   // RenderFrameHostImpl::DidCommitNavigation() is called, in which case
+   // AutofillDriver::IsolationInfo() may crash because there is no committing
+diff --git a/components/autofill/core/browser/autofill_download_manager.h b/components/autofill/core/browser/autofill_download_manager.h
+--- a/components/autofill/core/browser/autofill_download_manager.h
++++ b/components/autofill/core/browser/autofill_download_manager.h
+@@ -38,8 +38,6 @@ namespace autofill {
+ class AutofillClient;
+ class LogManager;
+ 
+-constexpr size_t kMaxQueryGetSize = 10240;  // 10 KiB
+-
+ // A helper to make sure that tests which modify the set of active autofill
+ // experiments do not interfere with one another.
+ struct ScopedActiveAutofillExperiments {
+diff --git a/components/autofill/core/browser/browser_autofill_manager.h b/components/autofill/core/browser/browser_autofill_manager.h
+--- a/components/autofill/core/browser/browser_autofill_manager.h
++++ b/components/autofill/core/browser/browser_autofill_manager.h
+@@ -770,9 +770,9 @@ class BrowserAutofillManager : public AutofillManager,
+       credit_card_form_event_logger_;
+ 
+   // Have we logged whether Autofill is enabled for this page load?
+-  bool has_logged_autofill_enabled_ = false;
++  bool has_logged_autofill_enabled_ = true;
+   // Have we logged an address suggestions count metric for this page?
+-  bool has_logged_address_suggestions_count_ = false;
++  bool has_logged_address_suggestions_count_ = true;
+   // Have we shown Autofill suggestions at least once?
+   bool did_show_suggestions_ = false;
+   // Has the user manually edited at least one form field among the autofillable
+diff --git a/components/autofill/core/common/autofill_features.cc b/components/autofill/core/common/autofill_features.cc
+--- a/components/autofill/core/common/autofill_features.cc
++++ b/components/autofill/core/common/autofill_features.cc
+@@ -711,8 +711,8 @@ BASE_FEATURE(kAutofillLogToTerminal,
+ // "upload" resources.
+ // i.e., https://other.autofill.server:port/tbproxy/af/
+ BASE_FEATURE(kAutofillServerCommunication,
+-             "AutofillServerCommunication",
+-             base::FEATURE_ENABLED_BY_DEFAULT);
++             "AutofillServerCommunication",       // disabled by default
++             base::FEATURE_DISABLED_BY_DEFAULT);  // in Bromite
+ 
+ // Controls attaching the autofill type predictions to their respective
+ // element in the DOM.
+diff --git a/components/autofill/core/common/autofill_prefs.cc b/components/autofill/core/common/autofill_prefs.cc
+--- a/components/autofill/core/common/autofill_prefs.cc
++++ b/components/autofill/core/common/autofill_prefs.cc
+@@ -123,7 +123,7 @@ const char kAutofillPaymentMethodsMandatoryReauthPromoShownCounter[] =
+ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+   // Synced prefs. Used for cross-device choices, e.g., credit card Autofill.
+   registry->RegisterBooleanPref(
+-      prefs::kAutofillProfileEnabled, true,
++      prefs::kAutofillProfileEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   registry->RegisterIntegerPref(
+       prefs::kAutofillLastVersionDeduped, 0,
+@@ -135,10 +135,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+       prefs::kAutofillLastVersionDisusedAddressesDeleted, 0,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   registry->RegisterBooleanPref(
+-      prefs::kAutofillCreditCardEnabled, true,
++      prefs::kAutofillCreditCardEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   registry->RegisterBooleanPref(
+-      prefs::kAutofillIBANEnabled, true,
++      prefs::kAutofillIBANEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+ 
+   // Non-synced prefs. Used for per-device choices, e.g., signin promo.
+@@ -168,7 +168,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+ 
+   // Deprecated prefs registered for migration.
+   registry->RegisterBooleanPref(
+-      prefs::kAutofillEnabledDeprecated, true,
++      prefs::kAutofillEnabledDeprecated, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+ }
+ 
+diff --git a/components/password_manager/core/browser/password_generation_frame_helper.cc b/components/password_manager/core/browser/password_generation_frame_helper.cc
+--- a/components/password_manager/core/browser/password_generation_frame_helper.cc
++++ b/components/password_manager/core/browser/password_generation_frame_helper.cc
+@@ -85,7 +85,6 @@ void PasswordGenerationFrameHelper::ProcessPasswordRequirements(
+ // In order for password generation to be enabled, we need to make sure:
+ // (1) Password sync is enabled, and
+ // (2) Password saving is enabled
+-// (3) The current page is not *.google.com.
+ bool PasswordGenerationFrameHelper::IsGenerationEnabled(
+     bool log_debug_data) const {
+   std::unique_ptr<Logger> logger;
+@@ -95,9 +94,6 @@ bool PasswordGenerationFrameHelper::IsGenerationEnabled(
+   }
+ 
+   GURL url = driver_->GetLastCommittedURL();
+-  if (url.DomainIs("google.com"))
+-    return false;
+-
+   if (!client_->IsSavingAndFillingEnabled(url)) {
+     if (logger)
+       logger->LogMessage(Logger::STRING_GENERATION_DISABLED_SAVING_DISABLED);
+--
+2.25.1

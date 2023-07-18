@@ -18,21 +18,25 @@ memory tagging when those are made available in the future.
 The reason why upstream started preferring 32-bit processes is to save memory,
 particularly since saving memory makes it feasible to use finer-grained
 sandboxing.
+
+Original License: MIT - https://spdx.org/licenses/MIT.html
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- android_webview/nonembedded/java/AndroidManifest.xml | 1 -
- 1 file changed, 1 deletion(-)
+ android_webview/nonembedded/java/AndroidManifest.xml | 3 ---
+ 1 file changed, 3 deletions(-)
 
 diff --git a/android_webview/nonembedded/java/AndroidManifest.xml b/android_webview/nonembedded/java/AndroidManifest.xml
 --- a/android_webview/nonembedded/java/AndroidManifest.xml
 +++ b/android_webview/nonembedded/java/AndroidManifest.xml
-@@ -28,7 +28,6 @@
+@@ -41,9 +41,6 @@ by a child template that "extends" this file.
                   android:icon="@{{manifest_package|default('com.android.webview')}}:drawable/icon_webview"
                   android:name="{{ application_name|default('org.chromium.android_webview.nonembedded.WebViewApkApplication') }}"
                   android:multiArch="true"
--                 {{ use32bitAbi|default('android:use32bitAbi="true"') }}
-                  android:extractNativeLibs="{{ trichrome_library is not defined }}">
+-                 {% if force_32_bit is defined and force_32_bit == 'true' %}
+-                 android:use32bitAbi="true"
+-                 {% endif %}
+                  android:extractNativeLibs="false">
          {# This part is shared between stand-alone WebView and Monochrome #}
          {% macro common(manifest_package, webview_lib) %}
--- 
-2.17.1
-
+--
+2.25.1

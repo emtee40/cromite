@@ -2,14 +2,17 @@ From: csagan5 <32685696+csagan5@users.noreply.github.com>
 Date: Mon, 12 Feb 2018 21:21:36 +0100
 Subject: ungoogled-chromium: Disable webRTC log uploader
 
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../media/webrtc/webrtc_log_uploader.cc       | 28 ++++---------------
- 1 file changed, 6 insertions(+), 22 deletions(-)
+ .../media/webrtc/webrtc_log_uploader.cc       | 36 ++++---------------
+ .../media/webrtc/webrtc_logging_controller.cc |  1 +
+ chrome/browser/ui/browser_ui_prefs.cc         |  2 +-
+ 3 files changed, 8 insertions(+), 31 deletions(-)
 
 diff --git a/chrome/browser/media/webrtc/webrtc_log_uploader.cc b/chrome/browser/media/webrtc/webrtc_log_uploader.cc
 --- a/chrome/browser/media/webrtc/webrtc_log_uploader.cc
 +++ b/chrome/browser/media/webrtc/webrtc_log_uploader.cc
-@@ -126,28 +126,7 @@ void WebRtcLogUploader::LoggingStoppedDoUpload(
+@@ -127,36 +127,7 @@ void WebRtcLogUploader::OnLoggingStopped(
    DCHECK(meta_data.get());
    DCHECK(!upload_done_data.paths.directory.empty());
  
@@ -33,13 +36,21 @@ diff --git a/chrome/browser/media/webrtc/webrtc_log_uploader.cc b/chrome/browser
 -  }
 -
 -  upload_done_data.local_log_id = local_log_id;
--  PrepareMultipartPostData(compressed_log, std::move(meta_data),
--                           std::move(upload_done_data));
+-
+-  if (is_text_log_upload_allowed) {
+-    PrepareMultipartPostData(compressed_log, std::move(meta_data),
+-                             std::move(upload_done_data));
+-  } else {
+-    main_task_runner_->PostTask(
+-        FROM_HERE,
+-        base::BindOnce(&WebRtcLogUploader::NotifyUploadDisabled,
+-                       base::Unretained(this), std::move(upload_done_data)));
+-  }
 +  NotifyUploadDoneAndLogStats(net::HTTP_OK, net::OK, "", std::move(upload_done_data));
  }
  
  void WebRtcLogUploader::PrepareMultipartPostData(
-@@ -158,6 +137,11 @@ void WebRtcLogUploader::PrepareMultipartPostData(
+@@ -167,6 +138,11 @@ void WebRtcLogUploader::PrepareMultipartPostData(
    DCHECK(!compressed_log.empty());
    DCHECK(meta_data.get());
  
@@ -51,6 +62,28 @@ diff --git a/chrome/browser/media/webrtc/webrtc_log_uploader.cc b/chrome/browser
    std::unique_ptr<std::string> post_data(new std::string());
    SetupMultipart(post_data.get(), compressed_log,
                   upload_done_data.paths.incoming_rtp_dump,
--- 
-2.17.1
-
+diff --git a/chrome/browser/media/webrtc/webrtc_logging_controller.cc b/chrome/browser/media/webrtc/webrtc_logging_controller.cc
+--- a/chrome/browser/media/webrtc/webrtc_logging_controller.cc
++++ b/chrome/browser/media/webrtc/webrtc_logging_controller.cc
+@@ -603,6 +603,7 @@ content::BrowserContext* WebRtcLoggingController::GetBrowserContext() const {
+ // static
+ bool WebRtcLoggingController::IsWebRtcTextLogAllowed(
+     content::BrowserContext* browser_context) {
++  if ((true)) return false;
+   // Historically by default webrtc text logs are always uploaded.
+   if (!browser_context) {
+     return true;
+diff --git a/chrome/browser/ui/browser_ui_prefs.cc b/chrome/browser/ui/browser_ui_prefs.cc
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -96,7 +96,7 @@ void RegisterBrowserUserPrefs(user_prefs::PrefRegistrySyncable* registry) {
+   registry->RegisterBooleanPref(prefs::kWebRtcEventLogCollectionAllowed, false);
+   registry->RegisterListPref(prefs::kWebRtcLocalIpsAllowedUrls);
+   registry->RegisterBooleanPref(prefs::kWebRTCAllowLegacyTLSProtocols, false);
+-  registry->RegisterBooleanPref(prefs::kWebRtcTextLogCollectionAllowed, true);
++  registry->RegisterBooleanPref(prefs::kWebRtcTextLogCollectionAllowed, false);
+ 
+   // Dictionaries to keep track of default tasks in the file browser.
+   registry->RegisterDictionaryPref(
+--
+2.25.1

@@ -1,0 +1,39 @@
+From: Your Name <you@example.com>
+Date: Wed, 12 Oct 2022 10:59:27 +0000
+Subject: WIN ADDTO Add a proxy configuration page
+
+---
+ chrome/browser/browser_resources.grd                     | 6 ++----
+ chrome/browser/extensions/api/proxy/proxy_api_helpers.cc | 2 +-
+ 2 files changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/chrome/browser/browser_resources.grd b/chrome/browser/browser_resources.grd
+--- a/chrome/browser/browser_resources.grd
++++ b/chrome/browser/browser_resources.grd
+@@ -293,10 +293,8 @@
+         <include name="IDR_ADDITIONAL_MODULE_IDS" file="${additional_modules_list_file}" use_base_dir="false" type="BINDATA" />
+       </if>
+       <!-- Bromite Proxy Configuration UI -->
+-      <if expr="is_android">
+-        <include name="IDR_PROXY_CONFIG_HTML" file="resources\proxy_config.html" flattenhtml="true" type="BINDATA" compress="gzip" />
+-        <include name="IDR_PROXY_CONFIG_JS" file="resources\proxy_config.js" type="BINDATA" compress="gzip" />
+-      </if>
++      <include name="IDR_PROXY_CONFIG_HTML" file="resources\proxy_config.html" flattenhtml="true" type="BINDATA" compress="gzip" />
++      <include name="IDR_PROXY_CONFIG_JS" file="resources\proxy_config.js" type="BINDATA" compress="gzip" />
+       <if expr="not is_android">
+         <include name="IDR_ABOUT_SYS_HTML" file="resources\about_sys\about_sys.html" type="BINDATA" />
+         <include name="IDR_ABOUT_SYS_CSS" file="resources\about_sys\about_sys.css" type="BINDATA" />
+diff --git a/chrome/browser/extensions/api/proxy/proxy_api_helpers.cc b/chrome/browser/extensions/api/proxy/proxy_api_helpers.cc
+--- a/chrome/browser/extensions/api/proxy/proxy_api_helpers.cc
++++ b/chrome/browser/extensions/api/proxy/proxy_api_helpers.cc
+@@ -388,7 +388,7 @@ absl::optional<base::Value::Dict> CreateProxyConfigDict(
+         return absl::nullopt;
+       }
+       return ProxyConfigDictionary::CreateFixedServers(proxy_rules_string,
+-                                                       bypass_list);
++                                                       bypass_list, /*reverse_bypass*/false);
+     }
+     case ProxyPrefs::MODE_SYSTEM:
+       return ProxyConfigDictionary::CreateSystem();
+--
+2.25.1

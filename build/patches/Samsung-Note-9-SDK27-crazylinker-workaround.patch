@@ -1,0 +1,46 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Thu, 3 Feb 2022 19:48:49 +0000
+Subject: Samsung Note 9 SDK27 crazylinker workaround
+
+Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.html
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+---
+ .../base/library_loader/LibraryLoader.java      | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/base/android/java/src/org/chromium/base/library_loader/LibraryLoader.java b/base/android/java/src/org/chromium/base/library_loader/LibraryLoader.java
+--- a/base/android/java/src/org/chromium/base/library_loader/LibraryLoader.java
++++ b/base/android/java/src/org/chromium/base/library_loader/LibraryLoader.java
+@@ -35,6 +35,7 @@ import org.chromium.build.annotations.MainDex;
+ 
+ import java.lang.annotation.Retention;
+ import java.lang.annotation.RetentionPolicy;
++import java.util.Locale;
+ 
+ import javax.annotation.concurrent.GuardedBy;
+ 
+@@ -274,7 +275,21 @@ public class LibraryLoader {
+          */
+         public void initInAppZygote() {
+             assert !mInitDone;
+-            if (useChromiumLinker() && !mainProcessIntendsToProvideRelroFd()) {
++
++            String manufacturer = Build.MANUFACTURER.toLowerCase(Locale.US);
++            if (manufacturer.equals("samsung")
++                    && Build.MODEL != null
++                    && Build.MODEL.equals("SM-N960F")) {
++                // Samsung Galaxy Note 9 (on Android 8.1) - Model SM-N960F
++                // crashes on startup (base::MessagePumpForUI::MessagePumpForUI) due to
++                // some odd RELRO incompatibility in the device ROM.
++                // This workaround disables relocation sharing but allows device to start up.
++                // See also:
++                // * https://bugs.chromium.org/p/chromium/issues/detail?id=980304
++                // * https://groups.google.com/a/chromium.org/g/chromium-dev/c/iAb7QUiNPLw
++                mFallbackToSystemLinker = true;
++            }
++            else if (useChromiumLinker() && !mainProcessIntendsToProvideRelroFd()) {
+                 getLinker().ensureInitialized(
+                         /* asRelroProducer= */ true, Linker.PreferAddress.FIND_RESERVED, 0);
+             } else {
+--
+2.25.1

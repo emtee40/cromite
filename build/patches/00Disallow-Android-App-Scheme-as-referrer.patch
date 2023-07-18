@@ -1,0 +1,25 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Sat, 3 Jun 2023 15:09:26 +0000
+Subject: Disallow Android App Scheme as referrer
+
+---
+ chrome/renderer/chrome_content_renderer_client.cc | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer/chrome_content_renderer_client.cc
+--- a/chrome/renderer/chrome_content_renderer_client.cc
++++ b/chrome/renderer/chrome_content_renderer_client.cc
+@@ -525,11 +525,6 @@ void ChromeContentRendererClient::RenderThreadStarted() {
+   // TODO(nyquist): Add test to ensure this happens when the flag is set.
+   WebSecurityPolicy::RegisterURLSchemeAsDisplayIsolated(dom_distiller_scheme);
+ 
+-#if BUILDFLAG(IS_ANDROID)
+-  WebSecurityPolicy::RegisterURLSchemeAsAllowedForReferrer(
+-      WebString::FromUTF8(content::kAndroidAppScheme));
+-#endif
+-
+   // chrome-search: pages should not be accessible by bookmarklets
+   // or javascript: URLs typed in the omnibox.
+   WebSecurityPolicy::RegisterURLSchemeAsNotAllowingJavascriptURLs(
+--
+2.25.1

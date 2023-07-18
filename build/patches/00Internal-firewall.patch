@@ -1,0 +1,1890 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Sat, 15 Apr 2023 11:48:49 +0000
+Subject: Internal firewall
+
+Introduces a kind of firewall on http calls made by the
+browser that allows selective blocking via the NetworkTrafficAnnotationTag.
+allowed or explicitly blocked calls are defined
+in services/firewall/tools/rules.xml
+---
+ chrome/browser/BUILD.gn                       |   1 +
+ chrome/browser/about_flags.cc                 |   6 +
+ .../downloads/offline_page_download_bridge.cc |  32 +-
+ .../content/internal/context_menu_download.cc |  32 +-
+ .../android/webapk/webapk_icon_hasher.cc      |  32 +-
+ net/BUILD.gn                                  |   1 +
+ .../network_traffic_annotation.h              |   4 -
+ net/url_request/url_request_http_job.cc       |  15 +
+ net/url_request/url_request_http_job.h        |   3 +
+ services/firewall/public/BUILD.gn             |  70 +++
+ services/firewall/public/firewall_features.cc |  28 ++
+ services/firewall/public/firewall_features.h  |  31 ++
+ services/firewall/public/firewall_service.cc  |  46 ++
+ services/firewall/public/firewall_service.h   |  57 +++
+ services/firewall/tools/annotation_model.py   |  49 ++
+ services/firewall/tools/annotations.xml       | 448 ++++++++++++++++++
+ services/firewall/tools/builders_template.py  |  72 +++
+ services/firewall/tools/codegen.py            |  82 ++++
+ services/firewall/tools/decode_template.py    |  85 ++++
+ services/firewall/tools/gen_builders.py       |  65 +++
+ services/firewall/tools/rules.xml             |  81 ++++
+ services/firewall/tools/rules_model.py        |  35 ++
+ services/network/network_context.cc           |  73 +++
+ .../network/public/cpp/simple_url_loader.cc   |  18 +
+ .../network/public/cpp/simple_url_loader.h    |   3 +
+ .../loader/fetch/url_loader/url_loader.cc     | 145 +++++-
+ .../scripts/auditor/auditor.py                |   1 +
+ .../scripts/auditor/util.py                   |   1 +
+ 28 files changed, 1500 insertions(+), 16 deletions(-)
+ create mode 100644 services/firewall/public/BUILD.gn
+ create mode 100644 services/firewall/public/firewall_features.cc
+ create mode 100644 services/firewall/public/firewall_features.h
+ create mode 100644 services/firewall/public/firewall_service.cc
+ create mode 100644 services/firewall/public/firewall_service.h
+ create mode 100644 services/firewall/tools/annotation_model.py
+ create mode 100644 services/firewall/tools/annotations.xml
+ create mode 100644 services/firewall/tools/builders_template.py
+ create mode 100644 services/firewall/tools/codegen.py
+ create mode 100644 services/firewall/tools/decode_template.py
+ create mode 100644 services/firewall/tools/gen_builders.py
+ create mode 100644 services/firewall/tools/rules.xml
+ create mode 100644 services/firewall/tools/rules_model.py
+
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -2439,6 +2439,7 @@ static_library("browser") {
+     "//third_party/ungoogled:switches",
+     "//services/device/public/mojom",
+     "//services/device/public/mojom:usb",
++    "//services/firewall/public:firewall_builders",
+     "//services/image_annotation:service",
+     "//services/media_session/public/mojom",
+     "//services/metrics/public/cpp:ukm_builders",
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -199,6 +199,7 @@
+ #include "sandbox/policy/switches.h"
+ #include "services/device/public/cpp/device_features.h"
+ #include "services/device/public/cpp/serial/serial_switches.h"
++#include "services/firewall/public/firewall_service.h"
+ #include "services/media_session/public/cpp/features.h"
+ #include "services/network/public/cpp/features.h"
+ #include "services/network/public/cpp/network_switches.h"
+@@ -8090,6 +8091,11 @@ const FeatureEntry kFeatureEntries[] = {
+      FEATURE_VALUE_TYPE(page_info::kPageInfoHideSiteSettings)},
+ #endif  // !BUILDFLAG(IS_ANDROID)
+ 
++    {"enable-firewall",
++     "Enable internal firewall",
++     "Enable internal firewall", kOsDesktop | kOsAndroid,
++     FEATURE_VALUE_TYPE(firewall::features::kEnableFirewall)},
++
+ #if BUILDFLAG(IS_ANDROID)
+     {"page-info-about-this-site-improved-bottomsheet",
+      flag_descriptions::kPageInfoAboutThisSiteImprovedBottomSheetName,
+diff --git a/chrome/browser/offline_pages/android/downloads/offline_page_download_bridge.cc b/chrome/browser/offline_pages/android/downloads/offline_page_download_bridge.cc
+--- a/chrome/browser/offline_pages/android/downloads/offline_page_download_bridge.cc
++++ b/chrome/browser/offline_pages/android/downloads/offline_page_download_bridge.cc
+@@ -268,13 +268,43 @@ content::WebContents::Getter GetWebContentsGetter(
+       web_contents->GetPrimaryMainFrame()->GetRoutingID());
+ }
+ 
++const net::NetworkTrafficAnnotationTag traffic_annotation =
++    net::DefineNetworkTrafficAnnotation("offline_pages_download_file", R"(
++        semantics {
++          sender: "Bromite"
++          description:
++            "Offline pages download file"
++          trigger: "Manual from user."
++          data:
++            "binary format"
++          destination: LOCAL
++          internal {
++            contacts {
++              email: "uazo@users.noreply.github.com"
++            }
++            contacts {
++              email: "uazo@users.noreply.github.com"
++            }
++          }
++          user_data {
++            type: NONE
++          }
++          last_reviewed: "2023-01-01"
++        }
++        policy {
++          cookies_allowed: NO
++          setting:
++            "No setting."
++          policy_exception_justification: "Not implemented."
++        })");
++
+ void DownloadAsFile(content::WebContents* web_contents, const GURL& url) {
+   content::DownloadManager* dlm =
+       web_contents->GetBrowserContext()->GetDownloadManager();
+   std::unique_ptr<download::DownloadUrlParameters> dl_params(
+       content::DownloadRequestUtils::CreateDownloadForWebContentsMainFrame(
+           web_contents, url,
+-          TRAFFIC_ANNOTATION_WITHOUT_PROTO("Offline pages download file")));
++          traffic_annotation));
+ 
+   content::NavigationEntry* entry =
+       web_contents->GetController().GetLastCommittedEntry();
+diff --git a/components/download/content/internal/context_menu_download.cc b/components/download/content/internal/context_menu_download.cc
+--- a/components/download/content/internal/context_menu_download.cc
++++ b/components/download/content/internal/context_menu_download.cc
+@@ -15,6 +15,36 @@
+ 
+ namespace download {
+ 
++const net::NetworkTrafficAnnotationTag traffic_annotation =
++    net::DefineNetworkTrafficAnnotation("download_via_context_menu", R"(
++        semantics {
++          sender: "Bromite"
++          description:
++            "Download from context menu"
++          trigger: "Manual from user."
++          data:
++            "binary format"
++          destination: LOCAL
++          internal {
++            contacts {
++              email: "uazo@users.noreply.github.com"
++            }
++            contacts {
++              email: "uazo@users.noreply.github.com"
++            }
++          }
++          user_data {
++            type: NONE
++          }
++          last_reviewed: "2023-01-01"
++        }
++        policy {
++          cookies_allowed: NO
++          setting:
++            "No setting."
++          policy_exception_justification: "Not implemented."
++        })");
++
+ void CreateContextMenuDownload(content::WebContents* web_contents,
+                                const content::ContextMenuParams& params,
+                                const std::string& origin,
+@@ -27,7 +57,7 @@ void CreateContextMenuDownload(content::WebContents* web_contents,
+   std::unique_ptr<download::DownloadUrlParameters> dl_params(
+       content::DownloadRequestUtils::CreateDownloadForWebContentsMainFrame(
+           web_contents, url,
+-          TRAFFIC_ANNOTATION_WITHOUT_PROTO("Download via context menu")));
++          traffic_annotation));
+   content::Referrer referrer = content::Referrer::SanitizeForRequest(
+       url,
+       content::Referrer(referring_url.GetAsReferrer(), params.referrer_policy));
+diff --git a/components/webapps/browser/android/webapk/webapk_icon_hasher.cc b/components/webapps/browser/android/webapk/webapk_icon_hasher.cc
+--- a/components/webapps/browser/android/webapk/webapk_icon_hasher.cc
++++ b/components/webapps/browser/android/webapk/webapk_icon_hasher.cc
+@@ -121,6 +121,36 @@ void WebApkIconHasher::DownloadAndComputeMurmur2HashWithTimeout(
+                        std::move(callback));
+ }
+ 
++const net::NetworkTrafficAnnotationTag traffic_annotation =
++    net::DefineNetworkTrafficAnnotation("webapk_icon_hasher", R"(
++        semantics {
++          sender: "webapk icon hasher"
++          description:
++            "webapk icon hasher"
++          trigger: "Manual or automatic."
++          data:
++            " binary format"
++          destination: WEBSITE
++          internal {
++            contacts {
++              email: "uazo@users.noreply.github.com"
++            }
++            contacts {
++              email: "uazo@users.noreply.github.com"
++            }
++          }
++          user_data {
++            type: NONE
++          }
++          last_reviewed: "2023-01-01"
++        }
++        policy {
++          cookies_allowed: NO
++          setting:
++            "No setting."
++          policy_exception_justification: "Not implemented."
++        })");
++
+ WebApkIconHasher::WebApkIconHasher(
+     network::mojom::URLLoaderFactory* url_loader_factory,
+     base::WeakPtr<content::WebContents> web_contents,
+@@ -145,7 +175,7 @@ WebApkIconHasher::WebApkIconHasher(
+   resource_request->url = webapk_icon.url();
+   simple_url_loader_ = network::SimpleURLLoader::Create(
+       std::move(resource_request),
+-      TRAFFIC_ANNOTATION_WITHOUT_PROTO("webapk icon hasher"));
++      traffic_annotation);
+   simple_url_loader_->DownloadToStringOfUnboundedSizeUntilCrashAndDie(
+       url_loader_factory,
+       base::BindOnce(&WebApkIconHasher::OnSimpleLoaderComplete,
+diff --git a/net/BUILD.gn b/net/BUILD.gn
+--- a/net/BUILD.gn
++++ b/net/BUILD.gn
+@@ -1085,6 +1085,7 @@ component("net") {
+     "//build:chromeos_buildflags",
+     "//net/data/ssl/chrome_root_store:gen_root_store_inc",
+     "//net/http:transport_security_state_generated_files",
++    "//services/firewall/public:firewall_builders",
+     "//components/network_session_configurator/common"
+   ]
+ 
+diff --git a/net/traffic_annotation/network_traffic_annotation.h b/net/traffic_annotation/network_traffic_annotation.h
+--- a/net/traffic_annotation/network_traffic_annotation.h
++++ b/net/traffic_annotation/network_traffic_annotation.h
+@@ -373,10 +373,6 @@ struct MutablePartialNetworkTrafficAnnotationTag {
+ }  // namespace net
+ 
+ // Placeholder for unannotated usages.
+-#if !BUILDFLAG(IS_WIN) && !BUILDFLAG(IS_LINUX) && !BUILDFLAG(IS_CHROMEOS)
+-#define TRAFFIC_ANNOTATION_WITHOUT_PROTO(ANNOTATION_ID) \
+-  net::DefineNetworkTrafficAnnotation(ANNOTATION_ID, "No proto yet.")
+-#endif
+ 
+ // These annotations are unavailable on desktop Linux + Windows. They are
+ // available on other platforms, since we only audit network annotations on
+diff --git a/net/url_request/url_request_http_job.cc b/net/url_request/url_request_http_job.cc
+--- a/net/url_request/url_request_http_job.cc
++++ b/net/url_request/url_request_http_job.cc
+@@ -239,6 +239,9 @@ URLRequestHttpJob::URLRequestHttpJob(
+     throttling_entry_ = manager->RegisterRequestUrl(request->url());
+ 
+   ResetTimer();
++
++  if (base::FeatureList::IsEnabled(firewall::features::kEnableFirewall))
++    firewall_service_ = std::make_unique<firewall::FirewallService>(nullptr);
+ }
+ 
+ URLRequestHttpJob::~URLRequestHttpJob() {
+@@ -545,6 +548,18 @@ void URLRequestHttpJob::MaybeStartTransactionInternal(int result) {
+ void URLRequestHttpJob::StartTransactionInternal() {
+   DCHECK(!override_response_headers_);
+ 
++  if (firewall_service_ &&
++      !firewall_service_->IsAllowed(request_->traffic_annotation().unique_id_hash_code)) {
++    auto entry = firewall_service_->GetEntry(request_->traffic_annotation().unique_id_hash_code);
++    LOG(INFO) << "---ABORTED URLRequestHttpJob: "
++              << (entry.has_value() ? entry->name : "no-name")
++              << "(" << request_->traffic_annotation().unique_id_hash_code << ")"
++              << " url: " << request_->original_url().possibly_invalid_spec()
++              << " path: " << (entry.has_value() ? entry->path : "no-path");
++    Kill();
++    return;
++  }
++
+   // NOTE: This method assumes that request_info_ is already setup properly.
+ 
+   // If we already have a transaction, then we should restart the transaction
+diff --git a/net/url_request/url_request_http_job.h b/net/url_request/url_request_http_job.h
+--- a/net/url_request/url_request_http_job.h
++++ b/net/url_request/url_request_http_job.h
+@@ -31,6 +31,7 @@
+ #include "net/url_request/url_request_job.h"
+ #include "net/url_request/url_request_throttler_entry_interface.h"
+ #include "third_party/abseil-cpp/absl/types/optional.h"
++#include "services/firewall/public/firewall_service.h"
+ 
+ namespace net {
+ 
+@@ -79,6 +80,8 @@ class NET_EXPORT_PRIVATE URLRequestHttpJob : public URLRequestJob {
+     return priority_;
+   }
+ 
++  std::unique_ptr<firewall::FirewallService> firewall_service_;
++
+  private:
+   // For CookieRequestScheme histogram enum.
+   FRIEND_TEST_ALL_PREFIXES(URLRequestHttpJobTest,
+diff --git a/services/firewall/public/BUILD.gn b/services/firewall/public/BUILD.gn
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/public/BUILD.gn
+@@ -0,0 +1,70 @@
++# This file is part of Bromite.
++# Bromite is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++# Bromite is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# You should have received a copy of the GNU General Public License
++# along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++
++component("firewall_cpp") {
++  sources = [
++    "firewall_service.h",
++    "firewall_service.cc",
++    "firewall_features.h",
++    "firewall_features.cc",
++  ]
++
++  defines = [ "FIREWALL_IMPLEMENTATION" ]
++
++  public_deps = [
++    "//base",
++    "//third_party/abseil-cpp:absl"
++  ]
++}
++
++action("gen_firewall_builders") {
++  script = "//services/firewall/tools/gen_builders.py"
++
++  inputs = [
++    "//services/firewall/tools/gen_builders.py",
++    "//services/firewall/tools/builders_template.py",
++    "//services/firewall/tools/rules.xml",
++    "//services/firewall/tools/annotations.xml",
++  ]
++  sources = [
++    "//services/firewall/tools/annotations.xml",
++    "//services/firewall/tools/rules.xml",
++  ]
++
++  outdir = "$target_gen_dir"
++
++  outputs = [
++    outdir + "/firewall_builders.cc",
++    outdir + "/firewall_builders.h",
++    outdir + "/annotation_decode.cc",
++    outdir + "/annotation_decode.h",
++  ]
++
++  args = [
++    "--input",
++    rebase_path(sources[0], root_build_dir),
++    "--rules",
++    rebase_path(sources[1], root_build_dir),
++    "--output",
++    rebase_path(outdir, root_build_dir),
++  ]
++}
++
++static_library("firewall_builders") {
++  sources = get_target_outputs(":gen_firewall_builders")
++
++  deps = [
++    ":gen_firewall_builders",
++    ":firewall_cpp",
++    "//base",
++  ]
++}
+diff --git a/services/firewall/public/firewall_features.cc b/services/firewall/public/firewall_features.cc
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/public/firewall_features.cc
+@@ -0,0 +1,28 @@
++/*
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++#include "firewall_features.h"
++
++namespace firewall {
++namespace features {
++
++BASE_FEATURE(kEnableFirewall,
++             "EnableFirewall",
++             base::FEATURE_ENABLED_BY_DEFAULT);
++
++} // namespace features
++} // namespace firewall
+diff --git a/services/firewall/public/firewall_features.h b/services/firewall/public/firewall_features.h
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/public/firewall_features.h
+@@ -0,0 +1,31 @@
++/*
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++#ifndef COMPONENTS_FIREWALL_FIREWALL_FEATURES_H_
++#define COMPONENTS_FIREWALL_FIREWALL_FEATURES_H_
++
++#include "base/feature_list.h"
++
++namespace firewall {
++namespace features {
++
++BASE_DECLARE_FEATURE(kEnableFirewall);
++
++} // namespace features
++} // namespace firewall
++
++#endif // COMPONENTS_FIREWALL_FIREWALL_FEATURES_H_
+diff --git a/services/firewall/public/firewall_service.cc b/services/firewall/public/firewall_service.cc
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/public/firewall_service.cc
+@@ -0,0 +1,46 @@
++/*
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++#include "firewall_service.h"
++
++namespace firewall {
++
++FirewallService::FirewallService(PrefService* pref_service)
++    : pref_service_(pref_service) {
++  decode_map_ = builders::CreateDecodeMap();
++}
++
++FirewallService::~FirewallService() = default;
++
++bool FirewallService::IsAllowed(int32_t unique_id_hash_code) {
++  const auto it = decode_map_.find(unique_id_hash_code);
++  if (it == decode_map_.end())
++    return false;
++
++  return it->second.allowed;
++}
++
++absl::optional<builders::EntryDecoder> FirewallService::GetEntry(
++                                int32_t unique_id_hash_code) const {
++  const auto it = decode_map_.find(unique_id_hash_code);
++  if (it == decode_map_.end())
++    return absl::nullopt;
++
++  return absl::optional<builders::EntryDecoder>(it->second);
++}
++
++}
+diff --git a/services/firewall/public/firewall_service.h b/services/firewall/public/firewall_service.h
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/public/firewall_service.h
+@@ -0,0 +1,57 @@
++/*
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++*/
++
++#ifndef COMPONENTS_FIREWALL_FIREWALL_SERVICE_H_
++#define COMPONENTS_FIREWALL_FIREWALL_SERVICE_H_
++
++#include <stddef.h>
++#include <memory>
++
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "services/firewall/public/firewall_builders.h"
++#include "services/firewall/public/annotation_decode.h"
++#include "third_party/abseil-cpp/absl/types/optional.h"
++
++#include "firewall_features.h"
++
++class PrefService;
++
++namespace firewall {
++
++class FirewallService {
++ public:
++  FirewallService(PrefService* pref_service);
++
++  FirewallService(const FirewallService&) = delete;
++  FirewallService& operator=(const FirewallService&) = delete;
++
++  ~FirewallService();
++
++  bool IsAllowed(int32_t unique_id_hash_code);
++  absl::optional<builders::EntryDecoder> GetEntry(int32_t unique_id_hash_code) const;
++
++ private:
++  raw_ptr<PrefService> pref_service_;
++  firewall::builders::DecodeMap decode_map_;
++
++  base::WeakPtrFactory<FirewallService> self_ptr_factory_{this};
++};
++
++} // namespace firewall
++
++#endif // COMPONENTS_FIREWALL_FIREWALL_SERVICE_H_
+diff --git a/services/firewall/tools/annotation_model.py b/services/firewall/tools/annotation_model.py
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/tools/annotation_model.py
+@@ -0,0 +1,49 @@
++# This file is part of Bromite.
++# Bromite is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++# Bromite is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# You should have received a copy of the GNU General Public License
++# along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++
++import os
++import sys
++
++sys.path.append(os.path.join(os.path.dirname(__file__), '..', '../../tools/metrics/common'))
++import models
++
++_ITEM_TYPE = models.ObjectNodeType('item',
++                                    attributes=[
++                                        ('id', str, r'^[_A-Za-z0-9.]+$'),
++                                        ('hash_code', str, r'^[0-9.]+$'),
++                                        ('file_path', str, r'^[_/A-Za-z0-9.]*$'),
++                                        ('allowed', str, r'^[_/A-Za-z0-9.]*$'),
++                                    ],
++                                    extra_newlines=(1, 1, 1))
++
++
++_ANNOTATION_CONFIGURATION_TYPE = models.ObjectNodeType(
++    'annotations',
++    extra_newlines=(2, 1, 1),
++    indent=False,
++    children=[
++        models.ChildType(_ITEM_TYPE.tag, _ITEM_TYPE, multiple=True),
++    ])
++
++ANNOTATION_XML_TYPE = models.DocumentType(_ANNOTATION_CONFIGURATION_TYPE)
++
++def PrettifyXML(original_xml):
++  """Parses the original xml and return a pretty printed version.
++
++  Args:
++    original_xml: A string containing the original xml file contents.
++
++  Returns:
++    A pretty-printed xml string, or None if the config contains errors.
++  """
++  config = ANNOTATION_XML_TYPE.Parse(original_xml)
++  return ANNOTATION_XML_TYPE.PrettyPrint(config)
+diff --git a/services/firewall/tools/annotations.xml b/services/firewall/tools/annotations.xml
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/tools/annotations.xml
+@@ -0,0 +1,448 @@
++<?xml version="1.0"?>
++<!--
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++
++    Refer to README.md for content description and update process.
++
++TO PRODUCE:
++    vpython3 ./tools/traffic_annotation/scripts/auditor/auditor.py - -build-path=out/bromite
++-->
++
++<annotations>
++ <item id="accounts_image_fetcher" added_in_milestone="66" hash_code="98658519" content_hash_code="02b53da6" os_list="linux,windows,chromeos,android" file_path="components/signin/internal/identity_manager/account_fetcher_service.cc" />
++ <item id="adb_client_socket" added_in_milestone="65" hash_code="87775794" content_hash_code="03607bec" os_list="linux,windows,chromeos" file_path="chrome/browser/devtools/device/adb/adb_client_socket.cc" />
++ <item id="affiliation_lookup_by_hash" added_in_milestone="87" hash_code="57748571" content_hash_code="04e2a551" os_list="windows,chromeos,android,linux" file_path="components/password_manager/core/browser/affiliation/hash_affiliation_fetcher.cc" />
++ <item id="aggregation_service_helper_keys" added_in_milestone="96" hash_code="49783589" content_hash_code="006e2ea0" os_list="linux,windows,chromeos,android" file_path="content/browser/aggregation_service/aggregation_service_network_fetcher_impl.cc" />
++ <item id="aggregation_service_report" added_in_milestone="95" hash_code="95942194" content_hash_code="037768da" os_list="linux,windows,chromeos,android" file_path="content/browser/aggregation_service/aggregatable_report_sender.cc" />
++ <item id="android_device_manager_socket" added_in_milestone="65" hash_code="37249086" content_hash_code="00623801" os_list="linux,windows,chromeos" file_path="chrome/browser/devtools/device/android_device_manager.cc" />
++ <item id="android_web_socket" added_in_milestone="65" hash_code="39356976" content_hash_code="00bbd661" os_list="linux,windows,chromeos" file_path="chrome/browser/devtools/device/android_web_socket.cc" />
++ <item id="auction_downloader" added_in_milestone="92" hash_code="27833508" content_hash_code="0713f212" os_list="linux,windows,chromeos,android" file_path="content/services/auction_worklet/auction_downloader.cc" />
++ <item id="auction_report_sender" added_in_milestone="92" hash_code="96136865" content_hash_code="029b766e" os_list="linux,windows,chromeos,android" file_path="content/browser/interest_group/interest_group_manager_impl.cc" />
++ <item id="autofill_image_fetcher_card_art_image" added_in_milestone="93" hash_code="90561372" content_hash_code="0177b54c" os_list="linux,windows,chromeos,android" file_path="chrome/browser/autofill/autofill_image_fetcher_impl.cc" />
++ <item id="autofill_query" added_in_milestone="62" hash_code="88863520" content_hash_code="00ed7a4b" os_list="linux,windows,chromeos,android" file_path="components/autofill/core/browser/autofill_download_manager.cc" />
++ <item id="autofill_upload" added_in_milestone="62" hash_code="104798869" content_hash_code="0698270b" os_list="linux,windows,chromeos,android" file_path="components/autofill/core/browser/autofill_download_manager.cc" />
++ <item id="backdrop_collection_images_download" added_in_milestone="68" hash_code="34767164" content_hash_code="03c0de0e" os_list="linux,windows,chromeos" file_path="chrome/browser/search/background/ntp_background_service.cc" />
++ <item id="backdrop_collection_names_download" added_in_milestone="68" hash_code="49246286" content_hash_code="0592b787" os_list="linux,windows,chromeos" file_path="chrome/browser/search/background/ntp_background_service.cc" />
++ <item id="backdrop_next_image_download" added_in_milestone="77" hash_code="7754485" content_hash_code="05df91f2" os_list="linux,windows,chromeos" file_path="chrome/browser/search/background/ntp_background_service.cc" />
++ <item id="background_fetch_context" added_in_milestone="62" hash_code="16469669" content_hash_code="031d0caa" os_list="linux,windows,chromeos,android" file_path="content/browser/background_fetch/background_fetch_delegate_proxy.cc" />
++ <item id="bidirectional_stream" added_in_milestone="67" hash_code="108665132" content_hash_code="07c03a44" os_list="linux,windows,chromeos,android" file_path="net/http/bidirectional_stream.cc" />
++ <item id="blink_extension_resource_loader" added_in_milestone="63" hash_code="84165821" content_hash_code="03c97c39" os_list="linux,windows,chromeos,android" file_path="third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc" />
++ <item id="blink_resource_loader" added_in_milestone="62" hash_code="101845102" content_hash_code="047d7664" os_list="linux,windows,chromeos,android" file_path="third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc" />
++ <item id="bluetooth_socket" added_in_milestone="65" hash_code="94099818" content_hash_code="01d7fd7d" os_list="linux,windows,chromeos,android" file_path="device/bluetooth/bluetooth_socket_net.cc" />
++ <item id="brandcode_config" added_in_milestone="62" hash_code="109679553" content_hash_code="07ae0010" os_list="linux,windows,chromeos" file_path="chrome/browser/profile_resetter/brandcode_config_fetcher.cc" />
++ <item id="browser_switcher_ieem_sitelist" added_in_milestone="72" hash_code="97159948" content_hash_code="07b15836" os_list="linux,windows" file_path="chrome/browser/browser_switcher/browser_switcher_service.cc" />
++ <item id="cablev2_websocket_from_authenticator" added_in_milestone="87" hash_code="28613769" content_hash_code="0724f93c" os_list="linux,windows,chromeos,android" file_path="device/fido/cable/v2_authenticator.cc" />
++ <item id="cablev2_websocket_from_client" added_in_milestone="86" hash_code="3464399" content_hash_code="06f37377" os_list="windows,linux,chromeos" file_path="device/fido/cable/fido_tunnel_device.cc" />
++ <item id="captive_portal_service" added_in_milestone="62" hash_code="88754904" content_hash_code="04375eac" os_list="linux,windows,chromeos" file_path="components/captive_portal/content/captive_portal_service.cc" />
++ <item id="cast_socket" added_in_milestone="66" hash_code="115192205" content_hash_code="01cbc995" os_list="linux,windows,chromeos,android" file_path="components/media_router/common/providers/cast/channel/cast_socket.cc" />
++ <item id="cast_udp_socket" added_in_milestone="66" hash_code="22573197" content_hash_code="047d6b2d" os_list="linux,windows,chromeos,android" file_path="components/mirroring/service/udp_socket_client.cc" />
++ <item id="cast_udp_transport" added_in_milestone="65" hash_code="5576536" content_hash_code="066a8189" os_list="linux,windows,chromeos,android" file_path="media/cast/net/udp_transport_impl.cc" />
++ <item id="certificate_verifier_url_loader" added_in_milestone="80" hash_code="80134684" content_hash_code="05856cc0" os_list="linux,windows,chromeos,android" file_path="services/cert_verifier/cert_net_url_loader/cert_net_fetcher_url_loader.cc" />
++ <item id="certificate_verifier_url_request" added_in_milestone="80" hash_code="85988208" content_hash_code="03884604" os_list="linux,windows,chromeos,android" file_path="net/cert_net/cert_net_fetcher_url_request.cc" />
++ <item id="chrome_apps_socket_api" added_in_milestone="65" hash_code="8591273" content_hash_code="07ca7795" os_list="linux,windows,chromeos" file_path="extensions/browser/api/socket/socket.cc" />
++ <item id="chrome_cart_discounts_lookup" added_in_milestone="92" hash_code="44551896" content_hash_code="05b3e421" os_list="linux,windows,chromeos" file_path="chrome/browser/cart/cart_discount_fetcher.cc" />
++ <item id="chrome_cart_get_discounted_link" added_in_milestone="92" hash_code="58596544" content_hash_code="052260e0" os_list="linux,windows,chromeos" file_path="chrome/browser/cart/cart_discount_link_fetcher.cc" />
++ <item id="chrome_cleaner" added_in_milestone="63" hash_code="27071967" content_hash_code="06a16464" os_list="windows" file_path="chrome/browser/safe_browsing/chrome_cleaner/chrome_cleaner_fetcher_win.cc" />
++ <item id="chrome_cleanup_report" added_in_milestone="70" hash_code="71102679" content_hash_code="07c84618" os_list="windows" file_path="chrome/chrome_cleaner/logging/cleaner_logging_service.cc" />
++ <item id="chrome_feedback_report_app" added_in_milestone="62" hash_code="134729048" content_hash_code="04bf864a" os_list="linux,windows,chromeos,android" file_path="components/feedback/feedback_uploader.cc" />
++ <item id="chrome_variations_service" added_in_milestone="62" hash_code="115188287" content_hash_code="00f59481" os_list="linux,windows,chromeos,android" file_path="components/variations/service/variations_service.cc" />
++ <item id="client_download_request" added_in_milestone="62" hash_code="125522256" content_hash_code="01da15dc" os_list="linux,windows,chromeos" file_path="chrome/browser/safe_browsing/download_protection/check_client_download_request_base.cc" />
++ <item id="content_hash_verification_job" added_in_milestone="62" hash_code="64733114" content_hash_code="079fc9db" os_list="linux,windows,chromeos" file_path="extensions/browser/content_hash_fetcher.cc" />
++ <item id="conversion_measurement_report" added_in_milestone="84" hash_code="113422320" content_hash_code="06a4170c" os_list="linux,windows,android,chromeos" file_path="content/browser/attribution_reporting/attribution_report_network_sender.cc" />
++ <item id="credenential_avatar" added_in_milestone="62" hash_code="53695122" content_hash_code="06bcc86b" os_list="linux,windows,chromeos,android" file_path="chrome/browser/ui/passwords/account_avatar_fetcher.cc" />
++ <item id="cros_recovery_image_download" added_in_milestone="62" hash_code="101725581" content_hash_code="00a7d792" os_list="linux,windows,chromeos" file_path="chrome/browser/extensions/api/image_writer_private/write_from_url_operation.cc" />
++ <item id="desktop_screenshot_save" added_in_milestone="94" hash_code="18870110" content_hash_code="0431b7d2" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/views/sharing_hub/screenshot/screenshot_captured_bubble.cc" />
++ <item id="device_management_service" added_in_milestone="62" hash_code="117782019" content_hash_code="06395282" os_list="linux,windows,chromeos,android" file_path="components/policy/core/common/cloud/device_management_service.cc" />
++ <item id="devtools_cdp_network_resource" added_in_milestone="87" hash_code="60744935" content_hash_code="051db8c6" os_list="linux,windows,chromeos,android" file_path="content/browser/devtools/protocol/devtools_network_resource_loader.cc" />
++ <item id="devtools_free_data_source" added_in_milestone="62" hash_code="22774132" content_hash_code="01a26b6a" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/webui/devtools_ui_data_source.cc" />
++ <item id="devtools_handle_front_end_messages" added_in_milestone="62" hash_code="135636011" content_hash_code="04940191" os_list="linux,windows,chromeos,android" file_path="content/shell/browser/shell_devtools_bindings.cc" />
++ <item id="devtools_hard_coded_data_source" added_in_milestone="62" hash_code="111565057" content_hash_code="073b9777" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/webui/devtools_ui_data_source.cc" />
++ <item id="devtools_http_handler" added_in_milestone="66" hash_code="49160454" content_hash_code="054518b9" os_list="linux,windows,chromeos,android" file_path="content/browser/devtools/devtools_http_handler.cc" />
++ <item id="devtools_network_resource" added_in_milestone="62" hash_code="129652775" content_hash_code="01f4a4af" os_list="linux,windows,chromeos" file_path="chrome/browser/devtools/devtools_ui_bindings.cc" />
++ <item id="devtools_proxy_config" added_in_milestone="85" hash_code="79904729" content_hash_code="01e83c36" os_list="linux,windows,chromeos,android" file_path="content/browser/devtools/protocol/target_handler.cc" />
++ <item id="dial_url_fetcher" added_in_milestone="67" hash_code="41424546" content_hash_code="07bd0650" os_list="linux,windows,chromeos" file_path="chrome/browser/media/router/discovery/dial/dial_url_fetcher.cc" />
++ <item id="digital_asset_links" added_in_milestone="90" hash_code="134272131" content_hash_code="00ced49e" os_list="linux,windows,chromeos,android" file_path="components/content_relationship_verification/digital_asset_links_handler.cc" />
++ <item id="direct_sockets" added_in_milestone="88" hash_code="32472991" content_hash_code="03dc0aad" os_list="linux,windows,chromeos" file_path="content/browser/direct_sockets/direct_sockets_service_impl.cc" />
++ <item id="dns_over_https" added_in_milestone="66" hash_code="79895226" content_hash_code="02b087b6" os_list="linux,windows,chromeos,android" file_path="net/dns/dns_transaction.cc" />
++ <item id="dns_transaction" added_in_milestone="65" hash_code="79227717" content_hash_code="07e14f9f" os_list="linux,windows,chromeos,android" file_path="net/dns/dns_transaction.cc" />
++ <item id="dom_distiller" added_in_milestone="62" hash_code="3989826" content_hash_code="0653c7f2" os_list="linux,windows,chromeos,android" file_path="components/dom_distiller/core/distiller_url_fetcher.cc" />
++ <item id="domain_reliability_report_upload" added_in_milestone="62" hash_code="108804096" content_hash_code="06d185bd" os_list="linux,windows,chromeos,android" file_path="components/domain_reliability/uploader.cc" />
++ <item id="domain_security_policy" added_in_milestone="62" hash_code="77597059" content_hash_code="01d7c177" os_list="linux,windows,chromeos,android" file_path="services/network/network_context.cc" />
++ <item id="download_internals_webui_source" added_in_milestone="66" hash_code="38670228" content_hash_code="07b659d0" os_list="linux,windows,chromeos,android" file_path="chrome/browser/ui/webui/download_internals/download_internals_ui_message_handler.cc" />
++ <item id="download_manager_resume" added_in_milestone="62" hash_code="35380758" content_hash_code="0275159a" os_list="linux,windows,chromeos,android" file_path="components/download/internal/common/download_item_impl.cc" />
++ <item id="download_recovery_component" added_in_milestone="71" hash_code="131711536" content_hash_code="00317d2f" os_list="windows" file_path="chrome/chrome_cleaner/components/recovery_component.cc" />
++ <item id="download_web_contents_frame" added_in_milestone="62" hash_code="56351037" content_hash_code="0037d0a1" os_list="linux,windows,chromeos,android" file_path="content/browser/web_contents/web_contents_impl.cc" />
++ <item id="downloads_api_run_async" added_in_milestone="62" hash_code="121068967" content_hash_code="008d9d92" os_list="linux,windows,chromeos" file_path="chrome/browser/extensions/api/downloads/downloads_api.cc" />
++ <item id="downloads_dom_handler" added_in_milestone="73" hash_code="95951029" content_hash_code="082cc10b" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/webui/downloads/downloads_dom_handler.cc" />
++ <item id="drag_download_file" added_in_milestone="62" hash_code="95910019" content_hash_code="078a20ba" os_list="linux,windows,chromeos,android" file_path="content/browser/download/drag_download_file.cc" />
++ <item id="drive_service" added_in_milestone="90" hash_code="56074781" content_hash_code="059e2023" os_list="linux,windows,chromeos" file_path="chrome/browser/new_tab_page/modules/drive/drive_service.cc" />
++ <item id="early_hints_preload" added_in_milestone="91" hash_code="35266994" content_hash_code="028fe27a" os_list="linux,windows,chromeos,android" file_path="content/browser/loader/navigation_early_hints_manager.cc" />
++ <item id="enterprise_safe_browsing_realtime_url_lookup" added_in_milestone="86" hash_code="22262963" content_hash_code="00d66dca" os_list="linux,windows,chromeos" file_path="chrome/browser/safe_browsing/chrome_enterprise_url_lookup_service.cc" />
++ <item id="extension_blacklist" added_in_milestone="62" hash_code="59592717" content_hash_code="005cb431" os_list="linux,windows,chromeos" file_path="chrome/browser/extensions/blocklist_state_fetcher.cc" />
++ <item id="extension_crx_fetcher" added_in_milestone="62" hash_code="21145003" content_hash_code="05d3e86d" os_list="linux,windows,chromeos" file_path="extensions/browser/updater/extension_downloader.cc" />
++ <item id="extension_install_signer" added_in_milestone="62" hash_code="50464499" content_hash_code="065c4bce" os_list="linux,windows,chromeos" file_path="chrome/browser/extensions/install_signer.cc" />
++ <item id="extension_manifest_fetcher" added_in_milestone="62" hash_code="5151071" content_hash_code="05983aa9" os_list="linux,windows,chromeos" file_path="extensions/browser/updater/extension_downloader.cc" />
++ <item id="external_policy_fetcher" added_in_milestone="62" hash_code="9459438" content_hash_code="03d48984" os_list="linux,windows,chromeos" file_path="components/policy/core/common/cloud/external_policy_data_fetcher.cc" />
++ <item id="favicon_loader" added_in_milestone="63" hash_code="112189210" content_hash_code="0437e97c" os_list="linux,windows,chromeos,android" file_path="third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc" />
++ <item id="ftl_messaging_client_ack_messages" added_in_milestone="86" hash_code="55663676" content_hash_code="013f1ddb" os_list="linux,windows,chromeos,android" file_path="remoting/signaling/ftl_messaging_client.cc" />
++ <item id="ftl_messaging_client_receive_messages" added_in_milestone="86" hash_code="136248372" content_hash_code="022e9c77" os_list="linux,windows,chromeos,android" file_path="remoting/signaling/ftl_messaging_client.cc" />
++ <item id="ftl_messaging_client_send_messages" added_in_milestone="86" hash_code="48924790" content_hash_code="006864f3" os_list="linux,windows,chromeos,android" file_path="remoting/signaling/ftl_messaging_client.cc" />
++ <item id="ftl_registration_manager" added_in_milestone="86" hash_code="38256901" content_hash_code="00bff9a1" os_list="linux,windows,chromeos,android" file_path="remoting/signaling/ftl_registration_manager.cc" />
++ <item id="gaia_auth_check_connection_info" added_in_milestone="62" hash_code="4598626" content_hash_code="036b0bb8" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_auth_fetcher.cc" />
++ <item id="gaia_auth_exchange_device_id" added_in_milestone="62" hash_code="39877119" content_hash_code="02eb801a" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_auth_fetcher.cc" />
++ <item id="gaia_auth_fetch_for_uber" added_in_milestone="62" hash_code="97978464" content_hash_code="01ab5779" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_auth_fetcher.cc" />
++ <item id="gaia_auth_list_accounts" added_in_milestone="62" hash_code="35565745" content_hash_code="0595471e" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_auth_fetcher.cc" />
++ <item id="gaia_auth_log_out" added_in_milestone="62" hash_code="116426676" content_hash_code="056ee739" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_auth_fetcher.cc" />
++ <item id="gaia_auth_merge_sessions" added_in_milestone="62" hash_code="26216847" content_hash_code="01d03b23" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_auth_fetcher.cc" />
++ <item id="gaia_auth_multilogin" added_in_milestone="70" hash_code="31445884" content_hash_code="04a2142a" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_auth_fetcher.cc" />
++ <item id="gaia_auth_revoke_token" added_in_milestone="62" hash_code="133982351" content_hash_code="05c2fef2" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_auth_fetcher.cc" />
++ <item id="gaia_cookie_manager_external_cc_result" added_in_milestone="62" hash_code="4300475" content_hash_code="01dbe597" os_list="linux,windows,chromeos,android" file_path="components/signin/internal/identity_manager/gaia_cookie_manager_service.cc" />
++ <item id="gaia_create_reauth_proof_token_for_parent" added_in_milestone="80" hash_code="67750043" content_hash_code="062b4b5c" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_auth_fetcher.cc" />
++ <item id="gaia_oauth_client_get_account_capabilities" added_in_milestone="93" hash_code="87437888" content_hash_code="030c6c8d" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_oauth_client.cc" />
++ <item id="gaia_oauth_client_get_token_info" added_in_milestone="62" hash_code="32585152" content_hash_code="07a34ff2" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_oauth_client.cc" />
++ <item id="gaia_oauth_client_get_tokens" added_in_milestone="62" hash_code="5637379" content_hash_code="00b89e68" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_oauth_client.cc" />
++ <item id="gaia_oauth_client_get_user_info" added_in_milestone="62" hash_code="83476155" content_hash_code="02187bdf" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_oauth_client.cc" />
++ <item id="gaia_oauth_client_refresh_token" added_in_milestone="62" hash_code="82462683" content_hash_code="015459e4" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_oauth_client.cc" />
++ <item id="gcm_checkin" added_in_milestone="62" hash_code="65957842" content_hash_code="05db527b" os_list="linux,windows,chromeos,android" file_path="google_apis/gcm/engine/checkin_request.cc" />
++ <item id="gcm_connection_factory" added_in_milestone="66" hash_code="29057242" content_hash_code="047caddb" os_list="linux,windows,chromeos,android" file_path="google_apis/gcm/engine/connection_factory_impl.cc" />
++ <item id="gcm_registration" added_in_milestone="62" hash_code="61656965" content_hash_code="06c679e8" os_list="linux,windows,chromeos,android" file_path="google_apis/gcm/engine/registration_request.cc" />
++ <item id="gcm_unregistration" added_in_milestone="62" hash_code="119542033" content_hash_code="01cbf67f" os_list="linux,windows,chromeos,android" file_path="google_apis/gcm/engine/unregistration_request.cc" />
++ <item id="geo_language_provider" added_in_milestone="65" type="partial" second_id="network_location_request" hash_code="52821843" content_hash_code="03e4d160" os_list="linux,windows,chromeos,android" semantics_fields="1" policy_fields="3,4" file_path="components/language/content/browser/geo_language_provider.cc" />
++ <item id="heartbeat_sender" added_in_milestone="86" hash_code="4883150" content_hash_code="07dd0efd" os_list="linux,windows,chromeos" file_path="remoting/host/heartbeat_sender.cc" />
++ <item id="hintsfetcher_gethintsrequest" added_in_milestone="75" hash_code="34557599" content_hash_code="04bb400f" os_list="linux,windows,chromeos,android" file_path="components/optimization_guide/core/hints_fetcher.cc" />
++ <item id="history_notice_utils_notice" added_in_milestone="62" type="partial" second_id="web_history_service" hash_code="102595701" content_hash_code="07cc4c62" os_list="linux,windows,chromeos,android" semantics_fields="2,3,4" policy_fields="4" file_path="components/browsing_data/core/history_notice_utils.cc" />
++ <item id="history_notice_utils_popup" added_in_milestone="62" type="partial" second_id="web_history_service" hash_code="80832574" content_hash_code="01d3338e" os_list="linux,windows,chromeos,android" semantics_fields="2,3,4" policy_fields="4" file_path="components/browsing_data/core/history_notice_utils.cc" />
++ <item id="history_ui_favicon_request_handler_get_favicon" added_in_milestone="77" hash_code="17562717" content_hash_code="03d16565" os_list="linux,windows,chromeos,android" file_path="components/favicon/core/history_ui_favicon_request_handler_impl.cc" />
++ <item id="http_server_error_response" added_in_milestone="66" hash_code="32197336" content_hash_code="03a40a76" os_list="linux,windows,chromeos,android" file_path="net/server/http_server.cc" />
++ <item id="icon_cacher" added_in_milestone="62" hash_code="103133150" content_hash_code="06efa3dc" os_list="linux,windows,chromeos,android" file_path="components/ntp_tiles/icon_cacher_impl.cc" />
++ <item id="icon_catcher_get_large_icon" added_in_milestone="62" hash_code="44494884" content_hash_code="05db5c15" os_list="linux,windows,chromeos,android" file_path="components/ntp_tiles/icon_cacher_impl.cc" />
++ <item id="image_annotation" added_in_milestone="73" hash_code="107881858" content_hash_code="048b2d66" os_list="linux,windows,chromeos,android" file_path="services/image_annotation/annotator.cc" />
++ <item id="indexed_db_internals_handler" added_in_milestone="62" hash_code="131180348" content_hash_code="0384abe6" os_list="linux,windows,chromeos,android" file_path="content/browser/indexed_db/indexed_db_internals_ui.cc" />
++ <item id="interest_feedv2_image_send" added_in_milestone="86" hash_code="92245202" content_hash_code="06687258" os_list="linux,windows,chromeos,android" file_path="components/feed/core/v2/image_fetcher.cc" />
++ <item id="interest_feedv2_send" added_in_milestone="83" hash_code="85742023" content_hash_code="02f676af" os_list="linux,windows,chromeos,android" file_path="components/feed/core/v2/feed_network_impl.cc" />
++ <item id="interest_group_update_fetcher" added_in_milestone="94" hash_code="110915076" content_hash_code="06322759" os_list="linux,windows,android,chromeos" file_path="content/browser/interest_group/interest_group_update_manager.cc" />
++ <item id="intranet_redirect_detector" added_in_milestone="62" hash_code="21785164" content_hash_code="03b26f7b" os_list="linux,windows,chromeos" file_path="chrome/browser/intranet_redirect_detector.cc" />
++ <item id="javascript_report_error" added_in_milestone="87" hash_code="109607776" content_hash_code="006e4e54" os_list="linux" file_path="chrome/browser/error_reporting/chrome_js_error_report_processor_nonchromeos.cc" />
++ <item id="lib_address_input" added_in_milestone="62" hash_code="50816767" content_hash_code="0374aae8" os_list="linux,windows,chromeos,android" file_path="third_party/libaddressinput/chromium/chrome_metadata_source.cc" />
++ <item id="load_autofill_gstatic_data" added_in_milestone="78" hash_code="119416099" content_hash_code="07a1e952" os_list="linux,windows,chromeos,android" file_path="chrome/browser/autofill/autofill_gstatic_reader.cc" />
++ <item id="logo_service" added_in_milestone="73" hash_code="35473769" content_hash_code="013550c3" os_list="linux,windows,chromeos,android" file_path="components/search_provider_logos/logo_service_impl.cc" />
++ <item id="lookup_single_password_leak" added_in_milestone="78" hash_code="16927377" content_hash_code="00b98558" os_list="linux,windows,chromeos,android" file_path="components/password_manager/core/browser/leak_detection/leak_detection_request.cc" />
++ <item id="managed_configuration_loader" added_in_milestone="89" hash_code="77734467" content_hash_code="060dc999" os_list="linux,windows,chromeos" file_path="chrome/browser/device_api/managed_configuration_api.cc" />
++ <item id="media_router_global_media_controls_image" added_in_milestone="81" hash_code="95983790" content_hash_code="02e96911" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/global_media_controls/cast_media_notification_item.cc" />
++ <item id="metrics_report_ukm" added_in_milestone="62" hash_code="727478" content_hash_code="008577eb" os_list="linux,windows,chromeos,android" file_path="components/metrics/net/net_metrics_log_uploader.cc" />
++ <item id="metrics_report_uma" added_in_milestone="62" hash_code="727528" content_hash_code="009b46c5" os_list="linux,windows,chromeos,android" file_path="components/metrics/net/net_metrics_log_uploader.cc" />
++ <item id="missing" added_in_milestone="62" reserved="1" hash_code="77012883" os_list="linux,windows" file_path="" />
++ <item id="navigation_url_loader" added_in_milestone="62" hash_code="63171670" content_hash_code="060edd12" os_list="linux,windows,chromeos,android" file_path="content/browser/loader/navigation_url_loader_impl.cc" />
++ <item id="network_location_provider" added_in_milestone="64" type="partial" second_id="network_location_request" hash_code="23472048" content_hash_code="0272f3e8" os_list="linux,windows,chromeos" semantics_fields="1" policy_fields="3,4" file_path="services/device/geolocation/network_location_provider.cc" />
++ <item id="network_location_request" added_in_milestone="65" type="completing" hash_code="96590038" content_hash_code="04d00293" os_list="linux,windows,chromeos,android" semantics_fields="2,3,4,5" policy_fields="-1" file_path="services/device/geolocation/network_location_request.cc" />
++ <item id="network_time_component" added_in_milestone="62" hash_code="46188932" content_hash_code="01ac0991" os_list="linux,windows,chromeos,android" file_path="components/network_time/network_time_tracker.cc" />
++ <item id="new_tab_page_handler" added_in_milestone="84" hash_code="48673144" content_hash_code="02ee5881" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/webui/new_tab_page/new_tab_page_handler.cc" />
++ <item id="notification_client" added_in_milestone="79" hash_code="78479125" content_hash_code="07bdb896" os_list="linux,windows,chromeos" file_path="remoting/client/notification/notification_client.cc" />
++ <item id="nux_ntp_background_preview" added_in_milestone="74" hash_code="124847649" content_hash_code="01df3270" os_list="linux,windows" file_path="chrome/browser/ui/webui/welcome/ntp_background_fetcher.cc" />
++ <item id="oauth2_access_token_fetcher" added_in_milestone="62" hash_code="27915688" content_hash_code="01ff32b0" os_list="linux,windows,chromeos,android" file_path="google_apis/gaia/gaia_access_token_fetcher.cc" />
++ <item id="oauth2_api_call_flow" added_in_milestone="65" type="completing" hash_code="29188932" content_hash_code="067ca204" os_list="linux,windows,chromeos,android" policy_fields="-1" file_path="google_apis/gaia/oauth2_api_call_flow.cc" />
++ <item id="oauth2_mint_token_flow" added_in_milestone="62" type="partial" second_id="oauth2_api_call_flow" hash_code="1112842" content_hash_code="05756bf8" os_list="linux,windows,chromeos,android" semantics_fields="1,2,3,4,5" policy_fields="3,4" file_path="google_apis/gaia/oauth2_mint_token_flow.cc" />
++ <item id="omaha_client_android_uc" added_in_milestone="99" hash_code="60759876" content_hash_code="0757ca45" os_list="android" file_path="chrome/android/java/src/org/chromium/chrome/browser/omaha/OmahaBase.java" />
++ <item id="omnibox_documentsuggest" added_in_milestone="69" hash_code="6055066" content_hash_code="07917541" os_list="linux,windows,chromeos,android" file_path="components/omnibox/browser/document_suggestions_service.cc" />
++ <item id="omnibox_navigation_observer" added_in_milestone="62" hash_code="61684939" content_hash_code="043a7a2f" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/omnibox/chrome_omnibox_navigation_observer.cc" />
++ <item id="omnibox_result_change" added_in_milestone="62" hash_code="73107389" content_hash_code="017a7557" os_list="linux,windows,chromeos,android" file_path="chrome/browser/bitmap_fetcher/bitmap_fetcher_service.cc" />
++ <item id="omnibox_suggest" added_in_milestone="62" hash_code="47815025" content_hash_code="0524cc7e" os_list="linux,windows,chromeos,android" file_path="components/omnibox/browser/remote_suggestions_service.cc" />
++ <item id="omnibox_suggest_deletion" added_in_milestone="62" hash_code="84212388" content_hash_code="017d302e" os_list="linux,windows,chromeos,android" file_path="components/omnibox/browser/remote_suggestions_service.cc" />
++ <item id="omnibox_zerosuggest" added_in_milestone="62" hash_code="7687691" content_hash_code="071e32e9" os_list="linux,windows,chromeos,android" file_path="components/omnibox/browser/remote_suggestions_service.cc" />
++ <item id="one_google_bar_service" added_in_milestone="62" hash_code="78917933" content_hash_code="02c5f314" os_list="linux,windows,chromeos" file_path="chrome/browser/new_tab_page/one_google_bar/one_google_bar_loader_impl.cc" />
++ <item id="open_search" added_in_milestone="62" hash_code="107267424" content_hash_code="04f2de86" os_list="linux,windows,chromeos,android" file_path="components/search_engines/template_url_fetcher.cc" />
++ <item id="openscreen_message" added_in_milestone="83" hash_code="23036184" content_hash_code="076a1faf" os_list="linux,windows,chromeos,android" file_path="components/openscreen_platform/udp_socket.cc" />
++ <item id="openscreen_tls_message" added_in_milestone="83" hash_code="40127335" content_hash_code="00f4022a" os_list="linux,windows,chromeos,android" file_path="components/openscreen_platform/tls_connection_factory.cc" />
++ <item id="optimization_guide_model" added_in_milestone="79" hash_code="106373593" content_hash_code="018a9f3d" os_list="linux,windows,chromeos,android" file_path="components/optimization_guide/core/prediction_model_fetcher_impl.cc" />
++ <item id="optimization_guide_model_download" added_in_milestone="88" hash_code="100143055" content_hash_code="0062d36f" os_list="linux,windows,android,chromeos" file_path="components/optimization_guide/core/prediction_model_download_manager.cc" />
++ <item id="parallel_download_job" added_in_milestone="62" hash_code="135118587" content_hash_code="064736f3" os_list="linux,windows,chromeos,android" file_path="components/download/internal/common/parallel_download_job.cc" />
++ <item id="password_protection_request" added_in_milestone="62" hash_code="66322287" content_hash_code="01869413" os_list="linux,windows,chromeos,android" file_path="components/safe_browsing/core/browser/password_protection/password_protection_request.cc" />
++ <item id="password_requirements_spec_fetch" added_in_milestone="69" hash_code="69585116" content_hash_code="005550dc" os_list="linux,windows,chromeos,android" file_path="components/password_manager/core/browser/generation/password_requirements_spec_fetcher_impl.cc" />
++ <item id="payment_manifest_downloader" added_in_milestone="62" hash_code="84045030" content_hash_code="01266484" os_list="linux,windows,chromeos,android" file_path="components/payments/core/payment_manifest_downloader.cc" />
++ <item id="payments_sync_cards" added_in_milestone="62" hash_code="95588446" content_hash_code="035e86b1" os_list="linux,windows,chromeos,android" file_path="components/autofill/core/browser/payments/payments_client.cc" />
++ <item id="pdf_plugin_placeholder" added_in_milestone="63" hash_code="56866367" content_hash_code="0101fbd5" os_list="linux,windows,chromeos" file_path="chrome/browser/plugins/plugin_observer.cc" />
++ <item id="pepper_tcp_socket" added_in_milestone="65" hash_code="120623198" content_hash_code="01a37664" os_list="linux,windows,chromeos" file_path="content/browser/renderer_host/pepper/pepper_socket_utils.cc" />
++ <item id="pepper_udp_socket" added_in_milestone="70" hash_code="53512439" content_hash_code="006ee842" os_list="linux,windows,chromeos" file_path="content/browser/renderer_host/pepper/pepper_socket_utils.cc" />
++ <item id="per_user_topic_registration_request" added_in_milestone="68" hash_code="10498172" content_hash_code="0367425f" os_list="linux,windows,chromeos,android" file_path="components/invalidation/impl/per_user_topic_subscription_request.cc" />
++ <item id="permission_predictions" added_in_milestone="88" hash_code="89492280" content_hash_code="0556d9f7" os_list="linux,windows,chromeos,android" file_path="components/permissions/prediction_service/prediction_service.cc" />
++ <item id="photos_service" added_in_milestone="94" hash_code="100936478" content_hash_code="0573af72" os_list="linux,windows,chromeos" file_path="chrome/browser/new_tab_page/modules/photos/photos_service.cc" />
++ <item id="popular_sites_fetch" added_in_milestone="62" hash_code="50755044" content_hash_code="00697083" os_list="linux,windows,chromeos,android" file_path="components/ntp_tiles/popular_sites_impl.cc" />
++ <item id="port_forwarding_controller_socket" added_in_milestone="65" hash_code="95075845" content_hash_code="074810e4" os_list="linux,windows,chromeos" file_path="chrome/browser/devtools/device/port_forwarding_controller.cc" />
++ <item id="ppapi_download_request" added_in_milestone="62" hash_code="135967426" content_hash_code="055489f6" os_list="linux,windows,chromeos" file_path="chrome/browser/safe_browsing/download_protection/ppapi_download_request.cc" />
++ <item id="predictive_prefetch" added_in_milestone="85" hash_code="72157052" content_hash_code="00ebd1fd" os_list="linux,windows,chromeos,android" file_path="chrome/browser/predictors/prefetch_manager.cc" />
++ <item id="profile_avatar" added_in_milestone="62" hash_code="51164680" content_hash_code="06c4a5fd" os_list="linux,windows,chromeos" file_path="chrome/browser/profiles/profile_avatar_downloader.cc" />
++ <item id="profile_resetter_upload" added_in_milestone="62" hash_code="105330607" content_hash_code="07b56813" os_list="linux,windows,chromeos" file_path="chrome/browser/profile_resetter/reset_report_uploader.cc" />
++ <item id="promo_service" added_in_milestone="72" hash_code="67052219" content_hash_code="01f69c19" os_list="linux,windows,chromeos" file_path="chrome/browser/new_tab_page/promos/promo_service.cc" />
++ <item id="proxy_config_direct" added_in_milestone="67" hash_code="119015679" content_hash_code="032a4682" os_list="linux,windows,chromeos,android" file_path="net/proxy_resolution/proxy_config_with_annotation.cc" />
++ <item id="proxy_config_headless" added_in_milestone="67" hash_code="133221587" content_hash_code="049def4d" os_list="linux,windows,chromeos" file_path="headless/lib/browser/headless_request_context_manager.cc" />
++ <item id="proxy_config_settings" added_in_milestone="67" hash_code="136468456" content_hash_code="05940645" os_list="linux,windows,chromeos,android" file_path="components/proxy_config/pref_proxy_config_tracker_impl.cc" />
++ <item id="proxy_config_system" added_in_milestone="67" hash_code="11258689" content_hash_code="061e794f" os_list="linux,windows,chromeos,android" file_path="net/proxy_resolution/proxy_config_service.cc" />
++ <item id="proxy_config_windows_resolver" added_in_milestone="86" hash_code="13924805" content_hash_code="075530ef" os_list="windows" file_path="net/proxy_resolution/win/windows_system_proxy_resolution_request.cc" />
++ <item id="qr_code_save" added_in_milestone="84" hash_code="87963126" content_hash_code="045593bd" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/views/qrcode_generator/qrcode_generator_bubble.cc" />
++ <item id="query_tiles_fetcher" added_in_milestone="84" hash_code="10243490" content_hash_code="0100b835" os_list="linux,windows,chromeos,android" file_path="components/query_tiles/internal/tile_fetcher.cc" />
++ <item id="query_tiles_image_loader" added_in_milestone="83" hash_code="95103115" content_hash_code="04797c4a" os_list="linux,windows,chromeos,android" file_path="components/query_tiles/internal/cached_image_loader.cc" />
++ <item id="quic_chromium_incoming_pending_session" added_in_milestone="73" hash_code="120830730" content_hash_code="032742d9" os_list="linux,windows,chromeos,android" file_path="net/quic/quic_chromium_client_session.cc" />
++ <item id="quic_chromium_incoming_session" added_in_milestone="66" hash_code="87635401" content_hash_code="04aeee25" os_list="linux,windows,chromeos,android" file_path="net/quic/quic_chromium_client_session.cc" />
++ <item id="quic_chromium_packet_writer" added_in_milestone="66" hash_code="20153177" content_hash_code="01c48aa5" os_list="linux,windows,chromeos,android" file_path="net/quic/quic_chromium_packet_writer.cc" />
++ <item id="ranker_url_fetcher" added_in_milestone="62" hash_code="95682324" content_hash_code="02bd45e2" os_list="linux,windows,chromeos,android" file_path="components/assist_ranker/ranker_url_fetcher.cc" />
++ <item id="remote_copy_message_handler" added_in_milestone="80" hash_code="80255301" content_hash_code="07038d73" os_list="linux,windows,chromeos" file_path="chrome/browser/sharing/shared_clipboard/remote_copy_message_handler.cc" />
++ <item id="remoting_directory_delete_host" added_in_milestone="86" hash_code="89093734" content_hash_code="03ed762b" os_list="linux,windows,chromeos,android" file_path="remoting/base/directory_service_client.cc" />
++ <item id="remoting_directory_get_host_list" added_in_milestone="86" hash_code="93434368" content_hash_code="03933aa0" os_list="linux,windows,chromeos,android" file_path="remoting/base/directory_service_client.cc" />
++ <item id="remoting_directory_register_host" added_in_milestone="86" hash_code="117688925" content_hash_code="046c936d" os_list="linux,windows,chromeos,android" file_path="remoting/base/directory_service_client.cc" />
++ <item id="remoting_ice_config_request" added_in_milestone="86" hash_code="88945310" content_hash_code="05a5a715" os_list="linux,windows,chromeos,android" file_path="remoting/protocol/remoting_ice_config_request.cc" />
++ <item id="remoting_log_to_server" added_in_milestone="86" hash_code="99742369" content_hash_code="06fb14d6" os_list="linux,windows,chromeos,android" file_path="remoting/signaling/remoting_log_to_server.cc" />
++ <item id="remoting_register_support_host_request" added_in_milestone="86" hash_code="67117364" content_hash_code="00f37554" os_list="linux,windows,chromeos" file_path="remoting/host/remoting_register_support_host_request.cc" />
++ <item id="remoting_telemetry_log_writer" added_in_milestone="86" hash_code="107268760" content_hash_code="04df471b" os_list="linux,windows,chromeos,android" file_path="remoting/base/telemetry_log_writer.cc" />
++ <item id="render_view_context_menu" added_in_milestone="62" hash_code="25844439" content_hash_code="04240bc2" os_list="linux,windows,chromeos" file_path="chrome/browser/renderer_context_menu/render_view_context_menu.cc" />
++ <item id="renderer_initiated_download" added_in_milestone="62" hash_code="116443055" content_hash_code="02417da4" os_list="linux,windows,chromeos,android" file_path="content/browser/renderer_host/render_frame_host_impl.cc" />
++ <item id="reporting" added_in_milestone="62" hash_code="109891200" content_hash_code="077eedd0" os_list="linux,windows,chromeos" file_path="net/reporting/reporting_uploader.cc" />
++ <item id="rlz_ping" added_in_milestone="63" hash_code="99279418" content_hash_code="06160e82" os_list="windows,chromeos" file_path="rlz/lib/financial_ping.cc" />
++ <item id="safe_browsing_binary_upload_app" added_in_milestone="87" hash_code="4306022" content_hash_code="03da20b9" os_list="linux,windows,chromeos" file_path="chrome/browser/safe_browsing/cloud_content_scanning/cloud_binary_upload_service.cc" />
++ <item id="safe_browsing_binary_upload_connector" added_in_milestone="87" hash_code="59568147" content_hash_code="031b9017" os_list="linux,windows,chromeos" file_path="chrome/browser/safe_browsing/cloud_content_scanning/cloud_binary_upload_service.cc" />
++ <item id="safe_browsing_cache_collector" added_in_milestone="62" hash_code="115907811" content_hash_code="03b69135" os_list="linux,windows,chromeos,android" file_path="components/safe_browsing/content/browser/threat_details_cache.cc" />
++ <item id="safe_browsing_certificate_error_reporting" added_in_milestone="62" hash_code="66590631" content_hash_code="018e6226" os_list="linux,windows,chromeos,android" file_path="chrome/browser/ssl/certificate_error_reporter.cc" />
++ <item id="safe_browsing_client_side_phishing_detector" added_in_milestone="62" hash_code="1313982" content_hash_code="018611e2" os_list="linux,windows,chromeos,android" file_path="components/safe_browsing/content/browser/client_side_detection_service.cc" />
++ <item id="safe_browsing_extended_reporting" added_in_milestone="62" hash_code="42848942" content_hash_code="04d6ea29" os_list="linux,windows,chromeos,android" file_path="components/safe_browsing/core/browser/ping_manager.cc" />
++ <item id="safe_browsing_feedback" added_in_milestone="62" hash_code="44583821" content_hash_code="019dc52e" os_list="linux,windows,chromeos" file_path="chrome/browser/safe_browsing/download_protection/download_feedback.cc" />
++ <item id="safe_browsing_incident" added_in_milestone="62" hash_code="124950347" content_hash_code="006f7d23" os_list="linux,windows,chromeos" file_path="chrome/browser/safe_browsing/incident_reporting/incident_report_uploader_impl.cc" />
++ <item id="safe_browsing_realtime_url_lookup" added_in_milestone="78" hash_code="119324658" content_hash_code="043efa82" os_list="linux,windows,chromeos,android" file_path="components/safe_browsing/core/browser/realtime/url_lookup_service.cc" />
++ <item id="safe_browsing_v4_get_hash" added_in_milestone="62" hash_code="8561691" content_hash_code="07e4cea1" os_list="linux,windows,chromeos,android" file_path="components/safe_browsing/core/browser/db/v4_get_hash_protocol_manager.cc" />
++ <item id="safe_browsing_v4_update" added_in_milestone="70" hash_code="82509217" content_hash_code="00501369" os_list="linux,windows,chromeos,android" file_path="components/safe_browsing/core/browser/db/v4_update_protocol_manager.cc" />
++ <item id="safe_search_service" added_in_milestone="70" hash_code="136386805" content_hash_code="07995c17" os_list="linux,windows,chromeos,android" file_path="components/policy/content/safe_search_service.cc" />
++ <item id="safety_check_update_connectivity" added_in_milestone="84" hash_code="137724067" content_hash_code="01d8ad59" os_list="linux,windows,chromeos,android" file_path="components/safety_check/update_check_helper.cc" />
++ <item id="sanitized_image_source" added_in_milestone="86" hash_code="36944304" content_hash_code="076ce826" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/webui/sanitized_image_source.cc" />
++ <item id="save_file_manager" added_in_milestone="62" hash_code="56275203" content_hash_code="03610e73" os_list="linux,windows,chromeos,android" file_path="content/browser/download/save_file_manager.cc" />
++ <item id="sct_auditing" added_in_milestone="87" hash_code="48603483" content_hash_code="0298c98f" os_list="linux,windows,chromeos,android" file_path="chrome/browser/ssl/sct_reporting_service.cc" />
++ <item id="search_prefetch_service" added_in_milestone="88" hash_code="108986091" content_hash_code="077746c6" os_list="windows,chromeos,android,linux" file_path="chrome/browser/preloading/prefetch/search_prefetch/search_prefetch_request.cc" />
++ <item id="security_key_socket" added_in_milestone="66" hash_code="31074955" content_hash_code="00d1acb0" os_list="linux,windows,chromeos" file_path="remoting/host/security_key/security_key_socket.cc" />
++ <item id="service_worker_navigation_preload" added_in_milestone="63" hash_code="129872904" content_hash_code="0675faf7" os_list="linux,windows,chromeos,android" file_path="content/browser/service_worker/service_worker_fetch_dispatcher.cc" />
++ <item id="service_worker_script_load" added_in_milestone="90" hash_code="21498113" content_hash_code="035ab34f" os_list="linux,windows,chromeos,android" file_path="content/browser/service_worker/service_worker_new_script_fetcher.cc" />
++ <item id="service_worker_update_checker" added_in_milestone="71" hash_code="130931413" content_hash_code="01ef068e" os_list="linux,windows,chromeos,android" file_path="content/browser/service_worker/service_worker_single_script_update_checker.cc" />
++ <item id="services_http_server_error_response" added_in_milestone="68" hash_code="59302801" content_hash_code="079dad59" os_list="linux,windows,chromeos,android" file_path="services/network/public/cpp/server/http_server.cc" />
++ <item id="shared_storage_worklet_module_script_downloader" added_in_milestone="95" hash_code="79084529" content_hash_code="072bbf71" os_list="linux,windows,chromeos,android" file_path="third_party/blink/common/shared_storage/module_script_downloader.cc" />
++ <item id="sigined_exchange_cert_fetcher" added_in_milestone="66" hash_code="79442849" content_hash_code="007c2dac" os_list="linux,windows,chromeos,android" file_path="content/browser/web_package/signed_exchange_cert_fetcher.cc" />
++ <item id="signed_in_profile_avatar" added_in_milestone="62" hash_code="108903331" content_hash_code="071dd1bf" os_list="linux,windows,chromeos,android" file_path="chrome/browser/profiles/profile_downloader.cc" />
++ <item id="socket_bio_adapter" added_in_milestone="66" hash_code="516551" content_hash_code="014a4058" os_list="linux,windows,chromeos,android" file_path="net/socket/socket_bio_adapter.cc" />
++ <item id="spdy_push_stream" added_in_milestone="67" hash_code="36915753" content_hash_code="042048b5" os_list="linux,windows,chromeos,android" file_path="net/spdy/spdy_session.cc" />
++ <item id="spdy_session_control" added_in_milestone="66" hash_code="57143548" content_hash_code="01c6f3f0" os_list="linux,windows,chromeos,android" file_path="net/spdy/spdy_session.cc" />
++ <item id="speech_recognition_downstream" added_in_milestone="62" hash_code="26096088" content_hash_code="07323e31" os_list="linux,windows,chromeos" file_path="content/browser/speech/speech_recognition_engine.cc" />
++ <item id="speech_recognition_upstream" added_in_milestone="62" hash_code="66846958" content_hash_code="0075966b" os_list="linux,windows,chromeos" file_path="content/browser/speech/speech_recognition_engine.cc" />
++ <item id="spellcheck_hunspell_dictionary" added_in_milestone="62" hash_code="117649486" content_hash_code="02b8bb18" os_list="linux,windows,chromeos,android" file_path="chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc" />
++ <item id="spellcheck_lookup" added_in_milestone="62" hash_code="132553989" content_hash_code="072d1525" os_list="linux,windows,chromeos" file_path="components/spellcheck/browser/spelling_service_client.cc" />
++ <item id="ssl_hmac_channel_authenticator" added_in_milestone="66" hash_code="106124561" content_hash_code="0695685d" os_list="linux,windows,chromeos,android" file_path="remoting/protocol/ssl_hmac_channel_authenticator.cc" />
++ <item id="ssl_name_mismatch_lookup" added_in_milestone="62" hash_code="114468207" content_hash_code="05d18c86" os_list="linux,windows,chromeos,android" file_path="components/security_interstitials/content/common_name_mismatch_handler.cc" />
++ <item id="stream_message_pipe_adapter" added_in_milestone="66" hash_code="71837756" content_hash_code="03f252fd" os_list="linux,windows,chromeos,android" file_path="remoting/protocol/stream_message_pipe_adapter.cc" />
++ <item id="stream_packet_socket" added_in_milestone="84" hash_code="38197513" content_hash_code="034904c2" os_list="linux,windows,chromeos,android" file_path="remoting/protocol/stream_packet_socket.cc" />
++ <item id="sync_file_system" added_in_milestone="62" hash_code="102819690" content_hash_code="031bce6a" os_list="linux,windows,chromeos" file_path="chrome/browser/sync_file_system/drive_backend/sync_engine.cc" />
++ <item id="sync_http_bridge" added_in_milestone="62" hash_code="57144960" content_hash_code="01f587fa" os_list="linux,windows,chromeos,android" file_path="components/sync/engine/net/http_bridge.cc" />
++ <item id="sync_stop_reporter" added_in_milestone="62" hash_code="5021348" content_hash_code="036444c2" os_list="linux,windows,chromeos,android" file_path="components/sync/driver/sync_stopped_reporter.cc" />
++ <item id="recipes_service" added_in_milestone="88" hash_code="23180772" content_hash_code="0477ff55" os_list="linux,windows,chromeos" file_path="chrome/browser/new_tab_page/modules/recipes/recipes_service.cc" />
++ <item id="test" added_in_milestone="62" reserved="1" hash_code="3556498" os_list="linux,windows" file_path="" />
++ <item id="test_partial" added_in_milestone="62" reserved="1" hash_code="22096011" os_list="linux,windows" file_path="" />
++ <item id="tethering_handler_socket" added_in_milestone="65" hash_code="113065062" content_hash_code="000f0cb8" os_list="linux,windows,chromeos,android" file_path="content/browser/devtools/protocol/tethering_handler.cc" />
++ <item id="translate_url_fetcher" added_in_milestone="62" hash_code="137116619" content_hash_code="06363ba2" os_list="linux,windows,chromeos,android" file_path="components/translate/core/browser/translate_url_fetcher.cc" />
++ <item id="trusted_vault_request" added_in_milestone="88" hash_code="30516662" content_hash_code="0738dfaf" os_list="linux,windows,chromeos" file_path="components/trusted_vault/trusted_vault_request.cc" />
++ <item id="ui_devtools_server" added_in_milestone="66" hash_code="4986170" content_hash_code="03bc45b7" os_list="linux,windows,chromeos,android" file_path="components/ui_devtools/devtools_server.cc" />
++ <item id="undefined" added_in_milestone="62" reserved="1" hash_code="45578882" os_list="linux,windows" file_path="" />
++ <item id="unwanted_software_report" added_in_milestone="70" hash_code="43759504" content_hash_code="0386a164" os_list="windows" file_path="chrome/chrome_cleaner/logging/reporter_logging_service.cc" />
++ <item id="update_client" added_in_milestone="74" hash_code="54845618" content_hash_code="05223987" os_list="linux,windows,chromeos,android" file_path="components/update_client/net/network_impl.cc" />
++ <item id="url_prevision_fetcher" added_in_milestone="62" hash_code="118389509" content_hash_code="03f14ce9" os_list="linux,windows,chromeos,android" file_path="content/browser/media/url_provision_fetcher.cc" />
++ <item id="user_info_fetcher" added_in_milestone="62" hash_code="22265491" content_hash_code="044ae168" os_list="linux,windows,chromeos,android" file_path="components/policy/core/common/cloud/user_info_fetcher.cc" />
++ <item id="video_tutorial_fetcher" added_in_milestone="87" hash_code="69879956" content_hash_code="074438b7" os_list="linux,windows,chromeos,android" file_path="chrome/browser/video_tutorials/internal/tutorial_fetcher.cc" />
++ <item id="web_app_origin_association_download" added_in_milestone="90" hash_code="128608592" content_hash_code="03a46d77" os_list="linux,windows,chromeos,android" file_path="components/webapps/services/web_app_origin_association/web_app_origin_association_fetcher.cc" />
++ <item id="web_history_counter" added_in_milestone="62" type="partial" second_id="web_history_service" hash_code="137457845" content_hash_code="02f5cd95" os_list="linux,windows,chromeos,android" semantics_fields="2,3,4" policy_fields="4" file_path="components/browsing_data/core/counters/history_counter.cc" />
++ <item id="web_history_delete_url" added_in_milestone="74" type="partial" second_id="web_history_service" hash_code="41749213" content_hash_code="018bdbf2" os_list="linux,windows,chromeos,android" semantics_fields="2,3,4" policy_fields="4" file_path="components/history/core/browser/history_service.cc" />
++ <item id="web_history_expire" added_in_milestone="62" type="partial" second_id="web_history_service" hash_code="60946824" content_hash_code="05855c6e" os_list="linux,windows,chromeos,android" semantics_fields="2,3,4" policy_fields="4" file_path="components/history/core/browser/browsing_history_service.cc" />
++ <item id="web_history_expire_between_dates" added_in_milestone="62" type="partial" second_id="web_history_service" hash_code="126122632" content_hash_code="020b7313" os_list="linux,windows,chromeos,android" semantics_fields="2,3,4" policy_fields="4" file_path="components/history/core/browser/history_service.cc" />
++ <item id="web_history_query" added_in_milestone="62" type="partial" second_id="web_history_service" hash_code="17400350" content_hash_code="0226768b" os_list="linux,windows,chromeos,android" semantics_fields="2,3,4" policy_fields="4" file_path="components/history/core/browser/browsing_history_service.cc" />
++ <item id="web_history_service" added_in_milestone="65" type="completing" hash_code="110307337" content_hash_code="00f6470d" os_list="linux,windows,chromeos,android" semantics_fields="1,5" policy_fields="-1,3" file_path="components/history/core/browser/web_history_service.cc" />
++ <item id="web_push_message" added_in_milestone="77" hash_code="39886742" content_hash_code="068f740a" os_list="linux,windows,chromeos,android" file_path="chrome/browser/sharing/web_push/web_push_sender.cc" />
++ <item id="webrtc_event_log_uploader" added_in_milestone="67" hash_code="24186190" content_hash_code="00a7ed3d" os_list="linux,windows,chromeos,android" file_path="chrome/browser/media/webrtc/webrtc_event_log_uploader.cc" />
++ <item id="webrtc_log_upload" added_in_milestone="62" hash_code="62443804" content_hash_code="03c174f6" os_list="linux,windows,chromeos,android" file_path="chrome/browser/media/webrtc/webrtc_log_uploader.cc" />
++ <item id="webrtc_peer_connection" added_in_milestone="66" hash_code="63497370" content_hash_code="039bf82b" os_list="linux,windows,chromeos,android" file_path="third_party/blink/renderer/modules/peerconnection/peer_connection_dependency_factory.cc" />
++ <item id="websocket_basic_stream" added_in_milestone="66" hash_code="51586722" content_hash_code="040f7353" os_list="linux,windows,chromeos,android" file_path="net/websockets/websocket_basic_stream.cc" />
++ <item id="websocket_stream" added_in_milestone="62" hash_code="17188928" content_hash_code="006ea358" os_list="linux,windows,chromeos,android" file_path="content/browser/websockets/websocket_connector_impl.cc" />
++ <item id="webstore_data_fetcher" added_in_milestone="62" hash_code="26302604" content_hash_code="016e38ea" os_list="linux,windows,chromeos" file_path="chrome/browser/extensions/webstore_data_fetcher.cc" />
++ <item id="webstore_install_helper" added_in_milestone="62" hash_code="25921771" content_hash_code="009bbc99" os_list="linux,windows,chromeos" file_path="chrome/browser/extensions/webstore_install_helper.cc" />
++ <item id="webstore_installer" added_in_milestone="62" hash_code="18764319" content_hash_code="04396870" os_list="linux,windows,chromeos" file_path="chrome/browser/extensions/webstore_installer.cc" />
++ <item id="webui_content_scripts_download" added_in_milestone="62" hash_code="100545943" content_hash_code="07257fcb" os_list="linux,windows,chromeos" file_path="extensions/browser/guest_view/web_view/web_ui/web_ui_url_fetcher.cc" />
++ <item id="well_known_path_that_should_not_exist" added_in_milestone="86" hash_code="134618785" content_hash_code="03552acf" os_list="linux,windows,chromeos,android" file_path="components/password_manager/core/browser/well_known_change_password_state.cc" />
++ <item id="whats_new_handler" added_in_milestone="94" hash_code="127739401" content_hash_code="05a798ff" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/webui/whats_new/whats_new_util.cc" />
++ <item id="worker_script_load" added_in_milestone="72" hash_code="72087791" content_hash_code="042a87a3" os_list="linux,windows,chromeos,android" file_path="content/browser/worker_host/worker_script_fetcher.cc" />
++ <item id="tailored_security_service" added_in_milestone="97" hash_code="126267513" content_hash_code="021a7daf" os_list="linux,windows,chromeos,android" file_path="components/safe_browsing/core/browser/tailored_security_service/tailored_security_service.cc" />
++ <item id="managed_acccount_signin_restrictions_secure_connect" added_in_milestone="97" hash_code="80836426" content_hash_code="0119d88f" os_list="linux,windows,chromeos,android" file_path="components/policy/core/browser/signin/user_cloud_signin_restriction_policy_fetcher.cc" />
++ <item id="ambient_photo_cache" added_in_milestone="98" hash_code="72532255" content_hash_code="07dbf21e" os_list="chromeos" file_path="ash/ambient/ambient_photo_cache.cc" />
++ <item id="ambient_photo_controller" added_in_milestone="98" hash_code="43026447" content_hash_code="03284b8a" os_list="chromeos" file_path="ash/ambient/ambient_weather_controller.cc" />
++ <item id="image_downloader" added_in_milestone="98" hash_code="23087938" content_hash_code="05b52680" os_list="chromeos" file_path="ash/assistant/assistant_controller_impl.cc" />
++ <item id="fast_pair_footprints_request" added_in_milestone="102" type="partial" second_id="oauth2_api_call_flow" hash_code="103224904" content_hash_code="01d3d58d" os_list="chromeos" semantics_fields="1,2,3,4,5" policy_fields="-1,3,4" file_path="ash/quick_pair/repository/fast_pair/footprints_fetcher_impl.cc" />
++ <item id="kiosk_app_icon" added_in_milestone="98" hash_code="114234406" content_hash_code="04f02fef" os_list="chromeos" file_path="chrome/browser/ash/app_mode/web_app/web_kiosk_app_data.cc" />
++ <item id="arc_auth_code_fetcher" added_in_milestone="98" hash_code="58948865" content_hash_code="021af0fe" os_list="chromeos" file_path="chrome/browser/ash/arc/auth/arc_background_auth_code_fetcher.cc" />
++ <item id="customization_wallpaper_downloader" added_in_milestone="98" hash_code="96908841" content_hash_code="03ee8364" os_list="chromeos" file_path="chrome/browser/ash/customization/customization_wallpaper_downloader.cc" />
++ <item id="ime_url_downloader" added_in_milestone="98" hash_code="60291160" content_hash_code="00f13105" os_list="chromeos" file_path="chrome/browser/ash/input_method/ime_service_connector.cc" />
++ <item id="chromebook_mail_api" added_in_milestone="98" hash_code="55484398" content_hash_code="01bfcf72" os_list="chromeos" file_path="chrome/browser/ash/login/marketing_backend_connector.cc" />
++ <item id="terms_of_service_fetch" added_in_milestone="98" hash_code="8947273" content_hash_code="050bde78" os_list="chromeos" file_path="chrome/browser/ash/login/screens/terms_of_service_screen.cc" />
++ <item id="chrome_plugin_vm_api" added_in_milestone="98" hash_code="28498700" content_hash_code="01e4c4bd" os_list="chromeos" file_path="chrome/browser/ash/plugin_vm/plugin_vm_license_checker.cc" />
++ <item id="remote_command_screenshot" added_in_milestone="98" hash_code="59512733" content_hash_code="07acca89" os_list="chromeos" file_path="chrome/browser/ash/policy/remote_commands/screenshot_delegate.cc" />
++ <item id="remote_apps_image_downloader" added_in_milestone="98" hash_code="97092439" content_hash_code="039bbcf1" os_list="chromeos" file_path="chrome/browser/ash/remote_apps/remote_apps_manager.cc" />
++ <item id="smb_netbios_name_query" added_in_milestone="98" hash_code="32138459" content_hash_code="03d9baa0" os_list="chromeos" file_path="chrome/browser/ash/smb_client/discovery/netbios_client.cc" />
++ <item id="wallpaper_fetcher" added_in_milestone="98" hash_code="113534723" content_hash_code="0419c2d5" os_list="chromeos" file_path="chrome/browser/chromeos/extensions/wallpaper_api.cc" />
++ <item id="network_traversal_ice_config_fetcher" added_in_milestone="98" hash_code="69712029" content_hash_code="0065f89d" os_list="chromeos" file_path="chrome/browser/nearby_sharing/network_traversal_ice_config_fetcher.cc" />
++ <item id="tachyon_ice_config_fetcher" added_in_milestone="98" hash_code="6216086" content_hash_code="01e878b0" os_list="chromeos" file_path="chrome/browser/nearby_sharing/tachyon_ice_config_fetcher.cc" />
++ <item id="launcher_item_suggest" added_in_milestone="98" hash_code="102930932" content_hash_code="04a4041e" os_list="chromeos" file_path="chrome/browser/ash/file_suggest/item_suggest_cache.cc" />
++ <item id="ambient_client" added_in_milestone="98" hash_code="46775600" content_hash_code="062d821f" os_list="chromeos" file_path="chrome/browser/ui/ash/ambient/ambient_client_impl.cc" />
++ <item id="calendar_get_events" added_in_milestone="98" hash_code="86429515" content_hash_code="0603f52a" os_list="chromeos" file_path="chrome/browser/ui/ash/calendar/calendar_keyed_service.cc" />
++ <item id="edu_account_login_profile_image_fetcher" added_in_milestone="98" hash_code="59209756" content_hash_code="0689301c" os_list="chromeos" file_path="chrome/browser/ui/webui/ash/edu_account_login_handler.cc" />
++ <item id="management_ui_customer_logo" added_in_milestone="98" hash_code="25740183" content_hash_code="01a17a58" os_list="chromeos" file_path="chrome/browser/ui/webui/management/management_ui_handler_chromeos.cc" />
++ <item id="gaia_reauth_token_fetcher" added_in_milestone="98" hash_code="61554754" content_hash_code="04ff463d" os_list="chromeos" file_path="chrome/browser/ash/login/gaia_reauth_token_fetcher.cc" />
++ <item id="partner_bookmarks_reader_get_favicon" added_in_milestone="98" hash_code="117076039" content_hash_code="0186a55e" os_list="android" file_path="chrome/browser/android/bookmarks/partner_bookmarks_reader.cc" />
++ <item id="contextual_search_resolve" added_in_milestone="98" hash_code="91714136" content_hash_code="01a5751f" os_list="linux,windows,chromeos,android" file_path="components/contextual_search/core/browser/contextual_search_delegate_impl.cc" />
++ <item id="contextual_search_thumbnail" added_in_milestone="99" hash_code="72946735" content_hash_code="06c5c621" os_list="android" file_path="chrome/browser/android/compositor/scene_layer/contextual_search_scene_layer.cc" />
++ <item id="customtabs_parallel_request" added_in_milestone="98" hash_code="100314494" content_hash_code="02c6bf11" os_list="android" file_path="chrome/browser/android/customtabs/detached_resource_request.cc" />
++ <item id="explore_sites" added_in_milestone="98" hash_code="32926054" content_hash_code="05256b51" os_list="android" file_path="chrome/browser/android/explore_sites/explore_sites_fetcher.cc" />
++ <item id="rlz" added_in_milestone="98" hash_code="113024" content_hash_code="0839c21d" os_list="android" file_path="chrome/browser/android/rlz/rlz_ping_handler.cc" />
++ <item id="download_manager_service_retry" added_in_milestone="98" hash_code="94349488" content_hash_code="01044c58" os_list="android" file_path="chrome/browser/download/android/download_manager_service.cc" />
++ <item id="download_bitmap" added_in_milestone="98" hash_code="43552293" content_hash_code="0632ef37" os_list="android" file_path="chrome/browser/share/bitmap_download_request.cc" />
++ <item id="family_info" added_in_milestone="98" hash_code="30913825" content_hash_code="01831b1a" os_list="chromeos,linux,windows" file_path="chrome/browser/supervised_user/child_accounts/family_info_fetcher.cc" />
++ <item id="permission_request_creator" added_in_milestone="98" hash_code="43206794" content_hash_code="04629d73" os_list="chromeos,linux,windows" file_path="chrome/browser/supervised_user/child_accounts/permission_request_creator_apiary.cc" />
++ <item id="kids_chrome_management_client_classify_url" added_in_milestone="98" hash_code="109987793" content_hash_code="003a8b30" os_list="android,chromeos,linux,windows" file_path="components/supervised_user/core/browser/kids_chrome_management_client.cc" />
++ <item id="kids_chrome_management_list_family_members" added_in_milestone="106" hash_code="506071" content_hash_code="0709ea52" os_list="android,chromeos,linux,windows" file_path="components/supervised_user/core/browser/kids_external_fetcher.cc" />
++ <item id="cached_image_fetcher" added_in_milestone="98" hash_code="60854959" content_hash_code="06334a2d" os_list="android" file_path="components/image_fetcher/image_fetcher_bridge.cc" />
++ <item id="chrome_cast_discovery_api" added_in_milestone="98" hash_code="16022422" content_hash_code="0502b792" os_list="linux,windows,chromeos" file_path="chrome/browser/media/router/discovery/access_code/access_code_cast_discovery_interface.cc" />
++ <item id="fedcm" added_in_milestone="98" hash_code="97307311" content_hash_code="082197eb" os_list="linux,windows,chromeos,android" file_path="content/browser/webid/idp_network_request_manager.cc" />
++ <item id="minidump_uploader_android" added_in_milestone="98" hash_code="9116888" content_hash_code="0327544e" os_list="android" file_path="components/minidump_uploader/android/java/src/org/chromium/components/minidump_uploader/util/HttpURLConnectionFactoryImpl.java" />
++ <item id="chrome_variations_android" added_in_milestone="98" hash_code="117165163" content_hash_code="047ecc67" os_list="android" file_path="components/variations/android/java/src/org/chromium/components/variations/firstrun/VariationsSeedFetcher.java" />
++ <item id="fwupd_firmware_update" added_in_milestone="99" hash_code="115155098" content_hash_code="0002c968" os_list="chromeos" file_path="chromeos/ash/components/fwupd/firmware_update_manager.cc" />
++ <item id="wallpaper_backdrop_collection_names" added_in_milestone="99" hash_code="88516899" content_hash_code="06379fce" os_list="chromeos" file_path="chrome/browser/ash/wallpaper_handlers/wallpaper_handlers.cc" />
++ <item id="wallpaper_backdrop_images_info" added_in_milestone="99" hash_code="43574161" content_hash_code="0010428c" os_list="chromeos" file_path="chrome/browser/ash/wallpaper_handlers/wallpaper_handlers.cc" />
++ <item id="wallpaper_backdrop_surprise_me_image" added_in_milestone="99" hash_code="52444561" content_hash_code="0383b9db" os_list="chromeos" file_path="chrome/browser/ash/wallpaper_handlers/wallpaper_handlers.cc" />
++ <item id="nearby_connections_wifi_lan" added_in_milestone="99" hash_code="134526866" content_hash_code="06b30010" os_list="chromeos" file_path="chrome/services/sharing/nearby/platform/wifi_lan_medium.cc" />
++ <item id="timezone_lookup" added_in_milestone="98" hash_code="12680962" content_hash_code="0477d6fe" os_list="chromeos" file_path="chromeos/ash/components/timezone/timezone_request.cc" />
++ <item id="oma_download_handler_android" added_in_milestone="99" hash_code="5130387" content_hash_code="03226fe2" os_list="android" file_path="chrome/android/java/src/org/chromium/chrome/browser/download/OMADownloadHandler.java" />
++ <item id="wallpaper_google_photos_albums" added_in_milestone="99" hash_code="81192642" content_hash_code="02f721fe" os_list="chromeos" file_path="chrome/browser/ash/wallpaper_handlers/wallpaper_handlers.cc" />
++ <item id="webapk_create" added_in_milestone="99" hash_code="44678865" content_hash_code="07b8fd35" os_list="android" file_path="chrome/browser/android/webapk/webapk_installer.cc" />
++ <item id="webapk_update" added_in_milestone="99" hash_code="6111898" content_hash_code="0763f8a7" os_list="android" file_path="chrome/browser/android/webapk/webapk_installer.cc" />
++ <item id="safe_browsing_extension_telemetry" added_in_milestone="98" hash_code="2493583" content_hash_code="06f81c76" os_list="linux,windows,chromeos" file_path="chrome/browser/safe_browsing/extension_telemetry/extension_telemetry_uploader.cc" />
++ <item id="fast_pair_device_metadata_fetcher" added_in_milestone="100" hash_code="56812763" content_hash_code="0099c721" os_list="chromeos" file_path="ash/quick_pair/repository/fast_pair/device_metadata_fetcher.cc" />
++ <item id="wallpaper_google_photos_photos" added_in_milestone="100" hash_code="93311068" content_hash_code="00c76007" os_list="chromeos" file_path="chrome/browser/ash/wallpaper_handlers/wallpaper_handlers.cc" />
++ <item id="webview_proxy_config" added_in_milestone="100" hash_code="56864842" content_hash_code="009d2396" os_list="android" file_path="android_webview/browser/network_service/aw_proxy_config_monitor.cc" />
++ <item id="device_trust_key_rotation" added_in_milestone="100" hash_code="27671900" content_hash_code="05cc1b9b" os_list="linux,windows" file_path="chrome/browser/enterprise/connectors/device_trust/key_management/core/network/mojo_key_network_delegate.cc" />
++ <item id="sct_auditing_hashdance" added_in_milestone="100" hash_code="107086542" content_hash_code="00ea07d2" os_list="linux,windows,android,chromeos" file_path="chrome/browser/ssl/sct_reporting_service.cc" />
++ <item id="webapk_create_for_service" added_in_milestone="101" hash_code="73250554" content_hash_code="00107cfb" os_list="android" file_path="chrome/browser/android/webapk/webapk_installer.cc" />
++ <item id="wallpaper_google_photos_enabled" added_in_milestone="101" hash_code="50590711" content_hash_code="0264e793" os_list="chromeos" file_path="chrome/browser/ash/wallpaper_handlers/wallpaper_handlers.cc" />
++ <item id="printing_oauth2_metadata_request" added_in_milestone="101" type="partial" second_id="printing_oauth2_http_exchange" hash_code="86646359" content_hash_code="041eb66d" os_list="chromeos" semantics_fields="2,4" file_path="chrome/browser/ash/printing/oauth2/authorization_server_data.cc" />
++ <item id="printing_oauth2_registration_request" added_in_milestone="101" type="partial" second_id="printing_oauth2_http_exchange" hash_code="94932243" content_hash_code="039d2748" os_list="chromeos" semantics_fields="2,4" file_path="chrome/browser/ash/printing/oauth2/authorization_server_data.cc" />
++ <item id="printing_oauth2_http_exchange" added_in_milestone="101" type="completing" hash_code="108707321" content_hash_code="079d0e2f" os_list="chromeos" semantics_fields="1,3,5,6" policy_fields="-1,3,5" file_path="chrome/browser/ash/printing/oauth2/http_exchange.cc" />
++ <item id="printing_oauth2_first_token_request" added_in_milestone="102" type="partial" second_id="printing_oauth2_http_exchange" hash_code="17550172" content_hash_code="00850a77" os_list="chromeos" semantics_fields="2,4" file_path="chrome/browser/ash/printing/oauth2/authorization_server_session.cc" />
++ <item id="printing_oauth2_next_token_request" added_in_milestone="102" type="partial" second_id="printing_oauth2_http_exchange" hash_code="38392330" content_hash_code="002fbbfd" os_list="chromeos" semantics_fields="2,4" file_path="chrome/browser/ash/printing/oauth2/authorization_server_session.cc" />
++ <item id="help_content_provider" added_in_milestone="102" hash_code="92685132" content_hash_code="0839311f" os_list="chromeos" file_path="ash/webui/os_feedback_ui/backend/help_content_provider.cc" />
++ <item id="quick_answers_spellchecker" added_in_milestone="102" hash_code="91066830" content_hash_code="00e3ffb1" os_list="chromeos" file_path="chromeos/components/quick_answers/utils/spell_check_language.cc" />
++ <item id="printing_oauth2_token_exchange_request" added_in_milestone="102" type="partial" second_id="printing_oauth2_http_exchange" hash_code="79913503" content_hash_code="059df373" os_list="chromeos" semantics_fields="2,4" file_path="chrome/browser/ash/printing/oauth2/ipp_endpoint_token_fetcher.cc" />
++ <item id="fedcm_account_profile_image_fetcher" added_in_milestone="102" hash_code="2196880" content_hash_code="07d6a3e2" os_list="linux,windows,chromeos" file_path="chrome/browser/ui/views/webid/account_selection_bubble_view.cc" />
++ <item id="device_activity_client_health_check" added_in_milestone="102" hash_code="5068293" content_hash_code="0506113c" os_list="chromeos" file_path="chromeos/ash/components/device_activity/device_activity_client.cc" />
++ <item id="device_activity_client_check_in" added_in_milestone="102" hash_code="3678722" content_hash_code="0548d084" os_list="chromeos" file_path="chromeos/ash/components/device_activity/device_activity_client.cc" />
++ <item id="device_activity_client_check_membership" added_in_milestone="102" hash_code="70839722" content_hash_code="02827a9f" os_list="chromeos" file_path="chromeos/ash/components/device_activity/device_activity_client.cc" />
++ <item id="interest_group_well_known_fetcher" added_in_milestone="103" hash_code="68561953" content_hash_code="01ea06eb" os_list="linux,windows,android,chromeos" file_path="content/browser/interest_group/interest_group_permissions_checker.cc" />
++ <item id="speculation_rules_prefetch" added_in_milestone="103" hash_code="78769907" content_hash_code="015fd398" os_list="linux,windows,android,chromeos" file_path="content/browser/preloading/prefetch/prefetch_service.cc" />
++ <item id="fast_pair_image_decoder" added_in_milestone="103" hash_code="120532644" content_hash_code="03a98cf1" os_list="chromeos" file_path="ash/quick_pair/repository/fast_pair/fast_pair_image_decoder_impl.cc" />
++ <item id="drivefs_http_client" added_in_milestone="104" hash_code="134416995" content_hash_code="042b8f2c" os_list="chromeos" file_path="chromeos/ash/components/drivefs/drivefs_http_client.cc" />
++ <item id="pending_beacon_api" added_in_milestone="105" hash_code="32555720" content_hash_code="02288864" os_list="linux,windows,android,chromeos" file_path="content/browser/renderer_host/pending_beacon_service.cc" />
++ <item id="printing_server_printers_query" added_in_milestone="106" hash_code="83120842" content_hash_code="06f4759c" os_list="chromeos" file_path="chrome/browser/ash/printing/server_printers_fetcher.cc" />
++ <item id="download_bubble_retry_download" added_in_milestone="105" hash_code="19923003" content_hash_code="000b1439" os_list="linux,windows,chromeos" file_path="chrome/browser/download/bubble/download_bubble_ui_controller.cc" />
++ <item id="wilco_dtc_supportd" added_in_milestone="108" hash_code="63616970" content_hash_code="068635d9" os_list="chromeos" file_path="chrome/browser/ash/wilco_dtc_supportd/wilco_dtc_supportd_web_request_service.cc" />
++ <item id="quick_answers_loader" added_in_milestone="105" hash_code="46208118" content_hash_code="06f129c2" os_list="chromeos" file_path="chromeos/components/quick_answers/result_loader.cc" />
++ <item id="chrome_search_suggest_service" added_in_milestone="105" hash_code="116080256" content_hash_code="04d973c6" os_list="linux,windows,android,chromeos" file_path="components/search/start_suggest_service.cc" />
++ <item id="speculation_rules_prefetch_probe" added_in_milestone="105" hash_code="47635475" content_hash_code="04341e21" os_list="linux,windows,android,chromeos" file_path="content/browser/preloading/prefetch/prefetch_origin_prober.cc" />
++ <item id="chrome_commerce_subscriptions_create" added_in_milestone="105" hash_code="10689839" content_hash_code="076a1b98" os_list="windows,android,linux,chromeos" file_path="components/commerce/core/subscriptions/subscriptions_server_proxy.cc" />
++ <item id="chrome_commerce_subscriptions_delete" added_in_milestone="105" hash_code="27525598" content_hash_code="05f47d4b" os_list="windows,android,linux,chromeos" file_path="components/commerce/core/subscriptions/subscriptions_server_proxy.cc" />
++ <item id="chrome_commerce_subscriptions_get" added_in_milestone="105" hash_code="47569255" content_hash_code="02f49372" os_list="windows,android,linux,chromeos" file_path="components/commerce/core/subscriptions/subscriptions_server_proxy.cc" />
++ <item id="cryptauth_get_my_devices" added_in_milestone="112" type="partial" second_id="oauth2_api_call_flow" hash_code="136498680" content_hash_code="04b33199" os_list="chromeos" semantics_fields="1,2,3,4,5" policy_fields="3,4" file_path="chromeos/ash/services/device_sync/cryptauth_device_manager_impl.cc" />
++ <item id="chrome_commerce_waa_fetcher" added_in_milestone="107" hash_code="63068596" content_hash_code="016d45fc" os_list="linux,windows,android,chromeos" file_path="components/commerce/core/account_checker.cc" />
++ <item id="k_anonymity_service_get_token" added_in_milestone="106" hash_code="83317579" content_hash_code="02bc56b0" os_list="linux,windows,android,chromeos" file_path="chrome/browser/k_anonymity_service/k_anonymity_trust_token_getter.cc" />
++ <item id="enhanced_network_tts" added_in_milestone="103" hash_code="13093731" content_hash_code="03c12345" os_list="chromeos" file_path="chrome/browser/ash/enhanced_network_tts/enhanced_network_tts_impl.cc" />
++ <item id="shopping_list_ui_image_fetcher" added_in_milestone="107" hash_code="53113303" content_hash_code="0680ae03" os_list="windows,chromeos,linux" file_path="chrome/browser/ui/commerce/price_tracking/shopping_list_ui_tab_helper.cc" />
++ <item id="chrome_commerce_price_email_pref_fetcher" added_in_milestone="107" hash_code="36312281" content_hash_code="00b3dc73" os_list="linux,windows,android,chromeos" file_path="components/commerce/core/account_checker.cc" />
++ <item id="chrome_commerce_price_email_pref_sender" added_in_milestone="107" hash_code="3678646" content_hash_code="03f51c85" os_list="linux,windows,android,chromeos" file_path="components/commerce/core/account_checker.cc" />
++ <item id="receive_messages_express" added_in_milestone="108" hash_code="29506140" content_hash_code="032122e0" os_list="chromeos" file_path="chrome/browser/nearby_sharing/instantmessaging/receive_messages_express.cc" />
++ <item id="send_message_express" added_in_milestone="108" hash_code="23527666" content_hash_code="01b40a32" os_list="chromeos" file_path="chrome/browser/nearby_sharing/instantmessaging/send_message_express.cc" />
++ <item id="cryptohome_recovery_fetch_epoch" added_in_milestone="108" hash_code="86369097" content_hash_code="06e195ad" os_list="chromeos" file_path="chromeos/ash/components/login/auth/recovery/cryptohome_recovery_service_client.cc" />
++ <item id="cryptohome_recovery_fetch_recovery_response" added_in_milestone="108" hash_code="47761423" content_hash_code="01b13324" os_list="chromeos" file_path="chromeos/ash/components/login/auth/recovery/cryptohome_recovery_service_client.cc" />
++ <item id="app_preload_service" added_in_milestone="108" hash_code="69313298" content_hash_code="00720713" os_list="chromeos" file_path="chrome/browser/apps/app_preload_service/app_preload_server_connector.cc" />
++ <item id="search_and_assistant_enabled_checker" added_in_milestone="106" hash_code="113915724" content_hash_code="003a5b64" os_list="chromeos" file_path="chrome/browser/ui/ash/assistant/search_and_assistant_enabled_checker.cc" />
++ <item id="user_image_downloader" added_in_milestone="108" hash_code="70015846" content_hash_code="07c2217f" os_list="chromeos" file_path="chrome/browser/ash/login/users/avatar/user_image_loader.cc" />
++ <item id="supervised_user_favicon_request" added_in_milestone="108" hash_code="7601706" content_hash_code="06636c2a" os_list="chromeos" file_path="chrome/browser/supervised_user/chromeos/supervised_user_favicon_request_handler.cc" />
++ <item id="nearby_share_update_device" added_in_milestone="108" type="partial" second_id="oauth2_api_call_flow" hash_code="30656793" content_hash_code="01d34a5a" os_list="chromeos" semantics_fields="1,2,3,4,5" policy_fields="3,4" file_path="chrome/browser/nearby_sharing/client/nearby_share_client_impl.cc" />
++ <item id="nearby_share_contacts" added_in_milestone="108" type="partial" second_id="oauth2_api_call_flow" hash_code="91999155" content_hash_code="0473989a" os_list="chromeos" semantics_fields="1,2,3,4,5" policy_fields="3,4" file_path="chrome/browser/nearby_sharing/client/nearby_share_client_impl.cc" />
++ <item id="nearby_share_list_public_certificates" added_in_milestone="108" type="partial" second_id="oauth2_api_call_flow" hash_code="123714070" content_hash_code="01706e8a" os_list="chromeos" semantics_fields="1,2,3,4,5" policy_fields="3,4" file_path="chrome/browser/nearby_sharing/client/nearby_share_client_impl.cc" />
++ <item id="nearby_presence_update_device" added_in_milestone="115" type="partial" second_id="oauth2_api_call_flow" hash_code="67052785" content_hash_code="048617a8" os_list="chromeos" semantics_fields="1,2,3,4,5" policy_fields="3,4" file_path="chromeos/ash/components/nearby/presence/credentials/nearby_presence_server_client_impl.cc" />
++ <item id="nearby_presence_list_public_certificates" added_in_milestone="115" type="partial" second_id="oauth2_api_call_flow" hash_code="137414685" content_hash_code="003d17c8" os_list="chromeos" semantics_fields="1,2,3,4,5" policy_fields="3,4" file_path="chromeos/ash/components/nearby/presence/credentials/nearby_presence_server_client_impl.cc" />
++ <item id="k_anonymity_service_join_set" added_in_milestone="108" hash_code="49233370" content_hash_code="0033f523" os_list="linux,windows,android,chromeos" file_path="chrome/browser/k_anonymity_service/k_anonymity_service_client.cc" />
++ <item id="k_anonymity_service_query_set" added_in_milestone="108" hash_code="128095075" content_hash_code="00eab10a" os_list="linux,windows,android,chromeos" file_path="chrome/browser/k_anonymity_service/k_anonymity_service_client.cc" />
++ <item id="managed_acccount_signin_restrictions_secure_connect_chromeos" added_in_milestone="109" hash_code="98011496" content_hash_code="05958d4c" os_list="chromeos" file_path="chrome/browser/ui/webui/signin/ash/user_cloud_signin_restriction_policy_fetcher.cc" />
++ <item id="ntp_custom_background" added_in_milestone="109" hash_code="92125886" content_hash_code="08080082" os_list="linux,windows,chromeos" file_path="chrome/browser/search/background/ntp_custom_background_service.cc" />
++ <item id="iwa_policy_update_manifest" added_in_milestone="110" hash_code="6075566" content_hash_code="057bb523" os_list="chromeos" file_path="chrome/browser/web_applications/isolated_web_apps/policy/isolated_web_app_policy_manager.cc" />
++ <item id="iwa_policy_signed_web_bundle" added_in_milestone="110" hash_code="130449762" content_hash_code="03a6049c" os_list="chromeos" file_path="chrome/browser/web_applications/isolated_web_apps/policy/isolated_web_app_policy_manager.cc" />
++ <item id="quick_start_challenge_bytes_fetcher" added_in_milestone="110" hash_code="47569675" content_hash_code="050ba600" os_list="chromeos" file_path="chrome/browser/ash/login/oobe_quick_start/second_device_auth_broker.cc" />
++ <item id="customization_document" added_in_milestone="110" hash_code="117635540" content_hash_code="007a3dda" os_list="chromeos" file_path="chrome/browser/ash/customization/customization_document.cc" />
++ <item id="nearby_webrtc_connection" added_in_milestone="110" hash_code="37994740" content_hash_code="070e1f72" os_list="chromeos" file_path="chrome/services/sharing/nearby/platform/webrtc.cc" />
++ <item id="fenced_frame_reporting_beacon" added_in_milestone="110" hash_code="80152300" content_hash_code="03fd07f7" os_list="linux,windows,android,chromeos" file_path="content/browser/fenced_frame/fenced_frame_reporter.cc" />
++ <item id="password_sync_token_fetcher" added_in_milestone="110" hash_code="3951819" content_hash_code="0268c983" os_list="chromeos" file_path="chrome/browser/ash/login/saml/password_sync_token_fetcher.cc" />
++ <item id="projector_xhr_loader" added_in_milestone="110" hash_code="35917660" content_hash_code="07e102c2" os_list="chromeos" file_path="ash/webui/projector_app/projector_xhr_sender.cc" />
++ <item id="cloud_speech_recognition" added_in_milestone="110" hash_code="61001455" content_hash_code="00d56fd8" os_list="linux,windows,chromeos" file_path="components/live_caption/live_translate_controller.cc" />
++ <item id="bruschetta_installer_download" added_in_milestone="110" hash_code="72895572" content_hash_code="073f0263" os_list="chromeos" file_path="chrome/browser/ash/bruschetta/bruschetta_installer_impl.cc" />
++ <item id="quick_start_session_auth_requester" added_in_milestone="110" hash_code="114763789" content_hash_code="08353e70" os_list="chromeos" file_path="chrome/browser/ash/login/oobe_quick_start/second_device_auth_broker.cc" />
++ <item id="network_diagnostics_routines" added_in_milestone="110" hash_code="92565109" content_hash_code="0007b237" os_list="chromeos" file_path="chrome/browser/ash/net/network_diagnostics/http_request_manager.cc" />
++ <item id="trial_group_lookup" added_in_milestone="110" hash_code="23240978" content_hash_code="047aeeca" os_list="chromeos" file_path="chromeos/ash/components/trial_group/trial_group_checker.cc" />
++ <item id="wallpaper_drivefs_delegate" added_in_milestone="110" hash_code="60729895" content_hash_code="01771f33" os_list="chromeos" file_path="chrome/browser/ash/wallpaper/wallpaper_drivefs_delegate_impl.cc" />
++ <item id="chromeos_emoji_picker_categories_fetcher" added_in_milestone="111" hash_code="28201233" content_hash_code="081a9095" os_list="chromeos" file_path="chrome/browser/ui/webui/ash/emoji/gif_tenor_api_fetcher.cc" />
++ <item id="chromeos_emoji_picker_featured_fetcher" added_in_milestone="111" hash_code="109132521" content_hash_code="020b30c7" os_list="chromeos" file_path="chrome/browser/ui/webui/ash/emoji/gif_tenor_api_fetcher.cc" />
++ <item id="chromeos_emoji_picker_search_fetcher" added_in_milestone="111" hash_code="41115198" content_hash_code="035497ee" os_list="chromeos" file_path="chrome/browser/ui/webui/ash/emoji/gif_tenor_api_fetcher.cc" />
++ <item id="app_preload_service_web_installer" added_in_milestone="111" hash_code="96830187" content_hash_code="057d2379" os_list="chromeos" file_path="chrome/browser/apps/app_preload_service/web_app_preload_installer.cc" />
++ <item id="network_diagnostics_stun" added_in_milestone="111" hash_code="80732671" content_hash_code="059bf138" os_list="chromeos" file_path="chrome/browser/ash/net/network_diagnostics/network_diagnostics_util.cc" />
++ <item id="network_diagnostics_tls" added_in_milestone="111" hash_code="73832710" content_hash_code="0170b367" os_list="chromeos" file_path="chrome/browser/ash/net/network_diagnostics/tls_prober.cc" />
++ <item id="gstatic_fast_checkout_funnels" added_in_milestone="111" hash_code="101773906" content_hash_code="0531d118" os_list="android" file_path="chrome/browser/fast_checkout/fast_checkout_capabilities_fetcher_impl.cc" />
++ <item id="chromeos_emoji_picker_posts_fetcher" added_in_milestone="111" hash_code="1679005" content_hash_code="06c44c7e" os_list="chromeos" file_path="chrome/browser/ui/webui/ash/emoji/gif_tenor_api_fetcher.cc" />
++ <item id="webapk_minter_install_request" added_in_milestone="111" hash_code="103752936" content_hash_code="042fed33" os_list="chromeos" file_path="chrome/browser/apps/app_service/webapk/webapk_install_task.cc" />
++ <item id="deduplication_service" added_in_milestone="111" hash_code="93071089" content_hash_code="06a77ea3" os_list="chromeos" file_path="chrome/browser/apps/app_deduplication_service/app_deduplication_server_connector.cc" />
++ <item id="network_portal_detector" added_in_milestone="111" hash_code="98230690" content_hash_code="023cdc21" os_list="chromeos" file_path="chrome/browser/ash/net/network_portal_detector_impl.cc" />
++ <item id="safe_browsing_hashprefix_realtime_lookup" added_in_milestone="111" hash_code="98615884" content_hash_code="00aa24b2" os_list="linux,windows,chromeos,android" file_path="components/safe_browsing/core/browser/hashprefix_realtime/hash_realtime_service.cc" />
++ <item id="android_feedback_connectivity_checker" added_in_milestone="111" hash_code="45568446" content_hash_code="0011753d" os_list="android" file_path="chrome/android/java/src/org/chromium/chrome/browser/feedback/ConnectivityChecker.java" />
++ <item id="printer_config_fetch" added_in_milestone="111" hash_code="111634920" content_hash_code="042f8883" os_list="chromeos" file_path="chromeos/printing/printer_config_cache.cc" />
++ <item id="projector_xhr_loader_allow_cookie" added_in_milestone="112" hash_code="48953997" content_hash_code="04a2140d" os_list="chromeos" file_path="ash/webui/projector_app/projector_xhr_sender.cc" />
++ <item id="wallpaper_download_google_photo" added_in_milestone="102" hash_code="50127013" content_hash_code="0565daa5" os_list="chromeos" file_path="ash/wallpaper/wallpaper_image_downloader.cc" />
++ <item id="wallpaper_online_downloader" added_in_milestone="110" hash_code="62882705" content_hash_code="00286fc5" os_list="chromeos" file_path="ash/wallpaper/wallpaper_image_downloader.cc" />
++ <item id="chrome_support_tool_file_upload" added_in_milestone="113" hash_code="78911807" content_hash_code="04a07122" os_list="chromeos" file_path="chrome/browser/policy/messaging_layer/upload/file_upload_impl.cc" />
++ <item id="service_worker_race_network_request" added_in_milestone="113" hash_code="103366441" content_hash_code="0090e590" os_list="linux,windows,android,chromeos" file_path="content/common/service_worker/race_network_request_url_loader_client.cc" />
++ <item id="safe_browsing_ohttp_key_fetch" added_in_milestone="113" hash_code="105394965" content_hash_code="0309cb19" os_list="linux,windows,android,chromeos" file_path="components/safe_browsing/core/browser/hashprefix_realtime/ohttp_key_service.cc" />
++ <item id="glanceables_tasks_integration" added_in_milestone="113" hash_code="63925488" content_hash_code="06e038c9" os_list="chromeos" file_path="chrome/browser/ui/ash/glanceables/glanceables_tasks_client_impl.cc" />
++ <item id="bookmarks_image_fetcher" added_in_milestone="114" hash_code="103266695" content_hash_code="01dd68ad" os_list="chromeos,linux,windows" file_path="chrome/browser/ui/views/bookmarks/bookmark_bubble_view.cc" />
++ <item id="screensaver_image_downloader" added_in_milestone="114" hash_code="133896355" content_hash_code="05ebc454" os_list="chromeos" file_path="chrome/browser/ash/policy/handlers/screensaver_image_downloader.cc" />
++ <item id="back_navigation_cache_query" added_in_milestone="114" hash_code="122067755" content_hash_code="052f4fec" os_list="linux,windows,android,chromeos" file_path="content/browser/preloading/prerender/prerender_host_registry.cc" />
++ <item id="cws_info_service" added_in_milestone="114" hash_code="133040073" content_hash_code="02e1a061" os_list="linux,windows,chromeos" file_path="chrome/browser/extensions/cws_info_service.cc" />
++ <item id="promise_app_service" added_in_milestone="114" hash_code="135565385" content_hash_code="07856112" os_list="chromeos" file_path="chrome/browser/apps/app_service/promise_apps/promise_app_almanac_connector.cc" />
++
++ <item id="bromite_inline_update_controller" added_in_milestone="114" hash_code="88618481" content_hash_code="061ad1b5" os_list="linux,windows,android" file_path="chrome/android/java/src/org/chromium/chrome/browser/omaha/inline/BromiteInlineUpdateController.java" />
++ <item id="offline_pages_download_file" added_in_milestone="114" hash_code="94580999" content_hash_code="01ae83d8" os_list="linux,windows,android" file_path="chrome/browser/offline_pages/android/downloads/offline_page_download_bridge.cc" />
++ <item id="adblock_subscription_download" added_in_milestone="114" hash_code="8807068" content_hash_code="03359a90" os_list="linux,windows,android" file_path="components/adblock/core/subscription/ongoing_subscription_request_impl.cc" />
++ <item id="filters_update" added_in_milestone="114" hash_code="51960264" content_hash_code="070edef5" os_list="linux,windows,android" file_path="components/component_updater/download_filters_task.cc" />
++ <item id="download_via_context_menu" added_in_milestone="114" hash_code="64427392" content_hash_code="01089191" os_list="linux,windows,android" file_path="components/download/content/internal/context_menu_download.cc" />
++ <item id="webapk_icon_hasher" added_in_milestone="114" hash_code="61933932" content_hash_code="079c7adb" os_list="linux,windows,android" file_path="components/webapps/browser/android/webapk/webapk_icon_hasher.cc" />
++ <item id="blink_resource_loader_workers" added_in_milestone="114" hash_code="71243337" content_hash_code="0150f3b2" os_list="linux,windows,android" file_path="third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc" />
++ <item id="blink_resource_loader_report" added_in_milestone="114" hash_code="76900237" content_hash_code="016f40bc" os_list="linux,windows,android" file_path="third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc" />
++ <item id="blink_resource_loader_worklet" added_in_milestone="114" hash_code="71249662" content_hash_code="070205e2" os_list="linux,windows,android" file_path="third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc" />
++ <item id="blink_resource_loader_webbundle" added_in_milestone="114" hash_code="115582637" content_hash_code="0331ecaf" os_list="linux,windows,android" file_path="third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc" />
++ <item id="blink_resource_loader_manifest" added_in_milestone="114" hash_code="70686768" content_hash_code="046ea9cd" os_list="linux,windows,android" file_path="third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc" />
++ <item id="blink_resource_loader_xslt" added_in_milestone="114" hash_code="35024334" content_hash_code="029ecdad" os_list="linux,windows,android" file_path="third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc" />
++</annotations>
+diff --git a/services/firewall/tools/builders_template.py b/services/firewall/tools/builders_template.py
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/tools/builders_template.py
+@@ -0,0 +1,72 @@
++# This file is part of Bromite.
++# Bromite is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++# Bromite is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# You should have received a copy of the GNU General Public License
++# along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++
++"""Templates for generating builder classes for UKM entries."""
++
++import codegen
++
++HEADER = codegen.Template(basename="firewall_builders.h",
++                          file_template="""
++// Generated from //services/firewall/tools/gen_builders.py.  DO NOT EDIT!
++// source: annotations.xml
++
++#ifndef {file.guard_path}
++#define {file.guard_path}
++
++#include <cstdint>
++
++//#include "services/metrics/public/cpp/ukm_entry_builder_base.h"
++#include "net/traffic_annotation/network_traffic_annotation.h"
++
++namespace firewall {{
++namespace builders {{
++
++{event_code}
++
++}}  // namespace builders
++}}  // namespace firewall
++
++#endif  // {file.guard_path}
++""",
++                          event_template="""
++  extern const char k{event.name}EntryName[];
++  extern const uint64_t k{event.name}EntryNameHash;
++""",
++                          metric_template="""
++""")
++
++IMPL = codegen.Template(basename="firewall_builders.cc",
++                        file_template="""
++// Generated from //services/firewall/tools/gen_builders.py.  DO NOT EDIT!
++// source: annotations.xml
++
++#include "{file.dir_path}firewall_builders.h"
++
++namespace firewall {{
++namespace builders {{
++
++{event_code}
++
++}}  // namespace builders
++}}  // namespace firewall
++""",
++                        event_template="""
++const char k{event.name}EntryName[] = "{event.raw_name}";
++constexpr uint64_t k{event.name}EntryNameHash = COMPUTE_NETWORK_TRAFFIC_ANNOTATION_ID_HASH("{event.raw_name}");
++""",
++                        metric_template="""
++""")
++
++
++def WriteFiles(outdir, relpath, data):
++  HEADER.WriteFile(outdir, relpath, data)
++  IMPL.WriteFile(outdir, relpath, data)
+diff --git a/services/firewall/tools/codegen.py b/services/firewall/tools/codegen.py
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/tools/codegen.py
+@@ -0,0 +1,82 @@
++# This file is part of Bromite.
++# Bromite is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++# Bromite is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# You should have received a copy of the GNU General Public License
++# along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++
++import hashlib
++import os
++import re
++import struct
++from annotation_model import _ITEM_TYPE
++
++def to_pascal_case(text):
++    s = text.replace("-", " ").replace("_", " ")
++    s = s.split()
++    if len(text) == 0:
++        return text
++    return ''.join(i.capitalize() for i in s[0:])
++
++def sanitize_name(name):
++  s = re.sub('[^0-9a-zA-Z_]', '_', name)
++  return s
++
++class FileInfo(object):
++  def __init__(self, relpath, basename):
++    self.dir_path = relpath
++    self.guard_path = sanitize_name(os.path.join(relpath, basename)).upper()
++
++
++class ItemInfo(object):
++  def __init__(self, json_obj):
++    self.raw_name = json_obj['id']
++    self.name = to_pascal_case(json_obj['id'])
++    self.hash = json_obj['hash_code']
++    self.file_path = json_obj['file_path']
++    self.allowed = "false"
++    if "allowed" in json_obj and json_obj['allowed'] == "1":
++      self.allowed = "true"
++
++class Template(object):
++  """Template for producing code from annotations.xml."""
++
++  def __init__(self, basename, file_template, event_template, metric_template):
++    self.basename = basename
++    self.file_template = file_template
++    self.event_template = event_template
++    self.metric_template = metric_template
++
++  def _StampEventCode(self, file_info, item):
++    event_info = ItemInfo(item)
++    metric_code = ""
++    return self.event_template.format(
++        file=file_info,
++        event=event_info,
++        metric_code=metric_code)
++
++  def _StampFileCode(self, relpath, data):
++    file_info = FileInfo(relpath, self.basename)
++    event_code = "".join(
++        self._StampEventCode(file_info, item)
++        for item in data[_ITEM_TYPE.tag])
++    return self.file_template.format(
++        file=file_info,
++        event_code=event_code)
++
++  def WriteFile(self, outdir, relpath, data):
++    """Generates code and writes it to a file.
++
++    Args:
++      relpath: The path to the file in the source tree.
++      rootdir: The root of the path the file should be written to.
++      data: The parsed data.
++    """
++    output = open(os.path.join(outdir, self.basename), 'w')
++    output.write(self._StampFileCode(relpath, data))
++    output.close()
+diff --git a/services/firewall/tools/decode_template.py b/services/firewall/tools/decode_template.py
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/tools/decode_template.py
+@@ -0,0 +1,85 @@
++# This file is part of Bromite.
++# Bromite is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++# Bromite is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# You should have received a copy of the GNU General Public License
++# along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++
++"""A template for generating hash decoding code."""
++
++import codegen
++
++HEADER = codegen.Template(
++basename="annotation_decode.h",
++file_template="""
++// Generated from //services/firewall/tools/gen_builders.py.  DO NOT EDIT!
++// source: annotations.xml
++
++#ifndef {file.guard_path}
++#define {file.guard_path}
++
++#include <cstdint>
++#include <map>
++
++namespace firewall {{
++namespace builders {{
++
++struct EntryDecoder {{
++  const char* name;
++  bool allowed;
++  const char* path;
++}};
++typedef std::map<uint64_t, EntryDecoder> DecodeMap;
++DecodeMap CreateDecodeMap();
++
++}}  // namespace builders
++}}  // namespace ukm
++
++#endif  // {file.guard_path}
++""",
++event_template="",
++metric_template="")
++
++IMPL = codegen.Template(
++basename="annotation_decode.cc",
++file_template="""
++// Generated from //services/firewall/tools/gen_builders.py.  DO NOT EDIT!
++// source: annotations.xml
++
++#include "{file.dir_path}annotation_decode.h"
++#include "{file.dir_path}firewall_builders.h"
++
++namespace firewall {{
++namespace builders {{
++
++std::map<uint64_t, EntryDecoder> CreateDecodeMap() {{
++  return {{
++    {event_code}
++  }};
++}}
++
++}}  // namespace builders
++}}  // namespace firewall
++""",
++event_template="""
++    {{
++      k{event.name}EntryNameHash,
++      {{
++        k{event.name}EntryName,
++        {event.allowed},
++        "{event.file_path}",
++      }}
++    }},
++""",
++metric_template="""
++""")
++
++
++def WriteFiles(outdir, relpath, data):
++  HEADER.WriteFile(outdir, relpath, data)
++  IMPL.WriteFile(outdir, relpath, data)
+diff --git a/services/firewall/tools/gen_builders.py b/services/firewall/tools/gen_builders.py
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/tools/gen_builders.py
+@@ -0,0 +1,65 @@
++#!/usr/bin/env python
++# This file is part of Bromite.
++# Bromite is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++# Bromite is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# You should have received a copy of the GNU General Public License
++# along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++
++"""A utility for generating builder classes for firewall entries.
++
++It takes as input a rules.xml file describing all of the network annotation entries,
++and produces a c++ header and implementation file exposing builders for those
++entries.
++"""
++
++import argparse
++import sys
++
++import rules_model
++import annotation_model
++import builders_template
++import decode_template
++
++parser = argparse.ArgumentParser(description='Generate network annotation entries')
++parser.add_argument('--input', help='Path to annotations.xml')
++parser.add_argument('--rules', help='Path to rules.xml')
++parser.add_argument('--output', help='Path to generated files.')
++
++
++def main(argv):
++  args = parser.parse_args()
++  data = ReadFilteredData(args.input)
++  rules = ReadRulesData(args.rules)
++
++  for key in rules[rules_model._ITEM_TYPE.tag]:
++    key_id = key["id"]
++
++    for f in data[annotation_model._ITEM_TYPE.tag]:
++      if f["id"] == key_id:
++        f["allowed"] = key["allowed"]
++        #print(f)
++
++  relpath = 'services/firewall/public/'
++  builders_template.WriteFiles(args.output, relpath, data)
++  decode_template.WriteFiles(args.output, relpath, data)
++  return 0
++
++def ReadRulesData(path):
++  with open(path) as rules_file:
++    data = rules_model.RULES_XML_TYPE.Parse(rules_file.read())
++    return data
++
++def ReadFilteredData(path):
++  with open(path) as ukm_file:
++    data = annotation_model.ANNOTATION_XML_TYPE.Parse(ukm_file.read())
++    return data
++
++
++if '__main__' == __name__:
++  sys.exit(main(sys.argv))
+diff --git a/services/firewall/tools/rules.xml b/services/firewall/tools/rules.xml
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/tools/rules.xml
+@@ -0,0 +1,81 @@
++<?xml version="1.0"?>
++<!--
++    This file is part of Bromite.
++
++    Bromite is free software: you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation, either version 3 of the License, or
++    (at your option) any later version.
++
++    Bromite is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++-->
++
++<rules>
++ <!-- Allow autoupdates -->
++ <item id="bromite_inline_update_controller" allowed="1"/>
++ <item id="adblock_subscription_download" allowed="1"/>
++ <item id="filters_update" allowed="1"/>
++
++ <!-- started by the user -->
++ <item id="download_via_context_menu" allowed="1"/>
++ <item id="offline_pages_download_file" allowed="1"/>
++
++ <!-- Disallow temporarily controlling the revoked list,
++      suffers from possible privacy problems -->
++ <item id="certificate_verifier_url_loader" allowed="0"/>
++ <item id="certificate_verifier_url_request" allowed="0"/>
++
++ <!-- Allow all blink stuffs -->
++ <item id="worker_script_load" allowed="1"/>
++ <item id="service_worker_script_load" allowed="1"/>
++ <item id="service_worker_update_checker" allowed="1"/>
++
++ <item id="navigation_url_loader" allowed="1"/>
++ <item id="blink_resource_loader" allowed="1"/>
++ <item id="blink_resource_loader_workers" allowed="1"/>
++ <item id="blink_resource_loader_manifest" allowed="1"/>
++ <item id="renderer_initiated_download" allowed="1"/>
++
++ <item id="background_fetch_context" allowed="1"/>
++
++ <!-- Allow Service Worker Navigation Preload API -->
++ <item id="service_worker_navigation_preload" allowed="1"/>
++
++ <!-- Allow websockets -->
++ <item id="websocket_stream" allowed="1"/>
++
++ <!-- But disallow this -->
++ <item id="blink_resource_loader_xslt" allowed="0"/>
++ <item id="blink_resource_loader_report" allowed="0"/>
++ <item id="blink_resource_loader_worklet" allowed="0"/>
++ <item id="blink_resource_loader_webbundle" allowed="0"/>
++
++ <!-- Allow websocket and webrtc, under user control -->
++ <item id="websocket_stream" allowed="1"/>
++ <item id="websocket_basic_stream" allowed="1"/>
++ <item id="webrtc_peer_connection" allowed="1"/>
++
++ <!-- No network connection, but local usb and bluetooh -->
++ <item id="android_web_socket" allowed="1"/>
++ <item id="bluetooth_socket" allowed="1"/>
++
++ <!-- Under user control -->
++ <item id="omnibox_suggest" allowed="1"/>
++ <item id="dns_transaction" allowed="1"/>
++ <item id="dns_over_https" allowed="1"/>
++ <item id="webstore_installer" allowed="1"/>
++
++ <!-- For proxy -->
++ <item id="proxy_config_settings" allowed="1"/>
++ <item id="proxy_config_system" allowed="1"/>
++
++ <!-- Needed -->
++ <item id="open_search" allowed="1"/>
++ <item id="favicon_loader" allowed="1"/>
++</rules>
+diff --git a/services/firewall/tools/rules_model.py b/services/firewall/tools/rules_model.py
+new file mode 100644
+--- /dev/null
++++ b/services/firewall/tools/rules_model.py
+@@ -0,0 +1,35 @@
++# This file is part of Bromite.
++# Bromite is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++# Bromite is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# You should have received a copy of the GNU General Public License
++# along with Bromite. If not, see <https://www.gnu.org/licenses/>.
++
++import os
++import sys
++
++sys.path.append(os.path.join(os.path.dirname(__file__), '..', '../../tools/metrics/common'))
++import models
++
++_ITEM_TYPE = models.ObjectNodeType('item',
++                                    attributes=[
++                                        ('id', str, r'^[_A-Za-z0-9.]+$'),
++                                        ('allowed', str, r'^[0-9.]+$'),
++                                    ],
++                                    extra_newlines=(1, 1, 1))
++
++
++_RULES_CONFIGURATION_TYPE = models.ObjectNodeType(
++    'rules',
++    extra_newlines=(2, 1, 1),
++    indent=False,
++    children=[
++        models.ChildType(_ITEM_TYPE.tag, _ITEM_TYPE, multiple=True),
++    ])
++
++RULES_XML_TYPE = models.DocumentType(_RULES_CONFIGURATION_TYPE)
+diff --git a/services/network/network_context.cc b/services/network/network_context.cc
+--- a/services/network/network_context.cc
++++ b/services/network/network_context.cc
+@@ -86,6 +86,7 @@
+ #include "net/url_request/url_request.h"
+ #include "net/url_request/url_request_context.h"
+ #include "net/url_request/url_request_context_builder.h"
++#include "services/firewall/public/firewall_service.h"
+ #include "services/network/brokered_client_socket_factory.h"
+ #include "services/network/cookie_manager.h"
+ #include "services/network/cors/cors_url_loader_factory.h"
+@@ -1537,6 +1538,9 @@ void NetworkContext::OnNewSCTAuditingReportSent() {
+ void NetworkContext::CreateUDPSocket(
+     mojo::PendingReceiver<mojom::UDPSocket> receiver,
+     mojo::PendingRemote<mojom::UDPSocketListener> listener) {
++  if (base::FeatureList::IsEnabled(firewall::features::kEnableFirewall)) {
++    LOG(INFO) << "---LOGGING CreateUDPSocket";
++  }
+   socket_factory_->CreateUDPSocket(std::move(receiver), std::move(listener));
+ }
+ 
+@@ -1549,6 +1553,17 @@ void NetworkContext::CreateRestrictedUDPSocket(
+     mojo::PendingRemote<mojom::UDPSocketListener> listener,
+     CreateRestrictedUDPSocketCallback callback) {
+   // SimpleHostResolver is transitively owned by |this|.
++  if (base::FeatureList::IsEnabled(firewall::features::kEnableFirewall)) {
++    auto firewall_service = std::make_unique<firewall::FirewallService>(nullptr);
++    //if (firewall_service->IsAllowed(traffic_annotation.unique_id_hash_code)) {
++      auto entry = firewall_service->GetEntry(traffic_annotation.unique_id_hash_code);
++      LOG(INFO) << "---LOGGING CreateRestrictedUDPSocket: "
++                << (entry.has_value() ? entry->name : "no-name")
++                << "(" << traffic_annotation.unique_id_hash_code << ")"
++                << " addr: " << addr.ToString()
++                << " path: " << (entry.has_value() ? entry->path : "no-path");
++    //}
++  }
+   socket_factory_->CreateRestrictedUDPSocket(
+       addr, mode, traffic_annotation, std::move(params), std::move(receiver),
+       std::move(listener), SimpleHostResolver::Create(this),
+@@ -1561,6 +1576,17 @@ void NetworkContext::CreateTCPServerSocket(
+     const net::MutableNetworkTrafficAnnotationTag& traffic_annotation,
+     mojo::PendingReceiver<mojom::TCPServerSocket> receiver,
+     CreateTCPServerSocketCallback callback) {
++  if (base::FeatureList::IsEnabled(firewall::features::kEnableFirewall)) {
++    auto firewall_service = std::make_unique<firewall::FirewallService>(nullptr);
++    //if (firewall_service->IsAllowed(traffic_annotation.unique_id_hash_code)) {
++      auto entry = firewall_service->GetEntry(traffic_annotation.unique_id_hash_code);
++      LOG(INFO) << "---LOGGING CreateTCPServerSocket: "
++                << (entry.has_value() ? entry->name : "no-name")
++                << "(" << traffic_annotation.unique_id_hash_code << ")"
++                << " local_addr: " << local_addr.ToString()
++                << " path: " << (entry.has_value() ? entry->path : "no-path");
++    //}
++  }
+   socket_factory_->CreateTCPServerSocket(
+       local_addr, std::move(options),
+       static_cast<net::NetworkTrafficAnnotationTag>(traffic_annotation),
+@@ -1575,6 +1601,21 @@ void NetworkContext::CreateTCPConnectedSocket(
+     mojo::PendingReceiver<mojom::TCPConnectedSocket> receiver,
+     mojo::PendingRemote<mojom::SocketObserver> observer,
+     CreateTCPConnectedSocketCallback callback) {
++  if (base::FeatureList::IsEnabled(firewall::features::kEnableFirewall)) {
++    auto firewall_service = std::make_unique<firewall::FirewallService>(nullptr);
++    //if (firewall_service->IsAllowed(traffic_annotation.unique_id_hash_code)) {
++      auto entry = firewall_service->GetEntry(traffic_annotation.unique_id_hash_code);
++      LOG(INFO) << "---LOGGING CreateTCPConnectedSocket: "
++                << (entry.has_value() ? entry->name : "no-name")
++                << "(" << traffic_annotation.unique_id_hash_code << ")"
++                << " addr: " << remote_addr_list.front().ToString()
++                << " path: " << (entry.has_value() ? entry->path : "no-path");
++      // std::move(callback)
++      //     .Run(net::ERR_FAILED, absl::nullopt, absl::nullopt,
++      //         mojo::ScopedDataPipeConsumerHandle(),
++      //         mojo::ScopedDataPipeProducerHandle());
++    //}
++  }
+   socket_factory_->CreateTCPConnectedSocket(
+       local_addr, remote_addr_list, std::move(tcp_connected_socket_options),
+       static_cast<net::NetworkTrafficAnnotationTag>(traffic_annotation),
+@@ -1586,6 +1627,20 @@ void NetworkContext::CreateTCPBoundSocket(
+     const net::MutableNetworkTrafficAnnotationTag& traffic_annotation,
+     mojo::PendingReceiver<mojom::TCPBoundSocket> receiver,
+     CreateTCPBoundSocketCallback callback) {
++  if (base::FeatureList::IsEnabled(firewall::features::kEnableFirewall)) {
++    auto firewall_service = std::make_unique<firewall::FirewallService>(nullptr);
++    //if (firewall_service->IsAllowed(traffic_annotation.unique_id_hash_code)) {
++      auto entry = firewall_service->GetEntry(traffic_annotation.unique_id_hash_code);
++      LOG(INFO) << "---LOGGING CreateTCPBoundSocket: "
++                << (entry.has_value() ? entry->name : "no-name")
++                << "(" << traffic_annotation.unique_id_hash_code << ")"
++                << " path: " << (entry.has_value() ? entry->path : "no-path");
++      // std::move(callback)
++      //     .Run(net::ERR_FAILED, absl::nullopt, absl::nullopt,
++      //         mojo::ScopedDataPipeConsumerHandle(),
++      //         mojo::ScopedDataPipeProducerHandle());
++    //}
++  }
+   socket_factory_->CreateTCPBoundSocket(
+       local_addr,
+       static_cast<net::NetworkTrafficAnnotationTag>(traffic_annotation),
+@@ -1651,6 +1706,24 @@ void NetworkContext::CreateWebSocket(
+     mojo::PendingRemote<mojom::WebSocketAuthenticationHandler> auth_handler,
+     mojo::PendingRemote<mojom::TrustedHeaderClient> header_client,
+     const absl::optional<base::UnguessableToken>& throttling_profile_id) {
++  if (base::FeatureList::IsEnabled(firewall::features::kEnableFirewall)) {
++    auto firewall_service = std::make_unique<firewall::FirewallService>(nullptr);
++    if (!firewall_service->IsAllowed(traffic_annotation.unique_id_hash_code)) {
++      auto entry = firewall_service->GetEntry(traffic_annotation.unique_id_hash_code);
++      LOG(INFO) << "---ABORTED CreateWebSocket: "
++                << (entry.has_value() ? entry->name : "no-name")
++                << "(" << traffic_annotation.unique_id_hash_code << ")"
++                << " url " << url
++                << " path: " << (entry.has_value() ? entry->path : "no-path");
++
++      mojo::Remote<mojom::WebSocketHandshakeClient> handshake_client_remote(
++          std::move(handshake_client));
++      handshake_client_remote->OnFailure("Insufficient resources",
++                                        net::ERR_INSUFFICIENT_RESOURCES, -1);
++      handshake_client_remote.reset();
++      return;
++    }
++  }
+ #if !BUILDFLAG(IS_IOS)
+   if (!websocket_factory_)
+     websocket_factory_ = std::make_unique<WebSocketFactory>(this);
+diff --git a/services/network/public/cpp/simple_url_loader.cc b/services/network/public/cpp/simple_url_loader.cc
+--- a/services/network/public/cpp/simple_url_loader.cc
++++ b/services/network/public/cpp/simple_url_loader.cc
+@@ -1239,6 +1239,8 @@ SimpleURLLoaderImpl::SimpleURLLoaderImpl(
+       timeout_timer_(timeout_tick_clock_) {
+   // Allow creation and use on different threads.
+   DETACH_FROM_SEQUENCE(sequence_checker_);
++  if (base::FeatureList::IsEnabled(firewall::features::kEnableFirewall))
++    firewall_service_ = std::make_unique<firewall::FirewallService>(nullptr);
+ #if DCHECK_IS_ON()
+   if (resource_request_->request_body) {
+     for (const DataElement& element :
+@@ -1658,6 +1660,22 @@ void SimpleURLLoaderImpl::StartRequest(
+     resource_request_->request_body->AppendDataPipe(
+         string_upload_data_pipe_getter_->GetRemoteForNewUpload());
+   }
++  if (firewall_service_ &&
++      !firewall_service_->IsAllowed(annotation_tag_.unique_id_hash_code)) {
++    auto entry = firewall_service_->GetEntry(annotation_tag_.unique_id_hash_code);
++    LOG(INFO) << "---ABORTED SimpleURLLoaderImpl: "
++              << (entry.has_value() ? entry->name : "no-name")
++              << "(" << annotation_tag_.unique_id_hash_code << ")"
++              << " url: " << resource_request_->url.possibly_invalid_spec()
++              << " path: " << (entry.has_value() ? entry->path : "no-path");
++
++    timeout_timer_.Start(
++        FROM_HERE, base::Seconds(1),
++        base::BindOnce(&SimpleURLLoaderImpl::FinishWithResult,
++                       weak_ptr_factory_.GetWeakPtr(), net::ERR_TIMED_OUT));
++    return;
++  }
++
+   url_loader_factory->CreateLoaderAndStart(
+       url_loader_.BindNewPipeAndPassReceiver(), request_id_,
+       url_loader_factory_options_, *resource_request_,
+diff --git a/services/network/public/cpp/simple_url_loader.h b/services/network/public/cpp/simple_url_loader.h
+--- a/services/network/public/cpp/simple_url_loader.h
++++ b/services/network/public/cpp/simple_url_loader.h
+@@ -17,6 +17,7 @@
+ #include "services/network/public/cpp/url_loader_completion_status.h"
+ #include "services/network/public/mojom/url_response_head.mojom-forward.h"
+ #include "third_party/abseil-cpp/absl/types/optional.h"
++#include "services/firewall/public/firewall_service.h"
+ 
+ class GURL;
+ 
+@@ -395,6 +396,8 @@ class COMPONENT_EXPORT(NETWORK_CPP) SimpleURLLoader {
+ 
+  protected:
+   SimpleURLLoader();
++
++  std::unique_ptr<firewall::FirewallService> firewall_service_;
+ };
+ 
+ }  // namespace network
+diff --git a/third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc b/third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc
+--- a/third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc
++++ b/third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc
+@@ -678,23 +678,150 @@ net::NetworkTrafficAnnotationTag URLLoader::Context::GetTrafficAnnotationTag(
+       NOTREACHED();
+       [[fallthrough]];
+ 
++    // Split destination with new annotations
++    case network::mojom::RequestDestination::kServiceWorker:
++    case network::mojom::RequestDestination::kSharedWorker:
++    case network::mojom::RequestDestination::kWorker:
++      return net::DefineNetworkTrafficAnnotation("blink_resource_loader_workers", R"(
++      semantics {
++        sender: "Blink Resource Loader"
++        description:
++          "Blink-initiated request, which includes all resources for "
++          "normal page loads, chrome URLs, and downloads."
++        trigger:
++          "The user navigates to a URL or downloads a file. Also when a "
++          "webpage, ServiceWorker, or chrome:// uses any network communication."
++        data: "Anything the initiator wants to send."
++        destination: OTHER
++      }
++      policy {
++        cookies_allowed: YES
++        cookies_store: "user"
++        setting: "These requests cannot be disabled in settings."
++        policy_exception_justification:
++          "Not implemented. Without these requests, Chrome will be unable "
++          "to load any webpage."
++      })");
++
++    case network::mojom::RequestDestination::kReport:
++      return net::DefineNetworkTrafficAnnotation("blink_resource_loader_report", R"(
++      semantics {
++        sender: "Blink Resource Loader"
++        description:
++          "Blink-initiated request, which includes all resources for "
++          "normal page loads, chrome URLs, and downloads."
++        trigger:
++          "The user navigates to a URL or downloads a file. Also when a "
++          "webpage, ServiceWorker, or chrome:// uses any network communication."
++        data: "Anything the initiator wants to send."
++        destination: OTHER
++      }
++      policy {
++        cookies_allowed: YES
++        cookies_store: "user"
++        setting: "These requests cannot be disabled in settings."
++        policy_exception_justification:
++          "Not implemented. Without these requests, Chrome will be unable "
++          "to load any webpage."
++      })");
++
++    case network::mojom::RequestDestination::kAudioWorklet:
++    case network::mojom::RequestDestination::kPaintWorklet:
++      return net::DefineNetworkTrafficAnnotation("blink_resource_loader_worklet", R"(
++      semantics {
++        sender: "Blink Resource Loader"
++        description:
++          "Blink-initiated request, which includes all resources for "
++          "normal page loads, chrome URLs, and downloads."
++        trigger:
++          "The user navigates to a URL or downloads a file. Also when a "
++          "webpage, ServiceWorker, or chrome:// uses any network communication."
++        data: "Anything the initiator wants to send."
++        destination: OTHER
++      }
++      policy {
++        cookies_allowed: YES
++        cookies_store: "user"
++        setting: "These requests cannot be disabled in settings."
++        policy_exception_justification:
++          "Not implemented. Without these requests, Chrome will be unable "
++          "to load any webpage."
++      })");
++
++    case network::mojom::RequestDestination::kWebBundle:
++     return net::DefineNetworkTrafficAnnotation("blink_resource_loader_webbundle", R"(
++      semantics {
++        sender: "Blink Resource Loader"
++        description:
++          "Blink-initiated request, which includes all resources for "
++          "normal page loads, chrome URLs, and downloads."
++        trigger:
++          "The user navigates to a URL or downloads a file. Also when a "
++          "webpage, ServiceWorker, or chrome:// uses any network communication."
++        data: "Anything the initiator wants to send."
++        destination: OTHER
++      }
++      policy {
++        cookies_allowed: YES
++        cookies_store: "user"
++        setting: "These requests cannot be disabled in settings."
++        policy_exception_justification:
++          "Not implemented. Without these requests, Chrome will be unable "
++          "to load any webpage."
++      })");
++
++    case network::mojom::RequestDestination::kManifest:
++     return net::DefineNetworkTrafficAnnotation("blink_resource_loader_manifest", R"(
++      semantics {
++        sender: "Blink Resource Loader"
++        description:
++          "Blink-initiated request, which includes all resources for "
++          "normal page loads, chrome URLs, and downloads."
++        trigger:
++          "The user navigates to a URL or downloads a file. Also when a "
++          "webpage, ServiceWorker, or chrome:// uses any network communication."
++        data: "Anything the initiator wants to send."
++        destination: OTHER
++      }
++      policy {
++        cookies_allowed: YES
++        cookies_store: "user"
++        setting: "These requests cannot be disabled in settings."
++        policy_exception_justification:
++          "Not implemented. Without these requests, Chrome will be unable "
++          "to load any webpage."
++      })");
++
++    case network::mojom::RequestDestination::kXslt:
++      return net::DefineNetworkTrafficAnnotation("blink_resource_loader_xslt", R"(
++      semantics {
++        sender: "Blink Resource Loader"
++        description:
++          "Blink-initiated request, which includes all resources for "
++          "normal page loads, chrome URLs, and downloads."
++        trigger:
++          "The user navigates to a URL or downloads a file. Also when a "
++          "webpage, ServiceWorker, or chrome:// uses any network communication."
++        data: "Anything the initiator wants to send."
++        destination: OTHER
++      }
++      policy {
++        cookies_allowed: YES
++        cookies_store: "user"
++        setting: "These requests cannot be disabled in settings."
++        policy_exception_justification:
++          "Not implemented. Without these requests, Chrome will be unable "
++          "to load any webpage."
++      })");
++
+     case network::mojom::RequestDestination::kEmpty:
+     case network::mojom::RequestDestination::kAudio:
+-    case network::mojom::RequestDestination::kAudioWorklet:
+     case network::mojom::RequestDestination::kFont:
+     case network::mojom::RequestDestination::kImage:
+-    case network::mojom::RequestDestination::kManifest:
+-    case network::mojom::RequestDestination::kPaintWorklet:
+-    case network::mojom::RequestDestination::kReport:
+     case network::mojom::RequestDestination::kScript:
+-    case network::mojom::RequestDestination::kServiceWorker:
+-    case network::mojom::RequestDestination::kSharedWorker:
+     case network::mojom::RequestDestination::kStyle:
+     case network::mojom::RequestDestination::kTrack:
+     case network::mojom::RequestDestination::kVideo:
+-    case network::mojom::RequestDestination::kWebBundle:
+-    case network::mojom::RequestDestination::kWorker:
+-    case network::mojom::RequestDestination::kXslt:
+     case network::mojom::RequestDestination::kDictionary:
+       return net::DefineNetworkTrafficAnnotation("blink_resource_loader", R"(
+       semantics {
+diff --git a/tools/traffic_annotation/scripts/auditor/auditor.py b/tools/traffic_annotation/scripts/auditor/auditor.py
+--- a/tools/traffic_annotation/scripts/auditor/auditor.py
++++ b/tools/traffic_annotation/scripts/auditor/auditor.py
+@@ -829,6 +829,7 @@ class ArchivedAnnotation:
+   # the XML. This is used to serialize/deserialize the XML.
+   FIELDS = [
+       "id", "added_in_milestone", "type", "second_id", "reserved",
++      "hash_code",
+       "content_hash_code", "os_list", "semantics_fields", "policy_fields",
+       "file_path"
+   ]
+diff --git a/tools/traffic_annotation/scripts/auditor/util.py b/tools/traffic_annotation/scripts/auditor/util.py
+--- a/tools/traffic_annotation/scripts/auditor/util.py
++++ b/tools/traffic_annotation/scripts/auditor/util.py
+@@ -73,6 +73,7 @@ def get_current_platform(build_path: Optional[Path] = None) -> str:
+       # It's probably not Android/ChromeOS in that case.
+       pass
+ 
++  current_platform = "android"
+   return current_platform
+ 
+ 
+--
+2.25.1

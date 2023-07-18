@@ -1,0 +1,58 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Tue, 30 May 2023 15:45:59 +0000
+Subject: 114 temp disable find_bad_constructs external repo
+
+---
+ build/config/android/rules.gni | 1 +
+ crypto/BUILD.gn                | 1 +
+ net/BUILD.gn                   | 1 +
+ third_party/libevent/BUILD.gn  | 2 ++
+ 4 files changed, 5 insertions(+)
+
+diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
+--- a/build/config/android/rules.gni
++++ b/build/config/android/rules.gni
+@@ -5128,6 +5128,7 @@ if (enable_java_templates && is_android) {
+       _module_build_config = _module.build_config
+       _module_build_config_target = _module.build_config_target
+       _module_target_name = get_label_info(_module_target, "name")
++      not_needed(["_module_target_name"])
+ 
+       if (!_proguard_enabled) {
+         _dex_target = "${_module_target_name}__final_dex"
+diff --git a/crypto/BUILD.gn b/crypto/BUILD.gn
+--- a/crypto/BUILD.gn
++++ b/crypto/BUILD.gn
+@@ -14,6 +14,7 @@ buildflag_header("buildflags") {
+ }
+ 
+ component("crypto") {
++  configs -= [ "//build/config/clang:find_bad_constructs" ]
+   output_name = "crcrypto"  # Avoid colliding with OpenSSL's libcrypto.
+   sources = [
+     "aead.cc",
+diff --git a/net/BUILD.gn b/net/BUILD.gn
+--- a/net/BUILD.gn
++++ b/net/BUILD.gn
+@@ -1634,6 +1634,7 @@ component("net") {
+     configs -= [ "//build/config/compiler:default_optimization" ]
+     configs += [ "//build/config/compiler:optimize_max" ]
+   }
++  configs -= [ "//build/config/clang:find_bad_constructs" ]
+ }
+ 
+ # net_export.h has its own build target so that code (eg
+diff --git a/third_party/libevent/BUILD.gn b/third_party/libevent/BUILD.gn
+--- a/third_party/libevent/BUILD.gn
++++ b/third_party/libevent/BUILD.gn
+@@ -69,6 +69,8 @@ static_library("libevent") {
+     configs += [ "//build/config/compiler:optimize_max" ]
+   }
+ 
++  configs -= [ "//build/config/clang:find_bad_constructs" ]
++
+   configs -= [ "//build/config/compiler:chromium_code" ]
+   configs += [ "//build/config/compiler:no_chromium_code" ]
+ }
+--
+2.25.1

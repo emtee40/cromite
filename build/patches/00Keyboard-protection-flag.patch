@@ -1,0 +1,285 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Tue, 14 Mar 2023 15:48:21 +0000
+Subject: Keyboard protection flag
+
+Hides user preference on the system keyboard by setting the standard
+eng layout and removing the layout information from the javascript
+keyboard events.
+---
+ chrome/browser/about_flags.cc                 |  3 +
+ chrome/browser/flag_descriptions.cc           |  6 ++
+ chrome/browser/flag_descriptions.h            |  3 +
+ .../renderer/core/events/keyboard_event.cc    | 66 +++++++++++++++++++
+ .../renderer/core/events/keyboard_event.h     |  3 +
+ ui/base/ui_base_features.cc                   |  8 +++
+ ui/base/ui_base_features.h                    |  2 +
+ .../dom/dom_keyboard_layout_map_win.cc        | 13 ++++
+ .../keycodes/keyboard_code_conversion.cc      | 10 ++-
+ ui/events/keycodes/keyboard_code_conversion.h |  2 +-
+ 10 files changed, 113 insertions(+), 3 deletions(-)
+
+diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
+--- a/chrome/browser/about_flags.cc
++++ b/chrome/browser/about_flags.cc
+@@ -5092,6 +5092,9 @@ const FeatureEntry kFeatureEntries[] = {
+     {"system-keyboard-lock", flag_descriptions::kSystemKeyboardLockName,
+      flag_descriptions::kSystemKeyboardLockDescription, kOsDesktop,
+      FEATURE_VALUE_TYPE(features::kSystemKeyboardLock)},
++    {"system-keyboard-protection", flag_descriptions::kSystemKeyboardProtectionName,
++     flag_descriptions::kSystemKeyboardProtectionDescription, kOsAll,
++     FEATURE_VALUE_TYPE(features::kSystemKeyboardProtection)},
+ #if BUILDFLAG(IS_ANDROID)
+     {"add-to-homescreen-iph", flag_descriptions::kAddToHomescreenIPHName,
+      flag_descriptions::kAddToHomescreenIPHDescription, kOsAndroid,
+diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
+--- a/chrome/browser/flag_descriptions.cc
++++ b/chrome/browser/flag_descriptions.cc
+@@ -3161,6 +3161,12 @@ const char kSystemKeyboardLockDescription[] =
+     "keyboard shortcuts and have the events routed directly to the website "
+     "when in fullscreen mode.";
+ 
++const char kSystemKeyboardProtectionName[] = "System keyboard protection";
++const char kSystemKeyboardProtectionDescription[] =
++    "Hides user preference on the system keyboard by setting the standard "
++    "eng layout and removing the layout information from the "
++    "javascript keyboard events.";
++
+ const char kSystemSoundsName[] = "Power Sounds";
+ const char kSystemSoundsDescription[] =
+     "Enable device charging and low battery warning sounds.";
+diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
+--- a/chrome/browser/flag_descriptions.h
++++ b/chrome/browser/flag_descriptions.h
+@@ -1784,6 +1784,9 @@ extern const char kSuppressToolbarCapturesDescription[];
+ extern const char kSystemKeyboardLockName[];
+ extern const char kSystemKeyboardLockDescription[];
+ 
++extern const char kSystemKeyboardProtectionName[];
++extern const char kSystemKeyboardProtectionDescription[];
++
+ extern const char kSystemSoundsName[];
+ extern const char kSystemSoundsDescription[];
+ 
+diff --git a/third_party/blink/renderer/core/events/keyboard_event.cc b/third_party/blink/renderer/core/events/keyboard_event.cc
+--- a/third_party/blink/renderer/core/events/keyboard_event.cc
++++ b/third_party/blink/renderer/core/events/keyboard_event.cc
+@@ -23,9 +23,12 @@
+ #include "third_party/blink/renderer/core/events/keyboard_event.h"
+ 
+ #include "build/build_config.h"
++#include "base/feature_list.h"
+ #include "third_party/blink/public/common/input/web_input_event.h"
+ #include "third_party/blink/public/platform/platform.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_keyboard_event_init.h"
++#include "third_party/blink/renderer/core/dom/events/event_dispatch_result.h"
++#include "third_party/blink/renderer/core/dom/events/event_dispatcher.h"
+ #include "third_party/blink/renderer/core/editing/ime/input_method_controller.h"
+ #include "third_party/blink/renderer/core/event_interface_names.h"
+ #include "third_party/blink/renderer/core/frame/local_dom_window.h"
+@@ -34,7 +37,10 @@
+ #include "third_party/blink/renderer/platform/bindings/dom_wrapper_world.h"
+ #include "third_party/blink/renderer/platform/bindings/script_state.h"
+ #include "third_party/blink/renderer/platform/windows_keyboard_codes.h"
++#include "ui/base/ui_base_features.h"
+ #include "ui/events/keycodes/dom/keycode_converter.h"
++#include "ui/events/keycodes/dom/dom_codes_array.h"
++#include "ui/events/keycodes/keyboard_code_conversion.h"
+ 
+ namespace blink {
+ 
+@@ -133,6 +139,60 @@ KeyboardEvent::KeyboardEvent(const WebKeyboardEvent& key,
+   else
+     key_code_ = char_code_;
+ 
++  if (features::IsSystemKeyboardProtectionEnabled()) {
++    // we need character for transformation
++    ui::DomKey ascii_key;
++    ui::DomKey original_dom_key = static_cast<ui::DomKey>(key.dom_key);
++    // 1 <= char_code <= 26: exclude ctrl-a ... control-z
++    if (char_code_ > 26 && original_dom_key.IsCharacter())
++      ascii_key = ui::DomKey::FromCharacter(key.text[0]);
++    else
++      ascii_key = original_dom_key;
++
++    // get domcode of us layout keyboard
++    // we transform the character pressed by the user into
++    // the relevant domkey of the English keyboard
++    // so, for example:
++    //    for ascii_key = "
++    //    in italian keyboard --> shift + Digit2
++    //    in us keybord       --> shift + Quote
++    int shift_needed = 0;
++    ui::DomCode us_code = ui::UsLayoutDomKeyToDomCode(ascii_key, &shift_needed);
++    if (shift_needed == 0)
++      modifiers_ &= ~WebInputEvent::kShiftKey;
++    else if (shift_needed == 1)
++      modifiers_ |= WebInputEvent::kShiftKey;
++
++    // convert keyboard code to us layout (platform code)
++    if (type() == event_type_names::kKeydown ||
++        type() == event_type_names::kKeyup) {
++      int windows_key_code = ui::DomCodeToUsLayoutNonLocatedKeyboardCode(us_code);
++      key_code_ = windows_key_code;
++    }
++
++    // regenerate key_ and code_ for us keyboard
++    key_ = FromUTF8(ui::KeycodeConverter::DomKeyToKeyString(ascii_key));
++    code_ = FromUTF8(ui::KeycodeConverter::DomCodeToCodeString(us_code));
++
++    if (ui::KeycodeConverter::IsDomKeyForModifier(original_dom_key) ||
++        original_dom_key.IsDeadKey()) {
++      // suppress event if is ctrl/shift/alt... otherwise key_code of
++      // the next character can be stolen
++      // and do not send dead keys
++      // we cannot do otherwise because some characters are generated
++      // with the shift or without depending on the keyboard
++      suppress_event_ = true;
++    }
++    // do not leak status of numlock/capslock/scrolllock/etc
++    modifiers_ &= ~(WebInputEvent::kSymbolKey | WebInputEvent::kFnKey |
++                    WebInputEvent::kAltGrKey | WebInputEvent::kMetaKey |
++                    WebInputEvent::kAltKey | WebInputEvent::kIsKeyPad |
++                    WebInputEvent::kSymbolKey | WebInputEvent::kScrollLockOn |
++                    WebInputEvent::kCapsLockOn | WebInputEvent::kNumLockOn);
++    // always clear location
++    location_ = KeyboardEvent::kDomKeyLocationStandard;
++  }
++
+ #if BUILDFLAG(IS_ANDROID)
+   // FIXME: Check to see if this applies to other OS.
+   // If the key event belongs to IME composition then propagate to JS.
+@@ -205,6 +265,12 @@ unsigned KeyboardEvent::which() const {
+   return (unsigned)keyCode();
+ }
+ 
++DispatchEventResult KeyboardEvent::DispatchEvent(EventDispatcher& dispatcher) {
++  if (suppress_event_)
++    return DispatchEventResult::kNotCanceled;
++  return dispatcher.Dispatch();
++}
++
+ void KeyboardEvent::InitLocationModifiers(unsigned location) {
+   switch (location) {
+     case KeyboardEvent::kDomKeyLocationNumpad:
+diff --git a/third_party/blink/renderer/core/events/keyboard_event.h b/third_party/blink/renderer/core/events/keyboard_event.h
+--- a/third_party/blink/renderer/core/events/keyboard_event.h
++++ b/third_party/blink/renderer/core/events/keyboard_event.h
+@@ -97,6 +97,8 @@ class CORE_EXPORT KeyboardEvent final : public UIEventWithKeyState {
+   unsigned which() const override;
+   bool isComposing() const { return is_composing_; }
+ 
++  DispatchEventResult DispatchEvent(EventDispatcher&) override;
++
+   void Trace(Visitor*) const override;
+ 
+  private:
+@@ -109,6 +111,7 @@ class CORE_EXPORT KeyboardEvent final : public UIEventWithKeyState {
+   bool is_composing_ = false;
+   unsigned char_code_ = 0;
+   unsigned key_code_ = 0;
++  bool suppress_event_ = false;
+ };
+ 
+ template <>
+diff --git a/ui/base/ui_base_features.cc b/ui/base/ui_base_features.cc
+--- a/ui/base/ui_base_features.cc
++++ b/ui/base/ui_base_features.cc
+@@ -174,6 +174,14 @@ BASE_FEATURE(kSystemKeyboardLock,
+              "SystemKeyboardLock",
+              base::FEATURE_ENABLED_BY_DEFAULT);
+ 
++BASE_FEATURE(kSystemKeyboardProtection,
++             "SystemKeyboardProtection",
++             base::FEATURE_ENABLED_BY_DEFAULT);
++
++bool IsSystemKeyboardProtectionEnabled() {
++  return base::FeatureList::IsEnabled(kSystemKeyboardProtection);
++}
++
+ // Enables GPU rasterization for all UI drawing (where not blocklisted).
+ BASE_FEATURE(kUiGpuRasterization,
+              "UiGpuRasterization",
+diff --git a/ui/base/ui_base_features.h b/ui/base/ui_base_features.h
+--- a/ui/base/ui_base_features.h
++++ b/ui/base/ui_base_features.h
+@@ -30,6 +30,8 @@ BASE_DECLARE_FEATURE(kWindowsScrollingPersonality);
+ COMPONENT_EXPORT(UI_BASE_FEATURES) bool IsPercentBasedScrollingEnabled();
+ COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kSystemCaptionStyle);
+ COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kSystemKeyboardLock);
++COMPONENT_EXPORT(UI_BASE_FEATURES) BASE_DECLARE_FEATURE(kSystemKeyboardProtection);
++COMPONENT_EXPORT(UI_BASE_FEATURES) bool IsSystemKeyboardProtectionEnabled();
+ COMPONENT_EXPORT(UI_BASE_FEATURES)
+ BASE_DECLARE_FEATURE(kUiCompositorScrollWithLayers);
+ 
+diff --git a/ui/events/keycodes/dom/dom_keyboard_layout_map_win.cc b/ui/events/keycodes/dom/dom_keyboard_layout_map_win.cc
+--- a/ui/events/keycodes/dom/dom_keyboard_layout_map_win.cc
++++ b/ui/events/keycodes/dom/dom_keyboard_layout_map_win.cc
+@@ -13,6 +13,8 @@
+ #include "base/containers/flat_map.h"
+ #include "base/logging.h"
+ #include "base/ranges/algorithm.h"
++#include "base/feature_list.h"
++#include "ui/base/ui_base_features.h"
+ #include "ui/events/keycodes/dom/dom_code.h"
+ #include "ui/events/keycodes/dom/dom_key.h"
+ #include "ui/events/keycodes/dom/dom_keyboard_layout_map_base.h"
+@@ -74,6 +76,17 @@ uint32_t DomKeyboardLayoutMapWin::GetKeyboardLayoutCount() {
+       iter != keyboard_layout_handles_.end())
+     std::iter_swap(keyboard_layout_handles_.begin(), iter);
+ 
++  if (features::IsSystemKeyboardProtectionEnabled()) {
++    HKL actual_layout = GetKeyboardLayout(0);
++
++    // get handle for en-us keyboard layout
++    keyboard_layout_handles_.clear();
++    keyboard_layout_handles_.resize(1);
++    keyboard_layout_handles_[0] = LoadKeyboardLayoutA("00000409", KLF_ACTIVATE);
++
++    // reactivate user keyboard layout
++    ActivateKeyboardLayout(actual_layout, KLF_SETFORPROCESS);
++  }
+   return keyboard_layout_handles_.size();
+ }
+ 
+diff --git a/ui/events/keycodes/keyboard_code_conversion.cc b/ui/events/keycodes/keyboard_code_conversion.cc
+--- a/ui/events/keycodes/keyboard_code_conversion.cc
++++ b/ui/events/keycodes/keyboard_code_conversion.cc
+@@ -293,16 +293,22 @@ int ModifierDomKeyToEventFlag(DomKey key) {
+   //   DomKey::SYMBOL_LOCK
+ }
+ 
+-DomCode UsLayoutDomKeyToDomCode(DomKey dom_key) {
++DomCode UsLayoutDomKeyToDomCode(DomKey dom_key, int *need_shift) {
+   if (dom_key.IsCharacter()) {
+     char16_t c = dom_key.ToCharacter();
+     for (const auto& it : kPrintableCodeMap) {
+-      if (it.character[0] == c || it.character[1] == c) {
++      if (it.character[0] == c) {
++        *need_shift = 0;
++        return it.dom_code;
++      }
++      if (it.character[1] == c) {
++        *need_shift = 1;
+         return it.dom_code;
+       }
+     }
+   }
+ 
++  *need_shift = -1;
+   for (const auto& it : kNonPrintableCodeMap) {
+     if (it.dom_key == dom_key)
+       return it.dom_code;
+diff --git a/ui/events/keycodes/keyboard_code_conversion.h b/ui/events/keycodes/keyboard_code_conversion.h
+--- a/ui/events/keycodes/keyboard_code_conversion.h
++++ b/ui/events/keycodes/keyboard_code_conversion.h
+@@ -111,7 +111,7 @@ EVENTS_BASE_EXPORT int ModifierDomKeyToEventFlag(DomKey key);
+ 
+ // Returns the physical DOM code along with a corresponding non-located
+ // Windows-based key_code.
+-EVENTS_BASE_EXPORT DomCode UsLayoutDomKeyToDomCode(DomKey dom_key);
++EVENTS_BASE_EXPORT DomCode UsLayoutDomKeyToDomCode(DomKey dom_key, int *need_shift);
+ 
+ }  // namespace ui
+ 
+--
+2.25.1

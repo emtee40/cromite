@@ -1,0 +1,127 @@
+From: csagan5 <32685696+csagan5@users.noreply.github.com>
+Date: Sun, 6 Mar 2022 17:39:15 +0100
+Subject: Disable safety check
+
+License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
+---
+ chrome/android/BUILD.gn                                   | 5 -----
+ chrome/android/chrome_java_sources.gni                    | 1 -
+ .../chrome/browser/settings/SettingsActivity.java         | 8 --------
+ .../chrome/browser/settings/SettingsLauncherImpl.java     | 5 +----
+ chrome/browser/BUILD.gn                                   | 1 -
+ .../browser/omnibox/suggestions/action/OmniboxPedal.java  | 3 ---
+ 6 files changed, 1 insertion(+), 22 deletions(-)
+
+diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
+--- a/chrome/android/BUILD.gn
++++ b/chrome/android/BUILD.gn
+@@ -362,7 +362,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/recent_tabs:factory_java",
+       "//chrome/browser/recent_tabs:java",
+       "//chrome/browser/safe_browsing/android:java",
+-      "//chrome/browser/safety_check/android:java",
+       "//chrome/browser/search_engines/android:java",
+       "//chrome/browser/search_resumption:java",
+       "//chrome/browser/segmentation_platform:factory_java",
+@@ -957,8 +956,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/quick_delete:junit",
+       "//chrome/browser/recent_tabs:java",
+       "//chrome/browser/recent_tabs/internal:junit",
+-      "//chrome/browser/safety_check/android:java",
+-      "//chrome/browser/safety_check/android:junit",
+       "//chrome/browser/search_engines/android:java",
+       "//chrome/browser/search_resumption:junit",
+       "//chrome/browser/segmentation_platform:factory_java",
+@@ -1530,8 +1527,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/quick_delete:javatests",
+       "//chrome/browser/safe_browsing/android:java",
+       "//chrome/browser/safe_browsing/android:javatests",
+-      "//chrome/browser/safety_check/android:java",
+-      "//chrome/browser/safety_check/android:javatests",
+       "//chrome/browser/search_engines/android:java",
+       "//chrome/browser/selection/android:javatests",
+       "//chrome/browser/settings:java",
+diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
+--- a/chrome/android/chrome_java_sources.gni
++++ b/chrome/android/chrome_java_sources.gni
+@@ -986,7 +986,6 @@ chrome_java_sources = [
+   "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingPasswordReuseDialogBridge.java",
+   "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingReferringAppBridge.java",
+   "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingSettingsLauncher.java",
+-  "java/src/org/chromium/chrome/browser/safety_check/SafetyCheckUpdatesDelegateImpl.java",
+   "java/src/org/chromium/chrome/browser/searchwidget/SearchActivity.java",
+   "java/src/org/chromium/chrome/browser/searchwidget/SearchActivityLocationBarLayout.java",
+   "java/src/org/chromium/chrome/browser/searchwidget/SearchBoxDataProvider.java",
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
+@@ -62,9 +62,6 @@ import org.chromium.chrome.browser.privacy_sandbox.AdMeasurementFragment;
+ import org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxSettingsBaseFragment;
+ import org.chromium.chrome.browser.profiles.Profile;
+ import org.chromium.chrome.browser.profiles.ProfileManagerUtils;
+-import org.chromium.chrome.browser.safety_check.SafetyCheckCoordinator;
+-import org.chromium.chrome.browser.safety_check.SafetyCheckSettingsFragment;
+-import org.chromium.chrome.browser.safety_check.SafetyCheckUpdatesDelegateImpl;
+ import org.chromium.chrome.browser.search_engines.settings.SearchEngineSettings;
+ import org.chromium.chrome.browser.signin.SyncConsentActivityLauncherImpl;
+ import org.chromium.chrome.browser.site_settings.ChromeSiteSettingsDelegate;
+@@ -448,11 +445,6 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+             fragmentHelpAndFeedbackLauncher.setHelpAndFeedbackLauncher(
+                     HelpAndFeedbackLauncherImpl.getForProfile(mProfile));
+         }
+-        if (fragment instanceof SafetyCheckSettingsFragment) {
+-            SafetyCheckCoordinator.create((SafetyCheckSettingsFragment) fragment,
+-                    new SafetyCheckUpdatesDelegateImpl(), mSettingsLauncher,
+-                    SyncConsentActivityLauncherImpl.get(), getModalDialogManagerSupplier());
+-        }
+         if (fragment instanceof PasswordCheckFragmentView) {
+             PasswordCheckComponentUiFactory.create((PasswordCheckFragmentView) fragment,
+                     HelpAndFeedbackLauncherImpl.getForProfile(mProfile), mSettingsLauncher,
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsLauncherImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsLauncherImpl.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsLauncherImpl.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsLauncherImpl.java
+@@ -15,7 +15,6 @@ import androidx.fragment.app.Fragment;
+ import org.chromium.base.IntentUtils;
+ import org.chromium.chrome.browser.autofill.settings.AutofillPaymentMethodsFragment;
+ import org.chromium.chrome.browser.browsing_data.ClearBrowsingDataTabsFragment;
+-import org.chromium.chrome.browser.safety_check.SafetyCheckSettingsFragment;
+ import org.chromium.components.browser_ui.accessibility.AccessibilitySettings;
+ import org.chromium.components.browser_ui.settings.SettingsLauncher;
+ import org.chromium.components.browser_ui.site_settings.SiteSettings;
+@@ -49,9 +48,7 @@ public class SettingsLauncherImpl implements SettingsLauncher {
+                 break;
+ 
+             case SettingsFragment.SAFETY_CHECK:
+-                fragment = SafetyCheckSettingsFragment.class;
+-                fragmentArgs = SafetyCheckSettingsFragment.createBundle(true);
+-                break;
++                return;
+ 
+             case SettingsFragment.SITE:
+                 fragment = SiteSettings.class;
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -3325,7 +3325,6 @@ static_library("browser") {
+       "//chrome/browser/reading_list/android",
+       "//chrome/browser/recent_tabs:jni_headers",
+       "//chrome/browser/safe_browsing/android:safe_browsing_enums",
+-      "//chrome/browser/safety_check/android",
+       "//chrome/browser/search_resumption:jni_headers",
+       "//chrome/browser/share/android:jni_headers",
+       "//chrome/browser/share/core/crow:crow_configuration",
+diff --git a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java
+--- a/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java
++++ b/chrome/browser/ui/android/omnibox/java/src/org/chromium/chrome/browser/omnibox/suggestions/action/OmniboxPedal.java
+@@ -44,9 +44,6 @@ public class OmniboxPedal extends OmniboxAction {
+             case OmniboxPedalId.UPDATE_CREDIT_CARD:
+                 delegate.openSettingsPage(SettingsFragment.PAYMENT_METHODS);
+                 break;
+-            case OmniboxPedalId.RUN_CHROME_SAFETY_CHECK:
+-                delegate.openSettingsPage(SettingsFragment.SAFETY_CHECK);
+-                break;
+             case OmniboxPedalId.MANAGE_SITE_SETTINGS:
+                 delegate.openSettingsPage(SettingsFragment.SITE);
+                 break;
+--
+2.25.1

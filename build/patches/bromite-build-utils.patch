@@ -1,0 +1,522 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Fri, 9 Jun 2023 15:11:46 +0000
+Subject: bromite build utils
+
+---
+ build/android/gyp/java_cpp_enum.py           | 36 ++++++--
+ build/android/gyp/util/build_utils.py        | 25 +++++-
+ build/bromite/bromite_utils.gni              | 69 ++++++++++++++
+ build/bromite/gyp/cpp_bromite_include.py     | 35 ++++++++
+ build/bromite/gyp/cpp_bromite_include.pydeps |  9 ++
+ build/bromite/gyp/java_bromite_impl.py       | 94 ++++++++++++++++++++
+ build/bromite/gyp/java_bromite_impl.pydeps   |  9 ++
+ build/config/BUILDCONFIG.gn                  |  1 +
+ build/config/android/rules.gni               |  6 +-
+ tools/grit/grit/grd_reader.py                | 27 ++++--
+ tools/grit/preprocess_if_expr.py             | 32 ++++++-
+ 11 files changed, 329 insertions(+), 14 deletions(-)
+ create mode 100644 build/bromite/bromite_utils.gni
+ create mode 100644 build/bromite/gyp/cpp_bromite_include.py
+ create mode 100644 build/bromite/gyp/cpp_bromite_include.pydeps
+ create mode 100644 build/bromite/gyp/java_bromite_impl.py
+ create mode 100644 build/bromite/gyp/java_bromite_impl.pydeps
+
+diff --git a/build/android/gyp/java_cpp_enum.py b/build/android/gyp/java_cpp_enum.py
+--- a/build/android/gyp/java_cpp_enum.py
++++ b/build/android/gyp/java_cpp_enum.py
+@@ -173,6 +173,7 @@ class DirectiveSet:
+ 
+ 
+ class HeaderParser:
++  include_re = re.compile(r'#include "(.*)"')
+   single_line_comment_re = re.compile(r'\s*//\s*([^\n]*)')
+   multi_line_comment_start_re = re.compile(r'\s*/\*')
+   enum_line_re = re.compile(r'^\s*(\w+)(\s*\=\s*([^,\n]+))?,?')
+@@ -194,7 +195,7 @@ class HeaderParser:
+   enum_single_line_re = re.compile(
+       r'^\s*(?:\[cpp.*\])?\s*enum.*{(?P<enum_entries>.*)}.*$')
+ 
+-  def __init__(self, lines, path=''):
++  def __init__(self, lines, options, path=''):
+     self._lines = lines
+     self._path = path
+     self._enum_definitions = []
+@@ -204,6 +205,7 @@ class HeaderParser:
+     self._generator_directives = DirectiveSet()
+     self._multi_line_generator_directive = None
+     self._current_enum_entry = ''
++    self._options = options
+ 
+   def _ApplyGeneratorDirectives(self):
+     self._generator_directives.UpdateDefinition(self._current_definition)
+@@ -227,6 +229,24 @@ class HeaderParser:
+       raise Exception('Multi-line comments in enums are not supported in ' +
+                       self._path)
+ 
++    # handles the management of #include files
++    include_line = HeaderParser.include_re.match(line)
++    if include_line:
++      include_file = include_line.groups()[0];
++      if not include_file.endswith(".inc"):
++        raise Exception('Include file \"' + include_file + '\" must ends with .inc')
++
++      file_to_include = os.path.join(self._options.gen_dir, include_file)
++      if not os.path.exists(file_to_include):
++        file_to_include = os.path.join(self._options.root_dir, include_file)
++      lines = []
++      with open(file_to_include) as include_file_handle:
++        lines = include_file_handle.readlines()
++
++      for new_line in lines:
++        self._ParseEnumLine(new_line)
++      return
++
+     enum_comment = HeaderParser.single_line_comment_re.match(line)
+     if enum_comment:
+       comment = enum_comment.groups()[0]
+@@ -327,9 +347,9 @@ class HeaderParser:
+         self._ParseSingleLineEnum(single_line_enum.group('enum_entries'))
+ 
+ 
+-def DoGenerate(source_paths):
++def DoGenerate(source_paths, options):
+   for source_path in source_paths:
+-    enum_definitions = DoParseHeaderFile(source_path)
++    enum_definitions = DoParseHeaderFile(source_path, options)
+     if not enum_definitions:
+       raise Exception('No enums found in %s\n'
+                       'Did you forget prefixing enums with '
+@@ -342,9 +362,9 @@ def DoGenerate(source_paths):
+       yield output_path, output
+ 
+ 
+-def DoParseHeaderFile(path):
++def DoParseHeaderFile(path, options):
+   with open(path) as f:
+-    return HeaderParser(f.readlines(), path).ParseDefinitions()
++    return HeaderParser(f.readlines(), options, path).ParseDefinitions()
+ 
+ 
+ def GenerateOutput(source_path, enum_definition):
+@@ -423,6 +443,10 @@ def DoMain(argv):
+   parser.add_option('--srcjar',
+                     help='When specified, a .srcjar at the given path is '
+                     'created instead of individual .java files.')
++  parser.add_option('--gen_dir',
++                    help='Indicates the path to the generated file')
++  parser.add_option('--root_dir',
++                    help='Indicates the path to the build root')
+ 
+   options, args = parser.parse_args(argv)
+ 
+@@ -432,7 +456,7 @@ def DoMain(argv):
+ 
+   with action_helpers.atomic_output(options.srcjar) as f:
+     with zipfile.ZipFile(f, 'w', zipfile.ZIP_STORED) as srcjar:
+-      for output_path, data in DoGenerate(input_paths):
++      for output_path, data in DoGenerate(input_paths, options):
+         zip_helpers.add_to_zip_hermetic(srcjar, output_path, data=data)
+ 
+ 
+diff --git a/build/android/gyp/util/build_utils.py b/build/android/gyp/util/build_utils.py
+--- a/build/android/gyp/util/build_utils.py
++++ b/build/android/gyp/util/build_utils.py
+@@ -493,4 +493,27 @@ def ReadSourcesList(sources_list_file_name):
+   Note that this function should not be used to parse response files.
+   """
+   with open(sources_list_file_name) as f:
+-    return [file_name.strip() for file_name in f]
++    files = [file_name.strip() for file_name in f]
++    # allows inclusion of all files in the indicated folder
++    # in the sources of java-related gn targets.
++    # "include_all_directory.java" is a special name and must exist in the
++    # folder since gn checks for its existence, but it will not be
++    # included in the list.
++    # example:
++    #
++    #   sources += [
++    #     "java/src/org/chromium/components/browser_ui/site_settings/impl/include_all_directory.java",
++    #   ]
++    #
++    # will include in source all files found in
++    #   "java/src/org/chromium/components/browser_ui/site_settings/impl"
++    include_dirs = [f for f in files if f.endswith('include_all_directory.java')]
++    for include_file in include_dirs:
++      directory = os.path.dirname(include_file)
++      for root, dirs, directory_files in os.walk(directory):
++        for directory_file in directory_files:
++          files.append(os.path.join(directory, directory_file))
++      files = [f for f in files if not f.endswith('include_all_directory.java')
++                               and not f.endswith('.java.tmpl')]
++
++    return files
+diff --git a/build/bromite/bromite_utils.gni b/build/bromite/bromite_utils.gni
+new file mode 100644
+--- /dev/null
++++ b/build/bromite/bromite_utils.gni
+@@ -0,0 +1,69 @@
++import("//build/config/python.gni")
++
++# generates the file specified in ouput_file containing
++# the inclusion of all .inc files found in the folder
++# specified
++#
++# Parameters
++#   directories (required)
++#       A list of folders from which to extract the .inc files
++#
++#   output_file (required)
++#       The name of the include file to be generated
++#
++# Example
++#
++# cpp_bromite_include("bromite_content_settings") {
++#   directories = [ "bromite_content_settings/placeholder.txt" ]
++#   output_file = "bromite_content_settings.inc"
++# }
++#
++template("cpp_bromite_include") {
++  action_with_pydeps(target_name) {
++    forward_variables_from(invoker,
++                           TESTONLY_AND_VISIBILITY + [
++                                 "deps",
++                                 "inputs",
++                               ])
++    script = "//build/bromite/gyp/cpp_bromite_include.py"
++
++    _rebased_directories = rebase_path(invoker.inputs, root_build_dir)
++    _output = "$target_gen_dir/" + invoker.output_file
++    _output_rebased = rebase_path(_output)
++
++    args = [
++      "--output=$_output_rebased",
++    ]
++    args += _rebased_directories
++
++    outputs = [ _output ]
++  }
++}
++
++# allows the generation of the java file needed for
++# the inclusion of the defined site settings
++# in separate files
++# used by content settings patch
++template("java_bromite_impl") {
++  action_with_pydeps(target_name) {
++    forward_variables_from(invoker,
++                           TESTONLY_AND_VISIBILITY + [
++                                 "deps",
++                                 "inputs",
++                               ])
++    script = "//build/bromite/gyp/java_bromite_impl.py"
++
++    _srcjar_path = "${target_gen_dir}/${target_name}.srcjar"
++    _rebased_srcjar_path = rebase_path(_srcjar_path, root_build_dir)
++    _rebased_directories = rebase_path(invoker.inputs, root_build_dir)
++    _rebased_template = rebase_path(invoker.template, root_build_dir)
++
++    args = [
++      "--srcjar=$_rebased_srcjar_path",
++      "--template=$_rebased_template",
++    ]
++    args += _rebased_directories
++
++    outputs = [ _srcjar_path ]
++  }
++}
+diff --git a/build/bromite/gyp/cpp_bromite_include.py b/build/bromite/gyp/cpp_bromite_include.py
+new file mode 100644
+--- /dev/null
++++ b/build/bromite/gyp/cpp_bromite_include.py
+@@ -0,0 +1,35 @@
++#!/usr/bin/env python3
++
++import argparse
++import os
++import re
++import sys
++
++def _Main(argv):
++  parser = argparse.ArgumentParser()
++
++  parser.add_argument('--output',
++                      required=True,
++                      help='The path at which to generate the .inc file')
++
++  parser.add_argument(
++      'inputs', nargs='+', help='Input folder(s)', metavar='INPUTFILE')
++  args = parser.parse_args(argv)
++
++  for include_file in args.inputs:
++    directory = os.path.dirname(include_file)
++    files = []
++    for root, dirs, directory_files in os.walk(directory):
++      for directory_file in sorted(directory_files):
++        files.append(os.path.join(directory, directory_file))
++
++    files = [f for f in files if f.endswith('.inc')]
++
++  with open(args.output, 'w') as f:
++    for file in files:
++      f.write("#include \"" + file + "\"\n")
++    f.write("\n")
++
++
++if __name__ == '__main__':
++  _Main(sys.argv[1:])
+diff --git a/build/bromite/gyp/cpp_bromite_include.pydeps b/build/bromite/gyp/cpp_bromite_include.pydeps
+new file mode 100644
+--- /dev/null
++++ b/build/bromite/gyp/cpp_bromite_include.pydeps
+@@ -0,0 +1,9 @@
++# Generated by running:
++#   build/print_python_deps.py --root build/bromite/gyp --output build/bromite/gyp/cpp_bromite_include.pydeps build/bromite/gyp/cpp_bromite_include.py
++../../action_helpers.py
++../../android/gyp/util/__init__.py
++../../android/gyp/util/build_utils.py
++../../android/gyp/util/java_cpp_utils.py
++../../gn_helpers.py
++../../zip_helpers.py
++cpp_bromite_include.py
+diff --git a/build/bromite/gyp/java_bromite_impl.py b/build/bromite/gyp/java_bromite_impl.py
+new file mode 100644
+--- /dev/null
++++ b/build/bromite/gyp/java_bromite_impl.py
+@@ -0,0 +1,94 @@
++#!/usr/bin/env python3
++
++import argparse
++import os
++import re
++import sys
++import zipfile
++
++sys.path.append('build/android/gyp')
++sys.path.append('../../build/android/gyp')
++
++from util import build_utils
++from util import java_cpp_utils
++import action_helpers  # build_utils adds //build to sys.path.
++import zip_helpers
++
++def _GenerateOutput(template, source_paths, template_path, strings):
++  description_template = """
++// This following string constants were inserted by
++//     {SCRIPT_NAME}
++// Directory
++//     {SOURCE_PATHS}
++// Template
++//     {TEMPLATE_PATH}
++
++"""
++  values = {
++      'SCRIPT_NAME': java_cpp_utils.GetScriptName(),
++      'SOURCE_PATHS': ',\n//    '.join(source_paths),
++      'TEMPLATE_PATH': template_path,
++  }
++  description = description_template.format(**values)
++
++  import_clause = '\n'.join(
++      ['import org.chromium.components.browser_ui.site_settings.impl.' + f + ';' for f in strings])
++  add_clause = '\n\t'.join(['\tadd(new ' + f + '());' for f in strings])
++
++  values = {
++      'DESCRIPTION': description,
++      'ADD_CLAUSE': add_clause,
++      'IMPORT_CLAUSE': import_clause,
++  }
++  return template.format(**values)
++
++
++def _Generate(source_paths, template_path):
++  with open(template_path) as f:
++    lines = f.readlines()
++
++  template = ''.join(lines)
++  package, class_name = java_cpp_utils.ParseTemplateFile(lines)
++  output_path = java_cpp_utils.GetJavaFilePath(package, class_name)
++  strings = []
++
++  for directory in source_paths:
++    if not directory.endswith('include_all_directory.java'):
++      raise Exception("input path not ends with 'include_all_directory.java'")
++    for root, dirs, directory_files in os.walk(os.path.dirname(directory)):
++      for directory_file in sorted(directory_files):
++        strings.append(directory_file)
++
++  strings = [f.replace('.java', '') for f in strings
++             if not f.endswith('include_all_directory.java') and
++                not f.endswith('.java.tmpl') ]
++
++  output = _GenerateOutput(template, source_paths, template_path, strings)
++
++  return output, output_path
++
++
++def _Main(argv):
++  parser = argparse.ArgumentParser()
++
++  parser.add_argument('--srcjar',
++                      required=True,
++                      help='The path at which to generate the .srcjar file')
++
++  parser.add_argument('--template',
++                      required=True,
++                      help='The template file with which to generate the Java '
++                      'class.')
++
++  parser.add_argument(
++      'inputs', nargs='+', help='Input folder(s)', metavar='INPUTFILE')
++  args = parser.parse_args(argv)
++
++  with action_helpers.atomic_output(args.srcjar) as f:
++    with zipfile.ZipFile(f, 'w', zipfile.ZIP_STORED) as srcjar:
++      data, path = _Generate(args.inputs, args.template)
++      zip_helpers.add_to_zip_hermetic(srcjar, path, data=data)
++
++
++if __name__ == '__main__':
++  _Main(sys.argv[1:])
+diff --git a/build/bromite/gyp/java_bromite_impl.pydeps b/build/bromite/gyp/java_bromite_impl.pydeps
+new file mode 100644
+--- /dev/null
++++ b/build/bromite/gyp/java_bromite_impl.pydeps
+@@ -0,0 +1,9 @@
++# Generated by running:
++#   build/print_python_deps.py --root build/bromite/gyp --output build/bromite/gyp/java_bromite_impl.pydeps build/bromite/gyp/java_bromite_impl.py
++../../action_helpers.py
++../../android/gyp/util/__init__.py
++../../android/gyp/util/build_utils.py
++../../android/gyp/util/java_cpp_utils.py
++../../gn_helpers.py
++../../zip_helpers.py
++java_bromite_impl.py
+diff --git a/build/config/BUILDCONFIG.gn b/build/config/BUILDCONFIG.gn
+--- a/build/config/BUILDCONFIG.gn
++++ b/build/config/BUILDCONFIG.gn
+@@ -648,6 +648,7 @@ set_defaults("component") {
+   configs = default_component_configs
+ }
+ 
++import("//build/bromite/bromite_utils.gni")
+ # =============================================================================
+ # ACTION OVERRIDE
+ # =============================================================================
+diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
+--- a/build/config/android/rules.gni
++++ b/build/config/android/rules.gni
+@@ -590,7 +590,7 @@ if (enable_java_templates && is_android) {
+   #   }
+   template("java_cpp_enum") {
+     action_with_pydeps(target_name) {
+-      forward_variables_from(invoker, TESTONLY_AND_VISIBILITY + [ "sources" ])
++      forward_variables_from(invoker, TESTONLY_AND_VISIBILITY + [ "sources", "deps" ])
+ 
+       # The sources aren't compiled so don't check their dependencies.
+       check_includes = false
+@@ -601,6 +601,10 @@ if (enable_java_templates && is_android) {
+       _rebased_sources = rebase_path(invoker.sources, root_build_dir)
+ 
+       args = [ "--srcjar=$_rebased_srcjar_path" ] + _rebased_sources
++      _root_gen_dir = rebase_path(root_gen_dir)
++      _root_dir = rebase_path(root_build_dir)
++      args += [ "--gen_dir=$_root_gen_dir",
++                "--root_dir=$_root_dir" ]
+       outputs = [ _srcjar_path ]
+     }
+   }
+diff --git a/tools/grit/grit/grd_reader.py b/tools/grit/grit/grd_reader.py
+--- a/tools/grit/grit/grd_reader.py
++++ b/tools/grit/grit/grd_reader.py
+@@ -93,11 +93,28 @@ class GrdContentHandler(xml.sax.handler.ContentHandler):
+         raise exception.FileNotFound(partname)
+       # Exceptions propagate to the handler in grd_reader.Parse().
+       oldsource = self.source
+-      try:
+-        self.source = partname
+-        xml.sax.parse(partname, GrdPartContentHandler(self))
+-      finally:
+-        self.source = oldsource
++      # modifies the behavior of
++      #    <part file="folder" />
++      # allowing the inclusion of all grdp files found in the folder
++      # specified.
++      # the file value must end with "/placeholder.txt"
++      if partname.endswith("/placeholder.txt"):
++        partname = os.path.dirname(partname)
++        for root, dirs, files in os.walk(partname):
++          for file in files:
++            filepath = os.path.join(partname, file)
++            if filepath.endswith(".grdp"):
++              try:
++                self.source = partname
++                xml.sax.parse(filepath, GrdPartContentHandler(self))
++              finally:
++                self.source = oldsource
++      else:
++        try:
++          self.source = partname
++          xml.sax.parse(partname, GrdPartContentHandler(self))
++        finally:
++          self.source = oldsource
+ 
+     if self.debug:
+       print("End parsing of element %s" % name)
+diff --git a/tools/grit/preprocess_if_expr.py b/tools/grit/preprocess_if_expr.py
+--- a/tools/grit/preprocess_if_expr.py
++++ b/tools/grit/preprocess_if_expr.py
+@@ -8,6 +8,7 @@ import io
+ import json
+ import os
+ import sys
++import re
+ 
+ # For Node, EvaluateExpression
+ import grit.node.base
+@@ -71,6 +72,35 @@ def ExtensionForComments(input_file):
+     extension = '.html'
+   return extension
+ 
++def _extract_template_from_dir(html_file):
++  template = ''
++  directory = os.path.dirname(html_file)
++  for root, dirs, directory_files in os.walk(directory):
++    for directory_file in directory_files:
++      if directory_file.endswith(".html"):
++        template += _extract_template(os.path.join(directory, directory_file))
++
++  return template
++
++def _extract_template(html_file):
++  include_re = re.compile(r'^\s*<include\s*path="(.*)"\s*/>')
++  with io.open(html_file, encoding='utf-8', mode='r') as f:
++    lines = f.readlines()
++
++    template_lines = []
++    for line in lines:
++      include_line = include_re.match(line)
++      if include_line:
++        include_file = include_line.groups()[0]
++        file_to_include = os.path.join(os.path.dirname(html_file), include_file)
++        if file_to_include.endswith("placeholder.txt"):
++          line = _extract_template_from_dir(file_to_include)
++        else:
++          line = _extract_template(file_to_include)
++      template_lines.append(line)
++
++    template = ''.join(template_lines)
++    return template
+ 
+ def main(argv):
+   parser = argparse.ArgumentParser()
+@@ -95,7 +125,7 @@ def main(argv):
+     in_path = os.path.join(in_folder, input_file)
+     content = ""
+     with open(in_path, encoding='utf-8') as f:
+-      content = f.read()
++      content = _extract_template(in_path)
+ 
+     removal_comments_extension = None  # None means no removal comments
+     if args.enable_removal_comments:
+--
+2.25.1

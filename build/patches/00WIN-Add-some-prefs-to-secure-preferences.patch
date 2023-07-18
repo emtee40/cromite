@@ -1,0 +1,28 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Mon, 15 May 2023 13:35:24 +0000
+Subject: WIN Add some prefs to secure preferences
+
+---
+ chrome/browser/prefs/chrome_pref_service_factory.cc | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/chrome/browser/prefs/chrome_pref_service_factory.cc b/chrome/browser/prefs/chrome_pref_service_factory.cc
+--- a/chrome/browser/prefs/chrome_pref_service_factory.cc
++++ b/chrome/browser/prefs/chrome_pref_service_factory.cc
+@@ -117,6 +117,14 @@ bool g_disable_domain_check_for_testing = false;
+ // See CleanupDeprecatedTrackedPreferences() in pref_hash_filter.cc to remove a
+ // deprecated tracked preference.
+ const prefs::TrackedPreferenceMetadata kTrackedPrefs[] = {
++#if BUILDFLAG(IS_WIN)
++    {200, prefs::kFileOrDirectoryPickerWithoutGestureAllowedForOrigins, EnforcementLevel::ENFORCE_ON_LOAD,
++     PrefTrackingStrategy::ATOMIC, ValueType::IMPERSONAL},
++    {201, prefs::kAutoplayAllowlist, EnforcementLevel::ENFORCE_ON_LOAD,
++     PrefTrackingStrategy::ATOMIC, ValueType::IMPERSONAL},
++    {202, prefs::kScreenCaptureWithoutGestureAllowedForOrigins, EnforcementLevel::ENFORCE_ON_LOAD,
++     PrefTrackingStrategy::ATOMIC, ValueType::IMPERSONAL},
++#endif
+     {0, prefs::kShowHomeButton, EnforcementLevel::ENFORCE_ON_LOAD,
+      PrefTrackingStrategy::ATOMIC, ValueType::IMPERSONAL},
+     {1, prefs::kHomePageIsNewTabPage, EnforcementLevel::ENFORCE_ON_LOAD,
+--
+2.25.1

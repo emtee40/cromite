@@ -1,0 +1,64 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Tue, 14 Feb 2023 16:41:42 +0000
+Subject: Disable visited pseudo class
+
+Disable support for pseduo css visited class
+---
+ components/visitedlink/browser/visitedlink_writer.cc | 8 ++++----
+ components/visitedlink/common/visitedlink_common.cc  | 1 +
+ 2 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/components/visitedlink/browser/visitedlink_writer.cc b/components/visitedlink/browser/visitedlink_writer.cc
+--- a/components/visitedlink/browser/visitedlink_writer.cc
++++ b/components/visitedlink/browser/visitedlink_writer.cc
+@@ -234,7 +234,7 @@ VisitedLinkWriter::VisitedLinkWriter(content::BrowserContext* browser_context,
+     : browser_context_(browser_context),
+       delegate_(delegate),
+       listener_(std::make_unique<VisitedLinkEventListener>(browser_context)),
+-      persist_to_disk_(persist_to_disk) {}
++      persist_to_disk_(false) {}
+ 
+ VisitedLinkWriter::VisitedLinkWriter(Listener* listener,
+                                      VisitedLinkDelegate* delegate,
+@@ -244,10 +244,10 @@ VisitedLinkWriter::VisitedLinkWriter(Listener* listener,
+                                      int32_t default_table_size)
+     : delegate_(delegate),
+       listener_(listener),
+-      persist_to_disk_(persist_to_disk),
++      persist_to_disk_(false),
+       database_name_override_(filename),
+       table_size_override_(default_table_size),
+-      suppress_rebuild_(suppress_rebuild) {
++      suppress_rebuild_(false) {
+   DCHECK(listener_);
+ }
+ 
+@@ -317,6 +317,7 @@ void VisitedLinkWriter::AddURL(const GURL& url, bool update_file) {
+ }
+ 
+ VisitedLinkWriter::Hash VisitedLinkWriter::TryToAddURL(const GURL& url) {
++  if ((true)) return null_hash_;
+   // Extra check that we are not incognito. This should not happen.
+   // TODO(boliu): Move this check to HistoryService when IsOffTheRecord is
+   // removed from BrowserContext.
+@@ -1032,7 +1033,6 @@ bool VisitedLinkWriter::RebuildTableFromDelegate() {
+ 
+   // TODO(brettw) make sure we have reasonable salt!
+   table_builder_ = new TableBuilder(this, salt_);
+-  delegate_->RebuildTable(table_builder_);
+   return true;
+ }
+ 
+diff --git a/components/visitedlink/common/visitedlink_common.cc b/components/visitedlink/common/visitedlink_common.cc
+--- a/components/visitedlink/common/visitedlink_common.cc
++++ b/components/visitedlink/common/visitedlink_common.cc
+@@ -43,6 +43,7 @@ bool VisitedLinkCommon::IsVisited(const GURL& url) const {
+ }
+ 
+ bool VisitedLinkCommon::IsVisited(Fingerprint fingerprint) const {
++  if ((true)) return false;
+   // Go through the table until we find the item or an empty spot (meaning it
+   // wasn't found). This loop will terminate as long as the table isn't full,
+   // which should be enforced by AddFingerprint.
+--
+2.25.1
