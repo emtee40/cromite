@@ -1,0 +1,113 @@
+permissions:
+  actions: none
+  checks: none
+  contents: none
+  deployments: none
+  issues: write
+  packages: none
+  pull-requests: none
+  repository-projects: none
+  security-events: none
+  statuses: none
+ 
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'chromium version'
+        required: false
+        default: ''
+  schedule: 
+   - cron: '0 1 * * *'
+        
+env:
+  VERSION: ${{ github.event.inputs.version }}
+  NEW_VERSION: ${{ null }}
+  
+name: Builds and pushes tagged image to DockerHub
+jobs:
+  generate_build_deps:
+    name: Generate Build Deps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reclaiming disk space on / by removing dotnet/android/ghc
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo apt-get remove google-cloud-sdk azure-cli google-chrome-stable \
+                       firefox mysql-server-core-8.0 mono-devel podman \
+                       powershell
+          sudo apt-get autoremove
+          
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          path: cromite
+          fetch-depth: 1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Check versions
+        shell: bash
+        run: |
+          if [ -z $VERSION ]; then
+            VERSION=$(curl -s https://omahaproxy.appspot.com/all.json | jq '.[] | select(.os | contains("win64")) | .versions[] | select(.channel | contains("stable")) | .current_version' | xargs)
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+          fi
+          
+      - name: Building build-deps container ${{ env.VERSION }}
+        shell: bash
+        run: |
+          IS_PRESENT=$(docker inspect --type=image uazo/build-deps:$VERSION > /dev/null ; echo $?)
+          if [ $IS_PRESENT -ne "0" ]; then
+            IS_PRESENT=$(docker manifest inspect uazo/build-deps:$VERSION > /dev/null ; echo $?)
+            if [ $IS_PRESENT -ne "0" ]; then
+              DOCKER_BUILDKIT=1 docker build -t uazo/build-deps:$VERSION \
+                --progress plain \
+                --build-arg VERSION=$VERSION \
+                --build-arg HTTP_PROXY="$PROXY_ADDR" \
+                --no-cache \
+                cromite/tools/images/build-deps/.
+              
+              docker push uazo/build-deps:$VERSION
+              echo "NEW_VERSION=$VERSION" >> $GITHUB_ENV
+            fi
+          fi          
+
+      - name: Building chromium container ${{ env.VERSION }}
+        shell: bash
+        run: |
+          IS_PRESENT=$(docker inspect --type=image uazo/chromium:$VERSION > /dev/null ; echo $?)
+          if [ $IS_PRESENT -ne "0" ]; then
+            IS_PRESENT=$(docker manifest inspect uazo/chromium:$VERSION > /dev/null ; echo $?)
+            if [ $IS_PRESENT -ne "0" ]; then
+              DOCKER_BUILDKIT=1 docker build -t uazo/chromium:$VERSION \
+                --progress plain \
+                --build-arg VERSION=$VERSION \
+                --build-arg HTTP_PROXY="$PROXY_ADDR" \
+                cromite/tools/images/chr-source/.
+                
+              docker push uazo/chromium:$VERSION
+              echo "NEW_VERSION=$VERSION" >> $GITHUB_ENV
+            fi
+          fi
+
+      - name: Create issue ${{ env.VERSION }}
+        if: "${{ env.NEW_VERSION != '' }}"
+        shell: bash
+        run: |
+          GH=../../gh_2.18.1_linux_amd64/bin/gh
+          wget https://github.com/cli/cli/releases/download/v2.18.1/gh_2.18.1_linux_amd64.tar.gz
+          tar xfz gh_2.18.1_linux_amd64.tar.gz
+          
+          cd cromite/tools
+          echo ${{ secrets.GITHUB_TOKEN }} | $GH auth login --with-token
+          $GH issue create -t "$VERSION: new chromium version" -b ""
+          
+          
+          

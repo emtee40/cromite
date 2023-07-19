@@ -1,0 +1,50 @@
+
+declare_args() {
+  _is_debug_build = ""
+}
+
+not_needed(["_target_build", "_is_debug_build"])
+
+if(getenv("TARGET_CPU") != "") {
+  target_cpu = getenv("TARGET_CPU")
+}
+
+if (target_os == "android") {
+  target_os = "android" # fix traffic annotation auditor
+  #enable_kythe_annotations = true
+  chrome_public_manifest_package = "org.bromite.bromite.dev"
+
+  _is_debug_build = getenv("TARGET_ISDEBUG")
+  if(_is_debug_build == "true") {
+    # print("Debug build on")
+    is_debug = true
+    is_official_build = false
+    dcheck_always_on = true
+    symbol_level = 1
+    strip_debug_info = false
+    generate_linker_map = false
+
+    # since is_cfi require use_thin_lto
+    # but not work in debug mode
+    is_cfi = false # disable it
+    use_cfi_cast = false # disable it
+  } else {
+    generate_linker_map = true
+    use_relative_vtables_abi = false
+  }
+}
+
+if (target_os == "win") {
+  target_os = "win" # fix traffic annotation auditor
+  target_cpu = "x64"
+  symbol_level = 0
+  use_large_pdbs = true
+  
+  enable_pdf = true
+  pdf_is_complete_lib = true
+  enable_plugins = true
+  enable_ppapi = false  
+
+  is_cfi = false # disable it
+  use_cfi_cast = false # disable it
+}

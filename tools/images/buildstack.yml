@@ -1,0 +1,117 @@
+version: "3.9"
+
+services:
+  buildboxcasd:
+    image: uazo/buildboxcasd
+    networks:
+      - bridge-ext
+    env_file:
+      - buildstack.env
+    volumes:
+      - /cache:/wrk-cache:rw
+    deploy:
+      mode: global
+      placement:
+        max_replicas_per_node: 1
+
+  buildboxrunner-32:
+    image: uazo/buildboxrunner
+    networks:
+      - bridge-int
+    depends_on:
+      - buildboxcasd
+    volumes:
+      - /cache:/wrk-cache:rw
+    deploy:
+      replicas: 40
+      placement:
+        max_replicas_per_node: 30
+        constraints: [node.labels.gomarunners == 32]
+
+  buildboxrunner-12:
+    image: uazo/buildboxrunner
+    networks:
+      - bridge-int
+    depends_on:
+      - buildboxcasd
+    volumes:
+      - /cache:/wrk-cache:rw
+    deploy:
+      replicas: 60
+      placement:
+        max_replicas_per_node: 12
+        constraints: [node.labels.gomarunners == 12]
+
+  buildboxrunner-8:
+    image: uazo/buildboxrunner
+    networks:
+      - bridge-int
+    depends_on:
+      - buildboxcasd
+    volumes:
+      - /cache:/wrk-cache:rw
+    deploy:
+      replicas: 60
+      placement:
+        max_replicas_per_node: 8
+        constraints: [node.labels.gomarunners == 8]
+
+  buildboxrunner-6:
+    image: uazo/buildboxrunner
+    networks:
+      - bridge-int
+    depends_on:
+      - buildboxcasd
+    volumes:
+      - /cache:/wrk-cache:rw
+    deploy:
+      replicas: 60
+      placement:
+        max_replicas_per_node: 6
+        constraints: [node.labels.gomarunners == 6]
+
+  buildboxrunner-4:
+    image: uazo/buildboxrunner
+    networks:
+      - bridge-int
+    depends_on:
+      - buildboxcasd
+    volumes:
+      - /cache:/wrk-cache:rw
+    deploy:
+      replicas: 60
+      placement:
+        max_replicas_per_node: 4
+        constraints: [node.labels.gomarunners == 4]
+
+  buildboxrunner-2:
+    image: uazo/buildboxrunner
+    networks:
+      - bridge-int
+    depends_on:
+      - buildboxcasd
+    volumes:
+      - /cache:/wrk-cache:rw
+    deploy:
+      replicas: 60
+      placement:
+        max_replicas_per_node: 2
+        constraints: [node.labels.gomarunners == 2]
+
+networks:
+  bridge-int:
+    driver: overlay
+    driver_opts:
+      com.docker.network.bridge.name: build-bridge-int
+      com.docker.network.bridge.enable_icc: "false"
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+      com.docker.network.bridge.default_bridge: "false"
+    name: build-bridge-int
+    internal: true
+
+  bridge-ext:
+    driver: overlay
+    driver_opts:
+      com.docker.network.bridge.name: build-bridge-ext
+      com.docker.network.bridge.enable_icc: "false"
+    name: build-bridge-ext
