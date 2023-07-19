@@ -1,0 +1,354 @@
+name: Build Cromite
+permissions:
+  actions: none
+  checks: none
+  contents: none
+  deployments: none
+  issues: none
+  packages: none
+  pull-requests: none
+  repository-projects: none
+  security-events: none
+  statuses: none
+      
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'uazo/cromite SHA'
+        required: true
+        default: ''
+      target_os:
+        description: 'targetos [android/win/all]'
+        required: true
+        default: 'all'
+      build:
+        description: 'android arch [arm64/x64/all]'
+        required: true
+        default: 'all'
+      type:
+        description: 'runner? [dev/ci]'
+        required: true
+        default: 'ci'
+      debug:
+        description: 'debug? [true/false]'
+        required: true
+        default: 'false'
+      clangd:
+        description: 'clangd? [true/false]'
+        required: true
+        default: 'false'
+        
+env:
+  BROMITE_SHA: ${{ github.event.inputs.sha }}
+  REMOVEDOCKERSUPPORT: true
+  USELOCALIMAGE: true
+
+jobs:
+  check_images:
+    runs-on: ${{ github.event.inputs.type }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          path: bromite-buildtools
+          fetch-depth: 1
+
+      - name: Enable proxy on container
+        shell: bash
+        run: |
+          if ! [[ -z "${HTTP_PROXY}" ]]; then
+            PROXY_ADDR=http://$(hostname -I | cut -d' ' -f1 | xargs):8118
+            echo "PROXY_ADDR=$PROXY_ADDR" >> $GITHUB_ENV
+            sudo iptables -D INPUT -p tcp -s localhost --dport 8118 -j ACCEPT
+            sudo iptables -D INPUT -p tcp --dport 8118 -j DROP
+          fi
+
+      - name: Get current chromium version
+        shell: bash
+        run: |
+          mkdir bromite
+          cd bromite
+          git init
+          git remote add origin https://github.com/uazo/bromite
+          git fetch origin $BROMITE_SHA
+          git reset --hard FETCH_HEAD
+          cd ..
+          
+          export VERSION=$( cat ./bromite/build/RELEASE )
+          rm -rf bromite
+          
+          echo Current version is $VERSION
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          
+          cd bromite-buildtools
+          
+      - name: Building build-deps container ${{ env.VERSION }}
+        shell: bash
+        run: |
+          IS_PRESENT=$(docker inspect --type=image uazo/build-deps:$VERSION > /dev/null ; echo $?)
+          if [ $IS_PRESENT -ne "0" ]; then
+            IS_PRESENT=$(docker manifest inspect uazo/build-deps:$VERSION > /dev/null ; echo $?)
+            if [ $IS_PRESENT -ne "0" ]; then
+              DOCKER_BUILDKIT=1 docker build -t uazo/build-deps:$VERSION \
+                --progress plain \
+                --build-arg VERSION=$VERSION \
+                --build-arg HTTP_PROXY="$PROXY_ADDR" \
+                --no-cache \
+                bromite-buildtools/images/build-deps/.
+            fi
+          fi
+        
+      - name: Building chromium container ${{ env.VERSION }}
+        shell: bash
+        run: |
+          IS_PRESENT=$(docker inspect --type=image uazo/chromium:$VERSION > /dev/null ; echo $?)
+          if [ $IS_PRESENT -ne "0" ]; then
+            IS_PRESENT=$(docker manifest inspect uazo/chromium:$VERSION > /dev/null ; echo $?)
+            if [ $IS_PRESENT -ne "0" ]; then
+              DOCKER_BUILDKIT=1 docker build -t uazo/chromium:$VERSION \
+                --progress plain \
+                --build-arg VERSION=$VERSION \
+                --build-arg HTTP_PROXY="$PROXY_ADDR" \
+                bromite-buildtools/images/chr-source/.
+            fi
+          fi
+
+      - name: Building bromite container ${{ env.VERSION }}-${{ env.BROMITE_SHA }}
+        shell: bash
+        run: |
+          IS_PRESENT=$(docker inspect --type=image uazo/bromite:$VERSION-$BROMITE_SHA > /dev/null ; echo $?)
+          if [ $IS_PRESENT -ne "0" ]; then
+            IS_PRESENT=$(docker manifest inspect uazo/bromite:$VERSION-$BROMITE_SHA > /dev/null ; echo $?)
+            if [ $IS_PRESENT -ne "0" ]; then
+              DOCKER_BUILDKIT=1 docker build -t uazo/bromite:$VERSION-$BROMITE_SHA --progress plain \
+                --build-arg BROMITE_SHA=$BROMITE_SHA \
+                --build-arg VERSION=$VERSION \
+                --build-arg HTTP_PROXY="$PROXY_ADDR" \
+                bromite-buildtools/images/bromite-source/.
+            fi
+          fi
+          
+      - name: Building bromite-build container ${{ env.VERSION }}-${{ env.BROMITE_SHA }}
+        shell: bash
+        run: |
+          IS_PRESENT=$(docker inspect --type=image uazo/bromite-build:$VERSION-$BROMITE_SHA > /dev/null ; echo $?)
+          if [ $IS_PRESENT -ne "0" ]; then
+            IS_PRESENT=$(docker manifest inspect uazo/bromite-build:$VERSION-$BROMITE_SHA > /dev/null ; echo $?)
+            if [ $IS_PRESENT -ne "0" ]; then
+              DOCKER_BUILDKIT=1 docker build -t uazo/bromite-build:$VERSION-$BROMITE_SHA --progress plain \
+                --build-arg BROMITE_SHA=$BROMITE_SHA \
+                --build-arg VERSION=$VERSION \
+                --build-arg HTTP_PROXY="$PROXY_ADDR" \
+                --no-cache \
+                bromite-buildtools/images/bromite-build/.
+            fi
+          fi
+        
+      - name: Mark image to build
+        shell: bash
+        run: |
+          IS_PRESENT=$(docker inspect --type=image uazo/bromite-build:build > /dev/null ; echo $?)
+          if [ $IS_PRESENT -eq "0" ]; then
+            docker rmi uazo/bromite-build:build
+          fi
+          docker tag uazo/bromite-build:$VERSION-$BROMITE_SHA uazo/bromite-build:build
+          
+  build:
+    runs-on: ${{ github.event.inputs.type }}
+    needs: check_images
+    if: success()
+    timeout-minutes: 1200
+  
+    container:
+      image: uazo/bromite-build:build
+      env:
+        REMOVEDOCKERSUPPORT: true # CUSTOM RUNNER: remove sharing of docker socket
+        USELOCALIMAGE: true       # CUSTOM RUNNER: permit use of local images
+        USEINTERNALNETWORK: true  # CUSTOM RUNNER: create the docker network as internal
+        WORKSPACE: /home/lg/working_dir
+        # kythe
+        KYTHE_CORPUS: chromium.googlesource.com/chromium/src
+        KYTHE_ROOT_DIRECTORY: /home/lg/working_dir/chromium/src
+        KYTHE_OUTPUT_DIRECTORY: /home/lg/working_dir/chromium/src/out/bromite/kythe
+        # cross build
+        DEPOT_TOOLS_WIN_TOOLCHAIN_BASE_URL: /win_sdk/10.0.22621.0/
+        WINDOWSSDKDIR: "/win_sdk/10.0.22621.0/Windows Kits/10/"
+        GYP_MSVS_OVERRIDE_PATH: /win_sdk/10.0.22621.0/
+        # compile in debug mode
+        TARGET_ISDEBUG: ${{ github.event.inputs.debug }} 
+        TARGET_OS: ${{ github.event.inputs.target_os }}
+        USE_KEYSTORE: true
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        CROMITE_PREF_HASH_SEED_BIN: ${{ secrets.CROMITE_PREF_HASH_SEED_BIN }}
+      volumes:
+        - /storage/images/android/${{ github.event.inputs.sha }}/${{ github.event.inputs.debug }}/arm64:/home/lg/working_dir/chromium/src/out/bromite
+        - /storage/images/android/${{ github.event.inputs.sha }}/${{ github.event.inputs.debug }}/x64:/home/lg/working_dir/chromium/src/out/bromite_x64
+        - /storage/images/win/x64/${{ github.event.inputs.sha }}:/home/lg/working_dir/chromium/src/out/bromite_win
+        - /tmp/proxy:/tmp/proxy
+        - /win_sdk:/win_sdk
+        
+    steps:    
+      - name: Prepare Build Container
+        shell: bash
+        run: |
+          # set workspace paths
+          PATH=$WORKSPACE/chromium/src/third_party/llvm-build/Release+Asserts/bin:$WORKSPACE/depot_tools/:/usr/local/go/bin:$WORKSPACE/mtool/bin:$PATH
+          cd $WORKSPACE
+
+          # reset proxy env
+          HTTP_PROXY=
+          HTTPS_PROXY=
+          http_proxy=
+          https_proxy=
+          
+          # set out folder permissions
+          test -d chromium/src/out/bromite || sudo mkdir -p chromium/src/out/bromite && \
+            sudo chown lg chromium/src/out &&
+            sudo chown lg chromium/src/out/bromite
+
+          test -d chromium/src/out/bromite_win || sudo mkdir -p chromium/src/out/bromite_win && \
+            sudo chown lg chromium/src/out &&
+            sudo chown lg chromium/src/out/bromite_win
+
+          test -d chromium/src/out/bromite_x64 || sudo mkdir -p chromium/src/out/bromite_x64 && \
+            sudo chown lg chromium/src/out &&
+            sudo chown lg chromium/src/out/bromite_x64
+            
+          # make kythe output directory
+          test -d $KYTHE_OUTPUT_DIRECTORY || mkdir -p $KYTHE_OUTPUT_DIRECTORY
+
+          sudo mkdir -p /run/user/1000/
+          sudo chown lg /run/user/1000/
+          sudo chmod g-rxw /run/user/1000/
+          sudo chmod o-rxw /run/user/1000/
+
+          # prepare keystore
+          echo "${{ secrets.KEYSTORE }}" > ~/cromite.keystore.asc
+          gpg -d --passphrase "${{ secrets.KEYSTORE_PASSPHRASE }}" --batch ~/cromite.keystore.asc > ~/cromite.keystore
+          
+      - name: Build Bromite Android arm64
+        if: ${{ (github.event.inputs.target_os == 'android' || github.event.inputs.target_os == 'all') && (github.event.inputs.build == 'arm64' || github.event.inputs.build == 'all') }}
+        shell: bash
+        run: |
+          PATH=$WORKSPACE/chromium/src/third_party/llvm-build/Release+Asserts/bin:$WORKSPACE/depot_tools/:/usr/local/go/bin:$WORKSPACE/mtool/bin:$PATH
+          cd $WORKSPACE/chromium/src
+
+          echo "::group::-------- gn gen"
+          gn gen --args="import(\"/home/lg/working_dir/bromite/build/bromite.gn_args\") $(cat ../../build_args.gni) target_cpu = \"arm64\" " out/bromite    
+          echo "::endgroup::"
+
+          echo "::group::-------- gn args"
+          gn args out/bromite/ --list --short
+          gn args out/bromite/ --list >out/bromite/gn_list
+          echo "::endgroup::"
+
+          autoninja -C out/bromite chrome_public_apk
+
+          cp ../../bromite/build/RELEASE out/bromite
+
+      - name: Get ninja logs Android arm64
+        if: ${{ (github.event.inputs.target_os == 'android' || github.event.inputs.target_os == 'all') && (github.event.inputs.build == 'arm64' || github.event.inputs.build == 'all') }}
+        shell: bash
+        run: |
+          cd $WORKSPACE
+          $WORKSPACE/ninjatracing/ninjatracing $WORKSPACE/chromium/src/out/bromite/.ninja_log >$WORKSPACE/chromium/src/out/bromite/ninja_log_trace.json
+          python3 $WORKSPACE/chromium/src/third_party/catapult/tracing/bin/trace2html $WORKSPACE/chromium/src/out/bromite/ninja_log_trace.json
+
+      - name: Build Bromite Windows
+        if: ${{ github.event.inputs.target_os == 'win' || github.event.inputs.target_os == 'all' }}
+        shell: bash
+        run: |
+          PATH=$WORKSPACE/chromium/src/third_party/llvm-build/Release+Asserts/bin:$WORKSPACE/depot_tools/:/usr/local/go/bin:$WORKSPACE/mtool/bin:$PATH
+          cd $WORKSPACE/chromium/src
+
+          echo "::group::-------- gn gen"
+          gn gen --args="import(\"/home/lg/working_dir/bromite/build/bromite.gn_args\") target_os = \"win\" $(cat ../../build_args.gni) target_cpu = \"x64\" " out/bromite_win
+          echo "::endgroup::"
+
+          echo "::group::-------- gn args"
+          gn args out/bromite_win/ --list --short
+          gn args out/bromite_win/ --list >out/bromite_win/gn_list
+          echo "::endgroup::"
+
+          autoninja -C out/bromite_win chrome
+
+          cp ../../bromite/build/RELEASE out/bromite_win
+
+      - name: Get ninja logs Windows
+        if: ${{ github.event.inputs.target_os == 'win' || github.event.inputs.target_os == 'all' }}
+        shell: bash
+        run: |
+          cd $WORKSPACE
+          $WORKSPACE/ninjatracing/ninjatracing $WORKSPACE/chromium/src/out/bromite_win/.ninja_log >$WORKSPACE/chromium/src/out/bromite_win/ninja_log_trace.json
+          python3 $WORKSPACE/chromium/src/third_party/catapult/tracing/bin/trace2html $WORKSPACE/chromium/src/out/bromite_win/ninja_log_trace.json
+
+      - name: Build Bromite Android x64
+        if: ${{ (github.event.inputs.target_os == 'android' || github.event.inputs.target_os == 'all') && (github.event.inputs.build == 'x64' || github.event.inputs.build == 'all') }}
+        shell: bash
+        run: |
+          PATH=$WORKSPACE/chromium/src/third_party/llvm-build/Release+Asserts/bin:$WORKSPACE/depot_tools/:/usr/local/go/bin:$WORKSPACE/mtool/bin:$PATH
+          cd $WORKSPACE/chromium/src
+
+          echo "::group::-------- gn gen"
+          gn gen --args="import(\"/home/lg/working_dir/bromite/build/bromite.gn_args\") $(cat ../../build_args.gni) target_cpu = \"x64\" " out/bromite_x64
+          echo "::endgroup::"
+
+          echo "::group::-------- gn args"
+          gn args out/bromite_x64/ --list --short
+          gn args out/bromite_x64/ --list >out/bromite_x64/gn_list
+          echo "::endgroup::"
+
+          autoninja -C out/bromite_x64 chrome_public_apk
+
+          cp ../../bromite/build/RELEASE out/bromite_x64
+
+      - name: Get ninja logs Android x64
+        if: ${{ (github.event.inputs.target_os == 'android' || github.event.inputs.target_os == 'all') && (github.event.inputs.build == 'x64' || github.event.inputs.build == 'all') }}
+        shell: bash
+        run: |
+          cd $WORKSPACE
+          $WORKSPACE/ninjatracing/ninjatracing $WORKSPACE/chromium/src/out/bromite_x64/.ninja_log >$WORKSPACE/chromium/src/out/bromite_x64/ninja_log_trace.json
+          python3 $WORKSPACE/chromium/src/third_party/catapult/tracing/bin/trace2html $WORKSPACE/chromium/src/out/bromite_x64/ninja_log_trace.json
+
+          
+      - name: Generate breakpad symbols arm64
+        if: ${{ (github.event.inputs.target_os == 'android' || github.event.inputs.target_os == 'all') && (github.event.inputs.build == 'arm64' || github.event.inputs.build == 'all') }}
+        shell: bash
+        run: |
+          PATH=$WORKSPACE/chromium/src/third_party/llvm-build/Release+Asserts/bin:$WORKSPACE/depot_tools/:/usr/local/go/bin:$WORKSPACE/mtool/bin:$PATH
+          cd $WORKSPACE/chromium/src
+          
+          echo "::group::-------- generating breakpad symbols"
+          autoninja -C out/bromite minidump_stackwalk dump_syms
+          components/crash/content/tools/generate_breakpad_symbols.py --build-dir=out/bromite \
+             --symbols-dir=out/bromite/symbols/ --binary=out/bromite/lib.unstripped/libchrome.so \
+             --platform=android --clear --verbose
+          cp out/bromite/lib.unstripped/libchrome.so out/bromite/symbols/libchrome.lib.so
+          cp out/bromite/minidump_stackwalk out/bromite/symbols
+          cp out/bromite/dump_syms out/bromite/symbols
+          echo "::endgroup::"
+
+      - name: Generate Supersize data
+        if: ${{ github.event.inputs.debug == 'false' && (github.event.inputs.target_os == 'android' || github.event.inputs.target_os == 'all') && (github.event.inputs.build == 'arm64' || github.event.inputs.build == 'all') }}
+        shell: bash
+        run: |
+          PATH=$WORKSPACE/chromium/src/third_party/llvm-build/Release+Asserts/bin:$WORKSPACE/depot_tools/:/usr/local/go/bin:$WORKSPACE/mtool/bin:$PATH
+          cd $WORKSPACE/chromium/src
+          
+          tools/binary_size/supersize archive out/bromite/chrome.size --apk-file out/bromite/apks/ChromePublic.apk -v
+      
+      - name: Generate clangd index
+        if: ${{ github.event.inputs.clangd == 'true' }}
+        shell: bash
+        run: |
+          PATH=$WORKSPACE/chromium/src/third_party/llvm-build/Release+Asserts/bin:$WORKSPACE/depot_tools/:/usr/local/go/bin:$WORKSPACE/mtool/bin:$PATH
+          cd $WORKSPACE/chromium/src
+
+          test -f out/bromite/bromite.idx || \
+            cp -r out/bromite out/clangd && \
+            gn gen --args="import(\"/home/lg/working_dir/bromite/build/bromite.gn_args\") $(cat ../../build_args.gni) skip_clangd_unsupported_options = true" out/clangd && \
+            $WORKSPACE/ninja/ninja -C $WORKSPACE/chromium/src/out/clangd -a chrome_public_apk \
+              -t compdb cc cxx objc objcxx >$WORKSPACE/chromium/src/out/clangd/compile_commands.json && \
+            /home/lg/working_dir/clangd_snapshot_20211205/bin/clangd-indexer --executor=all-TUs out/clangd/compile_commands.json >out/bromite/bromite.idx && \
+            rm -rf out/clangd
