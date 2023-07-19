@@ -5,14 +5,20 @@ declare_args() {
 
 not_needed(["_target_build", "_is_debug_build"])
 
-if(getenv("TARGET_CPU") != "") {
+if (getenv("TARGET_CPU") != "") {
   target_cpu = getenv("TARGET_CPU")
 }
 
 if (target_os == "android") {
   target_os = "android" # fix traffic annotation auditor
   #enable_kythe_annotations = true
-  chrome_public_manifest_package = "org.bromite.bromite.dev"
+  chrome_public_manifest_package = "org.cromite.cromite"
+
+  if (getenv("USE_KEYSTORE") != "") {
+    android_keystore_path = "/home/lg/working_dir/cromite.keystore"
+    android_keystore_name = "cromite"
+    android_keystore_password = getenv("KEYSTORE_PASSWORD")
+  }
 
   _is_debug_build = getenv("TARGET_ISDEBUG")
   if(_is_debug_build == "true") {
@@ -39,11 +45,11 @@ if (target_os == "win") {
   target_cpu = "x64"
   symbol_level = 0
   use_large_pdbs = true
-  
+
   enable_pdf = true
   pdf_is_complete_lib = true
   enable_plugins = true
-  enable_ppapi = false  
+  enable_ppapi = false
 
   is_cfi = false # disable it
   use_cfi_cast = false # disable it
