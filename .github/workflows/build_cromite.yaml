@@ -51,7 +51,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
         with:
-          path: bromite-buildtools
+          path: cromite
           fetch-depth: 1
 
       - name: Enable proxy on container
@@ -66,22 +66,14 @@ jobs:
 
       - name: Get current chromium version
         shell: bash
-        run: |
-          mkdir bromite
-          cd bromite
-          git init
-          git remote add origin https://github.com/uazo/bromite
-          git fetch origin $BROMITE_SHA
-          git reset --hard FETCH_HEAD
-          cd ..
-          
-          export VERSION=$( cat ./bromite/build/RELEASE )
+        run: |        
+          export VERSION=$( cat ./cromite/build/RELEASE )
           rm -rf bromite
           
           echo Current version is $VERSION
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           
-          cd bromite-buildtools
+          cd cromite/tools
           
       - name: Building build-deps container ${{ env.VERSION }}
         shell: bash
@@ -95,7 +87,7 @@ jobs:
                 --build-arg VERSION=$VERSION \
                 --build-arg HTTP_PROXY="$PROXY_ADDR" \
                 --no-cache \
-                bromite-buildtools/images/build-deps/.
+                cromite/tools/images/build-deps/.
             fi
           fi
         
@@ -110,7 +102,7 @@ jobs:
                 --progress plain \
                 --build-arg VERSION=$VERSION \
                 --build-arg HTTP_PROXY="$PROXY_ADDR" \
-                bromite-buildtools/images/chr-source/.
+                cromite/tools/images/chr-source/.
             fi
           fi
 
@@ -125,7 +117,7 @@ jobs:
                 --build-arg BROMITE_SHA=$BROMITE_SHA \
                 --build-arg VERSION=$VERSION \
                 --build-arg HTTP_PROXY="$PROXY_ADDR" \
-                bromite-buildtools/images/bromite-source/.
+                cromite/tools/images/bromite-source/.
             fi
           fi
           
@@ -141,7 +133,7 @@ jobs:
                 --build-arg VERSION=$VERSION \
                 --build-arg HTTP_PROXY="$PROXY_ADDR" \
                 --no-cache \
-                bromite-buildtools/images/bromite-build/.
+                cromite/tools/images/bromite-build/.
             fi
           fi
         
@@ -182,9 +174,9 @@ jobs:
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         CROMITE_PREF_HASH_SEED_BIN: ${{ secrets.CROMITE_PREF_HASH_SEED_BIN }}
       volumes:
-        - /storage/images/android/${{ github.event.inputs.sha }}/${{ github.event.inputs.debug }}/arm64:/home/lg/working_dir/chromium/src/out/bromite
-        - /storage/images/android/${{ github.event.inputs.sha }}/${{ github.event.inputs.debug }}/x64:/home/lg/working_dir/chromium/src/out/bromite_x64
-        - /storage/images/win/x64/${{ github.event.inputs.sha }}:/home/lg/working_dir/chromium/src/out/bromite_win
+        - /storage/images/${{ github.event.inputs.sha }}/android/${{ github.event.inputs.debug }}/arm64:/home/lg/working_dir/chromium/src/out/bromite
+        - /storage/images/${{ github.event.inputs.sha }}/android/${{ github.event.inputs.debug }}/x64:/home/lg/working_dir/chromium/src/out/bromite_x64
+        - /storage/images/${{ github.event.inputs.sha }}/win/x64:/home/lg/working_dir/chromium/src/out/bromite_win
         - /tmp/proxy:/tmp/proxy
         - /win_sdk:/win_sdk
         
