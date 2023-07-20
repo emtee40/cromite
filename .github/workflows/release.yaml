@@ -1,4 +1,4 @@
-name: Release Bromite CI
+name: Release Cromite CI
 permissions:
   contents: write
       
@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       sha:
-        description: 'uazo/bromite SHA'
+        description: 'uazo/cromite SHA'
         required: true
-        default: '0a8ff322d6e9d738f7b2fa52618b178081bd100d'
+        default: ''
       type:
         description: 'runner? [dev/ci]'
         required: true
@@ -23,35 +23,35 @@ jobs:
   release:
     runs-on: ${{ github.event.inputs.type }}
     env:
-      OUTPUTFILE_ARM64: /storage/images/android/${{ github.event.inputs.sha }}/false/arm64/
-      OUTPUTFILE_X64: /storage/images/android/${{ github.event.inputs.sha }}/false/x64/
+      OUTPUTFILE_ARM64: /storage/images/${{ github.event.inputs.sha }}/android/false/arm64/
+      OUTPUTFILE_X64: /storage/images/${{ github.event.inputs.sha }}/android/false/x64/
         
     steps:
       - name: Prepare container
         run: |
           wget https://github.com/ericchiang/pup/releases/download/v0.4.0/pup_v0.4.0_linux_amd64.zip
           unzip pup_v0.4.0_linux_amd64.zip && rm pup_v0.4.0_linux_amd64.zip
-          BRANCH=$(curl https://github.com/uazo/bromite/branch_commits/$BROMITE_SHA | ./pup -p li.branch:last-child a text{} | xargs)
+          BRANCH=$(curl https://github.com/uazo/cromite/branch_commits/$BROMITE_SHA | ./pup -p li.branch:last-child a text{} | xargs)
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
           wget https://github.com/cli/cli/releases/download/v2.18.1/gh_2.18.1_linux_amd64.tar.gz
           tar xfz gh_2.18.1_linux_amd64.tar.gz
 
-      - name: Checkout 'uazo/buildtools'
+      - name: Checkout 'uazo/cromite'
         uses: actions/checkout@v2
         with:
-            repository: 'uazo/bromite-buildtools'
-            path: 'bromite'
+            repository: 'uazo/cromite'
+            path: 'cromite'
             fetch-depth: 1
             
       - name: Create release
         shell: bash
         run: |
           GH=gh_2.18.1_linux_amd64/bin/gh
-          WINOUT=/storage/images/win/x64/$BROMITE_SHA/
+          WINOUT=/storage/images/$BROMITE_SHA/win/x64/
           VERSION=v$(cat ${{ env.OUTPUTFILE_ARM64 }}/RELEASE)
 
-          cd bromite
+          cd cromite/tools
 
           GH=gh_2.21.1_linux_amd64/bin/gh
           wget https://github.com/cli/cli/releases/download/v2.21.1/gh_2.21.1_linux_amd64.tar.gz
@@ -59,10 +59,10 @@ jobs:
           
           echo ${{ secrets.GITHUB_TOKEN }} | $GH auth login --with-token
 
-          echo "\`\`\`" >note
-          echo "this is not the official release of bromite but a test version." >>note
-          echo "you can try it at your own risk." >>note
-          echo "\`\`\`" >>note
+          # echo "\`\`\`" >note
+          # echo "this is not the official release of bromite but a test version." >>note
+          # echo "you can try it at your own risk." >>note
+          # echo "\`\`\`" >>note
 
           $GH release create $VERSION-$BROMITE_SHA --notes-file note -d
 
@@ -127,7 +127,7 @@ jobs:
           sleep 30s
 
           TIMESTAMP=$(date +%s -r chrome-win.zip)
-          echo >updateurl.txt "browser=chromium;os=windows;architecture=64-bit;timestamp=$TIMESTAMP;editor=uazo;channel=stable;repository=https://github.com/uazo/bromite-buildtools/releases;download=https://github.com/uazo/bromite-buildtools/releases/latest/download/chrome-win.zip;version=$(cat $WINOUT/RELEASE);revision=1;commit=$BROMITE_SHA"
+          echo >updateurl.txt "browser=chromium;os=windows;architecture=64-bit;timestamp=$TIMESTAMP;editor=uazo;channel=stable;repository=https://github.com/uazo/cromite/releases;download=https://github.com/uazo/cromite/releases/latest/download/chrome-win.zip;version=$(cat $WINOUT/RELEASE);revision=1;commit=$BROMITE_SHA"
           $GH release upload $VERSION-$BROMITE_SHA updateurl.txt
 
           $GH release edit $VERSION-$BROMITE_SHA -t $VERSION-$BROMITE_SHA
