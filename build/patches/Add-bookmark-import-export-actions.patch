@@ -13,7 +13,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  chrome/android/java/AndroidManifest.xml       |   1 -
  .../java/res/menu/bookmark_toolbar_menu.xml   |  14 +
  .../browser/TabbedModeTabDelegateFactory.java |   5 +-
- .../app/bookmarks/BookmarkActivity.java       |  31 ++
+ .../app/bookmarks/BookmarkActivity.java       |  32 ++
  .../browser/bookmarks/BookmarkBridge.java     | 278 +++++++++++++++++
  .../browser/bookmarks/BookmarkDelegate.java   |  10 +
  .../bookmarks/BookmarkManagerCoordinator.java |   9 +
@@ -49,7 +49,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  ui/shell_dialogs/select_file_dialog.h         |   2 +
  .../select_file_dialog_android.cc             |   6 +
  ui/shell_dialogs/select_file_dialog_android.h |   2 +
- 39 files changed, 885 insertions(+), 30 deletions(-)
+ 39 files changed, 886 insertions(+), 30 deletions(-)
 
 diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
 --- a/chrome/android/java/AndroidManifest.xml
@@ -130,23 +130,24 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/bookmarks/B
  
  /**
   * The activity that displays the bookmark UI on the phone. It keeps a {@link
-@@ -33,6 +38,8 @@ public class BookmarkActivity extends SnackbarActivity {
+@@ -33,6 +38,9 @@ public class BookmarkActivity extends SnackbarActivity {
      public static final int EDIT_BOOKMARK_REQUEST_CODE = 14;
      public static final String INTENT_VISIT_BOOKMARK_ID = "BookmarkEditActivity.VisitBookmarkId";
  
 +    private ActivityWindowAndroid mWindowAndroid;
++    private IntentRequestTracker mIntentRequestTracker;
 +
      @Override
      protected void onCreate(Bundle savedInstanceState) {
          super.onCreate(savedInstanceState);
-@@ -54,8 +61,23 @@ public class BookmarkActivity extends SnackbarActivity {
+@@ -54,8 +62,23 @@ public class BookmarkActivity extends SnackbarActivity {
              BackPressHelper.create(this, getOnBackPressedDispatcher(),
                      mBookmarkManagerCoordinator::onBackPressed, SecondaryActivity.BOOKMARK);
          }
 +
 +        final boolean listenToActivityState = true;
-+        IntentRequestTracker intentRequestTracker = IntentRequestTracker.createFromActivity(this);
-+        mWindowAndroid = new ActivityWindowAndroid(this, listenToActivityState, intentRequestTracker);
++        mIntentRequestTracker = IntentRequestTracker.createFromActivity(this);
++        mWindowAndroid = new ActivityWindowAndroid(this, listenToActivityState, mIntentRequestTracker);
 +        mWindowAndroid.getIntentRequestTracker().restoreInstanceState(savedInstanceState);
 +        mBookmarkManagerCoordinator.setWindow(mWindowAndroid,
 +                            new ModalDialogManager(
@@ -163,7 +164,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/bookmarks/B
      @Override
      protected void onDestroy() {
          super.onDestroy();
-@@ -65,6 +87,7 @@ public class BookmarkActivity extends SnackbarActivity {
+@@ -65,6 +88,7 @@ public class BookmarkActivity extends SnackbarActivity {
      @Override
      protected void onActivityResult(int requestCode, int resultCode, Intent data) {
          super.onActivityResult(requestCode, resultCode, data);
@@ -171,7 +172,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/bookmarks/B
          if (requestCode == EDIT_BOOKMARK_REQUEST_CODE && resultCode == RESULT_OK) {
              BookmarkId bookmarkId = BookmarkId.getBookmarkIdFromString(
                      data.getStringExtra(INTENT_VISIT_BOOKMARK_ID));
-@@ -72,6 +95,14 @@ public class BookmarkActivity extends SnackbarActivity {
+@@ -72,6 +96,14 @@ public class BookmarkActivity extends SnackbarActivity {
          }
      }
  
