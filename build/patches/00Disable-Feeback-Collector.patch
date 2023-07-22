@@ -1,0 +1,54 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Sat, 22 Jul 2023 13:58:40 +0000
+Subject: Disable Feeback Collector
+
+---
+ .../browser/feedback/FeedbackCollector.java   | 27 +++----------------
+ 1 file changed, 3 insertions(+), 24 deletions(-)
+
+diff --git a/chrome/browser/feedback/android/java/src/org/chromium/chrome/browser/feedback/FeedbackCollector.java b/chrome/browser/feedback/android/java/src/org/chromium/chrome/browser/feedback/FeedbackCollector.java
+--- a/chrome/browser/feedback/android/java/src/org/chromium/chrome/browser/feedback/FeedbackCollector.java
++++ b/chrome/browser/feedback/android/java/src/org/chromium/chrome/browser/feedback/FeedbackCollector.java
+@@ -28,6 +28,7 @@ import org.chromium.components.signin.identitymanager.ConsentLevel;
+ import org.chromium.components.signin.identitymanager.IdentityManager;
+ 
+ import java.util.HashMap;
++import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Map;
+ 
+@@ -64,30 +65,8 @@ public abstract class FeedbackCollector<T> implements Runnable {
+     // Subclasses must invoke init() at construction time.
+     protected void init(Activity activity, @Nullable ScreenshotSource screenshotTask, T initParams,
+             Profile profile) {
+-        // 1. Build all synchronous and asynchronous sources and determine the currently signed in
+-        //    account.
+-        mSynchronousSources = buildSynchronousFeedbackSources(activity, initParams);
+-        mAsynchronousSources = buildAsynchronousFeedbackSources(initParams);
+-        IdentityManager identityManager =
+-                IdentityServicesProvider.get().getIdentityManager(profile);
+-        if (identityManager != null) {
+-            mAccountInUse = CoreAccountInfo.getEmailFrom(
+-                    identityManager.getPrimaryAccountInfo(ConsentLevel.SIGNIN));
+-        }
+-
+-        // Sanity check in case a source is added to the wrong list.
+-        for (FeedbackSource source : mSynchronousSources) {
+-            assert !(source instanceof AsyncFeedbackSource);
+-        }
+-
+-        // 2. Set |mScreenshotTask| if not null.
+-        if (screenshotTask != null) mScreenshotTask = screenshotTask;
+-
+-        // 3. Start all asynchronous sources and the screenshot task.
+-        for (var source : mAsynchronousSources) {
+-            source.start(this);
+-        }
+-        if (mScreenshotTask != null) mScreenshotTask.capture(this);
++        mSynchronousSources = new ArrayList<>();
++        mAsynchronousSources = new ArrayList<>();
+ 
+         // 4. Kick off a task to timeout the async sources.
+         ThreadUtils.postOnUiThreadDelayed(this, TIMEOUT_MS);
+--
+2.25.1
