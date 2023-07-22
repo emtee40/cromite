@@ -7,21 +7,23 @@ when flag is disabled no external intent will ever be allowed, for any URL.
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/browser/about_flags.cc       | 3 +++
+ chrome/browser/about_flags.cc       | 5 +++++
  chrome/browser/flag_descriptions.cc | 6 ++++++
  chrome/browser/flag_descriptions.h  | 3 +++
- 3 files changed, 12 insertions(+)
+ 3 files changed, 14 insertions(+)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -3848,6 +3848,9 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -3848,6 +3848,11 @@ const FeatureEntry kFeatureEntries[] = {
      {"ui-disable-partial-swap", flag_descriptions::kUiPartialSwapName,
       flag_descriptions::kUiPartialSwapDescription, kOsAll,
       SINGLE_DISABLE_VALUE_TYPE(switches::kUIDisablePartialSwap)},
-+    {"disable-external-intent-requests", flag_descriptions::kDisableExternalIntentRequestsName,
++#if BUILDFLAG(IS_ANDROID)
++    {"allow-external-intent-requests", flag_descriptions::kDisableExternalIntentRequestsName,
 +     flag_descriptions::kDisableExternalIntentRequestsDescription, kOsAll,
 +     SINGLE_DISABLE_VALUE_TYPE("disable-external-intent-requests")},
++#endif
      {"disable-webrtc-hw-decoding", flag_descriptions::kWebrtcHwDecodingName,
       flag_descriptions::kWebrtcHwDecodingDescription, kOsAndroid | kOsCrOS,
       SINGLE_DISABLE_VALUE_TYPE(switches::kDisableWebRtcHWDecoding)},
@@ -33,9 +35,9 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
      "policy related issues on Android.";
  
 +const char kDisableExternalIntentRequestsName[] =
-+    "Never forward URL requests to external intents";
++    "Allow forward URL requests to external intents";
 +const char kDisableExternalIntentRequestsDescription[] =
-+    "URL requests will never"
++    "If disabled, URL requests will never"
 +    "allow for redirecting to an external intent.";
 +
  const char kQueryTilesName[] = "Show query tiles";
