@@ -49,13 +49,14 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../webapps/WebappIntentDataProvider.java     |  14 ++
  chrome/browser/about_flags.cc                 |   4 +
  .../browser/android/historical_tab_saver.cc   |  22 ++-
- .../chrome_autocomplete_provider_client.cc    |   7 +
+ .../chrome_autocomplete_provider_client.cc    |   9 +
  .../chrome_autocomplete_provider_client.h     |   1 +
- .../host_content_settings_map_factory.cc      |  20 ++-
+ .../remote_suggestions_service_factory.cc     |   5 +
+ .../host_content_settings_map_factory.cc      |  22 ++-
  chrome/browser/flag_descriptions.cc           |   6 +
  chrome/browser/flag_descriptions.h            |   3 +
  .../flags/android/chrome_feature_list.cc      |   4 +-
- chrome/browser/history/history_tab_helper.cc  |  18 ++
+ chrome/browser/history/history_tab_helper.cc  |  20 +++
  chrome/browser/history/history_tab_helper.h   |  10 +-
  .../android/offline_page_bridge.cc            |  11 +-
  .../android/offline_page_model_factory.cc     |  20 ++-
@@ -65,6 +66,8 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/offline_pages/recent_tab_helper.h |   3 +
  .../request_coordinator_factory.h             |   4 +-
  chrome/browser/prefs/browser_prefs.cc         |   5 +
+ chrome/browser/profiles/profile_selections.cc |  10 ++
+ chrome/browser/profiles/profile_selections.h  |   7 +-
  .../browser/ui/android/native_page/BUILD.gn   |   2 +
  .../browser/ui/native_page/NativePage.java    |  16 +-
  .../strings/android_chrome_strings.grd        |  31 ++++
@@ -84,7 +87,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../omnibox/browser/base_search_provider.cc   |   2 +-
  components/omnibox/browser/search_provider.cc |   4 +-
  .../host_content_settings_map_factory.cc      |   1 +
- 65 files changed, 738 insertions(+), 90 deletions(-)
+ 68 files changed, 765 insertions(+), 91 deletions(-)
  create mode 100644 chrome/android/java/res/xml/incognito_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/AlwaysIncognitoLinkInterceptor.java
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java
@@ -1237,14 +1240,16 @@ diff --git a/chrome/browser/android/historical_tab_saver.cc b/chrome/browser/and
 diff --git a/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc b/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc
 --- a/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc
 +++ b/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc
-@@ -350,6 +350,13 @@ ChromeAutocompleteProviderClient::GetOnDeviceTailModelService() const {
+@@ -350,6 +350,15 @@ ChromeAutocompleteProviderClient::GetOnDeviceTailModelService() const {
  #endif  // BUILDFLAG(BUILD_WITH_TFLITE_LIB)
  }
  
 +bool ChromeAutocompleteProviderClient::IsAlwaysIncognitoEnabled() const {
++#if BUILDFLAG(IS_ANDROID)
 +  if (profile_->GetPrefs()->GetBoolean(prefs::kAlwaysIncognitoEnabled)) {
 +    return true;
 +  }
++#endif
 +  return false;
 +}
 +
@@ -1262,6 +1267,29 @@ diff --git a/chrome/browser/autocomplete/chrome_autocomplete_provider_client.h b
    bool IsIncognitoProfile() const override;
    bool IsGuestSession() const override;
    bool SearchSuggestEnabled() const override;
+diff --git a/chrome/browser/autocomplete/remote_suggestions_service_factory.cc b/chrome/browser/autocomplete/remote_suggestions_service_factory.cc
+--- a/chrome/browser/autocomplete/remote_suggestions_service_factory.cc
++++ b/chrome/browser/autocomplete/remote_suggestions_service_factory.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "chrome/browser/autocomplete/remote_suggestions_service_factory.h"
+ 
++#include "build/build_config.h"
+ #include "base/memory/singleton.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "components/omnibox/browser/remote_suggestions_service.h"
+@@ -35,7 +36,11 @@ RemoteSuggestionsServiceFactory::RemoteSuggestionsServiceFactory()
+     : ProfileKeyedServiceFactory(
+           "RemoteSuggestionsService",
+           ProfileSelections::Builder()
++#if BUILDFLAG(IS_ANDROID)
++              .WithRegular(ProfileSelection::kOriginalOnlyAndAlwaysIncognito)
++#else
+               .WithRegular(ProfileSelection::kOriginalOnly)
++#endif
+               // TODO(crbug.com/1418376): Check if this service is needed in
+               // Guest mode.
+               .WithGuest(ProfileSelection::kOriginalOnly)
 diff --git a/chrome/browser/content_settings/host_content_settings_map_factory.cc b/chrome/browser/content_settings/host_content_settings_map_factory.cc
 --- a/chrome/browser/content_settings/host_content_settings_map_factory.cc
 +++ b/chrome/browser/content_settings/host_content_settings_map_factory.cc
@@ -1273,13 +1301,14 @@ diff --git a/chrome/browser/content_settings/host_content_settings_map_factory.c
  #include "components/content_settings/core/browser/content_settings_pref_provider.h"
  #include "components/content_settings/core/browser/host_content_settings_map.h"
  #include "components/permissions/features.h"
-@@ -119,9 +120,23 @@ scoped_refptr<RefcountedKeyedService>
+@@ -119,9 +120,25 @@ scoped_refptr<RefcountedKeyedService>
        should_record_metrics && ash::ProfileHelper::IsUserProfile(profile);
  #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
  
 +  bool always_incognito_enabled = false;
 +  bool force_save_site_settings = false;
 +
++#if BUILDFLAG(IS_ANDROID)
 +  PrefService* prefService = original_profile->GetPrefs();
 +  if (prefService->GetBoolean(prefs::kAlwaysIncognitoEnabled)) {
 +    always_incognito_enabled = true;
@@ -1289,6 +1318,7 @@ diff --git a/chrome/browser/content_settings/host_content_settings_map_factory.c
 +    profile = original_profile;
 +    force_save_site_settings = true;
 +  }
++#endif
 +
    scoped_refptr<HostContentSettingsMap> settings_map(new HostContentSettingsMap(
        profile->GetPrefs(),
@@ -1298,7 +1328,7 @@ diff --git a/chrome/browser/content_settings/host_content_settings_map_factory.c
        /*store_last_modified=*/true, profile->ShouldRestoreOldSessionCookies(),
        should_record_metrics));
  
-@@ -131,6 +146,9 @@ scoped_refptr<RefcountedKeyedService>
+@@ -131,6 +148,9 @@ scoped_refptr<RefcountedKeyedService>
        HostContentSettingsMap::WEBUI_ALLOWLIST_PROVIDER,
        std::move(allowlist_provider));
  
@@ -1378,16 +1408,18 @@ diff --git a/chrome/browser/history/history_tab_helper.cc b/chrome/browser/histo
    if (profile->IsOffTheRecord())
      return nullptr;
  
-@@ -481,6 +491,14 @@ history::HistoryService* HistoryTabHelper::GetHistoryService() {
+@@ -481,6 +491,16 @@ history::HistoryService* HistoryTabHelper::GetHistoryService() {
        profile, ServiceAccessType::IMPLICIT_ACCESS);
  }
  
 +// static
 +void HistoryTabHelper::RegisterProfilePrefs(PrefRegistrySimple* registry) {
++#if BUILDFLAG(IS_ANDROID)
 +  registry->RegisterBooleanPref(prefs::kIncognitoTabHistoryEnabled,
 +                                /*default_value=*/false);
 +  registry->RegisterBooleanPref(prefs::kIncognitoSaveSiteSettingEnabled,
 +                                /*default_value=*/false);
++#endif
 +}
 +
  void HistoryTabHelper::WebContentsDestroyed() {
@@ -1691,6 +1723,57 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
  #else  // BUILDFLAG(IS_ANDROID)
    bookmarks_webui::RegisterProfilePrefs(registry);
    browser_sync::ForeignSessionHandler::RegisterProfilePrefs(registry);
+diff --git a/chrome/browser/profiles/profile_selections.cc b/chrome/browser/profiles/profile_selections.cc
+--- a/chrome/browser/profiles/profile_selections.cc
++++ b/chrome/browser/profiles/profile_selections.cc
+@@ -5,6 +5,9 @@
+ #include "chrome/browser/profiles/profile_selections.h"
+ 
+ #include "base/memory/ptr_util.h"
++#include "components/prefs/pref_registry_simple.h"
++#include "components/prefs/pref_service.h"
++#include "chrome/common/pref_names.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/profiles/profile_types_ash.h"
+ #include "components/profile_metrics/browser_profile_type.h"
+@@ -110,6 +113,13 @@ Profile* ProfileSelections::ApplyProfileSelection(Profile* profile) const {
+       return nullptr;
+     case ProfileSelection::kOriginalOnly:
+       return profile->IsOffTheRecord() ? nullptr : profile;
++#if BUILDFLAG(IS_ANDROID)
++    case ProfileSelection::kOriginalOnlyAndAlwaysIncognito:
++      return profile->IsOffTheRecord() &&
++             !(profile->GetOriginalProfile()
++              ->GetPrefs()
++              ->GetBoolean(prefs::kAlwaysIncognitoEnabled)) ? nullptr : profile;
++#endif
+     case ProfileSelection::kOwnInstance:
+       return profile;
+     case ProfileSelection::kRedirectedToOriginal:
+diff --git a/chrome/browser/profiles/profile_selections.h b/chrome/browser/profiles/profile_selections.h
+--- a/chrome/browser/profiles/profile_selections.h
++++ b/chrome/browser/profiles/profile_selections.h
+@@ -6,7 +6,7 @@
+ #define CHROME_BROWSER_PROFILES_PROFILE_SELECTIONS_H_
+ 
+ #include "base/feature_list.h"
+-
++#include "build/build_config.h"
+ #include "third_party/abseil-cpp/absl/types/optional.h"
+ 
+ class Profile;
+@@ -27,6 +27,11 @@ bool AreKeyedServicesDisabledForProfileByDefault(const Profile* profile);
+ enum class ProfileSelection {
+   kNone,                  // Original: No Profile  --  OTR: No Profile
+   kOriginalOnly,          // Original: Self        --  OTR: No Profile
++#if BUILDFLAG(IS_ANDROID)
++  kOriginalOnlyAndAlwaysIncognito,
++                          // Original: Self        --  OTR: Self (with AlwaysIncognito ON)
++                          //                       --  OTR: No Profile (with AlwaysIncognito OFF)
++#endif
+   kOwnInstance,           // Original: Self        --  OTR: Self
+   kRedirectedToOriginal,  // Original: Self        --  OTR: Original
+   kOffTheRecordOnly       // Original: No Profile  --  OTR: Self
 diff --git a/chrome/browser/ui/android/native_page/BUILD.gn b/chrome/browser/ui/android/native_page/BUILD.gn
 --- a/chrome/browser/ui/android/native_page/BUILD.gn
 +++ b/chrome/browser/ui/android/native_page/BUILD.gn
