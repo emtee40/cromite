@@ -1,14 +1,18 @@
+<a href="https://github.com/uazo/cromite/releases/latest">
+  <img src="https://img.shields.io/github/v/release/uazo/cromite" alt="current Cromite release" title="current Cromite release" />
+</a>
+<br>
+
+[![Build Cromite](https://github.com/uazo/cromite/actions/workflows/build_cromite.yaml/badge.svg)](https://github.com/uazo/cromite/actions/workflows/build_cromite.yaml)
+
 ### **** Work in progess ****
 
 # Cromite (a Bromite fork) - Take back your browser
-<a href="https://github.com/uazo/cromite/releases/latest">
-  <img src="https://www.bromite.org/release.svg" alt="current Bromite release" title="current Bromite release" /> </a>
-<a href="https://github.com/bromite/bromite/blob/master/LICENSE">
-  <img src="https://www.bromite.org/license.svg" alt="GNU GPL v3" title="GNU VPL v3" />
-</a> <br>
+
 <a href="https://www.cromite.org">
   <img title="Cromite - take back your browser!" src="https://www.cromite.org/app_icon.png" width="96" alt="Bromite" />
 </a>
+<br>
 
 Cromite is a [Chromium](https://www.chromium.org/Home) fork based on [Bromite](https://github.com/bromite/bromite) with built-in support for ad blocking and an eye for privacy.
 
