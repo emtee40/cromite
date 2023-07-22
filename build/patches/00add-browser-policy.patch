@@ -4,6 +4,7 @@ Subject: Add browser policy
 
 ---
  base/win/win_util.cc                          |  63 +--------
+ chrome/android/java/AndroidManifest.xml       |   4 -
  .../privacy_preferences_manager_impl.cc       |   5 +
  .../metrics/chrome_feature_list_creator.cc    |  12 ++
  .../policy/chrome_browser_policy_connector.cc |   2 -
@@ -26,7 +27,7 @@ Subject: Add browser policy
  components/policy_strings.grdp                |   4 +-
  .../gaia_cookie_manager_service.cc            |   4 +
  google_apis/gaia/gaia_auth_fetcher.cc         |   1 +
- 23 files changed, 285 insertions(+), 89 deletions(-)
+ 24 files changed, 285 insertions(+), 93 deletions(-)
 
 diff --git a/base/win/win_util.cc b/base/win/win_util.cc
 --- a/base/win/win_util.cc
@@ -111,6 +112,35 @@ diff --git a/base/win/win_util.cc b/base/win/win_util.cc
    return &state;
  }
  
+diff --git a/chrome/android/java/AndroidManifest.xml b/chrome/android/java/AndroidManifest.xml
+--- a/chrome/android/java/AndroidManifest.xml
++++ b/chrome/android/java/AndroidManifest.xml
+@@ -72,9 +72,7 @@ by a child template that "extends" this file.
+     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" tools:ignore="SystemPermissionTypo" />
+     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:ignore="SystemPermissionTypo" />
+ 
+-    <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
+     <uses-permission android:name="android.permission.INTERNET"/>
+-    <uses-permission android:name="android.permission.MANAGE_ACCOUNTS"/>
+     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+     <uses-permission android:name="android.permission.NFC"/>
+     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+@@ -85,7 +83,6 @@ by a child template that "extends" this file.
+     <uses-permission-sdk-23 android:name="android.permission.READ_MEDIA_VIDEO"/>
+     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+-    <uses-permission android:name="android.permission.USE_CREDENTIALS"/>
+     <uses-permission-sdk-23 android:name="android.permission.USE_BIOMETRIC"/>
+     <uses-permission-sdk-23 android:name="android.permission.USE_FINGERPRINT"/>
+     <uses-permission android:name="android.permission.VIBRATE"/>
+@@ -131,7 +128,6 @@ by a child template that "extends" this file.
+     <uses-permission android:name="com.chrome.permission.DEVICE_EXTRAS" />
+     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
+ 
+-    <uses-permission android:name="com.google.android.apps.now.CURRENT_ACCOUNT_ACCESS" />
+ 
+     {% block extra_uses_permissions %}
+     {% endblock %}
 diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 --- a/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
 +++ b/chrome/browser/android/preferences/privacy_preferences_manager_impl.cc
