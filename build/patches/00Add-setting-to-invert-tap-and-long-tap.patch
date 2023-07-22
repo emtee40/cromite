@@ -14,7 +14,8 @@ The feature can be activated from the accessibility settings.
  .../contextmenu/ContextMenuItemDelegate.java  |  2 ++
  chrome/browser/flag_descriptions.cc           |  4 +++
  chrome/browser/flag_descriptions.h            |  3 ++
- .../browser/flags/ChromeFeatureList.java      |  4 +++
+ .../flags/android/chrome_feature_list.cc      |  1 +
+ .../browser/flags/ChromeFeatureList.java      |  5 +++
  .../strings/android_chrome_strings.grd        |  9 ++++++
  .../res/xml/accessibility_preferences.xml     |  5 +++
  .../accessibility/AccessibilitySettings.java  | 11 +++++++
@@ -27,7 +28,7 @@ The feature can be activated from the accessibility settings.
  .../renderer/core/html/html_image_element.h   |  2 ++
  .../core/page/context_menu_controller.cc      | 32 +++++++++++++------
  .../core/page/context_menu_controller.h       |  5 +--
- 22 files changed, 144 insertions(+), 14 deletions(-)
+ 23 files changed, 146 insertions(+), 14 deletions(-)
 
 diff --git a/chrome/android/java/res/values/ids.xml b/chrome/android/java/res/values/ids.xml
 --- a/chrome/android/java/res/values/ids.xml
@@ -192,6 +193,17 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
  extern const char kIncognitoReauthenticationForAndroidName[];
  extern const char kIncognitoReauthenticationForAndroidDescription[];
  
+diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
+--- a/chrome/browser/flags/android/chrome_feature_list.cc
++++ b/chrome/browser/flags/android/chrome_feature_list.cc
+@@ -310,6 +310,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+     &kTabGroupsContinuationAndroid,
+     &kTabGroupsForTablets,
+     &kDiscoverFeedMultiColumn,
++    &blink::features::kShowAlwaysContextMenuOnLinks,
+     &kTabStripRedesign,
+     &kTabletToolbarReordering,
+     &kTabStripStartupRefactoring,
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
@@ -213,6 +225,14 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final CachedFlag sOmniboxModernizeVisualUpdate =
              new CachedFlag(OMNIBOX_MODERNIZE_VISUAL_UPDATE, false);
      public static final CachedFlag sOmniboxMostVisitedTilesAddRecycledViewPool =
+@@ -675,6 +679,7 @@ public abstract class ChromeFeatureList {
+         sTabStripRedesign,
+         sTabStripStartupRefactoring,
+         sTabletToolbarReordering,
++        sShowAlwaysContextMenuOnLinks,
+         sTabToGTSAnimation,
+         sToolbarUseHardwareBitmapDraw,
+         sUseChimeAndroidSdk,
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
