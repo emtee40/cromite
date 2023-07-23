@@ -66,27 +66,33 @@ jobs:
           $GH release create $VERSION-$BROMITE_SHA --notes-file note -d
 
           # android arm64
+          echo "::group::-------- android arm64"
           sudo cp ${{ env.OUTPUTFILE_ARM64 }}/apks/ChromePublic.apk arm64_ChromePublic.apk
           sudo chown runner arm64_ChromePublic.apk
           echo Uploading arm64_ChromePublic
           $GH release upload $VERSION-$BROMITE_SHA arm64_ChromePublic.apk
+          echo "::endgroup::"
 
           # android x64
+          echo "::group::-------- android x64"
           sudo cp ${{ env.OUTPUTFILE_X64 }}/apks/ChromePublic.apk x64_ChromePublic.apk
           sudo chown runner x64_ChromePublic.apk
           echo Uploading x64_ChromePublic
           $GH release upload $VERSION-$BROMITE_SHA x64_ChromePublic.apk
+          echo "::endgroup::"
 
-          echo Uploading chrome.size
+          echo "::group::-------- chrome.size"
           test $VERSION-$BROMITE_SHA $OUTPUTFILE_ARM64/chrome.size && \
             $GH release upload $VERSION-$BROMITE_SHA $OUTPUTFILE_ARM64/chrome.size
+          echo "::endgroup::"
 
-          echo Uploading arm64_ninja_log_trace.html
+          echo "::group::-------- Uploading arm64_ninja_log_trace.html"
           test $OUTPUTFILE_ARM64/ninja_log_trace.html && \
             cp $OUTPUTFILE_ARM64/ninja_log_trace.html arm64_ninja_log_trace.html && \
             $GH release upload $VERSION-$BROMITE_SHA arm64_ninja_log_trace.html
+          echo "::endgroup::"
 
-          # windows
+          echo "::group::-------- windows"
           mkdir chrome-win/
           cp $WINOUT/*.manifest chrome-win/
           cp $WINOUT/chrome.dll chrome-win/
@@ -121,6 +127,14 @@ jobs:
           
           echo Uploading chrome-win.zip
           $GH release upload $VERSION-$BROMITE_SHA chrome-win.zip
+          echo "::endgroup::"
+          
+          echo "::group::-------- arm64 symbols"
+          zip arm64_symbols.zip ${{ env.OUTPUTFILE_ARM64 }}/dump_syms \
+                                ${{ env.OUTPUTFILE_ARM64 }}/minidump_stackwalk \
+                                ${{ env.OUTPUTFILE_ARM64 }}/libchrome.so
+          $GH release upload $VERSION-$BROMITE_SHA arm64_symbols.zip
+          echo "::endgroup::"
           
           # workaround for https://github.com/cli/cli/issues/6599
           sleep 30s
