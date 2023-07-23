@@ -66,24 +66,24 @@ jobs:
         with:
             repository: 'uazo/cromite'
             ref: ${{ github.event.inputs.rtag }}
-            path: '/home/runner/cromite'
+            path: '${{ env.GITHUB_WORKSPACE }}/cromite'
             fetch-depth: 1
 
       - name: Check chromium version
         run: |
-          export HOME=/home/runner
+          export HOME=$GITHUB_WORKSPACE
           VERSION=$(cat ~/cromite/build/RELEASE)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Cache chromium sources
         uses: actions/cache@v3
         with:
-          path: /home/runner/chromium/src
+          path: ${{ env.GITHUB_WORKSPACE }}/chromium-src
           key: chrsource-${{ env.VERSION }}
 
       - name: Download chromium ${{ env.VERSION }} sources
         run: |
-          export HOME=/home/runner
+          export HOME=$GITHUB_WORKSPACE
           ./bin/SuperPatchUtils bromite $RTAG ~/chromium-src
           mkdir -p ~/chromium/src && cp -r ~/chromium-src ~/chromium/src
           cd ~/chromium/src
@@ -96,7 +96,7 @@ jobs:
 
       - name: Apply patches ${{ github.event.inputs.rtag }}
         run: |
-          export HOME=/home/runner
+          export HOME=$GITHUB_WORKSPACE
           cd ~/chromium/src
           
           export SILENT=true
@@ -108,9 +108,9 @@ jobs:
           
       - name: Export patches
         run: |
-          export HOME=/home/runner
+          export HOME=$GITHUB_WORKSPACE          
+          cd ~/chromium/src
           
-          cd ~/chromium/src          
           bash ~/cromite/tools/export-all-patch.sh
           
           cd ~/cromite
@@ -120,7 +120,7 @@ jobs:
           
       - name: Check differences CHANGES=${{ env.CHANGES }}
         run: |
-          export HOME=/home/runner
+          export HOME=$GITHUB_WORKSPACE
           
           cd ~/cromite
           CHANGES=0 && git diff --quiet || CHANGES=1
@@ -137,7 +137,7 @@ jobs:
         uses: peter-evans/create-pull-request@dcd5fd746d53dd8de555c0f10bca6c35628be47a #v3.12.0
         if: env.CHANGES == '1'
         with:
-          path: /home/runner/cromite
+          path: $GITHUB_WORKSPACE/cromite
           base: ${{ env.BRANCH }}
           #push-to-fork: uazo/cromite
           add-paths: |
