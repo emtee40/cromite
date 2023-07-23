@@ -39,10 +39,7 @@ jobs:
           fi
           
       - name: Prepare container
-        run: |
-          echo pwd=$(pwd)
-          echo home=~
-          
+        run: |        
           sudo apt update
           sudo apt install -y wget unzip tar sed dos2unix patchutils wiggle curl
           
@@ -69,23 +66,24 @@ jobs:
         with:
             repository: 'uazo/cromite'
             ref: ${{ github.event.inputs.rtag }}
-            path: 'cromite'
+            path: '/home/runner/cromite'
             fetch-depth: 1
 
       - name: Check chromium version
         run: |
-          VERSION=$(cat cromite/build/RELEASE)
+          export HOME=/home/runner
+          VERSION=$(cat ~/cromite/build/RELEASE)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Cache chromium sources
         uses: actions/cache@v3
         with:
-          path: /home/runner/work/cromite/cromite/chromium/src
+          path: /home/runner/chromium/src
           key: chrsource-${{ env.VERSION }}
 
       - name: Download chromium ${{ env.VERSION }} sources
         run: |
-          export HOME=$(pwd)
+          export HOME=/home/runner
           ./bin/SuperPatchUtils bromite $RTAG ~/chromium-src
           mkdir -p ~/chromium/src && cp -r ~/chromium-src ~/chromium/src
           cd ~/chromium/src
@@ -98,7 +96,7 @@ jobs:
 
       - name: Apply patches ${{ github.event.inputs.rtag }}
         run: |
-          export HOME=$(pwd)
+          export HOME=/home/runner
           cd ~/chromium/src
           
           export SILENT=true
@@ -110,7 +108,7 @@ jobs:
           
       - name: Export patches
         run: |
-          export HOME=$(pwd)
+          export HOME=/home/runner
           
           cd ~/chromium/src          
           bash ~/cromite/tools/export-all-patch.sh
@@ -122,7 +120,9 @@ jobs:
           
       - name: Check differences CHANGES=${{ env.CHANGES }}
         run: |
-          cd cromite
+          export HOME=/home/runner
+          
+          cd ~/cromite
           CHANGES=0 && git diff --quiet || CHANGES=1
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
           
@@ -137,7 +137,7 @@ jobs:
         uses: peter-evans/create-pull-request@dcd5fd746d53dd8de555c0f10bca6c35628be47a #v3.12.0
         if: env.CHANGES == '1'
         with:
-          path: cromite
+          path: /home/runner/cromite
           base: ${{ env.BRANCH }}
           #push-to-fork: uazo/cromite
           add-paths: |
