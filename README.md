@@ -5,14 +5,14 @@
 
 [![Build Cromite](https://github.com/uazo/cromite/actions/workflows/build_cromite.yaml/badge.svg)](https://github.com/uazo/cromite/actions/workflows/build_cromite.yaml)
 
-### **** Work in progess ****
-
 # Cromite (a Bromite fork) - Take back your browser
 
 <a href="https://www.cromite.org">
   <img title="Cromite - take back your browser!" src="https://www.cromite.org/app_icon.png" width="96" alt="Bromite" />
 </a>
 <br>
+
+### **** Work in progess ****
 
 Cromite is a [Chromium](https://www.chromium.org/Home) fork based on [Bromite](https://github.com/bromite/bromite) with built-in support for ad blocking and an eye for privacy.
 
@@ -233,16 +233,50 @@ New flags:
 Cromite's privacy features, including anti-fingerprinting mitigations (which are not comprehensive), **are not to be considered useful for journalists and people living in countries with freedom limitations**, please look at [Tor Browser](https://www.torproject.org/download/) in such cases.
 Please note that this project is not free of bugs and that changing the behaviour of a browser can be risky and not without problems.
 
-# (TODO) Releases
+# Releases
 
-All built versions are available as [releases](https://github.com/bromite/bromite/releases); the [official website](https://www.bromite.org/) points to those releases and - when browsing via Android - it will automatically highlight the one apt for your device (or none otherwise).
+All built versions are available as [releases](https://github.com/cromite/cromite/releases).
 
-Each tag corresponds to a Chromium Stable release tag.
-
-Bromite is currently built for ARM64, x86 (Android SDK version 23+) and Windows.
+Cromite is currently built for ARM64, ~x86~ (Android SDK version 23+) and Windows x64.
 
 You will automatically receive notifications about new updates (and be able to install them) via the auto updater functionality (enabled by default), see [related wiki page](https://github.com/bromite/bromite/wiki/AutomaticUpdates).
 
+For F-droid: work in progress https://github.com/uazo/cromite/issues/64
+
+### Auto-update setup for windows
+
+1. Download https://github.com/henrypp/chrlauncher/releases
+2. Create a `chrlauncher.ini`
+
+```
+[chrlauncher]
+
+# Custom Chromium update URL (string):
+ChromiumUpdateUrl=https://github.com/uazo/cromite/releases/latest/download/updateurl.txt
+
+# Command line for Chromium (string):
+# note --user-data-dir= works better if path is absolute
+# See here: http://peter.sh/experiments/chromium-command-line-switches/
+ChromiumCommandLine=--user-data-dir=".\User Data" --no-default-browser-check
+
+# to enable full logging in c:\temp\log.txt (daily rotate, no automatic deletion)
+# ChromiumCommandLine=--enable-logging --v=0 --log-file=C:\temp\log.txt --user-data-dir=".\User Data" --no-default-browser-check
+
+# Chromium executable file name (string):
+ChromiumBinary=chrome.exe
+
+# Chromium binaries directory (string):
+# Relative (to chrlauncher directory) or full path (env. variables supported).
+ChromiumDirectory=.\bin
+```
+
+### Enable network process sandbox in windows
+I don't include any setups because I don't like the experience of not knowing what they do, so you must manually run this command on first installation:
+```
+cd <where_is_the_exe>
+icacls . /grant "*S-1-15-2-2:(OI)(CI)(RX)"
+```
+see https://github.com/uazo/bromite-buildtools/issues/51
 
 ## (TODO) Integrity and authenticity
 
