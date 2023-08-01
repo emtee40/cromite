@@ -96,6 +96,7 @@ suit Bromite logic
  .../subscription/subscription_updater_impl.cc |    8 +-
  .../subscription_validator_impl.cc            |    4 +-
  components/adblock/features.gni               |   44 -
+ .../browser/bromite_content_settings/ads.inc  |    3 +
  components/resources/BUILD.gn                 |    1 -
  components/resources/adblock_resources.grdp   |    3 -
  components/resources/adblocking/.gitignore    |    2 +-
@@ -108,7 +109,7 @@ suit Bromite logic
  .../blink/renderer/core/css/style_engine.h    |    1 +
  .../renderer/core/exported/web_document.cc    |   13 +-
  .../definitions/adblock_private.d.ts          |   14 +
- 103 files changed, 5038 insertions(+), 1296 deletions(-)
+ 104 files changed, 5041 insertions(+), 1296 deletions(-)
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.cc
  delete mode 100644 chrome/browser/adblock/adblock_telemetry_service_factory.h
  create mode 100644 chrome/browser/resources/settings/adblock_page/adblock_page.html
@@ -120,6 +121,7 @@ suit Bromite logic
  delete mode 100644 components/adblock/core/adblock_telemetry_service.h
  create mode 100644 components/adblock/core/converter/parser/test/test_rules.txt
  delete mode 100644 components/adblock/features.gni
+ create mode 100644 components/content_settings/core/browser/bromite_content_settings/ads.inc
  create mode 100755 components/resources/adblocking/snippets/dist/isolated-first.jst
  create mode 100755 components/resources/adblocking/snippets/dist/isolated-first.source.jst
 
@@ -180,7 +182,7 @@ diff --git a/chrome/browser/adblock/adblock_content_browser_client.cc b/chrome/b
 +      content::RenderFrameHost* embedder = frame->GetOutermostMainFrameOrEmbedder();
 +      const auto& embedder_url = embedder->GetLastCommittedURL();
 +      HostContentSettingsMap* settings_map = HostContentSettingsMapFactory::GetForProfile(profile);
-+      if (settings_map->GetContentSetting(embedder_url, GURL(), ContentSettingsType::ADS)
++      if (settings_map && settings_map->GetContentSetting(embedder_url, GURL(), ContentSettingsType::ADS)
 +            == CONTENT_SETTING_ALLOW) {
 +          return false;
 +      }
@@ -4435,6 +4437,14 @@ deleted file mode 100644
 -  # special URLs. This is used for internal automated testing (see DPD-1407).
 -  eyeo_intercept_debug_url = false
 -}
+diff --git a/components/content_settings/core/browser/bromite_content_settings/ads.inc b/components/content_settings/core/browser/bromite_content_settings/ads.inc
+new file mode 100644
+--- /dev/null
++++ b/components/content_settings/core/browser/bromite_content_settings/ads.inc
+@@ -0,0 +1,3 @@
++  content_settings::WebsiteSettingsRegistry::GetInstance()
++    ->GetMutable(ContentSettingsType::ADS)
++    ->set_show_into_info_page();
 diff --git a/components/resources/BUILD.gn b/components/resources/BUILD.gn
 --- a/components/resources/BUILD.gn
 +++ b/components/resources/BUILD.gn
