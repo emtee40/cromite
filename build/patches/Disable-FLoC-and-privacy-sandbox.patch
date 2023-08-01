@@ -11,12 +11,13 @@ Original License: GPL-2.0-or-later - https://spdx.org/licenses/GPL-2.0-or-later.
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
  .../browser/chrome_content_browser_client.cc  |  3 ++
+ .../PrivacySandboxSettingsFragmentV3.java     |  1 +
  .../privacy_sandbox_settings_delegate.cc      |  1 +
  .../history/core/browser/history_backend.cc   | 13 +-------
  .../privacy_sandbox_features.cc               | 10 +++---
  .../privacy_sandbox/privacy_sandbox_prefs.cc  |  2 +-
  .../privacy_sandbox_settings_impl.cc          | 33 +++++++++----------
- 6 files changed, 27 insertions(+), 35 deletions(-)
+ 7 files changed, 28 insertions(+), 35 deletions(-)
 
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
@@ -31,6 +32,17 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    Profile* profile = Profile::FromBrowserContext(browser_context);
  
    auto* privacy_sandbox_settings =
+diff --git a/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java b/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java
+--- a/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java
++++ b/chrome/browser/privacy_sandbox/android/java/src/org/chromium/chrome/browser/privacy_sandbox/PrivacySandboxSettingsFragmentV3.java
+@@ -47,6 +47,7 @@ public class PrivacySandboxSettingsFragmentV3 extends PrivacySandboxSettingsBase
+         privacySandboxToggle.setOnPreferenceChangeListener(this);
+         privacySandboxToggle.setManagedPreferenceDelegate(createManagedPreferenceDelegate());
+         privacySandboxToggle.setChecked(PrivacySandboxBridge.isPrivacySandboxEnabled());
++        privacySandboxToggle.setEnabled(false);
+ 
+         ChromeBasePreference learnMorePreference = findPreference(LEARN_MORE_PREFERENCE);
+         SpannableString spannableString = new SpannableString(
 diff --git a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 --- a/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
 +++ b/chrome/browser/privacy_sandbox/privacy_sandbox_settings_delegate.cc
