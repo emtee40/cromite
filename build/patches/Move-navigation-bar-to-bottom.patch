@@ -35,7 +35,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../strip/StripLayoutHelperManager.java       | 34 +++++++-
  .../scene_layer/StaticTabSceneLayer.java      |  8 +-
  .../scene_layer/TabListSceneLayer.java        | 14 ++++
- .../scene_layer/TabStripSceneLayer.java       | 15 +++-
+ .../scene_layer/TabStripSceneLayer.java       | 22 ++++-
  .../browser/findinpage/FindToolbarTablet.java | 11 ++-
  .../fullscreen/BrowserControlsManager.java    | 13 +++
  .../messages/MessageContainerCoordinator.java | 17 +++-
@@ -88,7 +88,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../accessibility/AccessibilitySettings.java  | 16 ++++
  .../AccessibilitySettingsDelegate.java        |  6 ++
  .../render_widget_host_view_android.cc        |  3 +
- 76 files changed, 894 insertions(+), 63 deletions(-)
+ 76 files changed, 901 insertions(+), 63 deletions(-)
 
 diff --git a/cc/base/features.cc b/cc/base/features.cc
 --- a/cc/base/features.cc
@@ -1082,16 +1082,18 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/scen
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabStripSceneLayer.java b/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabStripSceneLayer.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabStripSceneLayer.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/compositor/scene_layer/TabStripSceneLayer.java
-@@ -22,6 +22,8 @@ import org.chromium.chrome.browser.layouts.scene_layer.SceneOverlayLayer;
+@@ -22,6 +22,10 @@ import org.chromium.chrome.browser.layouts.scene_layer.SceneOverlayLayer;
  import org.chromium.chrome.browser.tasks.tab_management.TabUiFeatureUtilities;
  import org.chromium.ui.base.LocalizationUtils;
  import org.chromium.ui.resources.ResourceManager;
++import org.chromium.ui.base.DeviceFormFactor;
++import org.chromium.base.ContextUtils;
 +import org.chromium.chrome.browser.flags.ChromeFeatureList;
 +import org.chromium.chrome.browser.flags.CachedFeatureFlags;
  
  /**
   * The Java component of what is basically a CC Layer that manages drawing the Tab Strip (which is
-@@ -75,9 +77,18 @@ public class TabStripSceneLayer extends SceneOverlayLayer {
+@@ -75,9 +79,23 @@ public class TabStripSceneLayer extends SceneOverlayLayer {
       */
      public void pushAndUpdateStrip(StripLayoutHelperManager layoutHelper,
              LayerTitleCache layerTitleCache, ResourceManager resourceManager,
@@ -1102,12 +1104,17 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/compositor/scen
 -        final boolean visible = yOffset > -layoutHelper.getHeight();
 +        boolean visible = yOffset > -layoutHelper.getHeight();
 +        if (ChromeFeatureList.sMoveTopToolbarToBottom.isEnabled()) {
-+           // the list of open tabs (in tablet mode) is moved down, above the top
-+           // toolbar which is also below.
-+           // values are in pixel.
-+           yOffset = (((int)viewportHeight - topControlsHeight) / mDpToPx) - yOffset;
-+           // and it disappears along with the moving toolbar with a higher range
-+           visible = yOffset > (-layoutHelper.getHeight() - topControlsHeight);
++            // check if force tablet mode is active
++            // is active if(isTablet != isNonMultiDisplayContextOnTablet)
++            if (DeviceFormFactor.isTablet() ==
++                   DeviceFormFactor.isNonMultiDisplayContextOnTablet(ContextUtils.getApplicationContext())) {
++                // the list of open tabs (in tablet mode not forced) is moved down, above the top
++                // toolbar which is also below.
++                // values are in pixel.
++                yOffset = (((int)viewportHeight - topControlsHeight) / mDpToPx) - yOffset;
++                // and it disappears along with the moving toolbar with a higher range
++                visible = yOffset > (-layoutHelper.getHeight() - topControlsHeight);
++            }
 +        }
          // This will hide the tab strips if necessary.
          TabStripSceneLayerJni.get().beginBuildingFrame(

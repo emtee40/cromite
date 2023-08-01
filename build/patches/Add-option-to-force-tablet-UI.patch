@@ -9,13 +9,14 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../LegacyChromePreferenceKeys.java           |  1 +
  .../omnibox/LocationBarCoordinator.java       |  2 +-
  .../strings/android_chrome_strings.grd        |  6 ++++++
+ .../toolbar/top/ToolbarControlContainer.java  |  5 ++---
  components/BUILD.gn                           |  6 +++---
  .../res/xml/accessibility_preferences.xml     |  5 +++++
  .../accessibility/AccessibilitySettings.java  | 11 +++++++++++
  .../AccessibilitySettingsDelegate.java        |  2 ++
  ui/android/BUILD.gn                           |  2 ++
  .../chromium/ui/base/DeviceFormFactor.java    |  5 +++++
- 11 files changed, 56 insertions(+), 4 deletions(-)
+ 12 files changed, 58 insertions(+), 7 deletions(-)
 
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/accessibility/settings/ChromeAccessibilitySettingsDelegate.java
@@ -96,6 +97,21 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
  
        <!-- Safety check -->
        <message name="IDS_PREFS_SAFETY_CHECK" desc="Title of the Safety check element in settings, allowing the user to check multiple areas of browser safety. [CHAR_LIMIT=32]">
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarControlContainer.java
+@@ -165,9 +165,8 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
+ 
+             return backgroundDrawable;
+         } else {
+-            final Drawable backgroundDrawable =
+-                    AppCompatResources.getDrawable(getContext(), R.drawable.toolbar_background)
+-                            .mutate();
++            Drawable backgroundDrawable = new ColorDrawable(
++                    ChromeColors.getPrimaryBackgroundColor(getContext(), incognito));
+             backgroundDrawable.setTint(ChromeColors.getDefaultThemeColor(getContext(), incognito));
+             backgroundDrawable.setTintMode(PorterDuff.Mode.MULTIPLY);
+ 
 diff --git a/components/BUILD.gn b/components/BUILD.gn
 --- a/components/BUILD.gn
 +++ b/components/BUILD.gn
