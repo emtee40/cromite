@@ -14,6 +14,7 @@ git commit -m ":NOEXPORT: v8 repo" >/dev/null
 
 echo -e ${RED} ------- patches ${NC}
 cat ../../bromite/build/bromite_patches_list.txt
+echo
 
 echo -e ${RED} ------- apply patches ${NC}
 for file in $(cat ../../bromite/build/bromite_patches_list.txt) ; do
