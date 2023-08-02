@@ -7,7 +7,12 @@ sudo apt install sed
 
 cd chromium/src
 
-echo -e ${RED} ------- apply patchs ${NC}
+echo -e ${RED} ------- remove v8 subrepo ${NC}
+rm -rf v8/.git
+git add -f v8
+git commit -m ":NOEXPORT: v8 repo"
+
+echo -e ${RED} ------- apply patches ${NC}
 for file in $(cat ../../bromite/build/bromite_patches_list.txt) ; do
 
    if [[ "$file" == *".patch" ]]; then
