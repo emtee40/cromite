@@ -33,6 +33,9 @@ cd $WORKSPACE/chromium/src
 vpython -vpython-spec .vpython -vpython-root $VPYTHON_VIRTUALENV_ROOT -vpython-log-level debug -vpython-tool install
 vpython3 -vpython-spec .vpython3 -vpython-root $VPYTHON_VIRTUALENV_ROOT -vpython-log-level debug -vpython-tool install
 
+echo -e ${RED} -------- download pgo profiles ${NC}
+tools/update_pgo_profiles.py --target=win64 update --gs-url-base=chromium-optimization-profiles/pgo_profiles
+
 echo -e ${RED} -------- download x86_64 android image ${NC}
 #echo -e "\$ParanoidMode CheckIntegrity\n\nchromium/third_party/android_sdk/public/avds/android-31/google_apis/x86_64 Ur_zl6_BRKRkf_9X3SMZ3eH2auoOyJ2kLslpTZZwi3gC" | .cipd_client ensure -ensure-file - -root $WORKSPACE/chromium/src/.android
 #echo -e "\$ParanoidMode CheckIntegrity\n\nchromium/third_party/android_sdk/public/emulator gMHhUuoQRKfxr-MBn3fNNXZtkAVXtOwMwT7kfx8jkIgC\nchromium/third_party/android_sdk/public/system-images/android-31/google_apis/x86_64 R6Jh5_P21Euu-kdb11zcNjdJKN4vV1mdQTb8t4gph4IC" | .cipd_client ensure -ensure-file - -root $WORKSPACE/chromium/src/.emulator_sdk
@@ -49,10 +52,6 @@ tar xfz kythe-v0.0.55.tar.gz
 # removed since fail download with
 # https://commondatastorage.9oo91eapis.qjz9zk/chromium-browser-clang/Linux_x64/translation_unit-llvmorg-14-init-5759-g02895eed-1.tgz 
 python tools/clang/scripts/update.py --package=translation_unit
-
-echo -e ${RED} -------- download bromite-buildtools ${NC}
-cd $WORKSPACE/
-git clone https://github.com/uazo/bromite-buildtools
 
 echo -e ${RED} -------- compile modified ninja ${NC}
 cd $WORKSPACE/
