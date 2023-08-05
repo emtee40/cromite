@@ -4,16 +4,16 @@ Subject: Guard for user-agent reduction
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/browser/chrome_content_browser_client.cc     |  2 +-
- content/common/user_agent.cc                        | 13 +++++--------
- third_party/blink/common/features.cc                |  4 ++--
- .../platform/runtime_enabled_features.json5         |  3 ++-
- 4 files changed, 10 insertions(+), 12 deletions(-)
+ chrome/browser/chrome_content_browser_client.cc  |  2 +-
+ content/common/user_agent.cc                     | 13 +++++--------
+ third_party/blink/common/features.cc             |  4 ++--
+ .../platform/runtime_enabled_features.json5      | 16 ++++++++--------
+ 4 files changed, 16 insertions(+), 19 deletions(-)
 
 diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
 --- a/chrome/browser/chrome_content_browser_client.cc
 +++ b/chrome/browser/chrome_content_browser_client.cc
-@@ -1633,7 +1633,7 @@ void ChromeContentBrowserClient::RegisterProfilePrefs(
+@@ -1630,7 +1630,7 @@ void ChromeContentBrowserClient::RegisterProfilePrefs(
    registry->RegisterIntegerPref(
        prefs::kUserAgentReduction,
        static_cast<int>(
@@ -55,7 +55,7 @@ diff --git a/content/common/user_agent.cc b/content/common/user_agent.cc
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -1324,8 +1324,8 @@ BASE_FEATURE(kDurableClientHintsCache,
+@@ -1345,8 +1345,8 @@ BASE_FEATURE(kReducedReferrerGranularity,
  const base::FeatureParam<std::string> kUserAgentFrozenBuildVersion{
      &kReduceUserAgentMinorVersion, "build_version", "0"};
  
@@ -69,15 +69,37 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3648,7 +3648,8 @@
-       status: "stable",
+@@ -2909,23 +2909,23 @@
+       // If enabled, the deviceModel will be reduced to "K" and the
+       // androidVersion will be reduced to a static "10" string in android
+       // User-Agent string.
+-      name: "ReduceUserAgentAndroidVersionDeviceModel",
+-      depends_on: ["ReduceUserAgentMinorVersion"],
+-      status: {"Android": "stable"},
++      name: "ReduceUserAgentAndroidVersionDeviceModel",   // keep
++      depends_on: ["ReduceUserAgentMinorVersion"],        // enabled
++      status: {"Android": "stable"},                      // in bromite
+     },
+     // If enabled, the minor version of the User-Agent string will be reduced.
+     // This User-Agent Reduction feature has been enabled starting from M101,
+     // but we still keep this flag for future phase tests.
+     {
+-      name: "ReduceUserAgentMinorVersion",
+-      status: "stable",
++      name: "ReduceUserAgentMinorVersion",                // keep enabled
++      status: "stable",                                   // in bromite
      },
      {
--      name: "UserAgentReduction",
-+      name: "UserAgentReduction",  // always enabled
-+      status: "stable",            // in bromite
-       origin_trial_feature_name: "UserAgentReduction",
-       origin_trial_allows_third_party: true,
-       // iOS not included as it should not send a reduced User-Agent string.
+       // If enabled, the platform and oscpu of the User-Agent string will be
+       // reduced.
+-      name: "ReduceUserAgentPlatformOsCpu",
+-      depends_on: ["ReduceUserAgentMinorVersion"],
+-      status: {"Android": "", "default": "stable"},
++      name: "ReduceUserAgentPlatformOsCpu",               // keep
++      depends_on: ["ReduceUserAgentMinorVersion"],        // enabled
++      status: {"Android": "", "default": "stable"},       // in bromite
+     },
+     {
+       name: "RegionCapture",
 --
 2.25.1
