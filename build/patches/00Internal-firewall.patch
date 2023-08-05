@@ -53,7 +53,7 @@ in services/firewall/tools/rules.xml
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -2439,6 +2439,7 @@ static_library("browser") {
+@@ -2452,6 +2452,7 @@ static_library("browser") {
      "//third_party/ungoogled:switches",
      "//services/device/public/mojom",
      "//services/device/public/mojom:usb",
@@ -64,15 +64,15 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -199,6 +199,7 @@
+@@ -200,6 +200,7 @@
+ #include "sandbox/policy/features.h"
  #include "sandbox/policy/switches.h"
  #include "services/device/public/cpp/device_features.h"
- #include "services/device/public/cpp/serial/serial_switches.h"
 +#include "services/firewall/public/firewall_service.h"
  #include "services/media_session/public/cpp/features.h"
  #include "services/network/public/cpp/features.h"
  #include "services/network/public/cpp/network_switches.h"
-@@ -8090,6 +8091,11 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -8122,6 +8123,11 @@ const FeatureEntry kFeatureEntries[] = {
       FEATURE_VALUE_TYPE(page_info::kPageInfoHideSiteSettings)},
  #endif  // !BUILDFLAG(IS_ANDROID)
  
@@ -233,7 +233,7 @@ diff --git a/components/webapps/browser/android/webapk/webapk_icon_hasher.cc b/c
 diff --git a/net/BUILD.gn b/net/BUILD.gn
 --- a/net/BUILD.gn
 +++ b/net/BUILD.gn
-@@ -1085,6 +1085,7 @@ component("net") {
+@@ -1087,6 +1087,7 @@ component("net") {
      "//build:chromeos_buildflags",
      "//net/data/ssl/chrome_root_store:gen_root_store_inc",
      "//net/http:transport_security_state_generated_files",
@@ -258,7 +258,7 @@ diff --git a/net/traffic_annotation/network_traffic_annotation.h b/net/traffic_a
 diff --git a/net/url_request/url_request_http_job.cc b/net/url_request/url_request_http_job.cc
 --- a/net/url_request/url_request_http_job.cc
 +++ b/net/url_request/url_request_http_job.cc
-@@ -239,6 +239,9 @@ URLRequestHttpJob::URLRequestHttpJob(
+@@ -240,6 +240,9 @@ URLRequestHttpJob::URLRequestHttpJob(
      throttling_entry_ = manager->RegisterRequestUrl(request->url());
  
    ResetTimer();
@@ -268,7 +268,7 @@ diff --git a/net/url_request/url_request_http_job.cc b/net/url_request/url_reque
  }
  
  URLRequestHttpJob::~URLRequestHttpJob() {
-@@ -545,6 +548,18 @@ void URLRequestHttpJob::MaybeStartTransactionInternal(int result) {
+@@ -546,6 +549,18 @@ void URLRequestHttpJob::MaybeStartTransactionInternal(int result) {
  void URLRequestHttpJob::StartTransactionInternal() {
    DCHECK(!override_response_headers_);
  
@@ -1532,7 +1532,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
  #include "services/network/brokered_client_socket_factory.h"
  #include "services/network/cookie_manager.h"
  #include "services/network/cors/cors_url_loader_factory.h"
-@@ -1537,6 +1538,9 @@ void NetworkContext::OnNewSCTAuditingReportSent() {
+@@ -1555,6 +1556,9 @@ void NetworkContext::OnNewSCTAuditingReportSent() {
  void NetworkContext::CreateUDPSocket(
      mojo::PendingReceiver<mojom::UDPSocket> receiver,
      mojo::PendingRemote<mojom::UDPSocketListener> listener) {
@@ -1542,7 +1542,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
    socket_factory_->CreateUDPSocket(std::move(receiver), std::move(listener));
  }
  
-@@ -1549,6 +1553,17 @@ void NetworkContext::CreateRestrictedUDPSocket(
+@@ -1567,6 +1571,17 @@ void NetworkContext::CreateRestrictedUDPSocket(
      mojo::PendingRemote<mojom::UDPSocketListener> listener,
      CreateRestrictedUDPSocketCallback callback) {
    // SimpleHostResolver is transitively owned by |this|.
@@ -1560,7 +1560,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
    socket_factory_->CreateRestrictedUDPSocket(
        addr, mode, traffic_annotation, std::move(params), std::move(receiver),
        std::move(listener), SimpleHostResolver::Create(this),
-@@ -1561,6 +1576,17 @@ void NetworkContext::CreateTCPServerSocket(
+@@ -1579,6 +1594,17 @@ void NetworkContext::CreateTCPServerSocket(
      const net::MutableNetworkTrafficAnnotationTag& traffic_annotation,
      mojo::PendingReceiver<mojom::TCPServerSocket> receiver,
      CreateTCPServerSocketCallback callback) {
@@ -1578,7 +1578,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
    socket_factory_->CreateTCPServerSocket(
        local_addr, std::move(options),
        static_cast<net::NetworkTrafficAnnotationTag>(traffic_annotation),
-@@ -1575,6 +1601,21 @@ void NetworkContext::CreateTCPConnectedSocket(
+@@ -1593,6 +1619,21 @@ void NetworkContext::CreateTCPConnectedSocket(
      mojo::PendingReceiver<mojom::TCPConnectedSocket> receiver,
      mojo::PendingRemote<mojom::SocketObserver> observer,
      CreateTCPConnectedSocketCallback callback) {
@@ -1600,7 +1600,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
    socket_factory_->CreateTCPConnectedSocket(
        local_addr, remote_addr_list, std::move(tcp_connected_socket_options),
        static_cast<net::NetworkTrafficAnnotationTag>(traffic_annotation),
-@@ -1586,6 +1627,20 @@ void NetworkContext::CreateTCPBoundSocket(
+@@ -1604,6 +1645,20 @@ void NetworkContext::CreateTCPBoundSocket(
      const net::MutableNetworkTrafficAnnotationTag& traffic_annotation,
      mojo::PendingReceiver<mojom::TCPBoundSocket> receiver,
      CreateTCPBoundSocketCallback callback) {
@@ -1621,7 +1621,7 @@ diff --git a/services/network/network_context.cc b/services/network/network_cont
    socket_factory_->CreateTCPBoundSocket(
        local_addr,
        static_cast<net::NetworkTrafficAnnotationTag>(traffic_annotation),
-@@ -1651,6 +1706,24 @@ void NetworkContext::CreateWebSocket(
+@@ -1669,6 +1724,24 @@ void NetworkContext::CreateWebSocket(
      mojo::PendingRemote<mojom::WebSocketAuthenticationHandler> auth_handler,
      mojo::PendingRemote<mojom::TrustedHeaderClient> header_client,
      const absl::optional<base::UnguessableToken>& throttling_profile_id) {
@@ -1704,7 +1704,7 @@ diff --git a/services/network/public/cpp/simple_url_loader.h b/services/network/
 diff --git a/third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc b/third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc
 --- a/third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc
 +++ b/third_party/blink/renderer/platform/loader/fetch/url_loader/url_loader.cc
-@@ -678,23 +678,150 @@ net::NetworkTrafficAnnotationTag URLLoader::Context::GetTrafficAnnotationTag(
+@@ -654,23 +654,150 @@ net::NetworkTrafficAnnotationTag URLLoader::Context::GetTrafficAnnotationTag(
        NOTREACHED();
        [[fallthrough]];
  

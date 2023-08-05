@@ -3,10 +3,11 @@ Date: Fri, 17 Feb 2023 16:22:00 +0000
 Subject: WIN Disable sharing hub
 
 ---
- chrome/browser/sharing_hub/sharing_hub_features.cc        | 2 +-
- chrome/browser/ui/browser_command_controller.cc           | 8 ++++----
- .../qrcode_generator_bubble_controller.cc                 | 5 +----
- 3 files changed, 6 insertions(+), 9 deletions(-)
+ chrome/browser/sharing_hub/sharing_hub_features.cc          | 2 +-
+ chrome/browser/ui/browser_command_controller.cc             | 6 +++---
+ chrome/browser/ui/browser_commands.cc                       | 1 +
+ .../qrcode_generator/qrcode_generator_bubble_controller.cc  | 5 +----
+ 4 files changed, 6 insertions(+), 8 deletions(-)
 
 diff --git a/chrome/browser/sharing_hub/sharing_hub_features.cc b/chrome/browser/sharing_hub/sharing_hub_features.cc
 --- a/chrome/browser/sharing_hub/sharing_hub_features.cc
@@ -23,12 +24,9 @@ diff --git a/chrome/browser/sharing_hub/sharing_hub_features.cc b/chrome/browser
 diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
-@@ -1638,12 +1638,12 @@ void BrowserCommandController::UpdateCommandsForFullscreenMode() {
-   command_updater_.UpdateCommandEnabled(IDC_CHROME_TIPS, show_main_ui);
+@@ -1700,10 +1700,10 @@ void BrowserCommandController::UpdateCommandsForFullscreenMode() {
    command_updater_.UpdateCommandEnabled(IDC_CHROME_WHATS_NEW, show_main_ui);
  #endif
--  command_updater_.UpdateCommandEnabled(IDC_QRCODE_GENERATOR, show_main_ui);
-+  command_updater_.UpdateCommandEnabled(IDC_QRCODE_GENERATOR, false);
    command_updater_.UpdateCommandEnabled(IDC_CONTENT_CONTEXT_SHARING_SUBMENU,
 -                                        show_main_ui);
 -  command_updater_.UpdateCommandEnabled(IDC_SHARING_HUB, show_main_ui);
@@ -38,8 +36,19 @@ diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui
 -                                        show_main_ui);
 +                                        false);
    command_updater_.UpdateCommandEnabled(IDC_SHOW_APP_MENU, show_main_ui);
-   command_updater_.UpdateCommandEnabled(IDC_SEND_TAB_TO_SELF, show_main_ui);
    command_updater_.UpdateCommandEnabled(IDC_SHOW_MANAGEMENT_PAGE, true);
+   command_updater_.UpdateCommandEnabled(IDC_FOLLOW, show_main_ui);
+diff --git a/chrome/browser/ui/browser_commands.cc b/chrome/browser/ui/browser_commands.cc
+--- a/chrome/browser/ui/browser_commands.cc
++++ b/chrome/browser/ui/browser_commands.cc
+@@ -1479,6 +1479,7 @@ void SendTabToSelfFromPageAction(Browser* browser) {
+ }
+ 
+ bool CanGenerateQrCode(const Browser* browser) {
++  if ((true)) return false;
+   return !sharing_hub::SharingIsDisabledByPolicy(browser->profile()) &&
+          qrcode_generator::QRCodeGeneratorBubbleController::
+              IsGeneratorAvailable(browser->tab_strip_model()
 diff --git a/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc b/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc
 --- a/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc
 +++ b/chrome/browser/ui/qrcode_generator/qrcode_generator_bubble_controller.cc

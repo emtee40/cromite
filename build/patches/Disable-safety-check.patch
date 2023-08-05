@@ -4,37 +4,37 @@ Subject: Disable safety check
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- chrome/android/BUILD.gn                                   | 5 -----
- chrome/android/chrome_java_sources.gni                    | 1 -
- chrome/android/java/res/xml/main_preferences.xml          | 5 -----
- .../chrome/browser/settings/SettingsActivity.java         | 8 --------
- .../chrome/browser/settings/SettingsLauncherImpl.java     | 5 +----
- chrome/browser/BUILD.gn                                   | 1 -
- .../browser/omnibox/suggestions/action/OmniboxPedal.java  | 3 ---
- 7 files changed, 1 insertion(+), 27 deletions(-)
+ chrome/android/BUILD.gn                                  | 5 -----
+ chrome/android/chrome_java_sources.gni                   | 1 -
+ chrome/android/java/res/xml/main_preferences.xml         | 5 -----
+ .../chrome/browser/settings/SettingsActivity.java        | 9 ---------
+ .../chrome/browser/settings/SettingsLauncherImpl.java    | 5 +----
+ chrome/browser/BUILD.gn                                  | 1 -
+ .../browser/omnibox/suggestions/action/OmniboxPedal.java | 3 ---
+ 7 files changed, 1 insertion(+), 28 deletions(-)
 
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
-@@ -362,7 +362,6 @@ if (current_toolchain == default_toolchain) {
-       "//chrome/browser/recent_tabs:factory_java",
+@@ -370,7 +370,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/recent_tabs:helper_java",
        "//chrome/browser/recent_tabs:java",
        "//chrome/browser/safe_browsing/android:java",
 -      "//chrome/browser/safety_check/android:java",
        "//chrome/browser/search_engines/android:java",
        "//chrome/browser/search_resumption:java",
        "//chrome/browser/segmentation_platform:factory_java",
-@@ -957,8 +956,6 @@ if (current_toolchain == default_toolchain) {
-       "//chrome/browser/quick_delete:junit",
+@@ -975,8 +974,6 @@ if (current_toolchain == default_toolchain) {
        "//chrome/browser/recent_tabs:java",
+       "//chrome/browser/recent_tabs:junit",
        "//chrome/browser/recent_tabs/internal:junit",
 -      "//chrome/browser/safety_check/android:java",
 -      "//chrome/browser/safety_check/android:junit",
        "//chrome/browser/search_engines/android:java",
        "//chrome/browser/search_resumption:junit",
        "//chrome/browser/segmentation_platform:factory_java",
-@@ -1530,8 +1527,6 @@ if (current_toolchain == default_toolchain) {
-       "//chrome/browser/quick_delete:javatests",
+@@ -1553,8 +1550,6 @@ if (current_toolchain == default_toolchain) {
+       "//chrome/browser/recent_tabs/internal:javatests",
        "//chrome/browser/safe_browsing/android:java",
        "//chrome/browser/safe_browsing/android:javatests",
 -      "//chrome/browser/safety_check/android:java",
@@ -45,7 +45,7 @@ diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -986,7 +986,6 @@ chrome_java_sources = [
+@@ -977,7 +977,6 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingPasswordReuseDialogBridge.java",
    "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingReferringAppBridge.java",
    "java/src/org/chromium/chrome/browser/safe_browsing/SafeBrowsingSettingsLauncher.java",
@@ -71,7 +71,7 @@ diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/j
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/SettingsActivity.java
-@@ -62,9 +62,6 @@ import org.chromium.chrome.browser.privacy_sandbox.AdMeasurementFragment;
+@@ -63,9 +63,6 @@ import org.chromium.chrome.browser.privacy_sandbox.AdMeasurementFragment;
  import org.chromium.chrome.browser.privacy_sandbox.PrivacySandboxSettingsBaseFragment;
  import org.chromium.chrome.browser.profiles.Profile;
  import org.chromium.chrome.browser.profiles.ProfileManagerUtils;
@@ -81,14 +81,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/Settin
  import org.chromium.chrome.browser.search_engines.settings.SearchEngineSettings;
  import org.chromium.chrome.browser.signin.SyncConsentActivityLauncherImpl;
  import org.chromium.chrome.browser.site_settings.ChromeSiteSettingsDelegate;
-@@ -448,11 +445,6 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
+@@ -475,12 +472,6 @@ public class SettingsActivity extends ChromeBaseAppCompatActivity
              fragmentHelpAndFeedbackLauncher.setHelpAndFeedbackLauncher(
                      HelpAndFeedbackLauncherImpl.getForProfile(mProfile));
          }
 -        if (fragment instanceof SafetyCheckSettingsFragment) {
 -            SafetyCheckCoordinator.create((SafetyCheckSettingsFragment) fragment,
 -                    new SafetyCheckUpdatesDelegateImpl(), mSettingsLauncher,
--                    SyncConsentActivityLauncherImpl.get(), getModalDialogManagerSupplier());
+-                    SyncConsentActivityLauncherImpl.get(), getModalDialogManagerSupplier(),
+-                    SyncServiceFactory.getForProfile(mProfile));
 -        }
          if (fragment instanceof PasswordCheckFragmentView) {
              PasswordCheckComponentUiFactory.create((PasswordCheckFragmentView) fragment,
@@ -118,7 +119,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/Settin
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -3325,7 +3325,6 @@ static_library("browser") {
+@@ -3311,7 +3311,6 @@ static_library("browser") {
        "//chrome/browser/reading_list/android",
        "//chrome/browser/recent_tabs:jni_headers",
        "//chrome/browser/safe_browsing/android:safe_browsing_enums",

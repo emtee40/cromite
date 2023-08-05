@@ -22,7 +22,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -6761,6 +6761,11 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -6770,6 +6770,11 @@ const FeatureEntry kFeatureEntries[] = {
           "")},
  #endif
  
@@ -37,7 +37,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.json
 --- a/chrome/browser/flag-metadata.json
 +++ b/chrome/browser/flag-metadata.json
-@@ -2899,6 +2899,11 @@
+@@ -3018,6 +3018,11 @@
      "owners": [ "robsc", "napper", "alanlxl" ],
      "expiry_milestone": 130
    },
@@ -52,7 +52,7 @@ diff --git a/chrome/browser/flag-metadata.json b/chrome/browser/flag-metadata.js
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -1365,6 +1365,10 @@ extern const char kDropInputEventsBeforeFirstPaintDescription[] =
+@@ -1432,6 +1432,10 @@ extern const char kDropInputEventsBeforeFirstPaintDescription[] =
      "intentionally interact with elements on that page. By dropping the events "
      "we prevent accidental interaction with a page the user has not seen yet.";
  
@@ -66,7 +66,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -759,6 +759,9 @@ extern const char kExperimentalRgbKeyboardPatternsDescription[];
+@@ -798,6 +798,9 @@ extern const char kExperimentalRgbKeyboardPatternsDescription[];
  
  extern const char kRetailCouponsName[];
  extern const char kRetailCouponsDescription[];
@@ -91,7 +91,7 @@ diff --git a/chrome/browser/ui/prefs/prefs_tab_helper.cc b/chrome/browser/ui/pre
 diff --git a/content/child/runtime_features.cc b/content/child/runtime_features.cc
 --- a/content/child/runtime_features.cc
 +++ b/content/child/runtime_features.cc
-@@ -292,6 +292,8 @@ void SetRuntimeFeaturesFromChromiumFeatures() {
+@@ -294,6 +294,8 @@ void SetRuntimeFeaturesFromChromiumFeatures() {
       raw_ref(autofill::features::kAutofillSharedAutofill)},
      {wf::EnableTouchDragAndContextMenu,
       raw_ref(features::kTouchDragAndContextMenu)},
@@ -103,9 +103,9 @@ diff --git a/content/child/runtime_features.cc b/content/child/runtime_features.
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -496,6 +496,11 @@ BASE_FEATURE(kDroppedTouchSequenceIncludesTouchEnd,
-              "DroppedTouchSequenceIncludesTouchEnd",
-              base::FEATURE_DISABLED_BY_DEFAULT);
+@@ -740,6 +740,11 @@ BASE_FEATURE(kFastPathPaintPropertyUpdates,
+ // trials.
+ BASE_FEATURE(kFencedFrames, "FencedFrames", base::FEATURE_DISABLED_BY_DEFAULT);
  
 +// Enable text snippets in URL fragments. https://crbug.com/919204.
 +BASE_FEATURE(kTextFragmentAnchor,
@@ -118,18 +118,18 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
 diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
 --- a/third_party/blink/public/common/features.h
 +++ b/third_party/blink/public/common/features.h
-@@ -224,6 +224,7 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDecodeJpeg420ImagesToYUV);
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDecodeLossyWebPImagesToYUV);
+@@ -343,6 +343,7 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDispatchBeforeUnloadOnFreeze);
+ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDisplayLocking);
  
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kWebFontsCacheAwareTimeoutAdaption);
+ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDropInputEventsBeforeFirstPaint);
 +BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kTextFragmentAnchor);
  
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kAudioWorkletThreadRealtimePriority);
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kWebAudioSinkSelection);
+ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDroppedTouchSequenceIncludesTouchEnd);
+ 
 diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
 --- a/third_party/blink/renderer/core/dom/document.cc
 +++ b/third_party/blink/renderer/core/dom/document.cc
-@@ -4351,9 +4351,14 @@ void Document::SetURL(const KURL& url) {
+@@ -4396,9 +4396,14 @@ void Document::SetURL(const KURL& url) {
    TRACE_EVENT1("navigation", "Document::SetURL", "url",
                 new_url.GetString().Utf8());
  
@@ -147,7 +147,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -3495,10 +3495,9 @@
+@@ -3510,10 +3510,9 @@
      },
      {
        name: "TextFragmentIdentifiers",

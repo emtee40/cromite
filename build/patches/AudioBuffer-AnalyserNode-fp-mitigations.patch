@@ -23,7 +23,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -3887,6 +3887,10 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -3888,6 +3888,10 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kKioskEnableAppServiceDescription, kOsCrOS,
       FEATURE_VALUE_TYPE(features::kKioskEnableAppService)},
  #endif  // BUILDFLAG(IS_CHROMEOS)
@@ -37,7 +37,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descriptions.cc
 --- a/chrome/browser/flag_descriptions.cc
 +++ b/chrome/browser/flag_descriptions.cc
-@@ -3534,6 +3534,11 @@ const char kWebrtcUseMinMaxVEADimensionsDescription[] =
+@@ -3611,6 +3611,11 @@ const char kWebrtcUseMinMaxVEADimensionsDescription[] =
      "When enabled, WebRTC will only use the Video Encode Accelerator for "
      "video resolutions inside those published as supported.";
  
@@ -52,7 +52,7 @@ diff --git a/chrome/browser/flag_descriptions.cc b/chrome/browser/flag_descripti
 diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptions.h
 --- a/chrome/browser/flag_descriptions.h
 +++ b/chrome/browser/flag_descriptions.h
-@@ -2040,6 +2040,9 @@ extern const char kWebRtcRemoteEventLogDescription[];
+@@ -2083,6 +2083,9 @@ extern const char kWebRtcRemoteEventLogDescription[];
  extern const char kWebrtcUseMinMaxVEADimensionsName[];
  extern const char kWebrtcUseMinMaxVEADimensionsDescription[];
  
@@ -65,9 +65,9 @@ diff --git a/chrome/browser/flag_descriptions.h b/chrome/browser/flag_descriptio
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -715,6 +715,10 @@ BASE_FEATURE(kWebRtcUseMinMaxVEADimensions,
- #endif
- );
+@@ -234,6 +234,10 @@ BASE_FEATURE(kBiddingAndScoringDebugReportingAPI,
+              "BiddingAndScoringDebugReportingAPI",
+              base::FEATURE_DISABLED_BY_DEFAULT);
  
 +BASE_FEATURE(kAudioContextShuffleEnabled,
 +             "AudioContextShuffleEnabled",
@@ -79,15 +79,15 @@ diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/fea
 diff --git a/third_party/blink/public/common/features.h b/third_party/blink/public/common/features.h
 --- a/third_party/blink/public/common/features.h
 +++ b/third_party/blink/public/common/features.h
-@@ -279,6 +279,8 @@ BLINK_COMMON_EXPORT bool IsPlzDedicatedWorkerEnabled();
- 
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kWebRtcUseMinMaxVEADimensions);
+@@ -142,6 +142,8 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBlinkHeapConcurrentSweeping);
+ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBlinkHeapIncrementalMarking);
+ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBlinkHeapIncrementalMarkingStress);
  
 +BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kAudioContextShuffleEnabled);
 +
- // Blink garbage collection.
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBlinkHeapCompaction);
- BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBlinkHeapConcurrentMarking);
+ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
+     kBlockingDownloadsInAdFrameWithoutUserActivation);
+ 
 diff --git a/third_party/blink/renderer/modules/webaudio/audio_buffer.cc b/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
 --- a/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
 +++ b/third_party/blink/renderer/modules/webaudio/audio_buffer.cc
@@ -135,7 +135,7 @@ diff --git a/third_party/blink/renderer/modules/webaudio/audio_context.cc b/thir
  #include "third_party/blink/public/platform/modules/webrtc/webrtc_logging.h"
  #include "third_party/blink/public/platform/web_audio_latency_hint.h"
  #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
-@@ -575,7 +576,9 @@ double AudioContext::baseLatency() const {
+@@ -586,7 +587,9 @@ double AudioContext::baseLatency() const {
    DCHECK(IsMainThread());
    DCHECK(destination());
  
@@ -157,8 +157,8 @@ diff --git a/third_party/blink/renderer/modules/webaudio/base_audio_context.cc b
  #include "third_party/blink/public/mojom/devtools/console_message.mojom-blink.h"
  #include "third_party/blink/public/mojom/frame/lifecycle.mojom-shared.h"
  #include "third_party/blink/public/platform/platform.h"
-@@ -721,6 +722,17 @@ Document* BaseAudioContext::GetDocument() const {
-   return window ? window->document() : nullptr;
+@@ -721,6 +722,17 @@ LocalDOMWindow* BaseAudioContext::GetWindow() const {
+   return To<LocalDOMWindow>(GetExecutionContext());
  }
  
 +/*static*/
@@ -190,7 +190,7 @@ diff --git a/third_party/blink/renderer/modules/webaudio/base_audio_context.h b/
 diff --git a/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc b/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
 --- a/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
 +++ b/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
-@@ -369,6 +369,7 @@ void OfflineAudioContext::FireCompletionEvent() {
+@@ -368,6 +368,7 @@ void OfflineAudioContext::FireCompletionEvent() {
      if (!rendered_buffer) {
        return;
      }

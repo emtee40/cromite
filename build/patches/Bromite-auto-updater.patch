@@ -50,7 +50,7 @@ diff --git a/build/android/java/templates/BuildConfig.template b/build/android/j
 diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
 --- a/build/config/android/rules.gni
 +++ b/build/config/android/rules.gni
-@@ -2303,6 +2303,9 @@ if (enable_java_templates && is_android) {
+@@ -2151,6 +2151,9 @@ if (enable_java_templates && is_android) {
        if (defined(testonly) && testonly) {
          defines += [ "_IS_FOR_TEST" ]
        }
@@ -63,7 +63,7 @@ diff --git a/build/config/android/rules.gni b/build/config/android/rules.gni
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -854,6 +854,9 @@ chrome_java_sources = [
+@@ -849,6 +849,9 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/omaha/UpdateConfigs.java",
    "java/src/org/chromium/chrome/browser/omaha/UpdateMenuItemHelper.java",
    "java/src/org/chromium/chrome/browser/omaha/UpdateStatusProvider.java",
@@ -249,7 +249,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateCon
  import org.chromium.chrome.browser.flags.ChromeSwitches;
  import org.chromium.chrome.browser.omaha.UpdateStatusProvider.UpdateState;
  import org.chromium.components.variations.VariationsAssociatedData;
-@@ -37,10 +38,12 @@ public class UpdateConfigs {
+@@ -36,10 +37,12 @@ public class UpdateConfigs {
      private static final String UPDATE_AVAILABLE_SWITCH_VALUE = "update_available";
      private static final String UNSUPPORTED_OS_VERSION_SWITCH_VALUE = "unsupported_os_version";
  
@@ -263,7 +263,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateCon
      @Retention(RetentionPolicy.SOURCE)
      public @interface UpdateFlowConfiguration {
          /** Turns off all update indicators. */
-@@ -50,6 +53,12 @@ public class UpdateConfigs {
+@@ -49,6 +52,12 @@ public class UpdateConfigs {
           * Requires Omaha to say an update is available, and only ever Intents out to Play Store.
           */
          int INTENT_ONLY = 2;
@@ -276,7 +276,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateCon
      }
  
      /**
-@@ -124,6 +133,13 @@ public class UpdateConfigs {
+@@ -123,6 +132,13 @@ public class UpdateConfigs {
          return DEFAULT_UPDATE_ATTRIBUTION_WINDOW_MS;
      }
  
@@ -290,7 +290,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateCon
      /**
       * Gets a String VariationsAssociatedData parameter. Also checks for a command-line switch
       * with the same name, for easy local testing.
-@@ -139,4 +155,14 @@ public class UpdateConfigs {
+@@ -137,4 +153,14 @@ public class UpdateConfigs {
          }
          return value;
      }
@@ -444,8 +444,8 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
 +import org.chromium.base.ApplicationStatus.ActivityStateListener;
  import org.chromium.base.BuildInfo;
  import org.chromium.base.Callback;
- import org.chromium.base.ContextUtils;
-@@ -26,6 +31,10 @@ import org.chromium.base.task.AsyncTask;
+ import org.chromium.base.ObserverList;
+@@ -25,6 +30,10 @@ import org.chromium.base.task.AsyncTask;
  import org.chromium.base.task.AsyncTask.Status;
  import org.chromium.base.task.PostTask;
  import org.chromium.base.task.TaskTraits;
@@ -456,7 +456,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
  import org.chromium.chrome.browser.omaha.metrics.UpdateSuccessMetrics;
  import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
  import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
-@@ -35,30 +44,37 @@ import java.io.File;
+@@ -34,30 +43,37 @@ import java.io.File;
  import java.lang.annotation.Retention;
  import java.lang.annotation.RetentionPolicy;
  
@@ -502,7 +502,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
      }
  
      /** A set of properties that represent the current update state for Chrome. */
-@@ -92,6 +108,12 @@ public class UpdateStatusProvider {
+@@ -91,6 +107,12 @@ public class UpdateStatusProvider {
           */
          private boolean mIsSimulated;
  
@@ -515,7 +515,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
          public UpdateStatus() {}
  
          UpdateStatus(UpdateStatus other) {
-@@ -100,11 +122,13 @@ public class UpdateStatusProvider {
+@@ -99,11 +121,13 @@ public class UpdateStatusProvider {
              latestVersion = other.latestVersion;
              latestUnsupportedVersion = other.latestUnsupportedVersion;
              mIsSimulated = other.mIsSimulated;
@@ -529,7 +529,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
      private final UpdateQuery mOmahaQuery;
      private final UpdateSuccessMetrics mMetrics;
      private @Nullable UpdateStatus mStatus;
-@@ -172,6 +196,30 @@ public class UpdateStatusProvider {
+@@ -171,6 +195,30 @@ public class UpdateStatusProvider {
          pingObservers();
      }
  
@@ -560,7 +560,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
      /**
       * Starts the intent update process, if possible
       * @param context An {@link Context} that will be used to fire off the update intent.
-@@ -179,12 +227,11 @@ public class UpdateStatusProvider {
+@@ -178,12 +226,11 @@ public class UpdateStatusProvider {
       * @return        Whether or not the update intent was sent and had a valid handler.
       */
      public boolean startIntentUpdate(Context context, boolean newTask) {
@@ -574,7 +574,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
              Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mStatus.updateUrl));
              if (newTask) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
              context.startActivity(intent);
-@@ -195,9 +242,29 @@ public class UpdateStatusProvider {
+@@ -194,9 +241,29 @@ public class UpdateStatusProvider {
          return true;
      }
  
@@ -604,7 +604,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
      }
  
      private void pingObservers() {
-@@ -205,19 +272,36 @@ public class UpdateStatusProvider {
+@@ -204,19 +271,36 @@ public class UpdateStatusProvider {
      }
  
      private void resolveStatus() {
@@ -645,15 +645,15 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
              mRecordedInitialStatus = true;
          }
  
-@@ -229,6 +313,7 @@ public class UpdateStatusProvider {
+@@ -228,6 +312,7 @@ public class UpdateStatusProvider {
      }
  
      private static final class UpdateQuery extends AsyncTask<UpdateStatus> {
 +        static final String TAG = "UpdateStatusProvider";
-         private final Context mContext = ContextUtils.getApplicationContext();
          private final Runnable mCallback;
  
-@@ -246,7 +331,7 @@ public class UpdateStatusProvider {
+         private @Nullable UpdateStatus mStatus;
+@@ -244,7 +329,7 @@ public class UpdateStatusProvider {
          protected UpdateStatus doInBackground() {
              UpdateStatus testStatus = getTestStatus();
              if (testStatus != null) return testStatus;
@@ -662,7 +662,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
          }
  
          @Override
-@@ -265,6 +350,8 @@ public class UpdateStatusProvider {
+@@ -263,6 +348,8 @@ public class UpdateStatusProvider {
              status.mIsSimulated = true;
              status.updateState = forcedUpdateState;
  
@@ -671,7 +671,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/omaha/UpdateSta
              // Push custom configurations for certain update states.
              switch (forcedUpdateState) {
                  case UpdateState.UPDATE_AVAILABLE:
-@@ -281,27 +368,33 @@ public class UpdateStatusProvider {
+@@ -279,27 +366,33 @@ public class UpdateStatusProvider {
              return status;
          }
  
@@ -1099,14 +1099,14 @@ new file mode 100644
 diff --git a/chrome/browser/endpoint_fetcher/BUILD.gn b/chrome/browser/endpoint_fetcher/BUILD.gn
 --- a/chrome/browser/endpoint_fetcher/BUILD.gn
 +++ b/chrome/browser/endpoint_fetcher/BUILD.gn
-@@ -17,6 +17,7 @@ android_library("java") {
+@@ -18,6 +18,7 @@ android_library("java") {
    sources = [
      "java/src/org/chromium/chrome/browser/endpoint_fetcher/EndpointFetcher.java",
      "java/src/org/chromium/chrome/browser/endpoint_fetcher/EndpointResponse.java",
 +    "java/src/org/chromium/chrome/browser/endpoint_fetcher/EndpointHeaderResponse.java",
    ]
-   annotation_processor_deps = [ "//base/android/jni_generator:jni_processor" ]
  }
+ 
 @@ -25,5 +26,6 @@ generate_jni("jni_headers") {
    sources = [
      "java/src/org/chromium/chrome/browser/endpoint_fetcher/EndpointFetcher.java",
@@ -1281,7 +1281,7 @@ new file mode 100644
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
-@@ -246,6 +246,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
+@@ -247,6 +247,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
      &kNotificationPermissionBottomSheet,
      &kPageAnnotationsService,
      &kPreconnectOnTabCreation,
@@ -1289,7 +1289,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
      &kBookmarksImprovedSaveFlow,
      &kBookmarksRefresh,
      &kOmahaMinSdkVersionAndroid,
-@@ -675,6 +676,10 @@ BASE_FEATURE(kContextMenuTranslateWithGoogleLens,
+@@ -673,6 +674,10 @@ BASE_FEATURE(kContextMenuTranslateWithGoogleLens,
               "ContextMenuTranslateWithGoogleLens",
               base::FEATURE_DISABLED_BY_DEFAULT);
  
@@ -1303,9 +1303,9 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browse
 diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser/flags/android/chrome_feature_list.h
 --- a/chrome/browser/flags/android/chrome_feature_list.h
 +++ b/chrome/browser/flags/android/chrome_feature_list.h
-@@ -100,6 +100,7 @@ BASE_DECLARE_FEATURE(kFoldableJankFix);
+@@ -99,6 +99,7 @@ BASE_DECLARE_FEATURE(kFoldableJankFix);
  BASE_DECLARE_FEATURE(kGridTabSwitcherForTablets);
- BASE_DECLARE_FEATURE(kHideNonDisplayableAccountEmail);
+ BASE_DECLARE_FEATURE(kImprovedIncognitoScreenshot);
  BASE_DECLARE_FEATURE(kIncognitoReauthenticationForAndroid);
 +BASE_DECLARE_FEATURE(kInlineUpdateFlow);
  BASE_DECLARE_FEATURE(kIncognitoScreenshot);
@@ -1314,7 +1314,7 @@ diff --git a/chrome/browser/flags/android/chrome_feature_list.h b/chrome/browser
 diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 --- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
 +++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
-@@ -279,6 +279,7 @@ public abstract class ChromeFeatureList {
+@@ -285,6 +285,7 @@ public abstract class ChromeFeatureList {
              "IncognitoReauthenticationForAndroid";
      public static final String INCOGNITO_SCREENSHOT = "IncognitoScreenshot";
      public static final String INFOBAR_SCROLL_OPTIMIZATION = "InfobarScrollOptimization";
@@ -1325,7 +1325,7 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -2038,6 +2038,12 @@ Your Google account may have other forms of browsing history like searches and a
+@@ -2073,6 +2073,12 @@ Your Google account may have other forms of browsing history like searches and a
        <message name="IDS_DEPRECATION_WARNING" desc="Warning about Chrome updates no longer being supported">
          Chrome updates are no longer supported for this version of Android
        </message>
@@ -1338,7 +1338,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
  
        <!-- Account management UI strings. -->
        <message name="IDS_ACCOUNT_MANAGEMENT_TITLE" desc="Header title for the account management screen. [CHAR_LIMIT=32]">
-@@ -3639,7 +3645,10 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -3668,7 +3674,10 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
  
        <!-- Main menu items -->
        <message name="IDS_MENU_UPDATE" desc="Menu item for updating chrome. [CHAR_LIMIT=24]">
@@ -1350,7 +1350,7 @@ diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chro
        </message>
        <message name="IDS_MENU_UPDATE_SUMMARY_DEFAULT" desc="Summary string for update menu item explaining that a newer version of Chrome is available. [CHAR_LIMIT=30]">
          Newer version is available
-@@ -3650,6 +3659,18 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
+@@ -3679,6 +3688,18 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
        <message name="IDS_MENU_UPDATE_UNSUPPORTED_SUMMARY_DEFAULT" desc="Summary string for update menu item explaining that the Android version on the device is unsupported. [CHAR_LIMIT=30]">
          Android version is unsupported
        </message>

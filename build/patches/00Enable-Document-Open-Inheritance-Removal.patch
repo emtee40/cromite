@@ -3,14 +3,14 @@ Date: Tue, 28 Mar 2023 15:43:18 +0000
 Subject: Enable Document Open Inheritance Removal
 
 ---
- .../blink/renderer/core/dom/document.cc       | 51 -------------------
- .../platform/runtime_enabled_features.json5   |  3 +-
- 2 files changed, 1 insertion(+), 53 deletions(-)
+ .../blink/renderer/core/dom/document.cc       | 64 -------------------
+ .../platform/runtime_enabled_features.json5   |  1 -
+ 2 files changed, 65 deletions(-)
 
 diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
 --- a/third_party/blink/renderer/core/dom/document.cc
 +++ b/third_party/blink/renderer/core/dom/document.cc
-@@ -3359,57 +3359,6 @@ void Document::open(LocalDOMWindow* entered_window,
+@@ -3384,70 +3384,6 @@ void Document::open(LocalDOMWindow* entered_window,
          // https://chromestatus.com/metrics/feature/timeline/popularity/4375
          CountUse(WebFeature::kDocumentOpenMutateSandbox);
        }
@@ -38,11 +38,24 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 -        // not considered to produce new documents. No IPCs are sent, it is as
 -        // if it was a no-op.
 -        //
--        // TODO(https://crbug.com/1360795) Remove this
+-        // TODO(https://crbug.com/1360795) Remove this. Only Chrome implements
+-        // it. Safari/Firefox do not.
 -        dom_window_->GetSecurityContext().SetSandboxFlags(
 -            dom_window_->GetSecurityContext().GetSandboxFlags() |
 -            entered_window->GetSandboxFlags());
+-      }
 -
+-      // We would like to remove this block. See:
+-      // https://docs.google.com/document/d/1_89X4cNUab-PZE0iBDTKIftaQZsFbk7SbFmHbqY54os
+-      //
+-      // This is not specified. Only Webkit/Blink implement it. Gecko doesn't.
+-      //
+-      // 2023-06-02: Removal would impact 0.02% page load.
+-      // https://chromestatus.com/metrics/feature/timeline/popularity/4535
+-      // We hope the document.domain deprecation is going to drive this number
+-      // down quickly:
+-      // https://developer.chrome.com/blog/document-domain-setter-deprecation/
+-      if (!RuntimeEnabledFeatures::DocumentOpenOriginAliasRemovalEnabled()) {
 -        dom_window_->GetSecurityContext().SetSecurityOrigin(
 -            entered_window->GetMutableSecurityOrigin());
 -
@@ -71,13 +84,11 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -1419,8 +1419,7 @@
-     },
+@@ -1438,7 +1438,6 @@
      {
        name: "DocumentOpenSandboxInheritanceRemoval",
--      status: "experimental",
+       status: "stable",
 -      copied_from_base_feature_if: "overridden",
-+      status: "stable",
      },
      {
        name: "DocumentPictureInPictureAPI",

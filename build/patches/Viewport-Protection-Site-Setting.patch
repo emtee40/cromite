@@ -183,19 +183,19 @@ new file mode 100644
 diff --git a/third_party/blink/common/features.cc b/third_party/blink/common/features.cc
 --- a/third_party/blink/common/features.cc
 +++ b/third_party/blink/common/features.cc
-@@ -222,7 +222,7 @@ BASE_FEATURE(kPath2DPaintCache,
+@@ -1302,7 +1302,7 @@ constexpr base::FeatureParam<bool>
  
  BASE_FEATURE(kViewportProtection,
               "ViewportProtection",
 -             base::FEATURE_ENABLED_BY_DEFAULT);
 +             base::FEATURE_DISABLED_BY_DEFAULT);
  
- BASE_FEATURE(kPrivacySandboxAdsAPIs,
-              "PrivacySandboxAdsAPIs",               // disabled by default
+ BASE_FEATURE(kProcessHtmlDataImmediately,
+              "ProcessHtmlDataImmediately",
 diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_party/blink/renderer/core/frame/local_dom_window.cc
 --- a/third_party/blink/renderer/core/frame/local_dom_window.cc
 +++ b/third_party/blink/renderer/core/frame/local_dom_window.cc
-@@ -2305,6 +2305,8 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
+@@ -2298,6 +2298,8 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
      //     var w = window.open()
      //     var not_emulated_screen_info = w.screen
      bool protection_enabled = base::FeatureList::IsEnabled(features::kViewportProtection);
@@ -207,7 +207,7 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
 diff --git a/third_party/blink/renderer/core/page/page.cc b/third_party/blink/renderer/core/page/page.cc
 --- a/third_party/blink/renderer/core/page/page.cc
 +++ b/third_party/blink/renderer/core/page/page.cc
-@@ -888,6 +888,9 @@ void Page::UpdateAcceleratedCompositingSettings() {
+@@ -887,6 +887,9 @@ void Page::UpdateAcceleratedCompositingSettings() {
  
  void Page::CalculateEmulatedScreenSetting(LocalFrame* frame, bool force) {
    bool isEnabled = base::FeatureList::IsEnabled(features::kViewportProtection);

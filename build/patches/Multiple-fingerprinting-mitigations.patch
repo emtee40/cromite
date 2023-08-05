@@ -62,9 +62,9 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
-@@ -2394,6 +2394,7 @@ static_library("browser") {
+@@ -2407,6 +2407,7 @@ static_library("browser") {
+     "//services/device/public/cpp:device_features",
      "//services/device/public/cpp/geolocation",
-     "//services/device/public/cpp/serial:switches",
      "//services/device/public/cpp/usb",
 +    "//third_party/ungoogled:switches",
      "//services/device/public/mojom",
@@ -73,7 +73,7 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -223,6 +223,8 @@
+@@ -224,6 +224,8 @@
  #include "ui/ui_features.h"
  #include "url/url_features.h"
  
@@ -82,7 +82,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
  #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
  #include "base/allocator/buildflags.h"
  #endif
-@@ -3876,6 +3878,20 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -3877,6 +3879,20 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kWebrtcUseMinMaxVEADimensionsName,
       flag_descriptions::kWebrtcUseMinMaxVEADimensionsDescription, kOsAll,
       FEATURE_VALUE_TYPE(blink::features::kWebRtcUseMinMaxVEADimensions)},
@@ -106,7 +106,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -250,6 +250,7 @@ source_set("browser") {
+@@ -249,6 +249,7 @@ source_set("browser") {
      "//third_party/libyuv",
      "//third_party/re2",
      "//third_party/sqlite",
@@ -117,7 +117,7 @@ diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
 diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content/browser/renderer_host/render_process_host_impl.cc
 --- a/content/browser/renderer_host/render_process_host_impl.cc
 +++ b/content/browser/renderer_host/render_process_host_impl.cc
-@@ -210,6 +210,7 @@
+@@ -211,6 +211,7 @@
  #include "url/gurl.h"
  #include "url/origin.h"
  
@@ -125,7 +125,7 @@ diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content
  #if BUILDFLAG(IS_ANDROID)
  #include "base/android/child_process_binding_types.h"
  #include "content/browser/android/java_interfaces_impl.h"
-@@ -3443,6 +3444,9 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+@@ -3538,6 +3539,9 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
      switches::kDisableBreakpad,
      switches::kDisableDatabases,
      switches::kDisableFileSystem,
@@ -138,7 +138,7 @@ diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content
 diff --git a/content/child/BUILD.gn b/content/child/BUILD.gn
 --- a/content/child/BUILD.gn
 +++ b/content/child/BUILD.gn
-@@ -103,6 +103,7 @@ target(link_target_type, "child") {
+@@ -102,6 +102,7 @@ target(link_target_type, "child") {
      "//third_party/blink/public/common",
      "//third_party/blink/public/strings",
      "//third_party/ced",
@@ -158,7 +158,7 @@ diff --git a/content/child/runtime_features.cc b/content/child/runtime_features.
  #if BUILDFLAG(IS_ANDROID)
  #include "base/android/build_info.h"
  #endif
-@@ -553,6 +555,13 @@ void SetCustomizedRuntimeFeaturesFromCombinedArgs(
+@@ -567,6 +569,13 @@ void SetCustomizedRuntimeFeaturesFromCombinedArgs(
    if (!command_line.HasSwitch(switches::kDisableYUVImageDecoding) &&
        base::FeatureList::IsEnabled(
            blink::features::kDecodeLossyWebPImagesToYUV)) {
@@ -196,7 +196,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
  #include "base/notreached.h"
  #include "base/ranges/algorithm.h"
  #include "base/task/single_thread_task_runner.h"
-@@ -842,6 +843,17 @@ Document::Document(const DocumentInit& initializer,
+@@ -844,6 +845,17 @@ Document::Document(const DocumentInit& initializer,
                : nullptr),
        data_(MakeGarbageCollected<DocumentData>(GetExecutionContext())) {
    DCHECK(agent_);
@@ -214,7 +214,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
    if (base::FeatureList::IsEnabled(features::kDelayAsyncScriptExecution))
      script_runner_delayer_->Activate();
  
-@@ -2286,6 +2298,14 @@ void Document::UpdateStyleAndLayoutTreeForThisDocument() {
+@@ -2294,6 +2306,14 @@ void Document::UpdateStyleAndLayoutTreeForThisDocument() {
  #endif
  }
  
@@ -232,7 +232,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/renderer/core/dom/document.h
 --- a/third_party/blink/renderer/core/dom/document.h
 +++ b/third_party/blink/renderer/core/dom/document.h
-@@ -528,6 +528,10 @@ class CORE_EXPORT Document : public ContainerNode,
+@@ -532,6 +532,10 @@ class CORE_EXPORT Document : public ContainerNode,
      has_xml_declaration_ = has_xml_declaration ? 1 : 0;
    }
  
@@ -243,7 +243,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/
    AtomicString visibilityState() const;
    bool IsPageVisible() const;
    bool hidden() const;
-@@ -2417,6 +2421,9 @@ class CORE_EXPORT Document : public ContainerNode,
+@@ -2432,6 +2436,9 @@ class CORE_EXPORT Document : public ContainerNode,
  
    base::ElapsedTimer start_time_;
  
@@ -256,7 +256,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.h b/third_party/blink/
 diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/renderer/core/dom/element.cc
 --- a/third_party/blink/renderer/core/dom/element.cc
 +++ b/third_party/blink/renderer/core/dom/element.cc
-@@ -2073,6 +2073,7 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
+@@ -2093,6 +2093,7 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
        quads.push_back(element_layout_object->LocalToAbsoluteQuad(
            gfx::QuadF(element_layout_object->ObjectBoundingBox())));
      }
@@ -264,7 +264,7 @@ diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/
      return;
    }
  
-@@ -2081,6 +2082,10 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
+@@ -2101,6 +2102,10 @@ void Element::ClientQuads(Vector<gfx::QuadF>& quads) const {
        element_layout_object->IsBR()) {
      element_layout_object->AbsoluteQuads(quads);
    }
@@ -275,7 +275,7 @@ diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/
  }
  
  DOMRectList* Element::getClientRects() {
-@@ -2123,6 +2128,9 @@ gfx::RectF Element::GetBoundingClientRectNoLifecycleUpdate() const {
+@@ -2143,6 +2148,9 @@ gfx::RectF Element::GetBoundingClientRectNoLifecycleUpdate() const {
    DCHECK(element_layout_object);
    GetDocument().AdjustRectForScrollAndAbsoluteZoom(result,
                                                     *element_layout_object);
@@ -379,7 +379,7 @@ diff --git a/third_party/blink/renderer/core/html/canvas/text_metrics.h b/third_
 diff --git a/third_party/blink/renderer/core/svg/svg_graphics_element.cc b/third_party/blink/renderer/core/svg/svg_graphics_element.cc
 --- a/third_party/blink/renderer/core/svg/svg_graphics_element.cc
 +++ b/third_party/blink/renderer/core/svg/svg_graphics_element.cc
-@@ -189,6 +189,8 @@ SVGRectTearOff* SVGGraphicsElement::getBBoxFromJavascript() {
+@@ -187,6 +187,8 @@ SVGRectTearOff* SVGGraphicsElement::getBBoxFromJavascript() {
    if (const auto* layout_object = GetLayoutObject()) {
      bounding_box = GetBBox();
  
@@ -391,7 +391,7 @@ diff --git a/third_party/blink/renderer/core/svg/svg_graphics_element.cc b/third
 diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/third_party/blink/renderer/core/svg/svg_text_content_element.cc
 --- a/third_party/blink/renderer/core/svg/svg_text_content_element.cc
 +++ b/third_party/blink/renderer/core/svg/svg_text_content_element.cc
-@@ -114,11 +114,16 @@ float SVGTextContentElement::getComputedTextLength() {
+@@ -111,11 +111,16 @@ float SVGTextContentElement::getComputedTextLength() {
    GetDocument().UpdateStyleAndLayoutForNode(this,
                                              DocumentUpdateReason::kJavaScript);
    auto* layout_object = GetLayoutObject();
@@ -410,7 +410,7 @@ diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/t
  }
  
  float SVGTextContentElement::getSubStringLength(
-@@ -141,9 +146,13 @@ float SVGTextContentElement::getSubStringLength(
+@@ -138,9 +143,13 @@ float SVGTextContentElement::getSubStringLength(
      nchars = number_of_chars - charnum;
  
    auto* layout_object = GetLayoutObject();
@@ -426,7 +426,7 @@ diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/t
  }
  
  SVGPointTearOff* SVGTextContentElement::getStartPositionOfChar(
-@@ -165,6 +174,8 @@ SVGPointTearOff* SVGTextContentElement::getStartPositionOfChar(
+@@ -162,6 +171,8 @@ SVGPointTearOff* SVGTextContentElement::getStartPositionOfChar(
    if (IsNGTextOrInline(layout_object)) {
      point = NGSvgTextQuery(*layout_object).StartPositionOfCharacter(charnum);
    }
@@ -435,7 +435,7 @@ diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/t
    return SVGPointTearOff::CreateDetached(point);
  }
  
-@@ -187,6 +198,8 @@ SVGPointTearOff* SVGTextContentElement::getEndPositionOfChar(
+@@ -184,6 +195,8 @@ SVGPointTearOff* SVGTextContentElement::getEndPositionOfChar(
    if (IsNGTextOrInline(layout_object)) {
      point = NGSvgTextQuery(*layout_object).EndPositionOfCharacter(charnum);
    }
@@ -444,7 +444,7 @@ diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/t
    return SVGPointTearOff::CreateDetached(point);
  }
  
-@@ -209,6 +222,8 @@ SVGRectTearOff* SVGTextContentElement::getExtentOfChar(
+@@ -206,6 +219,8 @@ SVGRectTearOff* SVGTextContentElement::getExtentOfChar(
    if (IsNGTextOrInline(layout_object)) {
      rect = NGSvgTextQuery(*layout_object).ExtentOfCharacter(charnum);
    }
@@ -453,7 +453,7 @@ diff --git a/third_party/blink/renderer/core/svg/svg_text_content_element.cc b/t
    return SVGRectTearOff::CreateDetached(rect);
  }
  
-@@ -238,9 +253,12 @@ int SVGTextContentElement::getCharNumAtPosition(
+@@ -235,9 +250,12 @@ int SVGTextContentElement::getCharNumAtPosition(
    GetDocument().UpdateStyleAndLayoutForNode(this,
                                              DocumentUpdateReason::kJavaScript);
    auto* layout_object = GetLayoutObject();
@@ -478,7 +478,7 @@ diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_c
  #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
  #include "third_party/blink/renderer/platform/graphics/stroke_data.h"
  #include "third_party/blink/renderer/platform/graphics/video_frame_image_util.h"
-@@ -2145,6 +2146,10 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
+@@ -2184,6 +2185,10 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
            snapshot->PaintImageForCurrentFrame().GetSkImageInfo().bounds();
        DCHECK(!bounds.intersect(SkIRect::MakeXYWH(sx, sy, sw, sh)));
      }
@@ -540,7 +540,7 @@ diff --git a/third_party/blink/renderer/modules/canvas/offscreencanvas2d/offscre
 diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/renderer/platform/BUILD.gn
 --- a/third_party/blink/renderer/platform/BUILD.gn
 +++ b/third_party/blink/renderer/platform/BUILD.gn
-@@ -1650,7 +1650,9 @@ component("platform") {
+@@ -1656,7 +1656,9 @@ component("platform") {
      "//third_party/blink/renderer:non_test_config",
    ]
  
@@ -551,7 +551,7 @@ diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/re
  
    allow_circular_includes_from = [
      "//third_party/blink/renderer/platform/blob",
-@@ -1722,6 +1724,7 @@ component("platform") {
+@@ -1727,6 +1729,7 @@ component("platform") {
      "//third_party/blink/public/strings",
      "//third_party/blink/renderer/platform/wtf",
      "//third_party/ced",
@@ -795,7 +795,7 @@ diff --git a/third_party/blink/renderer/platform/graphics/static_bitmap_image.h 
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -2034,6 +2034,15 @@
+@@ -2060,6 +2060,15 @@
        status: {"Android": "test", "default": "stable"},
        base_feature: "none",
      },

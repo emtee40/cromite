@@ -38,7 +38,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_java_resources.gni
 --- a/chrome/android/chrome_java_resources.gni
 +++ b/chrome/android/chrome_java_resources.gni
-@@ -669,6 +669,8 @@ chrome_java_resources = [
+@@ -671,6 +671,8 @@ chrome_java_resources = [
    "java/res/xml/incognito_preferences.xml",
    "java/res/xml/privacy_preferences.xml",
    "java/res/xml/privacy_preferences_v2.xml",
@@ -50,7 +50,7 @@ diff --git a/chrome/android/chrome_java_resources.gni b/chrome/android/chrome_ja
 diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
 --- a/chrome/android/chrome_java_sources.gni
 +++ b/chrome/android/chrome_java_sources.gni
-@@ -964,6 +964,8 @@ chrome_java_sources = [
+@@ -955,6 +955,8 @@ chrome_java_sources = [
    "java/src/org/chromium/chrome/browser/privacy/settings/PrivacyPreferencesManagerImpl.java",
    "java/src/org/chromium/chrome/browser/privacy/settings/PrivacySettings.java",
    "java/src/org/chromium/chrome/browser/privacy/settings/IncognitoSettings.java",
@@ -177,10 +177,10 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/privacy/setting
      private static final String PREF_SAFE_BROWSING = "safe_browsing";
      private static final String PREF_SYNC_AND_SERVICES_LINK = "sync_and_services_link";
 +    private static final String PREF_REFERER_POLICY = "referers_policy";
-     private static final String PREF_CLEAR_BROWSING_DATA = "clear_browsing_data";
      private static final String PREF_PRIVACY_SANDBOX = "privacy_sandbox";
      private static final String PREF_PROXY_OPTIONS = "proxy";
-@@ -359,6 +361,10 @@ public class PrivacySettings extends PreferenceFragmentCompat
+     private static final String PREF_PRIVACY_GUIDE = "privacy_guide";
+@@ -358,6 +360,10 @@ public class PrivacySettings extends PreferenceFragmentCompat
                              : R.string.text_off);
          }
  
@@ -404,7 +404,7 @@ diff --git a/chrome/browser/renderer_preferences_util.cc b/chrome/browser/render
 diff --git a/chrome/browser/ui/android/strings/android_chrome_strings.grd b/chrome/browser/ui/android/strings/android_chrome_strings.grd
 --- a/chrome/browser/ui/android/strings/android_chrome_strings.grd
 +++ b/chrome/browser/ui/android/strings/android_chrome_strings.grd
-@@ -937,6 +937,30 @@ CHAR_LIMIT guidelines:
+@@ -969,6 +969,30 @@ CHAR_LIMIT guidelines:
  
  For example, some websites may respond to this request by showing you ads that aren’t based on other websites you’ve visited. Many websites will still collect and use your browsing data — for example to improve security, to provide content, ads and recommendations, and to generate reporting statistics.
        </message>
@@ -462,7 +462,7 @@ diff --git a/chrome/browser/ui/prefs/prefs_tab_helper.cc b/chrome/browser/ui/pre
 diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 --- a/chrome/common/pref_names.cc
 +++ b/chrome/common/pref_names.cc
-@@ -1341,6 +1341,9 @@ const char kEnableHyperlinkAuditing[] = "enable_a_ping";
+@@ -1362,6 +1362,9 @@ const char kEnableHyperlinkAuditing[] = "enable_a_ping";
  // Whether to enable sending referrers.
  const char kEnableReferrers[] = "enable_referrers";
  
@@ -475,7 +475,7 @@ diff --git a/chrome/common/pref_names.cc b/chrome/common/pref_names.cc
 diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 --- a/chrome/common/pref_names.h
 +++ b/chrome/common/pref_names.h
-@@ -413,6 +413,7 @@ extern const char kPinnedTabs[];
+@@ -415,6 +415,7 @@ extern const char kPinnedTabs[];
  extern const char kDisable3DAPIs[];
  extern const char kEnableHyperlinkAuditing[];
  extern const char kEnableReferrers[];
@@ -486,7 +486,7 @@ diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
 diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
 --- a/content/browser/renderer_host/navigation_request.cc
 +++ b/content/browser/renderer_host/navigation_request.cc
-@@ -413,6 +413,14 @@ void AddAdditionalRequestHeaders(
+@@ -390,6 +390,14 @@ void AddAdditionalRequestHeaders(
          blink::mojom::Referrer(GURL(), network::mojom::ReferrerPolicy::kNever);
    }
  

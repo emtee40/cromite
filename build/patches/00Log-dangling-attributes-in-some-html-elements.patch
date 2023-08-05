@@ -24,7 +24,7 @@ under enable-log-dangling-attributes about flag
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -5043,7 +5043,10 @@ const FeatureEntry kFeatureEntries[] = {
+@@ -5031,7 +5031,10 @@ const FeatureEntry kFeatureEntries[] = {
       flag_descriptions::kWebShareDescription, kOsWin | kOsCrOS | kOsMac,
       FEATURE_VALUE_TYPE(features::kWebShare)},
  #endif  // BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
@@ -39,7 +39,7 @@ diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink/renderer/core/dom/document.cc
 --- a/third_party/blink/renderer/core/dom/document.cc
 +++ b/third_party/blink/renderer/core/dom/document.cc
-@@ -4480,6 +4480,14 @@ void Document::ProcessBaseElement() {
+@@ -4512,6 +4512,14 @@ void Document::ProcessBaseElement() {
    KURL base_element_url;
    if (href) {
      String stripped_href = StripLeadingAndTrailingHTMLSpaces(*href);
@@ -54,7 +54,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
      if (!stripped_href.empty())
        base_element_url = KURL(FallbackBaseURL(), stripped_href);
    }
-@@ -4498,6 +4506,14 @@ void Document::ProcessBaseElement() {
+@@ -4530,6 +4538,14 @@ void Document::ProcessBaseElement() {
          !GetExecutionContext()->GetSecurityOrigin()->CanRequest(
              base_element_url)) {
        UseCounter::Count(*this, WebFeature::kBaseWithCrossOriginHref);
@@ -69,7 +69,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
      }
    }
  
-@@ -4517,6 +4533,8 @@ void Document::ProcessBaseElement() {
+@@ -4549,6 +4565,8 @@ void Document::ProcessBaseElement() {
      if (target->Contains('<'))
        UseCounter::Count(*this, WebFeature::kBaseWithOpenBracketInTarget);
      base_target_ = *target;
@@ -81,7 +81,7 @@ diff --git a/third_party/blink/renderer/core/dom/document.cc b/third_party/blink
 diff --git a/third_party/blink/renderer/core/dom/element.cc b/third_party/blink/renderer/core/dom/element.cc
 --- a/third_party/blink/renderer/core/dom/element.cc
 +++ b/third_party/blink/renderer/core/dom/element.cc
-@@ -2531,8 +2531,26 @@ void Element::StripScriptingAttributes(
+@@ -2564,8 +2564,26 @@ void Element::StripScriptingAttributes(
    attribute_vector.Shrink(destination);
  }
  
@@ -199,7 +199,7 @@ diff --git a/third_party/blink/renderer/core/html/html_frame_element_base.cc b/t
 diff --git a/third_party/blink/renderer/core/html/html_iframe_element.cc b/third_party/blink/renderer/core/html/html_iframe_element.cc
 --- a/third_party/blink/renderer/core/html/html_iframe_element.cc
 +++ b/third_party/blink/renderer/core/html/html_iframe_element.cc
-@@ -167,6 +167,12 @@ void HTMLIFrameElement::CollectStyleForPresentationAttribute(
+@@ -157,6 +157,12 @@ void HTMLIFrameElement::CollectStyleForPresentationAttribute(
    }
  }
  
@@ -212,7 +212,7 @@ diff --git a/third_party/blink/renderer/core/html/html_iframe_element.cc b/third
  void HTMLIFrameElement::ParseAttribute(
      const AttributeModificationParams& params) {
    const QualifiedName& name = params.name;
-@@ -181,6 +187,16 @@ void HTMLIFrameElement::ParseAttribute(
+@@ -171,6 +177,16 @@ void HTMLIFrameElement::ParseAttribute(
      }
      AtomicString old_name = name_;
      name_ = value;
@@ -254,9 +254,9 @@ diff --git a/third_party/blink/renderer/core/page/frame_tree.cc b/third_party/bl
  #include "third_party/blink/renderer/core/frame/frame_client.h"
  #include "third_party/blink/renderer/core/frame/local_dom_window.h"
  #include "third_party/blink/renderer/core/frame/local_frame.h"
-@@ -239,6 +242,19 @@ FrameTree::FindResult FrameTree::FindOrCreateFrameForNavigation(
-     LogDanglingMarkupHistogram(current_frame->GetDocument(), name);
-   }
+@@ -210,6 +213,19 @@ FrameTree::FindResult FrameTree::FindOrCreateFrameForNavigation(
+   if (request.GetNavigationPolicy() != kNavigationPolicyCurrentTab)
+     return FindResult(current_frame, false);
  
 +  if (ContainsNewLineAndLessThan(name)) {
 +    // if the name contains a \n or <, the search is always deactivated
@@ -277,7 +277,7 @@ diff --git a/third_party/blink/renderer/core/page/frame_tree.cc b/third_party/bl
 diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
 --- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
 +++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
-@@ -1493,8 +1493,8 @@
+@@ -1513,8 +1513,8 @@
        // Experiment with preventing some instances of mutation XSS
        // by escaping "<" and ">" in attribute values.
        // See: crbug.com/1175016
@@ -287,8 +287,8 @@ diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 
 +      status: "stable",
      },
      {
-       // Non-standard API Event.path. Should be replaced by Event.composedPath.
-@@ -2201,6 +2201,12 @@
+       name: "EventTimingInteractionCount",
+@@ -2212,6 +2212,12 @@
        // Use LongAnimationFrameMonitor to emit longtask entries
        name: "LongTaskFromLongAnimationFrame"
      },

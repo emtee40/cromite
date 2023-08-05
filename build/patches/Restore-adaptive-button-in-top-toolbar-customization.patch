@@ -21,14 +21,14 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSe
 --- a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
 @@ -45,6 +45,7 @@ import org.chromium.chrome.browser.signin.services.SigninManager;
- import org.chromium.chrome.browser.sync.SyncService;
+ import org.chromium.chrome.browser.sync.SyncServiceFactory;
  import org.chromium.chrome.browser.sync.settings.ManageSyncSettings;
  import org.chromium.chrome.browser.sync.settings.SyncSettingsUtils;
 +import org.chromium.chrome.browser.toolbar.adaptive.AdaptiveToolbarFeatures;
  import org.chromium.chrome.browser.toolbar.adaptive.AdaptiveToolbarStatePredictor;
  import org.chromium.chrome.browser.tracing.settings.DeveloperSettings;
  import org.chromium.components.browser_ui.settings.ChromeBasePreference;
-@@ -211,7 +212,9 @@ public class MainSettings extends PreferenceFragmentCompat
+@@ -212,7 +213,9 @@ public class MainSettings extends PreferenceFragmentCompat
  
          new AdaptiveToolbarStatePredictor(null).recomputeUiState(uiState -> {
              // We don't show the toolbar shortcut settings page if disabled from finch.
@@ -89,7 +89,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/share/ShareButt
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
 +++ b/chrome/browser/about_flags.cc
-@@ -625,18 +625,12 @@ const FeatureEntry::FeatureParam kAdaptiveButtonCustomization_Share[] = {
+@@ -632,18 +632,12 @@ const FeatureEntry::FeatureParam kAdaptiveButtonCustomization_Share[] = {
      {"default_segment", "share"},
      {"show_ui_only_after_ready", "false"},
      {"ignore_segmentation_results", "true"}};
@@ -191,7 +191,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
      /**
       * Returns whether the adaptive toolbar is enabled with segmentation and customization.
       *
-@@ -205,12 +231,49 @@ public class AdaptiveToolbarFeatures {
+@@ -205,11 +231,48 @@ public class AdaptiveToolbarFeatures {
                          ChromeFeatureList.CONTEXTUAL_PAGE_ACTIONS, "enable_ui", true);
      }
  
@@ -235,8 +235,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
       * Returns the default variant to be shown in segmentation experiment when the backend results
       * are unavailable or not configured.
       */
-     @AdaptiveToolbarButtonVariant
-     static int getSegmentationDefault() {
+     static @AdaptiveToolbarButtonVariant int getSegmentationDefault() {
 +        assert !isSingleVariantModeEnabled();
          assert isCustomizationEnabled();
          if (sButtonVariant != null) return sButtonVariant;
@@ -244,7 +243,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/adaptive/AdaptiveToolbarStatePredictor.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/adaptive/AdaptiveToolbarStatePredictor.java
 --- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/adaptive/AdaptiveToolbarStatePredictor.java
 +++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/adaptive/AdaptiveToolbarStatePredictor.java
-@@ -94,7 +94,12 @@ public class AdaptiveToolbarStatePredictor {
+@@ -93,7 +93,12 @@ public class AdaptiveToolbarStatePredictor {
  
          // Early return if the feature isn't enabled.
          if (!AdaptiveToolbarFeatures.isCustomizationEnabled()) {
