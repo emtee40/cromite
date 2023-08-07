@@ -8,18 +8,19 @@ to extract or send otherwise inaccessible information.
 under enable-log-dangling-attributes about flag
 ---
  chrome/browser/about_flags.cc                 |  5 ++++-
- .../blink/renderer/core/dom/document.cc       | 18 +++++++++++++++++
- .../blink/renderer/core/dom/element.cc        | 20 ++++++++++++++++++-
+ .../blink/renderer/core/dom/document.cc       | 18 +++++++++++++++
+ .../blink/renderer/core/dom/element.cc        | 20 ++++++++++++++++-
  third_party/blink/renderer/core/dom/element.h |  3 ++-
- .../editing/serializers/markup_formatter.cc   |  9 +++++++++
- .../renderer/core/html/html_base_element.cc   |  6 ++++++
+ .../editing/serializers/markup_formatter.cc   |  9 ++++++++
+ .../renderer/core/html/html_base_element.cc   |  6 +++++
  .../renderer/core/html/html_base_element.h    |  2 ++
- .../core/html/html_frame_element_base.cc      | 10 ++++++++++
- .../renderer/core/html/html_iframe_element.cc | 16 +++++++++++++++
+ .../core/html/html_frame_element_base.cc      | 10 +++++++++
+ .../renderer/core/html/html_iframe_element.cc | 16 ++++++++++++++
  .../renderer/core/html/html_iframe_element.h  |  2 ++
- .../blink/renderer/core/page/frame_tree.cc    | 16 +++++++++++++++
- .../platform/runtime_enabled_features.json5   | 10 ++++++++--
- 12 files changed, 112 insertions(+), 5 deletions(-)
+ .../core/loader/frame_load_request.cc         |  9 ++++++++
+ .../blink/renderer/core/page/frame_tree.cc    | 22 +++++++++++++++++++
+ .../platform/runtime_enabled_features.json5   | 10 +++++++--
+ 13 files changed, 127 insertions(+), 5 deletions(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
@@ -241,6 +242,32 @@ diff --git a/third_party/blink/renderer/core/html/html_iframe_element.h b/third_
   private:
    void SetCollapsed(bool) override;
  
+diff --git a/third_party/blink/renderer/core/loader/frame_load_request.cc b/third_party/blink/renderer/core/loader/frame_load_request.cc
+--- a/third_party/blink/renderer/core/loader/frame_load_request.cc
++++ b/third_party/blink/renderer/core/loader/frame_load_request.cc
+@@ -11,6 +11,7 @@
+ #include "third_party/blink/public/platform/web_url_request.h"
+ #include "third_party/blink/renderer/bindings/core/v8/capture_source_location.h"
+ #include "third_party/blink/renderer/core/events/current_input_event.h"
++#include "third_party/blink/renderer/core/inspector/console_message.h"
+ #include "third_party/blink/renderer/core/fileapi/public_url_manager.h"
+ #include "third_party/blink/renderer/core/frame/local_dom_window.h"
+ #include "third_party/blink/renderer/platform/bindings/dom_wrapper_world.h"
+@@ -134,6 +135,14 @@ const LocalFrameToken* FrameLoadRequest::GetInitiatorFrameToken() const {
+ const AtomicString& FrameLoadRequest::CleanNavigationTarget(
+     const AtomicString& target) const {
+   if (ContainsNewLineAndLessThan(target)) {
++    if (RuntimeEnabledFeatures::LogDanglingAttributesEnabled()) {
++      if (origin_window_->GetFrame() && origin_window_->GetFrame()->GetDocument()) {
++            origin_window_->GetFrame()->GetDocument()->AddConsoleMessage(MakeGarbageCollected<ConsoleMessage>(
++          mojom::ConsoleMessageSource::kSecurity,
++          mojom::ConsoleMessageLevel::kWarning,
++          "Bromite Dangling Markup Prevention: '" + target + "' is not allowed as navigation target"));
++      }
++    }
+     LogDanglingMarkupHistogram(origin_window_, target);
+     if (RuntimeEnabledFeatures::RemoveDanglingMarkupInTargetEnabled()) {
+       DEFINE_STATIC_LOCAL(const AtomicString, blank, ("_blank"));
 diff --git a/third_party/blink/renderer/core/page/frame_tree.cc b/third_party/blink/renderer/core/page/frame_tree.cc
 --- a/third_party/blink/renderer/core/page/frame_tree.cc
 +++ b/third_party/blink/renderer/core/page/frame_tree.cc
@@ -254,7 +281,20 @@ diff --git a/third_party/blink/renderer/core/page/frame_tree.cc b/third_party/bl
  #include "third_party/blink/renderer/core/frame/frame_client.h"
  #include "third_party/blink/renderer/core/frame/local_dom_window.h"
  #include "third_party/blink/renderer/core/frame/local_frame.h"
-@@ -210,6 +213,19 @@ FrameTree::FindResult FrameTree::FindOrCreateFrameForNavigation(
+@@ -42,6 +45,12 @@ namespace {
+ 
+ const unsigned kInvalidChildCount = ~0U;
+ 
++bool ContainsNewLineAndLessThan(const AtomicString& target) {
++  return (target.Contains('\n') || target.Contains('\r') ||
++          target.Contains('\t')) &&
++         target.Contains('<');
++}
++
+ }  // namespace
+ 
+ FrameTree::FrameTree(Frame* this_frame)
+@@ -210,6 +219,19 @@ FrameTree::FindResult FrameTree::FindOrCreateFrameForNavigation(
    if (request.GetNavigationPolicy() != kNavigationPolicyCurrentTab)
      return FindResult(current_frame, false);
  
