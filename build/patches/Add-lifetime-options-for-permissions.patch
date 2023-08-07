@@ -56,13 +56,14 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../one_time_permissions_tracker.cc           | 34 +++++++-
  .../one_time_permissions_tracker.h            |  5 +-
  .../one_time_permissions_tracker_factory.cc   |  2 +-
+ .../permission_prompt_bubble_base_view.cc     |  2 +-
  .../site_settings/PermissionInfo.java         | 14 +++-
  .../site_settings/SingleWebsiteSettings.java  | 10 +++
  .../WebsitePreferenceBridge.java              |  6 +-
  .../android/website_preference_bridge.cc      |  7 +-
  .../strings/android/browser_ui_strings.grd    |  5 ++
  components/content_settings/android/BUILD.gn  |  1 +
- .../core/browser/content_settings_utils.cc    | 29 +++++++
+ .../core/browser/content_settings_utils.cc    | 36 +++++++++
  .../core/browser/content_settings_utils.h     |  6 ++
  .../common/content_settings_constraints.h     | 11 +++
  .../page_info/PageInfoController.java         |  4 +-
@@ -86,7 +87,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/permissions/permission_request.h   | 18 ++++-
  .../permissions/permission_request_manager.cc | 45 +++++++----
  .../permissions/permission_request_manager.h  | 11 ++-
- 34 files changed, 515 insertions(+), 59 deletions(-)
+ 35 files changed, 523 insertions(+), 60 deletions(-)
 
 diff --git a/chrome/browser/permissions/last_tab_standing_tracker.cc b/chrome/browser/permissions/last_tab_standing_tracker.cc
 --- a/chrome/browser/permissions/last_tab_standing_tracker.cc
@@ -227,6 +228,18 @@ diff --git a/chrome/browser/permissions/one_time_permissions_tracker_factory.cc 
 -  return new OneTimePermissionsTracker();
 +  return new OneTimePermissionsTracker(context);
  }
+diff --git a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
+--- a/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
++++ b/chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.cc
+@@ -336,7 +336,7 @@ void PermissionPromptBubbleBaseView::RunButtonCallbacks(
+       delegate_->Accept();
+       return;
+     case PermissionDialogButton::kAcceptOnce:
+-      delegate_->AcceptThisTime();
++      delegate_->AcceptThisTime(content_settings::LifetimeMode::Always);
+       return;
+     case PermissionDialogButton::kDeny:
+       delegate_->Deny();
 diff --git a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
 --- a/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
 +++ b/components/browser_ui/site_settings/android/java/src/org/chromium/components/browser_ui/site_settings/PermissionInfo.java
@@ -352,7 +365,7 @@ diff --git a/components/browser_ui/site_settings/android/website_preference_brid
      insertionFunc(env, static_cast<int>(content_type), list,
                    ConvertOriginToJavaString(env, origin), jembedder,
 -                  /*is_embargoed=*/false);
-+                  /*is_embargoed=*/false, static_cast<int>(settings_it.metadata.session_model));
++                  /*is_embargoed=*/false, static_cast<int>(settings_it.metadata.session_model()));
    }
  
    // Add any origins which have a default content setting value (thus skipped
@@ -394,34 +407,41 @@ diff --git a/components/content_settings/android/BUILD.gn b/components/content_s
 diff --git a/components/content_settings/core/browser/content_settings_utils.cc b/components/content_settings/core/browser/content_settings_utils.cc
 --- a/components/content_settings/core/browser/content_settings_utils.cc
 +++ b/components/content_settings/core/browser/content_settings_utils.cc
-@@ -175,6 +175,35 @@ bool IsConstraintPersistent(const ContentSettingConstraints& constraints) {
+@@ -175,6 +175,42 @@ bool IsConstraintPersistent(const ContentSettingConstraints& constraints) {
    return constraints.session_model() == SessionModel::Durable;
  }
  
 +ContentSettingConstraints GetConstraintSessionExpiration(LifetimeMode lifetime_mode) {
++  int lifetime;
++  base::Time now;
 +  if (lifetime_mode == LifetimeMode::OnlyThisTime) {
 +    // note: this content settings will be discarded immediately
 +    // 1h is used as a magic constant to identify the one-time lifetime mode
-+    return {base::Time() + base::Hours(1), content_settings::SessionModel::UserSession};
++    lifetime = 1;
 +  } else if (lifetime_mode == LifetimeMode::UntilOriginClosed) {
-+    return {base::Time::Now() + base::Hours(24), content_settings::SessionModel::UserSession};
++    now = base::Time::Now();
++    lifetime = 24;
 +  } else {
-+    return {base::Time(), content_settings::SessionModel::UserSession};
++    lifetime = 0;
 +  }
++  content_settings::ContentSettingConstraints c(now);
++  c.set_lifetime(base::Hours(lifetime));
++  c.set_session_model(content_settings::SessionModel::UserSession);
++  return c;
 +}
 +
 +bool IsConstraintSessionExpiration(const ContentSettingPatternSource& source,
 +                                   LifetimeMode lifetime_mode) {
-+  if (source.metadata.session_model != content_settings::SessionModel::UserSession)
++  if (source.metadata.session_model() != content_settings::SessionModel::UserSession)
 +    return false;
 +
 +  LifetimeMode type;
-+  if (source.metadata.expiration == base::Time()) {
-+    type = LifetimeMode::UntilBrowserClosed;
-+  } else if (source.metadata.expiration == (base::Time() + base::Hours(1))) {
++  if (source.metadata.lifetime() == base::Hours(24)) {
++    type = LifetimeMode::UntilOriginClosed;
++  } else if (source.metadata.expiration() == (base::Time() + base::Hours(1))) {
 +    type = LifetimeMode::OnlyThisTime;
 +  } else {
-+    type = LifetimeMode::UntilOriginClosed;
++    type = LifetimeMode::UntilBrowserClosed;
 +  }
 +
 +  return lifetime_mode == type;
@@ -580,8 +600,8 @@ diff --git a/components/page_info/page_info.cc b/components/page_info/page_info.
    permission_info.source = info.source;
    permission_info.is_one_time = (info.metadata.session_model() ==
                                   content_settings::SessionModel::OneTime);
-+    permission_info.is_user_session =
-+        (info.metadata.session_model == content_settings::SessionModel::UserSession);
++  permission_info.is_user_session =
++      (info.metadata.session_model() == content_settings::SessionModel::UserSession);
  
    if (info.primary_pattern == ContentSettingsPattern::Wildcard() &&
        info.secondary_pattern == ContentSettingsPattern::Wildcard()) {
