@@ -18,7 +18,7 @@ The feature is controlled by a feature flag (default enabled)
  .../blink/renderer/core/events/mouse_event.h  | 19 ++++-
  .../renderer/core/events/pointer_event.h      | 11 +++
  .../renderer/core/exported/web_view_impl.cc   |  2 +-
- .../renderer/core/frame/local_dom_window.cc   | 32 +++++++-
+ .../renderer/core/frame/local_dom_window.cc   | 41 +++++++++-
  .../blink/renderer/core/frame/local_frame.cc  | 12 ++-
  .../blink/renderer/core/frame/local_frame.h   |  6 +-
  .../core/frame/screen_metrics_emulator.cc     | 18 ++++-
@@ -29,7 +29,7 @@ The feature is controlled by a feature flag (default enabled)
  third_party/blink/renderer/core/page/page.cc  | 76 +++++++++++++++++++
  third_party/blink/renderer/core/page/page.h   |  7 ++
  .../platform/runtime_enabled_features.json5   |  4 +-
- 22 files changed, 244 insertions(+), 21 deletions(-)
+ 22 files changed, 253 insertions(+), 21 deletions(-)
 
 diff --git a/chrome/browser/about_flags.cc b/chrome/browser/about_flags.cc
 --- a/chrome/browser/about_flags.cc
@@ -298,6 +298,22 @@ diff --git a/third_party/blink/renderer/core/frame/local_dom_window.cc b/third_p
    // TODO(japhet): window-open-noopener.html?_top and several tests in
    // html/browsers/windows/browsing-context-names/ appear to require that
    // the special case target names (_top, _parent, _self) ignore opener
+@@ -2333,6 +2359,15 @@ DOMWindow* LocalDOMWindow::openPictureInPictureWindow(
+   DCHECK(result.new_window);
+ 
+   result.frame->Navigate(frame_request, WebFrameLoadType::kStandard);
++
++  bool protection_enabled = base::FeatureList::IsEnabled(features::kViewportProtection);
++  protection_enabled |= GetFrame()->GetContentSettingsClient()->AllowContentSetting(
++      ContentSettingsType::VIEWPORT, false);
++  result.frame->GetPage()->CalculateEmulatedScreenSetting(
++    To<LocalFrame>(result.frame),
++    /*force*/ protection_enabled);
++  LOG(INFO) << "---protection_enabled " << protection_enabled;
++
+   LocalDOMWindow* pip_dom_window =
+       To<LocalDOMWindow>(result.frame->DomWindow());
+   pip_dom_window->SetIsPictureInPictureWindow();
 diff --git a/third_party/blink/renderer/core/frame/local_frame.cc b/third_party/blink/renderer/core/frame/local_frame.cc
 --- a/third_party/blink/renderer/core/frame/local_frame.cc
 +++ b/third_party/blink/renderer/core/frame/local_frame.cc
