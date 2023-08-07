@@ -1,0 +1,28 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Mon, 7 Aug 2023 11:02:18 +0000
+Subject: Allow DocumentPiP if PopupsAndRedirects are active
+
+Allow documentPiP api use only with content setting popup allowed
+---
+ .../picture_in_picture_controller_impl.cc                  | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/third_party/blink/renderer/modules/document_picture_in_picture/picture_in_picture_controller_impl.cc b/third_party/blink/renderer/modules/document_picture_in_picture/picture_in_picture_controller_impl.cc
+--- a/third_party/blink/renderer/modules/document_picture_in_picture/picture_in_picture_controller_impl.cc
++++ b/third_party/blink/renderer/modules/document_picture_in_picture/picture_in_picture_controller_impl.cc
+@@ -361,6 +361,13 @@ void PictureInPictureControllerImpl::CreateDocumentPictureInPictureWindow(
+     return;
+   }
+ 
++  if (!opener.GetFrame()->GetContentSettingsClient()->AllowPopupsAndRedirects(false)) {
++    exception_state.ThrowDOMException(DOMExceptionCode::kNotAllowedError,
++                                      "Document PiP requires user popup permission");
++    resolver->Reject(exception_state);
++    return;
++  }
++
+   WebPictureInPictureWindowOptions web_options;
+   web_options.width = options->width();
+   web_options.height = options->height();
+--
+2.25.1
