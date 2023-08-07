@@ -65,3 +65,14 @@ cd $WORKSPACE/
 wget https://github.com/clangd/clangd/releases/download/snapshot_20211205/clangd_indexing_tools-linux-snapshot_20211205.zip
 unzip clangd_indexing_tools-linux-snapshot_20211205.zip
 rm clangd_indexing_tools-linux-snapshot_20211205.zip
+
+echo -e ${RED} -------- download rc ${NC}
+cd $WORKSPACE/chromium/src
+third_party/depot_tools/download_from_google_storage.py	\
+						--no_resume	--no_auth \
+						--bucket chromium-browser-clang/rc \
+						-s build/toolchain/win/rc/linux64/rc.sha1
+
+echo -e ${RED} -------- download win clang prebuilds ${NC}
+cd $WORKSPACE/chromium/src
+tools/clang/scripts/update.py --package=clang --host-os=win --no-clear=true

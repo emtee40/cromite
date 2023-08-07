@@ -1,0 +1,72 @@
+From: uazo <uazo@users.noreply.github.com>
+Date: Mon, 7 Aug 2023 11:05:03 +0000
+Subject: allow the download of clang for windows crossbuild
+
+In the linux2win crossbuild some libraries are not checkout by default
+and launching tools/clang/scripts/update.py deletes by default the
+previous package.
+this patch bypasses the output directory deletion, allowing the windows
+toolchain to be downloaded on top of the android one
+---
+ tools/clang/scripts/update.py | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/tools/clang/scripts/update.py b/tools/clang/scripts/update.py
+--- a/tools/clang/scripts/update.py
++++ b/tools/clang/scripts/update.py
+@@ -12,6 +12,8 @@ near-tip-of-tree clang version:
+   $ curl -s https://raw.githubusercontent.com/chromium/chromium/main/tools/clang/scripts/update.py | python3 - --output-dir=/tmp/clang
+ 
+ (Note that the output dir may be deleted and re-created if it exists.)
++
++exec: tools/clang/scripts/update.py --package=clang --host-os=win --no-clear=true
+ """
+ 
+ import sys
+@@ -237,7 +239,7 @@ def DownloadAndUnpackClangWinRuntime(output_dir):
+     sys.exit(1)
+ 
+ 
+-def UpdatePackage(package_name, host_os, dir=LLVM_BUILD_DIR):
++def UpdatePackage(package_name, host_os, no_clear, dir=LLVM_BUILD_DIR):
+   stamp_file = None
+   package_file = None
+ 
+@@ -269,6 +271,8 @@ def UpdatePackage(package_name, host_os, dir=LLVM_BUILD_DIR):
+       target_os = env.get('target_os', target_os)
+     except:
+       pass
++  if host_os != "":
++    target_os = [ host_os ]
+ 
+   if os.path.exists(OLD_STAMP_FILE):
+     # Delete the old stamp file so it doesn't look like an old version of clang
+@@ -282,7 +286,7 @@ def UpdatePackage(package_name, host_os, dir=LLVM_BUILD_DIR):
+ 
+   # Updating the main clang package nukes the output dir. Any other packages
+   # need to be updated *after* the clang package.
+-  if package_name == 'clang' and os.path.exists(dir):
++  if not no_clear and (package_name == 'clang' and os.path.exists(dir)):
+     RmTree(dir)
+ 
+   DownloadAndUnpackPackage(package_file, dir, host_os)
+@@ -332,6 +336,8 @@ def main():
+                             'and exit.'))
+   parser.add_argument('--verify-version',
+                       help='Verify that clang has the passed-in version.')
++  parser.add_argument('--no-clear',
++                      help='Do not remove old file before extracting.')
+   args = parser.parse_args()
+ 
+   if args.verify_version and args.verify_version != RELEASE_VERSION:
+@@ -373,7 +379,7 @@ def main():
+     print('--llvm-force-head-revision can only be used for --print-revision')
+     return 1
+ 
+-  return UpdatePackage(args.package, args.host_os, output_dir)
++  return UpdatePackage(args.package, args.host_os, args.no_clear, output_dir)
+ 
+ 
+ if __name__ == '__main__':
+--
+2.25.1
