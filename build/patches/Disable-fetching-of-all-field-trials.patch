@@ -19,12 +19,12 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../variations/net/variations_http_headers.cc |  3 ++
  .../service/variations_field_trial_creator.cc |  3 +-
  .../variations/service/variations_service.cc  | 15 ++-------
- .../browser/loader/url_loader_throttles.cc    |  2 --
+ .../browser/loader/url_loader_throttles.cc    |  7 ----
  .../origin_trials/origin_trials_utils.cc      |  2 +-
  content/public/common/content_features.cc     |  4 +--
  .../variations_render_thread_observer.cc      |  9 ------
  .../renderer/core/loader/document_loader.cc   |  7 ----
- 17 files changed, 26 insertions(+), 71 deletions(-)
+ 17 files changed, 26 insertions(+), 76 deletions(-)
 
 diff --git a/android_webview/nonembedded/BUILD.gn b/android_webview/nonembedded/BUILD.gn
 --- a/android_webview/nonembedded/BUILD.gn
@@ -262,6 +262,18 @@ diff --git a/content/browser/loader/url_loader_throttles.cc b/content/browser/lo
  
    ClientHintsControllerDelegate* client_hint_delegate =
        browser_context->GetClientHintsControllerDelegate();
+@@ -128,11 +126,6 @@ CreateContentBrowserURLLoaderThrottlesForKeepAlive(
+       GetContentClient()->browser()->CreateURLLoaderThrottlesForKeepAlive(
+           request, browser_context, wc_getter, frame_tree_node_id);
+   variations::OmniboxURLLoaderThrottle::AppendThrottleIfNeeded(&throttles);
+-  // TODO(crbug.com/1094303): Consider whether we want to use the WebContents to
+-  // determine the value for variations::Owner. Alternatively, this is the
+-  // browser side, and we might be fine with Owner::kUnknown.
+-  variations::VariationsURLLoaderThrottle::AppendThrottleIfNeeded(
+-      browser_context->GetVariationsClient(), &throttles);
+ 
+   return throttles;
+ }
 diff --git a/content/browser/origin_trials/origin_trials_utils.cc b/content/browser/origin_trials/origin_trials_utils.cc
 --- a/content/browser/origin_trials/origin_trials_utils.cc
 +++ b/content/browser/origin_trials/origin_trials_utils.cc

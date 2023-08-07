@@ -6,7 +6,7 @@ Reverses single tap to long tap in android for accessibility reasons.
 The feature can be activated from the accessibility settings.
 ---
  chrome/android/java/res/values/ids.xml        |  1 +
- .../ChromeAccessibilitySettingsDelegate.java  | 18 +++++++++++
+ .../ChromeAccessibilitySettingsDelegate.java  | 18 ++++++++++
  .../contextmenu/ChromeContextMenuItem.java    |  5 ++-
  .../ChromeContextMenuPopulator.java           |  5 +++
  .../tab/TabContextMenuItemDelegate.java       |  8 +++++
@@ -16,19 +16,19 @@ The feature can be activated from the accessibility settings.
  chrome/browser/flag_descriptions.h            |  3 ++
  .../flags/android/chrome_feature_list.cc      |  1 +
  .../browser/flags/ChromeFeatureList.java      |  5 +++
- .../strings/android_chrome_strings.grd        |  9 ++++++
+ .../strings/android_chrome_strings.grd        |  9 +++++
  .../res/xml/accessibility_preferences.xml     |  5 +++
- .../accessibility/AccessibilitySettings.java  | 11 +++++++
+ .../accessibility/AccessibilitySettings.java  | 11 ++++++
  .../AccessibilitySettingsDelegate.java        |  2 ++
  third_party/blink/common/features.cc          |  4 +++
  third_party/blink/public/common/features.h    |  2 ++
- .../renderer/core/html/html_anchor_element.cc | 12 ++++++-
- .../renderer/core/html/html_anchor_element.h  |  2 +-
- .../renderer/core/html/html_image_element.cc  | 17 ++++++++++
+ .../renderer/core/html/html_anchor_element.cc | 35 +++++++++++++++----
+ .../renderer/core/html/html_anchor_element.h  |  9 +++--
+ .../renderer/core/html/html_image_element.cc  | 17 +++++++++
  .../renderer/core/html/html_image_element.h   |  2 ++
- .../core/page/context_menu_controller.cc      | 32 +++++++++++++------
+ .../core/page/context_menu_controller.cc      | 32 ++++++++++++-----
  .../core/page/context_menu_controller.h       |  5 +--
- 23 files changed, 146 insertions(+), 14 deletions(-)
+ 23 files changed, 170 insertions(+), 20 deletions(-)
 
 diff --git a/chrome/android/java/res/values/ids.xml b/chrome/android/java/res/values/ids.xml
 --- a/chrome/android/java/res/values/ids.xml
@@ -365,7 +365,25 @@ diff --git a/third_party/blink/renderer/core/html/html_anchor_element.cc b/third
  #include "third_party/blink/renderer/core/page/page.h"
  #include "third_party/blink/renderer/core/speculation_rules/document_speculation_rules.h"
  #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
-@@ -489,6 +490,15 @@ void HTMLAnchorElement::NavigateToHyperlink(ResourceRequest request,
+@@ -436,6 +437,17 @@ void HTMLAnchorElement::NavigateToHyperlink(ResourceRequest request,
+                                             bool is_trusted,
+                                             base::TimeTicks platform_time_stamp,
+                                             KURL completed_url) {
++  UIEvent& event = *UIEvent::Create();
++  NavigateToHyperlink2(std::move(request), navigation_policy, is_trusted, platform_time_stamp,
++    std::move(completed_url), event, true);
++}
++
++void HTMLAnchorElement::NavigateToHyperlink2(ResourceRequest request,
++                                            NavigationPolicy navigation_policy,
++                                            bool is_trusted,
++                                            base::TimeTicks platform_time_stamp,
++                                            KURL completed_url,
++                                            Event& event, bool do_not_show_context_menu) {
+   LocalDOMWindow* window = GetDocument().domWindow();
+   if (!window) {
+     return;
+@@ -489,6 +501,15 @@ void HTMLAnchorElement::NavigateToHyperlink(ResourceRequest request,
              /*element=*/this));
    }
  
@@ -381,7 +399,7 @@ diff --git a/third_party/blink/renderer/core/html/html_anchor_element.cc b/third
    Frame* target_frame =
        frame->Tree().FindOrCreateFrameForNavigation(frame_request, target).frame;
  
-@@ -508,7 +518,7 @@ void HTMLAnchorElement::NavigateToHyperlink(ResourceRequest request,
+@@ -508,7 +529,7 @@ void HTMLAnchorElement::NavigateToHyperlink(ResourceRequest request,
    }
  }
  
@@ -390,6 +408,34 @@ diff --git a/third_party/blink/renderer/core/html/html_anchor_element.cc b/third
    event.SetDefaultHandled();
  
    LocalDOMWindow* window = GetDocument().domWindow();
+@@ -607,12 +628,12 @@ void HTMLAnchorElement::HandleClick(Event& event) {
+   }
+ 
+   NavigationPolicy navigation_policy = NavigationPolicyFromEvent(&event);
+-  base::OnceClosure navigate_closure = WTF::BindOnce(
+-      &HTMLAnchorElement::NavigateToHyperlink, WrapWeakPersistent(this),
+-      std::move(request), navigation_policy, event.isTrusted(),
+-      event.PlatformTimeStamp(), std::move(completed_url));
+ 
+   if (navigation_policy == kNavigationPolicyDownload) {
++    base::OnceClosure navigate_closure = WTF::BindOnce(
++        &HTMLAnchorElement::NavigateToHyperlink, WrapWeakPersistent(this),
++        std::move(request), navigation_policy, event.isTrusted(),
++        event.PlatformTimeStamp(), std::move(completed_url));
+     // If Alt is held down it will force a download, however, wait to see if
+     // this is an alt-double-click which should instead select the text of the
+     // link.
+@@ -624,7 +645,9 @@ void HTMLAnchorElement::HandleClick(Event& event) {
+     frame->GetEventHandler().SetDownloadModifierTaskHandle(
+         std::move(task_handle));
+   } else {
+-    std::move(navigate_closure).Run();
++    HTMLAnchorElement::NavigateToHyperlink2(std::move(request), navigation_policy,
++      event.isTrusted(), event.PlatformTimeStamp(), std::move(completed_url),
++      event, do_not_show_context_menu);
+   }
+ }
+ 
 diff --git a/third_party/blink/renderer/core/html/html_anchor_element.h b/third_party/blink/renderer/core/html/html_anchor_element.h
 --- a/third_party/blink/renderer/core/html/html_anchor_element.h
 +++ b/third_party/blink/renderer/core/html/html_anchor_element.h
@@ -401,11 +447,22 @@ diff --git a/third_party/blink/renderer/core/html/html_anchor_element.h b/third_
  
   protected:
    void ParseAttribute(const AttributeModificationParams&) override;
-@@ -127,7 +128,6 @@ class CORE_EXPORT HTMLAnchorElement : public HTMLElement, public DOMURLUtils {
+@@ -122,12 +123,16 @@ class CORE_EXPORT HTMLAnchorElement : public HTMLElement, public DOMURLUtils {
+   bool IsInteractiveContent() const final;
+   InsertionNotificationRequest InsertedInto(ContainerNode&) override;
+   void RemovedFrom(ContainerNode&) override;
++  void NavigateToHyperlink2(ResourceRequest,
++                           NavigationPolicy,
++                           bool is_trusted,
++                           base::TimeTicks platform_time_stamp,
++                           KURL, Event&, bool do_not_show_context_menu);
+   void NavigateToHyperlink(ResourceRequest,
+                            NavigationPolicy,
                             bool is_trusted,
                             base::TimeTicks platform_time_stamp,
-                            KURL);
+-                           KURL);
 -  void HandleClick(Event&);
++                           KURL completed_url);
  
    unsigned link_relations_ : 31;
    mutable LinkHash cached_visited_link_hash_;

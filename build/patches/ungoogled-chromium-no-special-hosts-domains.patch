@@ -11,7 +11,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../android/metrics/uma_session_stats.cc      |  10 -
  .../android/signin/signin_manager_android.cc  |  27 +-
  chrome/browser/browser_process_impl.cc        |   1 -
- .../browser/chrome_content_browser_client.cc  |  35 --
+ .../browser/chrome_content_browser_client.cc  |  35 +-
  .../domain_reliability/service_factory.cc     |  33 +-
  chrome/browser/extensions/BUILD.gn            |   1 -
  .../log_sources/chrome_internal_log_source.cc |   5 -
@@ -58,7 +58,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  content/public/common/content_features.cc     |  12 +-
  net/base/url_util.cc                          |  21 --
  services/network/network_context.cc           |   2 +-
- 51 files changed, 61 insertions(+), 804 deletions(-)
+ 51 files changed, 64 insertions(+), 801 deletions(-)
 
 diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
 --- a/chrome/browser/BUILD.gn
@@ -191,15 +191,29 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    if (auto* throttle_manager =
            subresource_filter::ContentSubresourceFilterThrottleManager::
                FromNavigationHandle(*handle)) {
-@@ -5594,20 +5587,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
-         GetPrerenderCanceler(wc_getter)));
-   }
+@@ -5514,7 +5507,8 @@ GetClientDataHeader(int frame_tree_node_id) {
+ }
+ #endif
  
--#if BUILDFLAG(IS_ANDROID)
--  auto [client_data_header, is_custom_tab] =
--      GetClientDataHeader(frame_tree_node_id);
--#endif
--
+-std::unique_ptr<blink::URLLoaderThrottle> CreateGoogleURLLoaderThrottle(
++
++#if 0 // std::unique_ptr<blink::URLLoaderThrottle> CreateGoogleURLLoaderThrottle(
+ #if BUILDFLAG(IS_ANDROID)
+     const std::string& client_data_header,
+ #endif
+@@ -5553,7 +5547,7 @@ std::unique_ptr<blink::URLLoaderThrottle> CreateGoogleURLLoaderThrottle(
+       std::move(bound_session_request_throttled_listener),
+ #endif
+       std::move(dynamic_params));
+-}
++#endif // }
+ 
+ std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
+ ChromeContentBrowserClient::CreateURLLoaderThrottles(
+@@ -5599,15 +5593,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottles(
+       GetClientDataHeader(frame_tree_node_id);
+ #endif
+ 
 -  if (auto google_throttle = CreateGoogleURLLoaderThrottle(
 -#if BUILDFLAG(IS_ANDROID)
 -          client_data_header,
@@ -212,7 +226,7 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
    {
      auto* factory =
          ProtocolHandlerRegistryFactory::GetForBrowserContext(browser_context);
-@@ -5661,20 +5640,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottlesForKeepAlive(
+@@ -5661,20 +5646,6 @@ ChromeContentBrowserClient::CreateURLLoaderThrottlesForKeepAlive(
    }
  #endif
  

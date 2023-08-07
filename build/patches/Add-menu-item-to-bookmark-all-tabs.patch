@@ -8,7 +8,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../chrome/browser/ChromeTabbedActivity.java  | 24 ++++++++
  .../browser/bookmarks/BookmarkBridge.java     | 61 +++++++++++++++++++
  .../browser/bookmarks/BookmarkUtils.java      |  4 ++
- .../bookmarks/android/bookmark_bridge.cc      | 17 ++++++
+ .../bookmarks/android/bookmark_bridge.cc      | 19 +++++-
  .../bookmarks/android/bookmark_bridge.h       |  4 ++
  .../browser/bookmarks/bookmark_html_writer.cc |  8 ++-
  .../bookmarks/chrome_bookmark_client.cc       |  2 +
@@ -25,7 +25,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  components/bookmarks/browser/bookmark_node.h  |  5 ++
  components/bookmarks/browser/model_loader.cc  |  3 +-
  .../bookmark_specifics_conversions.cc         |  1 +
- 21 files changed, 200 insertions(+), 10 deletions(-)
+ 21 files changed, 201 insertions(+), 11 deletions(-)
 
 diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/res/menu/main_menu.xml
 --- a/chrome/android/java/res/menu/main_menu.xml
@@ -229,7 +229,14 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/bookmarks/Bookm
 diff --git a/chrome/browser/bookmarks/android/bookmark_bridge.cc b/chrome/browser/bookmarks/android/bookmark_bridge.cc
 --- a/chrome/browser/bookmarks/android/bookmark_bridge.cc
 +++ b/chrome/browser/bookmarks/android/bookmark_bridge.cc
-@@ -476,6 +476,11 @@ void BookmarkBridge::GetTopLevelFolderIds(
+@@ -470,12 +470,17 @@ void BookmarkBridge::GetTopLevelFolderIds(
+   std::size_t special_count = top_level_folders.size();
+ 
+   if (get_normal) {
+-    DCHECK_EQ(4u, bookmark_model_->root_node()->children().size());
++    DCHECK_EQ(5u, bookmark_model_->root_node()->children().size());
+     for (const auto& node : bookmark_model_->mobile_node()->children()) {
+       if (node->is_folder())
          top_level_folders.push_back(node.get());
      }
  

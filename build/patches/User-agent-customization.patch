@@ -24,7 +24,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../chromium/chrome/browser/tab/TabUtils.java |  24 ++-
  .../browser/android/content/content_utils.cc  |  28 +++
  .../preferences/browser_prefs_android.cc      |   7 +
- .../privacy_preferences_manager_impl.cc       | 125 ++++++++++++
+ .../privacy_preferences_manager_impl.cc       | 124 ++++++++++++
  .../preferences/ChromePreferenceKeys.java     |   5 +
  .../settings/PrivacyPreferencesManager.java   |   8 +
  .../org/chromium/chrome/browser/tab/Tab.java  |   2 +
@@ -41,7 +41,7 @@ License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
  .../browser/web_contents/web_contents_impl.cc |   4 +
  .../framehost/NavigationControllerImpl.java   |   3 +-
  content/renderer/render_thread_impl.cc        |   1 -
- 31 files changed, 763 insertions(+), 16 deletions(-)
+ 31 files changed, 762 insertions(+), 16 deletions(-)
  create mode 100644 chrome/android/java/res/layout/custom_useragent_preferences.xml
  create mode 100644 chrome/android/java/res/xml/useragent_preferences.xml
  create mode 100644 chrome/android/java/src/org/chromium/chrome/browser/settings/UserAgentPreferences.java
@@ -593,7 +593,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
  
              mContentView.addOnAttachStateChangeListener(mAttachStateChangeListener);
              updateInteractableState();
-@@ -1620,6 +1657,10 @@ public class TabImpl implements Tab {
+@@ -1621,6 +1658,10 @@ public class TabImpl implements Tab {
              if (mWebContents != null) mWebContents.getNavigationController().loadIfNecessary();
              mIsBeingRestored = true;
              for (TabObserver observer : mObservers) observer.onRestoreStarted(this);
@@ -604,7 +604,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
          } finally {
              TraceEvent.end("Tab.restoreIfNeeded");
          }
-@@ -1756,6 +1797,13 @@ public class TabImpl implements Tab {
+@@ -1757,6 +1798,13 @@ public class TabImpl implements Tab {
      }
  
      private @UserAgentOverrideOption int calculateUserAgentOverrideOption(@Nullable GURL url) {
@@ -618,7 +618,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.jav
          WebContents webContents = getWebContents();
          boolean currentRequestDesktopSite = TabUtils.isUsingDesktopUserAgent(webContents);
          @TabUserAgent
-@@ -1821,6 +1869,43 @@ public class TabImpl implements Tab {
+@@ -1822,6 +1870,43 @@ public class TabImpl implements Tab {
                  /* forcedByUser */ false, caller);
      }
  
@@ -807,7 +807,7 @@ diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl
  static jboolean JNI_PrivacyPreferencesManagerImpl_IsMetricsReportingEnabled(
      JNIEnv* env) {
    PrefService* local_state = g_browser_process->local_state();
-@@ -34,3 +60,102 @@ JNI_PrivacyPreferencesManagerImpl_IsMetricsReportingDisabledByPolicy(
+@@ -34,3 +60,101 @@ JNI_PrivacyPreferencesManagerImpl_IsMetricsReportingDisabledByPolicy(
               metrics::prefs::kMetricsReportingEnabled) &&
           !local_state->GetBoolean(metrics::prefs::kMetricsReportingEnabled);
  }
@@ -833,9 +833,8 @@ diff --git a/chrome/browser/android/preferences/privacy_preferences_manager_impl
 +      if (iter.GetCurrentValue()->IsInitializedAndNotDead()) {
 +        std::vector<std::string> cors_exempt_header_list;
 +        iter.GetCurrentValue()->GetRendererInterface()->InitializeRenderer(
-+          /*user_agent*/ ua, /*full_user_agent*/ ua, /*reduced_user_agent*/ ua,
-+          /*metadata*/ blink::UserAgentMetadata(), cors_exempt_header_list,
-+          content::AttributionManager::GetSupport(),
++          /*user_agent*/ ua, /*metadata*/ blink::UserAgentMetadata(),
++          cors_exempt_header_list, content::AttributionManager::GetSupport(),
 +          g_browser_process->GetOriginTrialsSettingsStorage()->GetSettings());
 +      }
 +    }
