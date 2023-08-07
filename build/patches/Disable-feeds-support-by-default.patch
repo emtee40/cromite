@@ -4,9 +4,11 @@ Subject: Disable feeds support by default
 
 License: GPL-3.0-only - https://spdx.org/licenses/GPL-3.0-only.html
 ---
- .../org/chromium/chrome/browser/feed/FeedFeatures.java    | 8 +-------
- components/feed/feed_feature_list.cc                      | 8 ++++----
- 2 files changed, 5 insertions(+), 11 deletions(-)
+ .../chromium/chrome/browser/feed/FeedFeatures.java  |  8 +-------
+ chrome/browser/prefs/browser_prefs.cc               |  4 ++--
+ components/feed/core/common/pref_names.cc           | 13 +------------
+ components/feed/feed_feature_list.cc                |  8 ++++----
+ 4 files changed, 8 insertions(+), 25 deletions(-)
 
 diff --git a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java b/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
 --- a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/feed/FeedFeatures.java
@@ -26,6 +28,45 @@ diff --git a/chrome/browser/feed/android/java/src/org/chromium/chrome/browser/fe
      }
  
      public static boolean shouldUseWebFeedAwarenessIPH() {
+diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -1682,10 +1682,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+   supervised_user::SupervisedUserService::RegisterProfilePrefs(registry);
+ #endif
+ 
+-#if BUILDFLAG(ENABLE_FEED_V2)
++//#if BUILDFLAG(ENABLE_FEED_V2)
+   feed::prefs::RegisterFeedSharedProfilePrefs(registry);
+   feed::RegisterProfilePrefs(registry);
+-#endif
++//#endif
+ 
+ #if BUILDFLAG(IS_ANDROID)
+   cdm::MediaDrmStorageImpl::RegisterProfilePrefs(registry);
+diff --git a/components/feed/core/common/pref_names.cc b/components/feed/core/common/pref_names.cc
+--- a/components/feed/core/common/pref_names.cc
++++ b/components/feed/core/common/pref_names.cc
+@@ -105,18 +105,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+ }
+ 
+ void MigrateObsoleteProfilePrefsOct_2022(PrefService* prefs) {
+-  const base::Value* val =
+-      prefs->GetUserPrefValue(prefs::kExperimentsDeprecated);
+-  const base::Value::Dict* old = val ? val->GetIfDict() : nullptr;
+-  if (old) {
+-    base::Value::Dict dict;
+-    for (const auto kv : *old) {
+-      base::Value::List list;
+-      list.Append(kv.second.GetString());
+-      dict.Set(kv.first, std::move(list));
+-    }
+-    prefs->SetDict(feed::prefs::kExperimentsV2, std::move(dict));
+-  }
++  prefs->ClearPref(feed::prefs::kExperimentsV2);
+   prefs->ClearPref(prefs::kExperimentsDeprecated);
+ }
+ 
 diff --git a/components/feed/feed_feature_list.cc b/components/feed/feed_feature_list.cc
 --- a/components/feed/feed_feature_list.cc
 +++ b/components/feed/feed_feature_list.cc
